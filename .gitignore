@@ -1,0 +1,13 @@
+# Windows binaries
+*.exe
+*.dll
+
+
+# QtCreator project user settings
+*.user
+*.suo
+*.ncb
+
+# Objects
+*.o
+*.obj
