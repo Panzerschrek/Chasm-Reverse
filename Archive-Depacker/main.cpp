@@ -87,7 +87,7 @@ int main(const int argc, const char* const argv[])
 			if( i < argc - 1 )
 				out_dir= argv[ i + 1 ];
 			else
-				std::cout << "Error, expected directory, after -i" << std::endl;
+				std::cout << "Error, expected directory, after -o" << std::endl;
 		}
 	}
 
