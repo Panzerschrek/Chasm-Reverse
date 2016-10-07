@@ -1,0 +1,20 @@
+Snacala zapuskajetsä CHASM.EXE
+Jesli jestj toljko etot fajl, to nicego ne pišetsä
+
+Zatem, jesli jestj fajl PS10.EXE, startujet on, no pišet, cto netu DPMI16BI.OVL
+
+Potom on trebujet "RTM.EXE"
+
+Daleje proishodit ocistka ekrana i pišetsä, cto ne najden fajl "menu.txt"
+Jesli dobavitk fajl "CSM.BIN", to zagruzka idöt daljše.
+
+Potom idöt padenije na popytke zagruzitj "CHASM.CFG".
+
+Daleje, zagruzka idöt normaljno, igra rabotajet.
+
+Itogo, dlä raboty nužny fajly:
+  CHASM.EXE
+  PS10.EXE
+  RTM.EXE
+  CSM.BIN
+  CHASM.CFG

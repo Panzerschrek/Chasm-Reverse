@@ -1,0 +1,31 @@
+CHASM.ICO 
+ obycnaja ikonka windows
+ 
+CHASM.EXE
+ ispolnäjemyj fajl DOS v formate MZ
+ 
+DPMI16BI.OVL
+ cto-to pohožeje na rasširitelj DOS, iduscij v komplekte s Turbo-Pascal
+ 
+MPLAYNOW.EXE
+ Ispolnäjemyj fajl Windows v formate PE
+
+PS10.EXE
+
+RTM.EXE
+
+CHASM.CFG
+
+CHASM.DEF
+
+CHASM.PIF 
+ jarlyk DOS-programmy dlä Windows
+
+CSM.BIN 
+ ocenj boljšoj fajl razmerom v 64'513'482 bajt. Zdesj, predpoložiteljno, ležat vse igrovyje dannyje.
+ 
+README.TXT
+ rukovodstvo
+ 
+WB.INI 
+ kakoj-to nastrojecnyj fajl

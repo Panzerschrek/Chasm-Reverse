@@ -1,0 +1,32 @@
+Fajl vyglädit prostym binarnokom.
+Jesli prosmatrivatj fajl v šestnadçatiricnom redaktore s širinoj stroki v 21 bajt, to vidno, cto nacalo fajla sostoit iz rovnoj gruppy strok.
+
+Každaja "stroka" nacinajetsä s bajta, so znacenijem, ravnym dline stroki. Ocenj pohože, cto eto Pascal-string.
+Ocenj pohože, cto na konçe takih strok k tomuže stoit '\0'.
+
+Nacalo fajla pohože na tabliçu struktur vida:
+
+struct File
+{
+	unsigned char name_length;
+	char name [12]; // name for 8.3 format
+	unsigned char field1[4];
+	unsigned char field2[4];
+};
+
+Bajt field2[2] sudä po vidu nepreryvno uvelicivajetsä. Pohože, cto pole 2 javläjetsä nekim smescenijem.
+Jesli vospoljzovatjsä field2 kak smescenijem ot nacala fajla dlä nekoj zapisi, vida "smth.wav", možno najti v etom meste nabor bajt, vida "RIFF (  WAVEfmt", cto dejstviteljno, ocenj pohože na zagolovok formata WAV.
+
+Znacit, field2 - navernäka "smescenije". A field1, ocenj pohože, cto razmer.
+
+struct File
+{
+	unsigned char name_length;
+	char name [12]; // name for 8.3 format
+	unsigned int length;
+	unsigned int offset;
+};
+
+
+V nacale fajla pered pervoj zapisju v tabliçu fajlov jestj 6 bajt - stroka "Csid" i dva bajta 89 07. 
+Esli eti dva bajta scitatj 16-bitnym cislom i umnožitj eto cislo na razmer zapisi tabliçy fajlov, to možno najti koneç etoj tabliçy. I dejstvoiteljno, po smesceniju 0x0789 * 0x15 tabliça fajlov koncajetsä.
