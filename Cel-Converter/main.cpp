@@ -80,7 +80,7 @@ void WriteTGA(
 
 	tga.colormap_index= 0;
 	tga.colormap_length= 256;
-	tga.colormap_size= 24;
+	tga.colormap_size= 32;
 
 	tga.x_origin= 0;
 	tga.y_origin= 0;
@@ -89,6 +89,7 @@ void WriteTGA(
 
 	tga.pixel_bits= 8;
 	tga.attributes= 1 << 5; // vertical flip flag
+	tga.attributes|= 8; // bits in alpha-channell
 
 	std::FILE* file= std::fopen( file_name, "wb" );
 	if( file == nullptr )
@@ -99,13 +100,16 @@ void WriteTGA(
 
 	FileWrite( file, &tga, sizeof(tga) );
 
-	unsigned char palette_rb_swapped[ 256 * 3 ];
+	unsigned char palette_rb_swapped[ 256 * 4 ];
 	for( unsigned int i= 0; i < 256; i++ )
 	{
-		palette_rb_swapped[ i * 3 + 0 ]= palette[ i * 3 + 2 ];
-		palette_rb_swapped[ i * 3 + 1 ]= palette[ i * 3 + 1 ];
-		palette_rb_swapped[ i * 3 + 2 ]= palette[ i * 3 + 0 ];
+		palette_rb_swapped[ i * 4 + 0 ]= palette[ i * 3 + 2 ];
+		palette_rb_swapped[ i * 4 + 1 ]= palette[ i * 3 + 1 ];
+		palette_rb_swapped[ i * 4 + 2 ]= palette[ i * 3 + 0 ];
+		palette_rb_swapped[ i * 4 + 3 ]= 255;
 	}
+	palette_rb_swapped[255 * 4 + 3]= 0;
+
 
 	FileWrite( file, palette_rb_swapped, sizeof(palette_rb_swapped) );
 	FileWrite( file, data, width * height );
