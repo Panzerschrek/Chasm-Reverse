@@ -5,8 +5,10 @@
 
 # QtCreator project user settings
 *.user
-*.suo
-*.ncb
+
+# QtCreator builds
+build-*
+
 
 # Objects
 *.o
