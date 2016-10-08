@@ -17,3 +17,8 @@ V nacale takih fajlov ocenj mnogo ASCII-simvolov '#', kotoryje inogda preryvajut
 V každom map.xx fajle jestj blok podobnyh simvolov razmerom v 98304 bajt (0x18000).
 Eto pohože na nekuju tabliçu razmerom 256x384 (256x384 == 98304 ).
 
+Pri popytke preobrazovatj dannyje iz nacala map.xx fajla v TGA vyjasnilosj vot cto:
+  * Realjnyj razmer massiva v nacale - 256x256.
+  * V etom massive soderžitsä cto-to vrode svetovoj karty. Po krajnej mere v nekotoryh bitah.
+    Eto vidno po gladkosti izmenäjuscegosä çveta v mestah na urovne, gde jestj fonari.
+
