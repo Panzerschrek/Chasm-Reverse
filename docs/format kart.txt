@@ -8,6 +8,7 @@ i tak daleje. Vsego takih naborov fajlov 16. Urovnej v igre tože 16.
 Pohože, cto nabor fajlov predstavläjet soboj dannyje urovnä. script.xx fajl jestj dlä urovnä ne vsegda.
 
 Fajly vida process.xx predstavläjut soboj ASCII s zapisämi, pohožimi na kakoj-to sçenarij.
+Ocenj pohožimi na process.xx vyglädät fajly script.xx.
 
 Fajly vide resource.xx predstavläjut soboj ASCII s opisanijem resursov urovnä,
 perecislenijem tekstur, zvukov, modelej, animaçij.
