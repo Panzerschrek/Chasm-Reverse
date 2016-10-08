@@ -4,6 +4,9 @@
 #include <iostream>
 #include <vector>
 
+#include "../Common/files.hpp"
+using namespace ChasmReverse;
+
 // TODO - detect byte order
 #define LittleInt2(x) (x)
 #define LittleInt4(x) (x)
@@ -37,34 +40,6 @@ static void DepackFileInfo( const FileInfoPacked& file_info_packed, FileInfo& ou
 
 	out_file_info.size  = LittleInt4( out_file_info.size   );
 	out_file_info.offset= LittleInt4( out_file_info.offset );
-}
-
-static void FileRead( std::FILE* const file, void* buffer, const unsigned int size )
-{
-	unsigned int read_total= 0u;
-
-	do
-	{
-		const int read= std::fread( buffer, 1, size, file );
-		if( read <= 0 )
-			break;
-
-		read_total+= read;
-	} while( read_total < size );
-}
-
-static void FileWrite( std::FILE* const file, const void* buffer, const unsigned int size )
-{
-	unsigned int write_total= 0u;
-
-	do
-	{
-		const int write= std::fwrite( buffer, 1, size, file );
-		if( write <= 0 )
-			break;
-
-		write_total+= write;
-	} while( write_total < size );
 }
 
 int main(const int argc, const char* const argv[])

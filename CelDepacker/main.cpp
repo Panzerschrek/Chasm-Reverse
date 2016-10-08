@@ -3,6 +3,9 @@
 #include <iostream>
 #include <vector>
 
+#include "../Common/files.hpp"
+using namespace ChasmReverse;
+
 #pragma pack(push, 1)
 
 struct Header
@@ -37,34 +40,6 @@ struct TGAHeader
 static_assert( sizeof(TGAHeader) == 18, "Invalid size" );
 
 #pragma pack(pop)
-
-static void FileRead( std::FILE* const file, void* buffer, const unsigned int size )
-{
-	unsigned int read_total= 0u;
-
-	do
-	{
-		const int read= std::fread( buffer, 1, size, file );
-		if( read <= 0 )
-			break;
-
-		read_total+= read;
-	} while( read_total < size );
-}
-
-static void FileWrite( std::FILE* const file, const void* buffer, const unsigned int size )
-{
-	unsigned int write_total= 0u;
-
-	do
-	{
-		const int write= std::fwrite( buffer, 1, size, file );
-		if( write <= 0 )
-			break;
-
-		write_total+= write;
-	} while( write_total < size );
-}
 
 void WriteTGA(
 	const unsigned short width, const unsigned short height,
