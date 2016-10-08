@@ -1,0 +1,19 @@
+﻿V arhive s igroj jestj nabor fajlov, vida
+
+floors.01 map.01 process.01 resource.01 script.01
+floors.02 map.02 process.02 resource.02 script.02
+floors.02 map.03 process.03 resource.03 script.03
+
+i tak daleje. Vsego takih naborov fajlov 16. Urovnej v igre tože 16.
+Pohože, cto nabor fajlov predstavläjet soboj dannyje urovnä. script.xx fajl jestj dlä urovnä ne vsegda.
+
+Fajly vida process.xx predstavläjut soboj ASCII s zapisämi, pohožimi na kakoj-to sçenarij.
+
+Fajly vide resource.xx predstavläjut soboj ASCII s opisanijem resursov urovnä,
+perecislenijem tekstur, zvukov, modelej, animaçij.
+
+Vse fajly vida map.xx imejut shodnyj razmer - okolo 157 - 160 kilobajt.
+V nacale takih fajlov ocenj mnogo ASCII-simvolov '#', kotoryje inogda preryvajutsä drugimi bajtami.
+V každom map.xx fajle jestj blok podobnyh simvolov razmerom v 98304 bajt (0x18000).
+Eto pohože na nekuju tabliçu razmerom 256x384 (256x384 == 98304 ).
+
