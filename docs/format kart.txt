@@ -22,3 +22,6 @@ Pri popytke preobrazovatj dannyje iz nacala map.xx fajla v TGA vyjasnilosj vot c
   * V etom massive soderžitsä cto-to vrode svetovoj karty. Po krajnej mere v nekotoryh bitah.
     Eto vidno po gladkosti izmenäjuscegosä çveta v mestah na urovne, gde jestj fonari.
 
+Po smesceniju 0x23000 v map.xx fajle soderžitsä 4 tabliçy razmerom 64x64, ocenj napominajuscije
+ strukturu urovnä. Eti tabliçy vyglädät perevörbutymi otnositeljno osi XY.
+

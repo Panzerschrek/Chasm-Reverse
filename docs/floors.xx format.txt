@@ -1,0 +1,14 @@
+﻿Fajly vida floors.xx predstavläjut soboj nabor tekstur 64x64.
+
+Fajl sostoit iz:
+* 64 bajta zagolovka. Predpoložiteljno eto kakije-to flagi každoj tekstury.
+
+* 64 tekstury pola. Každaja tekstura zanimajet 64 * 86 bajt.
+  Každaja tekstura hranitsä kak palitrovoje izobraženije 64x64 i 3 mip-urovnä 32x32, 16x16, 8x8.
+  Dannyje mip-urovnej hranätsä posledovateljno.
+
+Na tekstury vydeleno vsego 64 * 86 = 5504 bajt, iz nih zanäto 64^2 + 32^2 + 16^2 + 8^2 = 5440 bajt.
+Ostajotsä jescö 5504 - 5440 = 64 bajta. Ne isvestno, jestj li v etih bajtah cto-to osmyslennoje
+i jesli jestj, to cto eto.
+
+Palitru dlä çvetov možno vzätj v fajle CHASM2.PAL.
