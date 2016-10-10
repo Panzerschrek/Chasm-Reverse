@@ -23,6 +23,17 @@ Pri popytke preobrazovatj dannyje iz nacala map.xx fajla v TGA vyjasnilosj vot c
   * V etom massive soderžitsä cto-to vrode svetovoj karty. Po krajnej mere v nekotoryh bitah.
     Eto vidno po gladkosti izmenäjuscegosä çveta v mestah na urovne, gde jestj fonari.
 
+Po smesceniju 0x10000 v map.xx fajle soderžitsä tože kakaja-to informaçija o svete.
+Eto tabliça razmerom 512x64. Plan urovenä rastänut na dva pikselä po gorizontali i sžat na cetyre
+pikselä po vertikali.
+
+Po smesceniju 0x18000 v map.xx fajle soderžitsä tabliça 64x64 s razmerov elementa v 11 bajt.
+Predpoložiteljno, eto kakije-to dannyje sten.
+
 Po smesceniju 0x23000 v map.xx fajle soderžitsä 4 tabliçy razmerom 64x64, ocenj napominajuscije
  strukturu urovnä. Eti tabliçy vyglädät perevörbutymi otnositeljno osi XY.
 
+V pervoj tabliçe (smescenije 0x23000) hranitsä, predpoložiteljno, nomer tektury potolka.
+Vo vtoroj tabliçe (smescenijee 0x24000) hranitsä, predpoložiteljno, nomer tekstury pola.
+
+V cetvörtoj tabliçe (smescenije 0x26000) hranitsä cto-to, obsceje dlä çelyh zon urovnej. Ocenj pohože, cto eto karta fonovyh zvukov.
