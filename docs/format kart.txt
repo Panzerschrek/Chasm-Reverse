@@ -56,6 +56,8 @@ struct WallData
 };
 #pragma pack(pop)
 
+pole unknown[1] ocenj pohože na "razmer" steny iz redaktora. V nöm pocti vsegda vstrecautsä toljko znacenija 0,64, 128.
+
 
 Po smesceniju 0x23000 v map.xx fajle soderžitsä 4 tabliçy razmerom 64x64, ocenj napominajuscije
  strukturu urovnä. Eti tabliçy vyglädät perevörbutymi otnositeljno osi XY.
