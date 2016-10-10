@@ -30,6 +30,33 @@ pikselä po vertikali.
 Po smesceniju 0x18000 v map.xx fajle soderžitsä tabliça 64x64 s razmerov elementa v 11 bajt.
 Predpoložiteljno, eto kakije-to dannyje sten.
 
+Bajty 4 i  8 zapisi tabliçy ocenj pohoži na Y koordinatu.
+Bajty 6 i 10 zapisi tabliçy ocenj pohoži na X koordinatu.
+
+Pri izucenii redaktora urovnej byli vyjasneny sledujuscije fakty pro steny:
+  * Stena možet bytj razmerom 64 ili 128.
+  * Steta imejet urovenj "temnoty" ot 0 do 15.
+  * Stena imejet dve tocki, svobodno razmescajuscijesä v prostrasnstve.
+  * Nesmoträ na otnositeljnuju svobodnostj koordinat, stena priväzyvajetsä k opredelönnoj kletke.
+  * Cerez to že menü sten dobavläjutsä monstry, predmety, spawn.
+  * Dlä monstrov i predmetov zadajotsä napravlenije.
+  * Monstry, vrode, ne zanimajut mesto v kletke. Modeli i predmety zanimajut kletku ili jejo soseda.
+
+Ishodä iz etih faktov, možno scitatj, cto bajty 4, 8, 6, 10 zapisi javläjutsä staršymi v "short" koordinatah tocek steny.
+Tojestj, zapisj imejet primernuju strukturu, vida:
+
+#pragma pack(push, 1)
+struct WallData
+{
+	unsigned char unknown[3];
+	unsigned char x0_low, x0_height; // Vozmožno, cto eto 1 "short" a ne 2 "unsigned char"
+	unsigned char y0_low, y0_height;
+	unsigned char x1_low, x1_height;
+	unsigned char y1_low, y1_height;
+};
+#pragma pack(pop)
+
+
 Po smesceniju 0x23000 v map.xx fajle soderžitsä 4 tabliçy razmerom 64x64, ocenj napominajuscije
  strukturu urovnä. Eti tabliçy vyglädät perevörbutymi otnositeljno osi XY.
 
