@@ -80,21 +80,26 @@ Vfs::~Vfs()
 Vfs::FileContent Vfs::ReadFile( const char* file_name ) const
 {
 	FileContent result;
+	ReadFile( file_name, result );
+	return result;
+}
 
+void Vfs::ReadFile( const char* file_name, FileContent& out_file_content ) const
+{
 	// TODO - sort virtual_files_ and use binary search
 	for( const VirtualFile& file : virtual_files_ )
 	{
 		if( !StringEquals( file.name, file_name, 12 ) )
 			continue;
 
-		result.resize( file.size );
+		out_file_content.resize( file.size );
 		std::fseek( archive_file_, file.offset, SEEK_SET );
-		FileRead( archive_file_, result.data(), result.size() );
+		FileRead( archive_file_, out_file_content.data(), out_file_content.size() );
 
-		break;
+		return;
 	}
 
-	return result;
+	out_file_content.clear();
 }
 
 } // namespace ChasmReverse

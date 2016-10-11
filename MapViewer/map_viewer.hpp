@@ -28,6 +28,17 @@ private:
 	};
 
 private:
+	void LoadFloorsTextures(
+		const Vfs::FileContent& floors_file,
+		const unsigned char* palette );
+
+	void LoadWallsTextures(
+		const Vfs& vfs,
+		unsigned int map_number,
+		const unsigned char* palette,
+		bool* out_textures_exist_flags );
+
+private:
 	r_Texture lightmap_;
 
 	GLuint floor_textures_array_id_= ~0;

@@ -15,6 +15,7 @@ public:
 	~Vfs();
 
 	FileContent ReadFile( const char* file_name ) const;
+	void ReadFile( const char* file_name, FileContent& out_file_content ) const;
 
 private:
 	struct VirtualFile

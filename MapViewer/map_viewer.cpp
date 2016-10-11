@@ -113,43 +113,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	const Vfs::FileContent palette= vfs->ReadFile( "CHASM2.PAL" );
 
 	std::snprintf( map_file_name, sizeof(map_file_name), "FLOORS.%02u", map_number );
-	const Vfs::FileContent floors_file= vfs->ReadFile( map_file_name );
-
-	glGenTextures( 1, &floor_textures_array_id_ );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
-	glTexImage3D(
-		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
-		g_floor_texture_size, g_floor_texture_size, g_floor_textures_in_level,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
-
-	for( unsigned int t= 0u; t < g_floor_textures_in_level; t++ )
-	{
-		const unsigned char* const in_data=
-			floors_file.data() + g_floors_file_header_size + g_bytes_per_floor_in_file * t;
-
-		unsigned char texture_data[ 4u * g_floor_texture_texels ];
-
-		for( unsigned int i= 0u; i < g_floor_texture_texels; i++ )
-		{
-			const unsigned char color_index= in_data[i];
-			for( unsigned int j= 0; j < 3u; j++ )
-				texture_data[ (i << 2u) + j ]= palette[ color_index * 3u + j ] << 2u;
-			texture_data[ (i << 2u) + 3 ]= 255;
-		}
-
-		glTexSubImage3D(
-			GL_TEXTURE_2D_ARRAY, 0,
-			0, 0, t,
-			g_floor_texture_size, g_floor_texture_size, 1,
-			GL_RGBA, GL_UNSIGNED_BYTE,
-			texture_data );
-
-	} // for textures
-
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
-
+	LoadFloorsTextures( vfs->ReadFile( map_file_name ), palette.data() );
 
 	std::snprintf( map_file_name, sizeof(map_file_name), "MAP.%02u", map_number );
 	const Vfs::FileContent map_file= vfs->ReadFile( map_file_name );
@@ -222,70 +186,8 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	}
 
 	// Walls textures
-	WallsTexturesNames walls_textures_names;
-	LoadWallsTexturesNames( *vfs, map_number, walls_textures_names );
-
-	glGenTextures( 1, &wall_textures_array_id_ );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	glTexImage3D(
-		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
-		g_max_wall_texture_width, g_wall_texture_height, g_max_wall_textures,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
-
-	for( unsigned int t= 0u; t < g_max_wall_textures; t++ )
-	{
-		if( walls_textures_names[t][0] == '\0' )
-			continue;
-
-		const Vfs::FileContent texture_file= vfs->ReadFile( walls_textures_names[t] );
-		if( texture_file.empty() )
-			continue;
-
-		unsigned char texture_data[ g_max_wall_texture_width * g_wall_texture_height * 4u ];
-
-		// TODO - check and discard incorrect textures
-		unsigned short src_width, src_height;
-		std::memcpy( &src_width , texture_file.data() + 0x2u, sizeof(unsigned short) );
-		std::memcpy( &src_height, texture_file.data() + 0x4u, sizeof(unsigned short) );
-
-		const unsigned char* const src= texture_file.data() + 0x320u;
-
-		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
-		{
-			const unsigned int y_flipped= g_wall_texture_height - 1u - y;
-
-			for( unsigned int x= 0u; x < src_width; x++ )
-			{
-				const unsigned int color_index= src[ x + y_flipped * src_width ];
-				const unsigned int i= ( x + y * g_max_wall_texture_width ) << 2;
-
-				for( unsigned int j= 0u; j < 3u; j++ )
-					texture_data[ i + j ]= palette[ color_index * 3u + j ] << 2;
-
-				texture_data[ i + 3u ]= color_index == 255u ? 0u : 255u;
-			}
-
-			const unsigned int repeats= g_max_wall_texture_width / src_width;
-			unsigned char* const line= texture_data + g_max_wall_texture_width * 4u * y;
-			for( unsigned int r= 1u; r < repeats; r++ )
-				std::memcpy(
-					line + r * src_width * 4u,
-					line,
-					src_width * 4u );
-		}
-
-		glTexSubImage3D(
-			GL_TEXTURE_2D_ARRAY, 0,
-			0, 0, t,
-			g_max_wall_texture_width, g_wall_texture_height, 1,
-			GL_RGBA, GL_UNSIGNED_BYTE,
-			texture_data );
-
-	} // for wall textures
-
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+	bool wall_texture_exist[ g_max_wall_textures ];
+	LoadWallsTextures( *vfs, map_number, palette.data(), wall_texture_exist );
 
 	// Load walls geometry
 	std::vector<WallVertex> walls_vertices;
@@ -297,7 +199,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
 
 		if( map_wall.texture_id >= 128u ||
-			walls_textures_names[ map_wall.texture_id ][0u] == '\0' )
+			!wall_texture_exist[ map_wall.texture_id ] )
 			continue;
 
 		if( !( map_wall.wall_size == 64u || map_wall.wall_size == 128u ) )
@@ -405,6 +307,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 MapViewer::~MapViewer()
 {
 	glDeleteTextures( 1, &floor_textures_array_id_ );
+	glDeleteTextures( 1, &wall_textures_array_id_ );
 }
 
 void MapViewer::Draw( const m_Mat4& view_matrix )
@@ -451,6 +354,124 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			floors_geometry_info[z].first_vertex_number,
 			floors_geometry_info[z].vertex_count );
 	}
+}
+
+void MapViewer::LoadFloorsTextures(
+	const Vfs::FileContent& floors_file,
+	const unsigned char* const palette )
+{
+	glGenTextures( 1, &floor_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		g_floor_texture_size, g_floor_texture_size, g_floor_textures_in_level,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+
+	for( unsigned int t= 0u; t < g_floor_textures_in_level; t++ )
+	{
+		const unsigned char* const in_data=
+			floors_file.data() + g_floors_file_header_size + g_bytes_per_floor_in_file * t;
+
+		unsigned char texture_data[ 4u * g_floor_texture_texels ];
+
+		for( unsigned int i= 0u; i < g_floor_texture_texels; i++ )
+		{
+			const unsigned char color_index= in_data[i];
+			for( unsigned int j= 0; j < 3u; j++ )
+				texture_data[ (i << 2u) + j ]= palette[ color_index * 3u + j ] << 2u;
+			texture_data[ (i << 2u) + 3 ]= 255;
+		}
+
+		glTexSubImage3D(
+			GL_TEXTURE_2D_ARRAY, 0,
+			0, 0, t,
+			g_floor_texture_size, g_floor_texture_size, 1,
+			GL_RGBA, GL_UNSIGNED_BYTE,
+			texture_data );
+
+	} // for textures
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+}
+
+void MapViewer::LoadWallsTextures(
+	const Vfs& vfs,
+	const unsigned int map_number,
+	const unsigned char* const palette,
+	bool* const out_textures_exist_flags )
+{
+	WallsTexturesNames walls_textures_names;
+	LoadWallsTexturesNames( vfs, map_number, walls_textures_names );
+
+	glGenTextures( 1, &wall_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		g_max_wall_texture_width, g_wall_texture_height, g_max_wall_textures,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+
+	Vfs::FileContent texture_file;
+
+	for( unsigned int t= 0u; t < g_max_wall_textures; t++ )
+	{
+		if( walls_textures_names[t][0] == '\0' )
+		{
+			out_textures_exist_flags[t]= false;
+			continue;
+		}
+		out_textures_exist_flags[t]= true;
+
+		vfs.ReadFile( walls_textures_names[t], texture_file );
+		if( texture_file.empty() )
+			continue;
+
+		unsigned char texture_data[ g_max_wall_texture_width * g_wall_texture_height * 4u ];
+
+		// TODO - check and discard incorrect textures
+		unsigned short src_width, src_height;
+		std::memcpy( &src_width , texture_file.data() + 0x2u, sizeof(unsigned short) );
+		std::memcpy( &src_height, texture_file.data() + 0x4u, sizeof(unsigned short) );
+
+		const unsigned char* const src= texture_file.data() + 0x320u;
+
+		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
+		{
+			const unsigned int y_flipped= g_wall_texture_height - 1u - y;
+
+			for( unsigned int x= 0u; x < src_width; x++ )
+			{
+				const unsigned int color_index= src[ x + y_flipped * src_width ];
+				const unsigned int i= ( x + y * g_max_wall_texture_width ) << 2;
+
+				for( unsigned int j= 0u; j < 3u; j++ )
+					texture_data[ i + j ]= palette[ color_index * 3u + j ] << 2;
+
+				texture_data[ i + 3u ]= color_index == 255u ? 0u : 255u;
+			}
+
+			const unsigned int repeats= g_max_wall_texture_width / src_width;
+			unsigned char* const line= texture_data + g_max_wall_texture_width * 4u * y;
+			for( unsigned int r= 1u; r < repeats; r++ )
+				std::memcpy(
+					line + r * src_width * 4u,
+					line,
+					src_width * 4u );
+		}
+
+		glTexSubImage3D(
+			GL_TEXTURE_2D_ARRAY, 0,
+			0, 0, t,
+			g_max_wall_texture_width, g_wall_texture_height, 1,
+			GL_RGBA, GL_UNSIGNED_BYTE,
+			texture_data );
+
+	} // for wall textures
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 }
 
 } // namespace ChasmReverse
