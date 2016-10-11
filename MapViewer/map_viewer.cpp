@@ -1,4 +1,5 @@
-#include <iostream>
+#include <cstring>
+
 #include <shaders_loading.hpp>
 
 #include "map_viewer.hpp"
@@ -49,6 +50,54 @@ struct MapWall
 #pragma pack(pop)
 
 SIZE_ASSERT( MapWall, 11u );
+
+typedef std::array<char[16], 256> WallsTexturesNames;
+
+void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTexturesNames& out_names )
+{
+	char resource_file_name[16];
+	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
+
+	Vfs::FileContent resource_file= vfs.ReadFile( resource_file_name );
+	resource_file.push_back( '\0' ); // make happy string functions
+
+	// Very complex stuff here.
+	// TODO - use parser.
+
+	for( char* const file_name : out_names )
+		file_name[0]= '\0';
+
+	const char* const gfx_section= std::strstr( reinterpret_cast<char*>( resource_file.data() ), "#GFX" );
+	const char* stream= gfx_section + std::strlen( "#GFX" );
+
+	while( *stream != '\n' ) stream++;
+	stream++;
+
+	do
+	{
+		if( std::strncmp( stream, "#end", 4u ) == 0 )
+			break;
+
+		const unsigned int texture_slot= std::atoi( stream );
+
+		while( *stream != ':' ) stream++;
+		stream++;
+
+		while( std::isspace( *stream ) ) stream++;
+
+		char* dst= out_names[ texture_slot ];
+		while( !std::isspace( *stream ) )
+		{
+			*dst= *stream;
+			dst++; stream++;
+		}
+		*dst= '\0';
+
+		while( *stream != '\n' ) stream++;
+		stream++;
+	}
+	while( 1 );
+}
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 {
@@ -230,6 +279,10 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			2, 1, GL_UNSIGNED_BYTE,
 			((char*)&v.texture_id) - ((char*)&v) );
 	}
+
+	// Walls textures
+	WallsTexturesNames walls_textures_names;
+	LoadWallsTexturesNames( *vfs, map_number, walls_textures_names );
 
 	// Shaders
 	{

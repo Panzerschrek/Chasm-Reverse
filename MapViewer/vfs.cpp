@@ -77,7 +77,7 @@ Vfs::~Vfs()
 		std::fclose( archive_file_ );
 }
 
-Vfs::FileContent Vfs::ReadFile( const char* file_name )
+Vfs::FileContent Vfs::ReadFile( const char* file_name ) const
 {
 	FileContent result;
 
