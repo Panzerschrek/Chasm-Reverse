@@ -40,7 +40,8 @@ struct WallVertex
 	float tex_coord_x;
 	unsigned short xyz[3]; // 8.8 fixed
 	unsigned char texture_id;
-	unsigned char reserved[5];
+	char normal[2];
+	unsigned char reserved[3];
 };
 
 SIZE_ASSERT( WallVertex, 16u );
@@ -246,12 +247,22 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
 
-		const float wall_length= (
+		const m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
-			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1])) ).Length();
+			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1]));
+		const float wall_vec_length= wall_vec.Length();
 
 		v[0].tex_coord_x= v[2].tex_coord_x= 0.0f;
-		v[1].tex_coord_x= v[3].tex_coord_x= wall_length / ( 256.0f * 2.0f );
+		v[1].tex_coord_x= v[3].tex_coord_x= wall_vec_length / ( 256.0f * 2.0f );
+
+		const int normal[2]= {
+			int( +126.5f * wall_vec.y / wall_vec_length ),
+			int( -126.5f * wall_vec.x / wall_vec_length ) };
+		for( unsigned int j= 0u; j < 4u; j++ )
+		{
+			v[j].normal[0]= normal[0];
+			v[j].normal[1]= normal[1];
+		}
 
 		walls_indeces.resize( walls_indeces.size() + 6u );
 		unsigned short* const ind= walls_indeces.data() + walls_indeces.size() - 6u;
@@ -288,6 +299,10 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		walls_geometry_.VertexAttribPointerInt(
 			2, 1, GL_UNSIGNED_BYTE,
 			((char*)&v.texture_id) - ((char*)&v) );
+
+		walls_geometry_.VertexAttribPointer(
+			3, 2, GL_BYTE, true,
+			((char*)v.normal) - ((char*)&v) );
 	}
 
 	// Walls textures
@@ -363,19 +378,22 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		char lightmap_scale[32];
 		std::snprintf( lightmap_scale, sizeof(lightmap_scale), "LIGHTMAP_SCALE %f", 1.0f / float(g_map_size) );
 
+		const std::vector<std::string> defines{ lightmap_scale };
+
 		floors_shader_.ShaderSource(
 			rLoadShader( "floors_f.glsl", glsl_version ),
-			rLoadShader( "floors_v.glsl", glsl_version, { lightmap_scale } ) );
+			rLoadShader( "floors_v.glsl", glsl_version, defines ) );
 		floors_shader_.SetAttribLocation( "pos", 0u );
 		floors_shader_.SetAttribLocation( "tex_id", 1u );
 		floors_shader_.Create();
 
 		walls_shader_.ShaderSource(
 			rLoadShader( "walls_f.glsl", glsl_version ),
-			rLoadShader( "walls_v.glsl", glsl_version ) );
+			rLoadShader( "walls_v.glsl", glsl_version, defines ) );
 		walls_shader_.SetAttribLocation( "pos", 0u );
 		walls_shader_.SetAttribLocation( "tex_coord_x", 1u );
 		walls_shader_.SetAttribLocation( "tex_id", 2u );
+		walls_shader_.SetAttribLocation( "normal", 3u );
 		walls_shader_.Create();
 	}
 }
@@ -392,7 +410,10 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
+	lightmap_.Bind(1);
+
 	walls_shader_.Uniform( "tex", int(0) );
+	walls_shader_.Uniform( "lightmap", int(1) );
 
 	{
 		m_Mat4 scale_mat;
