@@ -73,6 +73,8 @@ Vfs::Vfs( const char* archive_file_name )
 
 Vfs::~Vfs()
 {
+	if( archive_file_ != nullptr )
+		std::fclose( archive_file_ );
 }
 
 Vfs::FileContent Vfs::ReadFile( const char* file_name )
