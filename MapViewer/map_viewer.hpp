@@ -52,6 +52,10 @@ private:
 
 	// 0 - ceiling, 1 - floor
 	FloorGeometryInfo floors_geometry_info[2];
+
+	r_GLSLProgram models_shader_;
+	r_PolygonBuffer test_model_geometry_;
+	r_Texture test_model_texture_;
 };
 
 } // namespace ChasmReverse

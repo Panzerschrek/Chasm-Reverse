@@ -2,6 +2,8 @@
 
 #include <shaders_loading.hpp>
 
+#include "model.hpp"
+
 #include "map_viewer.hpp"
 
 namespace ChasmReverse
@@ -301,6 +303,57 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		walls_shader_.SetAttribLocation( "tex_id", 2u );
 		walls_shader_.SetAttribLocation( "normal", 3u );
 		walls_shader_.Create();
+
+		models_shader_.ShaderSource(
+			rLoadShader( "models_f.glsl", glsl_version ),
+			rLoadShader( "models_v.glsl", glsl_version ) );
+		models_shader_.SetAttribLocation( "pos", 0u );
+		models_shader_.SetAttribLocation( "tex_coord", 1u );
+		models_shader_.Create();
+	}
+
+	// Test model
+	Model model;
+	LoadModel( vfs->ReadFile( "table1.3o" ), model );
+
+	{
+		std::vector<unsigned char> texture_rgba( model.texture_data.size() * 4u );
+
+		for( unsigned int i= 0u; i < model.texture_data.size(); i++ )
+		{
+			const unsigned char color_index= model.texture_data[i];
+			for( unsigned int j= 0u; j < 3u; j++ )
+				texture_rgba[ i * 4u + j ]= palette[ color_index * 3u + j ] << 2u;
+		}
+
+		test_model_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				model.texture_size[0], model.texture_size[1],
+				texture_rgba.data() );
+
+		test_model_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+		test_model_texture_.BuildMips();
+
+		test_model_geometry_.VertexData(
+			model.vertices.data(),
+			model.vertices.size() * sizeof(Model::Vertex),
+			sizeof(Model::Vertex) );
+
+		test_model_geometry_.IndexData(
+			model.regular_triangles_indeces.data(),
+			model.regular_triangles_indeces.size() * sizeof(unsigned short),
+			GL_UNSIGNED_SHORT,
+			GL_TRIANGLES );
+
+		Model::Vertex v;
+		test_model_geometry_.VertexAttribPointer(
+			0, 3, GL_FLOAT, false,
+			((char*)v.pos) - ((char*)&v) );
+
+		test_model_geometry_.VertexAttribPointer(
+			1, 3, GL_FLOAT, false,
+			((char*)&v.tex_coord) - ((char*)&v) );
 	}
 }
 
@@ -354,6 +407,15 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			floors_geometry_info[z].first_vertex_number,
 			floors_geometry_info[z].vertex_count );
 	}
+
+	// Test model
+	test_model_texture_.Bind(0);
+	models_shader_.Bind();
+
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "view_matrix", view_matrix );
+
+	test_model_geometry_.Draw();
 }
 
 void MapViewer::LoadFloorsTextures(
