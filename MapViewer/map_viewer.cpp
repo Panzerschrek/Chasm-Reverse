@@ -75,22 +75,25 @@ void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTextu
 		file_name[0]= '\0';
 
 	const char* const gfx_section= std::strstr( reinterpret_cast<char*>( resource_file.data() ), "#GFX" );
+	const char* const gfx_section_end= std::strstr( gfx_section, "#end" );
 	const char* stream= gfx_section + std::strlen( "#GFX" );
 
-	while( *stream != '\n' ) stream++;
-	stream++;
-
-	do
+	while( stream < gfx_section_end )
 	{
-		if( std::strncmp( stream, "#end", 4u ) == 0 )
-			break;
+		while( *stream != '\n' ) stream++;
+		while( *stream == '\r' ) stream++;
+		stream++;
+
+		if( stream >= gfx_section_end ) break;
 
 		const unsigned int texture_slot= std::atoi( stream );
 
 		while( *stream != ':' ) stream++;
 		stream++;
 
-		while( std::isspace( *stream ) ) stream++;
+		while( std::isspace( *stream ) && *stream != '\n' ) stream++;
+		if( *stream == '\n' )
+			continue;
 
 		char* dst= out_names[ texture_slot ];
 		while( !std::isspace( *stream ) )
@@ -99,11 +102,7 @@ void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTextu
 			dst++; stream++;
 		}
 		*dst= '\0';
-
-		while( *stream != '\n' ) stream++;
-		stream++;
 	}
-	while( 1 );
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
