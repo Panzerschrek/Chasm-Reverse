@@ -31,6 +31,7 @@ private:
 	r_Texture lightmap_;
 
 	GLuint floor_textures_array_id_= ~0;
+	GLuint wall_textures_array_id_= ~0;
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
