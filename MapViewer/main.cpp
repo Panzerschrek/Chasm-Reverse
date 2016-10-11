@@ -2,7 +2,10 @@
 #include <iostream>
 
 #include <SDL.h>
+
+#include <glsl_program.hpp>
 #include <panzer_ogl_lib.hpp>
+#include <shaders_loading.hpp>
 
 #include "map_viewer.hpp"
 #include "vfs.hpp"
@@ -49,6 +52,18 @@ extern "C" int main( int argc, char *argv[] )
 
 	GetGLFunctions( SDL_GL_GetProcAddress );
 
+	rSetShadersDir( "shaders" );
+	{ // Shaders errors logging
+		const auto shaders_log_callback=
+			[]( const char* const log_data )
+			{
+				std::cout << log_data << std::endl;
+			};
+
+		rSetShaderLoadingLogCallback( shaders_log_callback );
+		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
+	}
+
 	glClearDepth(1.0f);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -78,6 +93,7 @@ extern "C" int main( int argc, char *argv[] )
 		glClearColor( 0.3f, 0.0f, 0.3f, 0.0f );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+		map_viewer.Draw();
 		SDL_GL_SwapWindow( window );
 
 	} while( !quited );
