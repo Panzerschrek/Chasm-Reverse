@@ -101,14 +101,13 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	{
 		floors_geometry_info[ floor_or_ceiling ].first_vertex_number= floors_vertices.size();
 
-
 		const unsigned char* const in_data= map_file.data() + 0x23001u + g_map_cells * floor_or_ceiling;
 
 		for( unsigned int x= 0u; x < g_map_size; x++ )
 		for( unsigned int y= 0u; y < g_map_size; y++ )
 		{
-			unsigned char texture_number= in_data[ x * g_map_size + y ];
-			if( texture_number == 0u )
+			unsigned char texture_number= in_data[ x * g_map_size + y ] & 63u;
+			if( texture_number == 63u )
 				continue;
 
 			floors_vertices.resize( floors_vertices.size() + 6u );
