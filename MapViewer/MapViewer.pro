@@ -12,6 +12,10 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
 	main.cpp \
+	vfs.cpp\
+
+HEADERS+= \
+	vfs.hpp\
 
 SOURCES+= \
 	../Common/files.cpp \
