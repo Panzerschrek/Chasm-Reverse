@@ -47,7 +47,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 		unsigned char texture_data[ 4u * g_floor_texture_texels ];
 
-		for( unsigned int i= 0; i < g_floor_texture_texels; i++ )
+		for( unsigned int i= 0u; i < g_floor_texture_texels; i++ )
 		{
 			const unsigned char color_index= in_data[i];
 			for( unsigned int j= 0; j < 3u; j++ )
@@ -80,10 +80,10 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 		const unsigned char* const in_data= map_file.data() + 0x23001u + g_map_cells * floor_or_ceiling;
 
-		for( unsigned int y= 0u; y < g_map_size; y++ )
 		for( unsigned int x= 0u; x < g_map_size; x++ )
+		for( unsigned int y= 0u; y < g_map_size; y++ )
 		{
-			unsigned char texture_number= in_data[ y * g_map_size + x ];
+			unsigned char texture_number= in_data[ x * g_map_size + y ];
 			if( texture_number == 0u )
 				continue;
 
