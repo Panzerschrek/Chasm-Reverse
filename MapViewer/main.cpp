@@ -4,6 +4,10 @@
 #include <SDL.h>
 #include <panzer_ogl_lib.hpp>
 
+#include "map_viewer.hpp"
+#include "vfs.hpp"
+using namespace ChasmReverse;
+
 static void FatalError(const char* message)
 {
 	std::cout << message << std::endl;
@@ -50,6 +54,9 @@ extern "C" int main( int argc, char *argv[] )
 		glDepthFunc(GL_LESS);
 		glEnable(GL_CULL_FACE);
 
+
+	const auto vfs= std::make_shared<Vfs>( "Chasm - The Rift/CSM.BIN" );
+	MapViewer map_viewer( vfs, 1u );
 
 	bool quited= false;
 	do
