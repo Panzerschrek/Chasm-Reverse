@@ -2,6 +2,7 @@
 #include <memory>
 
 #include <glsl_program.hpp>
+#include <matrix.hpp>
 #include <panzer_ogl_lib.hpp>
 #include <polygon_buffer.hpp>
 
@@ -16,7 +17,7 @@ public:
 	MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number );
 	~MapViewer();
 
-	void Draw();
+	void Draw( const m_Mat4& view_matrix );
 
 private:
 	struct FloorGeometryInfo
@@ -30,6 +31,8 @@ private:
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
+
+	// 0 - ceiling, 1 - floor
 	FloorGeometryInfo floors_geometry_info[2];
 };
 

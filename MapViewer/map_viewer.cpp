@@ -95,7 +95,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			v[2].xy[0]= x+1u;  v[2].xy[1]= y+1u;
 			v[3].xy[0]= x   ;  v[3].xy[1]= y+1u;
 
-			v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= texture_number - 1u;
+			v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= texture_number;
 			v[4]= v[0];
 			v[5]= v[2];
 		} // for xy
@@ -137,7 +137,7 @@ MapViewer::~MapViewer()
 	glDeleteTextures( 1, &floor_textures_array_id_ );
 }
 
-void MapViewer::Draw()
+void MapViewer::Draw( const m_Mat4& view_matrix )
 {
 	floors_geometry_.Bind();
 
@@ -148,21 +148,12 @@ void MapViewer::Draw()
 
 	floors_shader_.Uniform( "tex", int(0) );
 
-	{
-		m_Mat4 perspective, shift, basis_change;
-		perspective.PerspectiveProjection( 1.0f, 1.57f, 0.25f, 64.0f );
-
-		shift.Translate( -m_Vec3( 32.0f, 8.0f, 1.3f ) );
-
-		basis_change.RotateX( 3.1415926535f * 0.5f );
-
-		floors_shader_.Uniform( "view_matrix", shift * basis_change * perspective );
-	}
+	floors_shader_.Uniform( "view_matrix", view_matrix );
 
 	// Draw floors and ceilings
 	for( unsigned int z= 0; z < 2; z++ )
 	{
-		floors_shader_.Uniform( "pos_z", float(z) * 2.0f );
+		floors_shader_.Uniform( "pos_z", float( 1u - z ) * 2.0f );
 
 		glDrawArrays(
 			GL_TRIANGLES,

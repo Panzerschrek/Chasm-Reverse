@@ -11,12 +11,15 @@ INCLUDEPATH+= ../../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
+	camera_controller.cpp \
 	main.cpp \
 	map_viewer.cpp \
 	vfs.cpp \
 
 HEADERS+= \
+	camera_controller.hpp \
 	map_viewer.hpp \
+	math_utils.hpp \
 	vfs.hpp \
 
 SOURCES+= \
