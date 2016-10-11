@@ -19,6 +19,8 @@ static const unsigned int g_lightmap_texels_per_cell= 4u;
 static const unsigned int g_lightmap_size= g_map_size * g_lightmap_texels_per_cell;
 static const unsigned int g_lightmap_texels= g_lightmap_size * g_lightmap_size;
 
+#define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size" )
+
 struct FloorVertex
 {
 	unsigned char xy[2];
@@ -26,7 +28,27 @@ struct FloorVertex
 	unsigned char reserved;
 };
 
-static_assert( sizeof(FloorVertex) == 4u, "Invalid size" );
+SIZE_ASSERT( FloorVertex, 4u );
+
+struct WallVertex
+{
+	float tex_coord_x;
+	unsigned short xyz[3]; // 8.8 fixed
+	unsigned char texture_id;
+	unsigned char reserved[5];
+};
+
+SIZE_ASSERT( WallVertex, 16u );
+
+#pragma pack(push, 1)
+struct MapWall
+{
+	unsigned char unknown[3];
+	unsigned short vert_coord[2][2];
+};
+#pragma pack(pop)
+
+SIZE_ASSERT( MapWall, 11u );
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 {
@@ -144,6 +166,71 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)&v.texture_id) - ((char*)&v) );
 	}
 
+	// Load walls geometry
+	std::vector<WallVertex> walls_vertices;
+	std::vector<unsigned short> walls_indeces;
+	for( unsigned int y= 0u; y < g_map_size; y++ )
+	for( unsigned int x= 1u; x < g_map_size; x++ )
+	{
+		const MapWall& map_wall=
+			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
+		if( !( map_wall.unknown[1] == 64u || map_wall.unknown[1] == 128u ) )
+			continue;
+
+		const unsigned int first_vertex_index= walls_vertices.size();
+		walls_vertices.resize( walls_vertices.size() + 4u );
+		WallVertex* const v= walls_vertices.data() + first_vertex_index;
+
+		v[0].xyz[0]= v[2].xyz[0]= map_wall.vert_coord[0][0];
+		v[0].xyz[1]= v[2].xyz[1]= map_wall.vert_coord[0][1];
+		v[1].xyz[0]= v[3].xyz[0]= map_wall.vert_coord[1][0];
+		v[1].xyz[1]= v[3].xyz[1]= map_wall.vert_coord[1][1];
+
+		v[0].xyz[2]= v[1].xyz[2]= 0u;
+		v[2].xyz[2]= v[3].xyz[2]= 2u << 8u;
+
+		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= x;
+
+		v[0].tex_coord_x= v[2].tex_coord_x= 0.0f;
+		v[1].tex_coord_x= v[3].tex_coord_x= 1.0f;
+
+		walls_indeces.resize( walls_indeces.size() + 6u );
+		unsigned short* const ind= walls_indeces.data() + walls_indeces.size() - 6u;
+		ind[0]= first_vertex_index + 0u;
+		ind[1]= first_vertex_index + 1u;
+		ind[2]= first_vertex_index + 3u;
+		ind[3]= first_vertex_index + 0u;
+		ind[4]= first_vertex_index + 3u;
+		ind[5]= first_vertex_index + 2u;
+	}
+
+	walls_geometry_.VertexData(
+		walls_vertices.data(),
+		walls_vertices.size() * sizeof(WallVertex),
+		sizeof(WallVertex) );
+
+	walls_geometry_.IndexData(
+		walls_indeces.data(),
+		walls_indeces.size() * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
+
+	{
+		WallVertex v;
+
+		walls_geometry_.VertexAttribPointer(
+			0, 3, GL_UNSIGNED_SHORT, false,
+			((char*)v.xyz) - ((char*)&v) );
+
+		walls_geometry_.VertexAttribPointer(
+			1, 1, GL_FLOAT, false,
+			((char*)&v.tex_coord_x) - ((char*)&v) );
+
+		walls_geometry_.VertexAttribPointerInt(
+			2, 1, GL_UNSIGNED_BYTE,
+			((char*)&v.texture_id) - ((char*)&v) );
+	}
+
 	// Shaders
 	{
 		const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
@@ -157,6 +244,14 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		floors_shader_.SetAttribLocation( "pos", 0u );
 		floors_shader_.SetAttribLocation( "tex_id", 1u );
 		floors_shader_.Create();
+
+		walls_shader_.ShaderSource(
+			rLoadShader( "walls_f.glsl", glsl_version ),
+			rLoadShader( "walls_v.glsl", glsl_version ) );
+		walls_shader_.SetAttribLocation( "pos", 0u );
+		walls_shader_.SetAttribLocation( "tex_coord_x", 1u );
+		walls_shader_.SetAttribLocation( "tex_id", 2u );
+		walls_shader_.Create();
 	}
 }
 
@@ -167,8 +262,26 @@ MapViewer::~MapViewer()
 
 void MapViewer::Draw( const m_Mat4& view_matrix )
 {
-	floors_geometry_.Bind();
+	// Draw walls
+	walls_shader_.Bind();
 
+	lightmap_.Bind(0);
+	walls_shader_.Uniform( "tex", int(0) );
+
+	{
+		m_Mat4 scale_mat;
+		scale_mat.Scale( 1.0f / 256.0f );
+
+		walls_shader_.Uniform( "view_matrix", scale_mat * view_matrix );
+	}
+
+	//walls_geometry_.Draw();
+	walls_geometry_.Bind();
+	walls_geometry_.Draw();
+
+
+	// Draw floors and ceilings
+	floors_geometry_.Bind();
 	floors_shader_.Bind();
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
@@ -180,7 +293,6 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	floors_shader_.Uniform( "view_matrix", view_matrix );
 
-	// Draw floors and ceilings
 	for( unsigned int z= 0; z < 2; z++ )
 	{
 		floors_shader_.Uniform( "pos_z", float( 1u - z ) * 2.0f );

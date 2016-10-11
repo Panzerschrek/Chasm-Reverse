@@ -35,6 +35,9 @@ private:
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
 
+	r_GLSLProgram walls_shader_;
+	r_PolygonBuffer walls_geometry_;
+
 	// 0 - ceiling, 1 - floor
 	FloorGeometryInfo floors_geometry_info[2];
 };
