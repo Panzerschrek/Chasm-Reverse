@@ -222,6 +222,72 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)&v.texture_id) - ((char*)&v) );
 	}
 
+	// Walls textures
+	WallsTexturesNames walls_textures_names;
+	LoadWallsTexturesNames( *vfs, map_number, walls_textures_names );
+
+	glGenTextures( 1, &wall_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		g_max_wall_texture_width, g_wall_texture_height, g_max_wall_textures,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+
+	for( unsigned int t= 0u; t < g_max_wall_textures; t++ )
+	{
+		if( walls_textures_names[t][0] == '\0' )
+			continue;
+
+		const Vfs::FileContent texture_file= vfs->ReadFile( walls_textures_names[t] );
+		if( texture_file.empty() )
+			continue;
+
+		unsigned char texture_data[ g_max_wall_texture_width * g_wall_texture_height * 4u ];
+
+		// TODO - check and discard incorrect textures
+		unsigned short src_width, src_height;
+		std::memcpy( &src_width , texture_file.data() + 0x2u, sizeof(unsigned short) );
+		std::memcpy( &src_height, texture_file.data() + 0x4u, sizeof(unsigned short) );
+
+		const unsigned char* const src= texture_file.data() + 0x320u;
+
+		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
+		{
+			const unsigned int y_flipped= g_wall_texture_height - 1u - y;
+
+			for( unsigned int x= 0u; x < src_width; x++ )
+			{
+				const unsigned int color_index= src[ x + y_flipped * src_width ];
+				const unsigned int i= ( x + y * g_max_wall_texture_width ) << 2;
+
+				for( unsigned int j= 0u; j < 3u; j++ )
+					texture_data[ i + j ]= palette[ color_index * 3u + j ] << 2;
+
+				texture_data[ i + 3u ]= color_index == 255u ? 0u : 255u;
+			}
+
+			const unsigned int repeats= g_max_wall_texture_width / src_width;
+			unsigned char* const line= texture_data + g_max_wall_texture_width * 4u * y;
+			for( unsigned int r= 1u; r < repeats; r++ )
+				std::memcpy(
+					line + r * src_width * 4u,
+					line,
+					src_width * 4u );
+		}
+
+		glTexSubImage3D(
+			GL_TEXTURE_2D_ARRAY, 0,
+			0, 0, t,
+			g_max_wall_texture_width, g_wall_texture_height, 1,
+			GL_RGBA, GL_UNSIGNED_BYTE,
+			texture_data );
+
+	} // for wall textures
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+
 	// Load walls geometry
 	std::vector<WallVertex> walls_vertices;
 	std::vector<unsigned short> walls_indeces;
@@ -230,6 +296,11 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	{
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
+
+		if( map_wall.texture_id >= 128u ||
+			walls_textures_names[ map_wall.texture_id ][0u] == '\0' )
+			continue;
+
 		if( !( map_wall.wall_size == 64u || map_wall.wall_size == 128u ) )
 			continue;
 
@@ -304,72 +375,6 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			3, 2, GL_BYTE, true,
 			((char*)v.normal) - ((char*)&v) );
 	}
-
-	// Walls textures
-	WallsTexturesNames walls_textures_names;
-	LoadWallsTexturesNames( *vfs, map_number, walls_textures_names );
-
-	glGenTextures( 1, &wall_textures_array_id_ );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	glTexImage3D(
-		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
-		g_max_wall_texture_width, g_wall_texture_height, g_max_wall_textures,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
-
-	for( unsigned int t= 0u; t < g_max_wall_textures; t++ )
-	{
-		if( walls_textures_names[t][0] == '\0' )
-			continue;
-
-		const Vfs::FileContent texture_file= vfs->ReadFile( walls_textures_names[t] );
-		if( texture_file.empty() )
-			continue;
-
-		unsigned char texture_data[ g_max_wall_texture_width * g_wall_texture_height * 4u ];
-
-		// TODO - check and discard incorrect textures
-		unsigned short src_width, src_height;
-		std::memcpy( &src_width , texture_file.data() + 0x2u, sizeof(unsigned short) );
-		std::memcpy( &src_height, texture_file.data() + 0x4u, sizeof(unsigned short) );
-
-		const unsigned char* const src= texture_file.data() + 0x320u;
-
-		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
-		{
-			const unsigned int y_flipped= g_wall_texture_height - 1u - y;
-
-			for( unsigned int x= 0u; x < src_width; x++ )
-			{
-				const unsigned int color_index= src[ x + y_flipped * src_width ];
-				const unsigned int i= ( x + y * g_max_wall_texture_width ) << 2;
-
-				for( unsigned int j= 0u; j < 3u; j++ )
-					texture_data[ i + j ]= palette[ color_index * 3u + j ] << 2;
-
-				texture_data[ i + 3u ]= color_index == 255u ? 0u : 255u;
-			}
-
-			const unsigned int repeats= g_max_wall_texture_width / src_width;
-			unsigned char* const line= texture_data + g_max_wall_texture_width * 4u * y;
-			for( unsigned int r= 1u; r < repeats; r++ )
-				std::memcpy(
-					line + r * src_width * 4u,
-					line,
-					src_width * 4u );
-		}
-
-		glTexSubImage3D(
-			GL_TEXTURE_2D_ARRAY, 0,
-			0, 0, t,
-			g_max_wall_texture_width, g_wall_texture_height, 1,
-			GL_RGBA, GL_UNSIGNED_BYTE,
-			texture_data );
-
-	} // for wall textures
-
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
 	// Shaders
 	{
