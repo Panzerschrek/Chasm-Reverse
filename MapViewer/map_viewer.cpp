@@ -318,17 +318,17 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
 
-		const m_Vec2 wall_vec=
+		v[2].tex_coord_x= v[0].tex_coord_x= float(map_wall.wall_size) / float(g_max_wall_texture_width);
+		v[1].tex_coord_x= v[3].tex_coord_x= 0.0f;
+
+		m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
 			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1]));
-		const float wall_vec_length= wall_vec.Length();
-
-		v[0].tex_coord_x= v[2].tex_coord_x= 0.0f;
-		v[1].tex_coord_x= v[3].tex_coord_x= wall_vec_length / ( 256.0f * 2.0f );
+		wall_vec.Normalize();
 
 		const int normal[2]= {
-			int( +126.5f * wall_vec.y / wall_vec_length ),
-			int( -126.5f * wall_vec.x / wall_vec_length ) };
+			int( +126.5f * wall_vec.y ),
+			int( -126.5f * wall_vec.x ) };
 		for( unsigned int j= 0u; j < 4u; j++ )
 		{
 			v[j].normal[0]= normal[0];
@@ -427,10 +427,8 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 		walls_shader_.Uniform( "view_matrix", scale_mat * view_matrix );
 	}
 
-	//walls_geometry_.Draw();
 	walls_geometry_.Bind();
 	walls_geometry_.Draw();
-
 
 	// Draw floors and ceilings
 	floors_geometry_.Bind();
