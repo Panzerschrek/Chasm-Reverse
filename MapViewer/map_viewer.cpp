@@ -1,3 +1,4 @@
+#include <iostream>
 #include <shaders_loading.hpp>
 
 #include "map_viewer.hpp"
@@ -13,6 +14,10 @@ static const unsigned int g_bytes_per_floor_in_file= 86u * g_floor_texture_size;
 
 static const unsigned int g_map_size= 64u; // in cells
 static const unsigned int g_map_cells= g_map_size * g_map_size;
+
+static const unsigned int g_lightmap_texels_per_cell= 4u;
+static const unsigned int g_lightmap_size= g_map_size * g_lightmap_texels_per_cell;
+static const unsigned int g_lightmap_texels= g_lightmap_size * g_lightmap_size;
 
 struct FloorVertex
 {
@@ -68,10 +73,29 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
-	// Load floors geometry
+
 	std::snprintf( map_file_name, sizeof(map_file_name), "MAP.%02u", map_number );
 	const Vfs::FileContent map_file= vfs->ReadFile( map_file_name );
 
+	// Load lightmap
+	{
+		unsigned char lightmap_transformed[ g_lightmap_texels ];
+
+		const unsigned char* const in_data= map_file.data() + 0x01u;
+
+		// TODO - tune formula
+		for( unsigned int y= 0u; y < g_lightmap_size; y++ )
+		for( unsigned int x= 0u; x < g_lightmap_size - 1u; x++ )
+		{
+			lightmap_transformed[ x + 1u + y * g_lightmap_size ]=
+				255u - ( ( in_data[ x + y * g_lightmap_size ] - 3u ) * 6u );
+		}
+
+		lightmap_= r_Texture( r_Texture::PixelFormat::R8, g_lightmap_size, g_lightmap_size, lightmap_transformed );
+		lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	}
+
+	// Load floors geometry
 	std::vector<FloorVertex> floors_vertices;
 	for( unsigned int floor_or_ceiling= 0u; floor_or_ceiling < 2u; floor_or_ceiling++ )
 	{
@@ -122,14 +146,19 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	}
 
 	// Shaders
-	const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
+	{
+		const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
 
-	floors_shader_.ShaderSource(
-		rLoadShader( "floors_f.glsl", glsl_version ),
-		rLoadShader( "floors_v.glsl", glsl_version ) );
-	floors_shader_.SetAttribLocation( "pos", 0u );
-	floors_shader_.SetAttribLocation( "tex_id", 1u );
-	floors_shader_.Create();
+		char lightmap_scale[32];
+		std::snprintf( lightmap_scale, sizeof(lightmap_scale), "LIGHTMAP_SCALE %f", 1.0f / float(g_map_size) );
+
+		floors_shader_.ShaderSource(
+			rLoadShader( "floors_f.glsl", glsl_version ),
+			rLoadShader( "floors_v.glsl", glsl_version, { lightmap_scale } ) );
+		floors_shader_.SetAttribLocation( "pos", 0u );
+		floors_shader_.SetAttribLocation( "tex_id", 1u );
+		floors_shader_.Create();
+	}
 }
 
 MapViewer::~MapViewer()
@@ -145,8 +174,10 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
+	lightmap_.Bind(1);
 
 	floors_shader_.Uniform( "tex", int(0) );
+	floors_shader_.Uniform( "lightmap", int(1) );
 
 	floors_shader_.Uniform( "view_matrix", view_matrix );
 

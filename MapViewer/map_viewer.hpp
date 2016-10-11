@@ -5,6 +5,7 @@
 #include <matrix.hpp>
 #include <panzer_ogl_lib.hpp>
 #include <polygon_buffer.hpp>
+#include <texture.hpp>
 
 #include "vfs.hpp"
 
@@ -27,6 +28,8 @@ private:
 	};
 
 private:
+	r_Texture lightmap_;
+
 	GLuint floor_textures_array_id_= ~0;
 
 	r_GLSLProgram floors_shader_;
