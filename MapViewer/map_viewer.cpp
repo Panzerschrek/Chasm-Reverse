@@ -48,7 +48,9 @@ SIZE_ASSERT( WallVertex, 16u );
 #pragma pack(push, 1)
 struct MapWall
 {
-	unsigned char unknown[3];
+	unsigned char texture_id;
+	unsigned char wall_size;
+	unsigned char unknown;
 	unsigned short vert_coord[2][2];
 };
 #pragma pack(pop)
@@ -227,7 +229,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	{
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
-		if( !( map_wall.unknown[1] == 64u || map_wall.unknown[1] == 128u ) )
+		if( !( map_wall.wall_size == 64u || map_wall.wall_size == 128u ) )
 			continue;
 
 		const unsigned int first_vertex_index= walls_vertices.size();
@@ -242,10 +244,14 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		v[0].xyz[2]= v[1].xyz[2]= 0u;
 		v[2].xyz[2]= v[3].xyz[2]= 2u << 8u;
 
-		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= x;
+		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
+
+		const float wall_length= (
+			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
+			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1])) ).Length();
 
 		v[0].tex_coord_x= v[2].tex_coord_x= 0.0f;
-		v[1].tex_coord_x= v[3].tex_coord_x= 1.0f;
+		v[1].tex_coord_x= v[3].tex_coord_x= wall_length / ( 256.0f * 2.0f );
 
 		walls_indeces.resize( walls_indeces.size() + 6u );
 		unsigned short* const ind= walls_indeces.data() + walls_indeces.size() - 6u;
@@ -384,7 +390,8 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	// Draw walls
 	walls_shader_.Bind();
 
-	lightmap_.Bind(0);
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
 	walls_shader_.Uniform( "tex", int(0) );
 
 	{
