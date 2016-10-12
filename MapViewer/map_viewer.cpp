@@ -638,7 +638,8 @@ void MapViewer::LoadModels(
 	std::vector<unsigned  short> indeces;
 	std::vector<Model::Vertex> vertices;
 
-	const unsigned int c_max_texture_size[2]= { 64u, 256u };
+	// TODO - use atlas instead textures array
+	const unsigned int c_max_texture_size[2]= { 64u, 1024u };
 	const unsigned int c_texels_in_layer= c_max_texture_size[0u] * c_max_texture_size[1u];
 	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * model_count, 0u );
 
@@ -655,10 +656,10 @@ void MapViewer::LoadModels(
 
 		LoadModel( file_content, animation_file_content, model );
 
-		if( model.texture_size[0u] > c_max_texture_size[0u] ||
-			model.texture_size[1u] > c_max_texture_size[1u] )
+		if( model.texture_size[1u] > c_max_texture_size[1u] )
 		{
-			// TODO - do something in this case
+			std::cout << "Model \"" << models[m].model_file_name << "\" texture height is too big: " << model.texture_size[1u] << std::endl;
+			model.texture_size[1u]= c_max_texture_size[1u];
 		}
 
 		// Copy texture into atlas.
