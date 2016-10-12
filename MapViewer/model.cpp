@@ -5,7 +5,6 @@
 namespace ChasmReverse
 {
 
-
 struct Polygon_o3
 {
 	unsigned short vertices_indeces[4u];
@@ -35,6 +34,7 @@ struct Vertex_o3
 static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 
 static const unsigned int g_3o_model_texture_width= 64u;
+static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
 void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
 {
@@ -68,29 +68,31 @@ void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
 	for( unsigned int p= 0u; p < polygon_count; p++ )
 	{
 		const Polygon_o3& polygon= polygons[p];
+		const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
+
+		const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
+		const unsigned int polygon_index_count=  polygon_is_triangle ? 3u : 6u;
 
 		const unsigned int first_vertex_index= out_model.vertices.size();
-		out_model.vertices.resize( out_model.vertices.size() + 4u );
+		out_model.vertices.resize( out_model.vertices.size() + polygon_vertex_count );
 		Model::Vertex* v= out_model.vertices.data() + first_vertex_index;
 
-		for( unsigned int j= 0u; j < 4u; j++ )
+		for( unsigned int j= 0u; j < polygon_vertex_count; j++ )
 		{
-			v[j].tex_coord[0]= float( polygon.uv[j][0] ) / float( out_model.texture_size[0] );
+			v[j].tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
 			v[j].tex_coord[1]= float( polygon.uv[j][1] + polygon.v_offset ) / float( out_model.texture_size[1] );
 			for( unsigned int c= 0u; c < 3u; c++ )
-				v[j].pos[c]= float( vertices[ polygon.vertices_indeces[j] ].xyz[c] ) / 256.0f;
+				v[j].pos[c]= float( vertices[ polygon.vertices_indeces[j] ].xyz[c] ) * g_3o_model_coords_scale;
 		}
 
-		const unsigned int index_count= polygon.vertices_indeces[3u] >= vertex_count ? 3u : 6u;
-
 		auto& dst_indeces= out_model.regular_triangles_indeces;
-		dst_indeces.resize( dst_indeces.size() + index_count );
-		unsigned short* const ind= dst_indeces.data() + dst_indeces.size() - index_count;
+		dst_indeces.resize( dst_indeces.size() + polygon_index_count );
+		unsigned short* const ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
 
 		ind[0u]= first_vertex_index + 0u;
 		ind[1u]= first_vertex_index + 1u;
 		ind[2u]= first_vertex_index + 2u;
-		if( index_count == 6u )
+		if( polygon_index_count == 6u )
 		{
 			ind[3u]= first_vertex_index + 0u;
 			ind[4u]= first_vertex_index + 2u;
