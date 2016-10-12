@@ -58,6 +58,7 @@ struct WallData
 
 pole unknown[1] ocenj pohože na "razmer" steny iz redaktora. V nöm pocti vsegda vstrecautsä toljko znacenija 0,64, 128.
 pole unknown[0] soderžit nomer tekstury. Po krajnej mere v mladših bitah.
+Jesli pole unknown[0] >= 163, ono predstavläjet soboj nomer modeli. Pervaja para koordinat predstavläjet soboj koordianty modeli.
 
 Po smesceniju 0x23000 v map.xx fajle soderžitsä 4 tabliçy razmerom 64x64, ocenj napominajuscije
  strukturu urovnä. Eti tabliçy vyglädät perevörbutymi otnositeljno osi XY.

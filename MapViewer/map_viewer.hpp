@@ -33,6 +33,14 @@ private:
 		unsigned int index_count;
 	};
 
+	struct LevelModel
+	{
+		m_Vec3 pos;
+		unsigned char id;
+	};
+
+	typedef std::vector<LevelModel> LevelModels;
+
 private:
 	void LoadFloorsTextures(
 		const Vfs::FileContent& floors_file,
@@ -68,6 +76,8 @@ private:
 	r_GLSLProgram models_shader_;
 	std::vector<ModelGeometry> models_geometry_;
 	r_PolygonBuffer models_geometry_data_;
+
+	LevelModels level_models_;
 };
 
 } // namespace ChasmReverse

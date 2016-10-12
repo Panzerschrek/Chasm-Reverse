@@ -236,7 +236,22 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
 
-		if( map_wall.texture_id >= 128u ||
+		if( map_wall.texture_id >= 128u )
+		{
+			const int model_id= int(map_wall.texture_id) - 163;
+			if( model_id >= 0 )
+			{
+				level_models_.emplace_back();
+				LevelModel& model= level_models_.back();
+				model.pos.x= float(map_wall.vert_coord[0][0]) / 256.0f;
+				model.pos.y= float(map_wall.vert_coord[0][1]) / 256.0f;
+				model.pos.z= 0.0f;
+				model.id= model_id;
+			}
+			continue;
+		}
+
+		if(
 			!wall_texture_exist[ map_wall.texture_id ] )
 			continue;
 
@@ -411,18 +426,28 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	models_shader_.Uniform( "tex", int(0) );
 	{
-		m_Mat4 shift_mat;
-		shift_mat.Translate( m_Vec3( 30.0f, 33.0f, 0.0f ) );
-		models_shader_.Uniform( "view_matrix", shift_mat * view_matrix );
+
 	}
 
 	models_geometry_data_.Bind();
-	const ModelGeometry& model= models_geometry_[2];
-	glDrawElements(
-		GL_TRIANGLES,
-		model.index_count,
-		GL_UNSIGNED_SHORT,
-		reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ) );
+
+	for( const LevelModel& level_model : level_models_ )
+	{
+		m_Mat4 shift_mat;
+		shift_mat.Translate( level_model.pos );
+		models_shader_.Uniform( "view_matrix", shift_mat * view_matrix );
+
+		if( level_model.id >= models_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model= models_geometry_[ level_model.id ];
+
+		glDrawElements(
+			GL_TRIANGLES,
+			model.index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ) );
+	}
 }
 
 void MapViewer::LoadFloorsTextures(
