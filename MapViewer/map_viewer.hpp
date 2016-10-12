@@ -31,6 +31,8 @@ private:
 	{
 		unsigned int first_index;
 		unsigned int index_count;
+		unsigned int first_transparent_index;
+		unsigned int transparent_index_count;
 	};
 
 	struct LevelModel

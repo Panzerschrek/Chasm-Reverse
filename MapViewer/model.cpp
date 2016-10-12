@@ -19,7 +19,7 @@ struct Polygon_o3
 		enum : unsigned int
 		{
 			Twosided= 0x01u,
-			Translucent= 0x08u,
+			Translucent= (0x04u | 0x08u),
 		};
 	};
 };
@@ -70,9 +70,11 @@ void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
 	{
 		const Polygon_o3& polygon= polygons[p];
 		const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
+		const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
 		const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
-		const unsigned int polygon_index_count=  polygon_is_triangle ? 3u : 6u;
+		unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
+		if( polygon_is_twosided ) polygon_index_count*= 2u;
 
 		const unsigned int first_vertex_index= out_model.vertices.size();
 		out_model.vertices.resize( out_model.vertices.size() + polygon_vertex_count );
@@ -86,18 +88,36 @@ void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
 				v[j].pos[c]= float( vertices[ polygon.vertices_indeces[j] ].xyz[c] ) * g_3o_model_coords_scale;
 		}
 
-		auto& dst_indeces= out_model.regular_triangles_indeces;
-		dst_indeces.resize( dst_indeces.size() + polygon_index_count );
-		unsigned short* const ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
+		auto& dst_indeces=
+			(polygon.flags & Polygon_o3::Flags::Translucent ) == 0u
+				? out_model.regular_triangles_indeces
+				: out_model.transparent_triangles_indeces;
 
-		ind[0u]= first_vertex_index + 0u;
+		dst_indeces.resize( dst_indeces.size() + polygon_index_count );
+		unsigned short* ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
+
+		ind[0u]= first_vertex_index + 2u;
 		ind[1u]= first_vertex_index + 1u;
-		ind[2u]= first_vertex_index + 2u;
-		if( polygon_index_count == 6u )
+		ind[2u]= first_vertex_index + 0u;
+		if( !polygon_is_triangle )
 		{
 			ind[3u]= first_vertex_index + 0u;
-			ind[4u]= first_vertex_index + 2u;
-			ind[5u]= first_vertex_index + 3u;
+			ind[4u]= first_vertex_index + 3u;
+			ind[5u]= first_vertex_index + 2u;
+		}
+
+		if( polygon_is_twosided )
+		{
+			ind+= polygon_index_count >> 1u;
+			ind[0u]= first_vertex_index + 0u;
+			ind[1u]= first_vertex_index + 1u;
+			ind[2u]= first_vertex_index + 2u;
+			if( !polygon_is_triangle )
+			{
+				ind[3u]= first_vertex_index + 2u;
+				ind[4u]= first_vertex_index + 3u;
+				ind[5u]= first_vertex_index + 0u;
+			}
 		}
 	} // for polygons
 }

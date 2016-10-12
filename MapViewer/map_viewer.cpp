@@ -428,12 +428,12 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
 
 	models_shader_.Uniform( "tex", int(0) );
-	{
-
-	}
 
 	models_geometry_data_.Bind();
 
+	glEnable( GL_CULL_FACE );
+
+	// Regular models geometry
 	for( const LevelModel& level_model : level_models_ )
 	{
 		m_Mat4 rotate_mat, shift_mat;
@@ -454,6 +454,34 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ) );
 	}
+
+	// Transpaent models geometry
+	glEnable( GL_BLEND );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	for( const LevelModel& level_model : level_models_ )
+	{
+		m_Mat4 rotate_mat, shift_mat;
+
+		rotate_mat.RotateZ( level_model.angle );
+		shift_mat.Translate( level_model.pos );
+
+		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+		if( level_model.id >= models_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model= models_geometry_[ level_model.id ];
+
+		glDrawElements(
+			GL_TRIANGLES,
+			model.transparent_index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ) );
+	}
+	glDisable( GL_BLEND );
+
+	glDisable( GL_CULL_FACE );
 }
 
 void MapViewer::LoadFloorsTextures(
@@ -646,14 +674,22 @@ void MapViewer::LoadModels(
 
 		// Copy and recalculate indeces.
 		const unsigned int first_index= indeces.size();
-		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() );
+		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
 		unsigned short* const ind= indeces.data() + first_index;
 
 		for( unsigned int i= 0; i < model.regular_triangles_indeces.size(); i++ )
 			ind[i]= model.regular_triangles_indeces[i] + first_vertex_index;
 
+		for( unsigned int i= 0; i < model.transparent_triangles_indeces.size(); i++ )
+			ind[ i + model.regular_triangles_indeces.size() ]=
+				model.transparent_triangles_indeces[i] + first_vertex_index;
+
 		models_geometry_[m].first_index= first_index;
 		models_geometry_[m].index_count= model.regular_triangles_indeces.size();
+
+		models_geometry_[m].first_transparent_index= first_index + model.regular_triangles_indeces.size();
+		models_geometry_[m].transparent_index_count= model.transparent_triangles_indeces.size();
+
 	}
 
 	// Prepare texture.
