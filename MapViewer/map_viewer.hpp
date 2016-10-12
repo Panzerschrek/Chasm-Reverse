@@ -36,6 +36,7 @@ private:
 	struct LevelModel
 	{
 		m_Vec3 pos;
+		float angle;
 		unsigned char id;
 	};
 

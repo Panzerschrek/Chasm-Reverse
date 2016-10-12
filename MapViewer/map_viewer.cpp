@@ -1,8 +1,10 @@
 #include <cstring>
 #include <sstream>
+#include <iostream>
 
 #include <shaders_loading.hpp>
 
+#include "math_utils.hpp"
 #include "model.hpp"
 
 #include "map_viewer.hpp"
@@ -246,6 +248,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 				model.pos.x= float(map_wall.vert_coord[0][0]) / 256.0f;
 				model.pos.y= float(map_wall.vert_coord[0][1]) / 256.0f;
 				model.pos.z= 0.0f;
+				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.id= model_id;
 			}
 			continue;
@@ -433,9 +436,12 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	for( const LevelModel& level_model : level_models_ )
 	{
-		m_Mat4 shift_mat;
+		m_Mat4 rotate_mat, shift_mat;
+
+		rotate_mat.RotateZ( level_model.angle );
 		shift_mat.Translate( level_model.pos );
-		models_shader_.Uniform( "view_matrix", shift_mat * view_matrix );
+
+		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
 
 		if( level_model.id >= models_geometry_.size() )
 			continue;
