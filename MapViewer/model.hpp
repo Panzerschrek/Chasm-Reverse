@@ -23,6 +23,6 @@ struct Model final
 	std::vector<unsigned char> texture_data;
 };
 
-void LoadModel( const Vfs::FileContent& model_file, Model& out_model );
+void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model );
 
 } // namespace ChasmReverse

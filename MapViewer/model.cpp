@@ -36,7 +36,7 @@ static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 static const unsigned int g_3o_model_texture_width= 64u;
 static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
-void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
+void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	// Clear output
 	out_model.vertices.clear();
@@ -64,7 +64,12 @@ void LoadModel( const Vfs::FileContent& model_file, Model& out_model )
 
 	// Geometry
 	const Polygon_o3* const polygons= reinterpret_cast<const Polygon_o3*>( model_file.data() + 0x00u );
-	const Vertex_o3* const vertices= reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3200u );
+
+	const unsigned char* const in_vertices_data=
+		animation_file.empty()
+			? ( model_file.data() + 0x3200u )
+			: ( animation_file.data() + 0x02u );
+	const Vertex_o3* const vertices= reinterpret_cast<const Vertex_o3*>( in_vertices_data );
 
 	for( unsigned int p= 0u; p < polygon_count; p++ )
 	{

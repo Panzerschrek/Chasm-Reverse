@@ -64,7 +64,14 @@ struct MapWall
 SIZE_ASSERT( MapWall, 11u );
 
 typedef std::array<char[16u], 256u> WallsTexturesNames;
-typedef std::array<char[16u], 128u> ModelsNames;
+
+struct ModelDescription
+{
+	char model_file_name[16u];
+	char animation_file_name[16u];
+};
+
+typedef std::array<ModelDescription, 128u> ModeslDescription;
 
 void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTexturesNames& out_names )
 {
@@ -105,7 +112,7 @@ void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTextur
 	}
 }
 
-unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_names )
+unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModeslDescription& out_names )
 {
 	const char* start= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#newobjects" );
 
@@ -137,7 +144,10 @@ unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModelsName
 		line_stream >> num; // SFX
 		line_stream >> num; // BSfx
 
-		line_stream >> out_names[ count ]; // FileName
+		line_stream >> out_names[ count ].model_file_name; // FileName
+
+		out_names[ count ].animation_file_name[0u]= '\0';
+		line_stream >> out_names[ count ].animation_file_name; // Animation
 
 		count++;
 	}
@@ -610,11 +620,12 @@ void MapViewer::LoadModels(
 	const Vfs::FileContent& resources_file,
 	const unsigned char* palette )
 {
-	ModelsNames models_names;
+	ModeslDescription models;
 	const unsigned int model_count=
-		LoadModelsNames( resources_file, models_names );
+		LoadModelsNames( resources_file, models );
 
 	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
 	Model model;
 
 	std::vector<unsigned  short> indeces;
@@ -628,10 +639,14 @@ void MapViewer::LoadModels(
 
 	for( unsigned int m= 0u; m < model_count; m++ )
 	{
-		const char* const model_file_name= models_names[m];
+		vfs.ReadFile( models[m].model_file_name, file_content );
 
-		vfs.ReadFile( model_file_name, file_content );
-		LoadModel( file_content, model );
+		if( models[m].animation_file_name[0u] != '\0' )
+			vfs.ReadFile( models[m].animation_file_name, animation_file_content );
+		else
+			animation_file_content.clear();
+
+		LoadModel( file_content, animation_file_content, model );
 
 		if( model.texture_size[0u] > c_max_texture_size[0u] ||
 			model.texture_size[1u] > c_max_texture_size[1u] )
