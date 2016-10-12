@@ -1,4 +1,5 @@
 #include <cstring>
+#include <sstream>
 
 #include <shaders_loading.hpp>
 
@@ -60,7 +61,8 @@ struct MapWall
 
 SIZE_ASSERT( MapWall, 11u );
 
-typedef std::array<char[16], 256> WallsTexturesNames;
+typedef std::array<char[16u], 256u> WallsTexturesNames;
+typedef std::array<char[16u], 128u> ModelsNames;
 
 void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTexturesNames& out_names )
 {
@@ -99,6 +101,43 @@ void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTextur
 		}
 		*dst= '\0';
 	}
+}
+
+void LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_names )
+{
+	const char* start= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#newobjects" );
+
+	while( *start != '\n' ) start++;
+	start++;
+
+	const char* const end= std::strstr( start, "#end" );
+
+	std::istringstream stream( std::string( start, end ) );
+
+	unsigned int i= 0u;
+	while( !stream.eof() )
+	{
+		char line[ 512u ];
+		stream.getline( line, sizeof(line), '\n' );
+		std::istringstream line_stream{ std::string( line ) };
+
+		double num;
+		line_stream >> num; // GoRad
+		line_stream >> num; // Shad
+		line_stream >> num; // BObj
+		line_stream >> num; // BMPz
+		line_stream >> num; // AC
+		line_stream >> num; // Blw
+		line_stream >> num; // BLmt
+		line_stream >> num; // SFX
+		line_stream >> num; // BSfx
+
+		line_stream >> out_names[i]; // FileName
+
+		i++;
+	}
+
+	out_names[i][0u]= '\0';
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
@@ -181,10 +220,12 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)&v.texture_id) - ((char*)&v) );
 	}
 
+	std::snprintf( map_file_name, sizeof(map_file_name), "RESOURCE.%02u", map_number );
+	const Vfs::FileContent resource_file= vfs->ReadFile( map_file_name );
+
 	// Walls textures
 	bool wall_texture_exist[ g_max_wall_textures ];
-	std::snprintf( map_file_name, sizeof(map_file_name), "RESOURCE.%02u", map_number );
-	LoadWallsTextures( *vfs, vfs->ReadFile( map_file_name ), palette.data(), wall_texture_exist );
+	LoadWallsTextures( *vfs, resource_file, palette.data(), wall_texture_exist );
 
 	// Load walls geometry
 	std::vector<WallVertex> walls_vertices;
@@ -307,6 +348,8 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		models_shader_.Create();
 	}
 
+	ModelsNames models_names;
+	LoadModelsNames( resource_file, models_names );
 	// Test model
 	Model model;
 	LoadModel( vfs->ReadFile( "table1.3o" ), model );
