@@ -29,6 +29,7 @@ private:
 
 	struct ModelGeometry
 	{
+		unsigned int first_vertex_index;
 		unsigned int first_index;
 		unsigned int index_count;
 		unsigned int first_transparent_index;

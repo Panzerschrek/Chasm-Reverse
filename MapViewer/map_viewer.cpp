@@ -461,11 +461,12 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 		const ModelGeometry& model= models_geometry_[ level_model.id ];
 
-		glDrawElements(
+		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			model.index_count,
 			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ) );
+			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ),
+			model.first_vertex_index );
 	}
 
 	// Transpaent models geometry
@@ -486,11 +487,12 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 		const ModelGeometry& model= models_geometry_[ level_model.id ];
 
-		glDrawElements(
+		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			model.transparent_index_count,
 			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ) );
+			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ),
+			model.first_vertex_index );
 	}
 	glDisable( GL_BLEND );
 
@@ -688,13 +690,17 @@ void MapViewer::LoadModels(
 		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
 		unsigned short* const ind= indeces.data() + first_index;
 
-		for( unsigned int i= 0; i < model.regular_triangles_indeces.size(); i++ )
-			ind[i]= model.regular_triangles_indeces[i] + first_vertex_index;
+		std::memcpy(
+			ind,
+			model.regular_triangles_indeces.data(),
+			model.regular_triangles_indeces.size() * sizeof(unsigned short) );
 
-		for( unsigned int i= 0; i < model.transparent_triangles_indeces.size(); i++ )
-			ind[ i + model.regular_triangles_indeces.size() ]=
-				model.transparent_triangles_indeces[i] + first_vertex_index;
+		std::memcpy(
+			ind + model.regular_triangles_indeces.size(),
+			model.transparent_triangles_indeces.data(),
+			model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
 
+		models_geometry_[m].first_vertex_index= first_vertex_index;
 		models_geometry_[m].first_index= first_index;
 		models_geometry_[m].index_count= model.regular_triangles_indeces.size();
 
