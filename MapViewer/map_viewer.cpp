@@ -62,21 +62,15 @@ SIZE_ASSERT( MapWall, 11u );
 
 typedef std::array<char[16], 256> WallsTexturesNames;
 
-void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTexturesNames& out_names )
+void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTexturesNames& out_names )
 {
-	char resource_file_name[16];
-	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
-
-	Vfs::FileContent resource_file= vfs.ReadFile( resource_file_name );
-	resource_file.push_back( '\0' ); // make happy string functions
-
 	// Very complex stuff here.
 	// TODO - use parser.
 
 	for( char* const file_name : out_names )
 		file_name[0]= '\0';
 
-	const char* const gfx_section= std::strstr( reinterpret_cast<char*>( resource_file.data() ), "#GFX" );
+	const char* const gfx_section= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#GFX" );
 	const char* const gfx_section_end= std::strstr( gfx_section, "#end" );
 	const char* stream= gfx_section + std::strlen( "#GFX" );
 
@@ -189,7 +183,8 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 	// Walls textures
 	bool wall_texture_exist[ g_max_wall_textures ];
-	LoadWallsTextures( *vfs, map_number, palette.data(), wall_texture_exist );
+	std::snprintf( map_file_name, sizeof(map_file_name), "RESOURCE.%02u", map_number );
+	LoadWallsTextures( *vfs, vfs->ReadFile( map_file_name ), palette.data(), wall_texture_exist );
 
 	// Load walls geometry
 	std::vector<WallVertex> walls_vertices;
@@ -460,12 +455,12 @@ void MapViewer::LoadFloorsTextures(
 
 void MapViewer::LoadWallsTextures(
 	const Vfs& vfs,
-	const unsigned int map_number,
+	const Vfs::FileContent& resources_file,
 	const unsigned char* const palette,
 	bool* const out_textures_exist_flags )
 {
 	WallsTexturesNames walls_textures_names;
-	LoadWallsTexturesNames( vfs, map_number, walls_textures_names );
+	LoadWallsTexturesNames( resources_file, walls_textures_names );
 
 	glGenTextures( 1, &wall_textures_array_id_ );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );

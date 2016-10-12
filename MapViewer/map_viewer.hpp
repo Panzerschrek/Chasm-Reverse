@@ -34,7 +34,7 @@ private:
 
 	void LoadWallsTextures(
 		const Vfs& vfs,
-		unsigned int map_number,
+		const Vfs::FileContent& resources_file,
 		const unsigned char* palette,
 		bool* out_textures_exist_flags );
 
