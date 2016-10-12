@@ -345,54 +345,11 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			rLoadShader( "models_v.glsl", glsl_version ) );
 		models_shader_.SetAttribLocation( "pos", 0u );
 		models_shader_.SetAttribLocation( "tex_coord", 1u );
+		models_shader_.SetAttribLocation( "tex_id", 2u );
 		models_shader_.Create();
 	}
 
-	ModelsNames models_names;
-	LoadModelsNames( resource_file, models_names );
-	// Test model
-	Model model;
-	LoadModel( vfs->ReadFile( "table1.3o" ), model );
-
-	{
-		std::vector<unsigned char> texture_rgba( model.texture_data.size() * 4u );
-
-		for( unsigned int i= 0u; i < model.texture_data.size(); i++ )
-		{
-			const unsigned char color_index= model.texture_data[i];
-			for( unsigned int j= 0u; j < 3u; j++ )
-				texture_rgba[ i * 4u + j ]= palette[ color_index * 3u + j ] << 2u;
-		}
-
-		test_model_texture_=
-			r_Texture(
-				r_Texture::PixelFormat::RGBA8,
-				model.texture_size[0], model.texture_size[1],
-				texture_rgba.data() );
-
-		test_model_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
-		test_model_texture_.BuildMips();
-
-		test_model_geometry_.VertexData(
-			model.vertices.data(),
-			model.vertices.size() * sizeof(Model::Vertex),
-			sizeof(Model::Vertex) );
-
-		test_model_geometry_.IndexData(
-			model.regular_triangles_indeces.data(),
-			model.regular_triangles_indeces.size() * sizeof(unsigned short),
-			GL_UNSIGNED_SHORT,
-			GL_TRIANGLES );
-
-		Model::Vertex v;
-		test_model_geometry_.VertexAttribPointer(
-			0, 3, GL_FLOAT, false,
-			((char*)v.pos) - ((char*)&v) );
-
-		test_model_geometry_.VertexAttribPointer(
-			1, 3, GL_FLOAT, false,
-			((char*)&v.tex_coord) - ((char*)&v) );
-	}
+	LoadModels( *vfs, resource_file, palette.data() );
 }
 
 MapViewer::~MapViewer()
@@ -447,13 +404,25 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	}
 
 	// Test model
-	test_model_texture_.Bind(0);
 	models_shader_.Bind();
 
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "view_matrix", view_matrix );
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
 
-	test_model_geometry_.Draw();
+	models_shader_.Uniform( "tex", int(0) );
+	{
+		m_Mat4 shift_mat;
+		shift_mat.Translate( m_Vec3( 30.0f, 33.0f, 0.0f ) );
+		models_shader_.Uniform( "view_matrix", shift_mat * view_matrix );
+	}
+
+	models_geometry_data_.Bind();
+	const ModelGeometry& model= models_geometry_[2];
+	glDrawElements(
+		GL_TRIANGLES,
+		model.index_count,
+		GL_UNSIGNED_SHORT,
+		reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ) );
 }
 
 void MapViewer::LoadFloorsTextures(
@@ -572,6 +541,126 @@ void MapViewer::LoadWallsTextures(
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+}
+
+void MapViewer::LoadModels(
+	const Vfs& vfs,
+	const Vfs::FileContent& resources_file,
+	const unsigned char* palette )
+{
+	ModelsNames models_names;
+	LoadModelsNames( resources_file, models_names );
+
+	unsigned int model_count= 0u;
+	for( const char* const model_file_name : models_names )
+	{
+		if( model_file_name[0u] == '\0' )
+			break;
+		model_count++;
+	}
+
+	Vfs::FileContent file_content;
+	Model model;
+
+	std::vector<unsigned  short> indeces;
+	std::vector<Model::Vertex> vertices;
+
+	const unsigned int c_max_texture_size[2]= { 64u, 256u };
+	const unsigned int c_texels_in_layer= c_max_texture_size[0u] * c_max_texture_size[1u];
+	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * model_count, 0u );
+
+	models_geometry_.resize( model_count );
+
+	for( unsigned int m= 0u; m < model_count; m++ )
+	{
+		const char* const model_file_name= models_names[m];
+
+		vfs.ReadFile( model_file_name, file_content );
+		LoadModel( file_content, model );
+
+		if( model.texture_size[0u] > c_max_texture_size[0u] ||
+			model.texture_size[1u] > c_max_texture_size[1u] )
+		{
+			// TODO - do something in this case
+		}
+
+		// Copy texture into atlas.
+		unsigned char* const texture_dst= textures_data_rgba.data() + 4u * c_texels_in_layer * m;
+		for( unsigned int y= 0u; y < model.texture_size[1u]; y++ )
+		for( unsigned int x= 0u; x < model.texture_size[0u]; x++ )
+		{
+			const unsigned int i= ( x + y * c_max_texture_size[0u] ) << 2u;
+			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
+			for( unsigned int j= 0u; j < 3u; j++ )
+				texture_dst[ i + j ]= palette[ color_index * 3u + j ] << 2u;
+		}
+
+		// Copy vertices, transform textures coordinates, set texture layer.
+		const unsigned int first_vertex_index= vertices.size();
+		vertices.resize( vertices.size() + model.vertices.size() );
+		Model::Vertex* const vertex= vertices.data() + first_vertex_index;
+
+		const float tex_coord_scaler[2u]=
+		{
+			 float(model.texture_size[0u]) / float(c_max_texture_size[0u]),
+			 float(model.texture_size[1u]) / float(c_max_texture_size[1u]),
+		};
+		for( unsigned int v= 0u; v < model.vertices.size(); v++ )
+		{
+			vertex[v]= model.vertices[v];
+			vertex[v].texture_id= m;
+			for( unsigned int j= 0u; j < 2u; j++ )
+				vertex[v].tex_coord[j]*= tex_coord_scaler[j];
+		}
+
+		// Copy and recalculate indeces.
+		const unsigned int first_index= indeces.size();
+		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() );
+		unsigned short* const ind= indeces.data() + first_index;
+
+		for( unsigned int i= 0; i < model.regular_triangles_indeces.size(); i++ )
+			ind[i]= model.regular_triangles_indeces[i] + first_vertex_index;
+
+		models_geometry_[m].first_index= first_index;
+		models_geometry_[m].index_count= model.regular_triangles_indeces.size();
+	}
+
+	// Prepare texture.
+	glGenTextures( 1, &models_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		c_max_texture_size[0u], c_max_texture_size[1u], model_count,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, textures_data_rgba.data() );
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+
+	// Prepare vertex and index buffer.
+	models_geometry_data_.VertexData(
+		vertices.data(),
+		vertices.size() * sizeof(Model::Vertex),
+		sizeof(Model::Vertex) );
+
+	models_geometry_data_.IndexData(
+		indeces.data(),
+		indeces.size() * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
+
+	Model::Vertex v;
+	models_geometry_data_.VertexAttribPointer(
+		0, 3, GL_FLOAT, false,
+		((char*)v.pos) - ((char*)&v) );
+
+	models_geometry_data_.VertexAttribPointer(
+		1, 3, GL_FLOAT, false,
+		((char*)v.tex_coord) - ((char*)&v) );
+
+	models_geometry_data_.VertexAttribPointerInt(
+		2, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.texture_id) - ((char*)&v) );
 }
 
 } // namespace ChasmReverse

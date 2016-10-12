@@ -1,6 +1,6 @@
-uniform sampler2D tex;
+uniform sampler2DArray tex;
 
-in vec2 f_tex_coord;
+in vec3 f_tex_coord;
 
 out vec4 color;
 

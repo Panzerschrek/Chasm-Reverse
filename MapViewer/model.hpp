@@ -12,6 +12,7 @@ struct Model final
 	{
 		float pos[3];
 		float tex_coord[2];
+		unsigned char texture_id;
 	};
 
 	std::vector<Vertex> vertices;

@@ -27,6 +27,12 @@ private:
 		unsigned int vertex_count;
 	};
 
+	struct ModelGeometry
+	{
+		unsigned int first_index;
+		unsigned int index_count;
+	};
+
 private:
 	void LoadFloorsTextures(
 		const Vfs::FileContent& floors_file,
@@ -38,11 +44,17 @@ private:
 		const unsigned char* palette,
 		bool* out_textures_exist_flags );
 
+	void LoadModels(
+		const Vfs& vfs,
+		const Vfs::FileContent& resources_file,
+		const unsigned char* palette );
+
 private:
 	r_Texture lightmap_;
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
+	GLuint models_textures_array_id_= ~0;
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
@@ -54,8 +66,8 @@ private:
 	FloorGeometryInfo floors_geometry_info[2];
 
 	r_GLSLProgram models_shader_;
-	r_PolygonBuffer test_model_geometry_;
-	r_Texture test_model_texture_;
+	std::vector<ModelGeometry> models_geometry_;
+	r_PolygonBuffer models_geometry_data_;
 };
 
 } // namespace ChasmReverse
