@@ -29,6 +29,8 @@ private:
 
 	struct ModelGeometry
 	{
+		unsigned int frame_count;
+		unsigned int vertex_count;
 		unsigned int first_vertex_index;
 		unsigned int first_index;
 		unsigned int index_count;
@@ -82,6 +84,8 @@ private:
 	r_PolygonBuffer models_geometry_data_;
 
 	LevelModels level_models_;
+
+	unsigned int frame_count_= 0u;
 };
 
 } // namespace ChasmReverse

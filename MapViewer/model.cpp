@@ -71,6 +71,14 @@ void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& anim
 			: ( animation_file.data() + 0x02u );
 	const Vertex_o3* const vertices= reinterpret_cast<const Vertex_o3*>( in_vertices_data );
 
+	out_model.frame_count=
+		animation_file.empty()
+			? 1u
+			: ( animation_file.size() - 2u ) / ( vertex_count * sizeof(Vertex_o3) );
+
+	std::vector<Model::Vertex> tmp_vertices;
+	unsigned int current_vertex_index= 0u;
+
 	for( unsigned int p= 0u; p < polygon_count; p++ )
 	{
 		const Polygon_o3& polygon= polygons[p];
@@ -81,16 +89,23 @@ void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& anim
 		unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
 		if( polygon_is_twosided ) polygon_index_count*= 2u;
 
-		const unsigned int first_vertex_index= out_model.vertices.size();
-		out_model.vertices.resize( out_model.vertices.size() + polygon_vertex_count );
-		Model::Vertex* v= out_model.vertices.data() + first_vertex_index;
+		const unsigned int first_vertex_index= current_vertex_index;
+		tmp_vertices.resize( tmp_vertices.size() + polygon_vertex_count * out_model.frame_count );
+		Model::Vertex* v= tmp_vertices.data() + first_vertex_index * out_model.frame_count;
 
 		for( unsigned int j= 0u; j < polygon_vertex_count; j++ )
 		{
-			v[j].tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
-			v[j].tex_coord[1]= float( polygon.uv[j][1] + polygon.v_offset ) / float( out_model.texture_size[1] );
-			for( unsigned int c= 0u; c < 3u; c++ )
-				v[j].pos[c]= float( vertices[ polygon.vertices_indeces[j] ].xyz[c] ) * g_3o_model_coords_scale;
+			for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
+			{
+				Model::Vertex& vertex= v[ frame + j * out_model.frame_count ];
+				const Vertex_o3& in_vertex= vertices[ polygon.vertices_indeces[j] + frame * vertex_count ];
+
+				vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
+				vertex.tex_coord[1]= float( polygon.uv[j][1] + polygon.v_offset ) / float( out_model.texture_size[1] );
+
+				for( unsigned int c= 0u; c < 3u; c++ )
+					vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
+			}
 		}
 
 		auto& dst_indeces=
@@ -124,7 +139,20 @@ void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& anim
 				ind[5u]= first_vertex_index + 0u;
 			}
 		}
+
+		current_vertex_index+= polygon_vertex_count;
 	} // for polygons
+
+	// Change vertices frames order.
+	out_model.vertices.resize( tmp_vertices.size() );
+	const unsigned int out_vertex_count= tmp_vertices.size() / out_model.frame_count;
+
+	for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
+	{
+		for( unsigned int v= 0u; v < out_vertex_count; v++ )
+			out_model.vertices[ frame * out_vertex_count + v ]=
+				tmp_vertices[ v * out_model.frame_count + frame ];
+	}
 }
 
 } // namespace ChasmReverse

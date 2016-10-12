@@ -15,6 +15,7 @@ struct Model final
 		unsigned char texture_id;
 	};
 
+	unsigned int frame_count;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;

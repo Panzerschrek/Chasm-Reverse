@@ -460,13 +460,14 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			continue;
 
 		const ModelGeometry& model= models_geometry_[ level_model.id ];
+		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			model.index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ),
-			model.first_vertex_index );
+			model.first_vertex_index + model_frame * model.vertex_count );
 	}
 
 	// Transpaent models geometry
@@ -486,17 +487,21 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			continue;
 
 		const ModelGeometry& model= models_geometry_[ level_model.id ];
+		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			model.transparent_index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ),
-			model.first_vertex_index );
+			model.first_vertex_index + model_frame * model.vertex_count );
 	}
 	glDisable( GL_BLEND );
 
 	glDisable( GL_CULL_FACE );
+
+	// End frame
+	frame_count_++;
 }
 
 void MapViewer::LoadFloorsTextures(
@@ -700,7 +705,10 @@ void MapViewer::LoadModels(
 			model.transparent_triangles_indeces.data(),
 			model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
 
+		models_geometry_[m].frame_count= model.frame_count;
+		models_geometry_[m].vertex_count= model.vertices.size() / model.frame_count;
 		models_geometry_[m].first_vertex_index= first_vertex_index;
+
 		models_geometry_[m].first_index= first_index;
 		models_geometry_[m].index_count= model.regular_triangles_indeces.size();
 
