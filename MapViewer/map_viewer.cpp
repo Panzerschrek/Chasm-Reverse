@@ -105,7 +105,7 @@ void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTextur
 	}
 }
 
-void LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_names )
+unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_names )
 {
 	const char* start= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#newobjects" );
 
@@ -116,11 +116,14 @@ void LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_n
 
 	std::istringstream stream( std::string( start, end ) );
 
-	unsigned int i= 0u;
+	unsigned int count= 0u;
 	while( !stream.eof() )
 	{
 		char line[ 512u ];
 		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
 		std::istringstream line_stream{ std::string( line ) };
 
 		double num;
@@ -134,12 +137,12 @@ void LoadModelsNames( const Vfs::FileContent& resources_file, ModelsNames& out_n
 		line_stream >> num; // SFX
 		line_stream >> num; // BSfx
 
-		line_stream >> out_names[i]; // FileName
+		line_stream >> out_names[ count ]; // FileName
 
-		i++;
+		count++;
 	}
 
-	out_names[i][0u]= '\0';
+	return count;
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
@@ -608,15 +611,8 @@ void MapViewer::LoadModels(
 	const unsigned char* palette )
 {
 	ModelsNames models_names;
-	LoadModelsNames( resources_file, models_names );
-
-	unsigned int model_count= 0u;
-	for( const char* const model_file_name : models_names )
-	{
-		if( model_file_name[0u] == '\0' )
-			break;
-		model_count++;
-	}
+	const unsigned int model_count=
+		LoadModelsNames( resources_file, models_names );
 
 	Vfs::FileContent file_content;
 	Model model;
