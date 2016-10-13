@@ -15,5 +15,5 @@ So smescenija 0x3266 nacinajetsä blok dannyh, ocenj pohožih na 3short veršiny
 
 V ".3o" fajle po smescenijam, menjšim cem v ".car" na 0x66 ležat te že dannyje.
 
-Po smesceniju 0x00 v ".car" fajle ležit massiv struktur poligonov.
+Po smesceniju 0x66 v ".car" fajle ležit massiv struktur poligonov.
 Struktura ocenj pohoža na analogicnuju v ".3o" formate. Po krajnej mere razmer i pervyje polä s indeksami veršin sovpadajut.

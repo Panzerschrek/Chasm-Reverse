@@ -1,0 +1,13 @@
+﻿Postavka igry soderžit räd fajlov, soderžascih kod:
+CHASM.EXE
+PS10.EXE
+DPMI16BI.OVL
+RTM.EXE
+
+Tocka vhoda nahoditsä v fajle "CHASM.EXE".
+Igra, pocti navernäka, dolžna ispoljzovatj zasciscönnyj režim proçessora.
+Bylo obnaruženo, cto kod perehoda v zasciscönnyj režim nahoditsä v fajle "DPMI16BI.OVL".
+Perehod v zasciscönnyj režim i rabota s nim osuscestvläjetsä cerez EMS (Expanded Memory Specification) - int 67h.
+
+Samyj boljšoj po razmeru fajl - PS10.EXE - 267 kb. Predpoložiteljno, v nöm i soderžitsä vesj kod igry.
+Ostaljnoje, navernoje - lišj proslojka dlä raboty s sistemoj.

@@ -87,6 +87,7 @@ private:
 
 	unsigned int frame_count_= 0u;
 
+	ModelGeometry test_model_;
 	r_PolygonBuffer test_model_vbo_;
 	r_Texture test_model_texture_;
 };

@@ -405,12 +405,27 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 					texture_data_rgba.data() );
 		}
 
+		test_model_.first_index= 0u;
+		test_model_.first_transparent_index= 0u;
+		test_model_.first_vertex_index= 0u;
+		test_model_.frame_count= loaded_model.frame_count;
+		test_model_.index_count= loaded_model.regular_triangles_indeces.size();
+		test_model_.transparent_index_count= 0u;
+		test_model_.vertex_count= loaded_model.vertices.size() / loaded_model.frame_count;
+
+		for( Model::Vertex& v : loaded_model.vertices )
+			v.texture_id= 0u;
+
 		test_model_vbo_.VertexData(
 			loaded_model.vertices.data(),
 			loaded_model.vertices.size() * sizeof(Model::Vertex),
 			sizeof(Model::Vertex) );
 
-		test_model_vbo_.SetPrimitiveType( GL_POINTS );
+		test_model_vbo_.IndexData(
+			loaded_model.regular_triangles_indeces.data(),
+			loaded_model.regular_triangles_indeces.size() * sizeof(unsigned short),
+			GL_UNSIGNED_SHORT,
+			GL_TRIANGLES );
 
 		Model::Vertex v;
 		test_model_vbo_.VertexAttribPointer(
@@ -543,9 +558,20 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	}
 	glDisable( GL_BLEND );
 
-	glPointSize( 3.0f );
-	models_shader_.Uniform( "view_matrix", view_matrix );
-	test_model_vbo_.Draw();
+	{ // test model
+		models_shader_.Uniform( "view_matrix", view_matrix );
+
+		test_model_vbo_.Bind();
+
+		const unsigned int model_frame= ( frame_count_ / 3u ) % test_model_.frame_count;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			test_model_.index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( test_model_.first_index * sizeof(unsigned short) ),
+			test_model_.first_vertex_index + model_frame * test_model_.vertex_count );
+	}
 
 	glDisable( GL_CULL_FACE );
 
