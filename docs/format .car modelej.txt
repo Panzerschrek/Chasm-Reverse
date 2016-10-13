@@ -5,3 +5,5 @@ Znacenije eto korrelirujet s razmerom fajla. Dlä boljših fajlov ono boljšoje,
 Cerez interpretašiju fajla ".car" kak izobraženija, vyjasnilosj, cto vo vseh takih fajlah
 nacinaja so smescenija 0x486C ležat dannyje tekstury modeli. Oni hranätsä tam kak stroki v 64 pikselä.
 Dlä každoj modeli razmer tekstury raznyj, po vidu izobraženija kažetsä, cto posle tekstury idut plotno-upakovannyje dannyje.
+
+Po smesceniju 0x486A nahoditsä "unsigned short", znacenije kotorogo ravno proizvedeniju širiny tekstury (64) na vysotu tekstury.

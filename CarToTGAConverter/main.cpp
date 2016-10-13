@@ -33,11 +33,18 @@ int main( const int argc, const char* const argv[] )
 	Palette palette;
 	LoadPalette( palette );
 
+	const unsigned int c_texture_bytes_offset= 0x486Au;
 	const unsigned int c_texture_offset= 0x486Cu;
+
+	unsigned short texture_size;
+	std::memcpy( &texture_size, file_content.data() + c_texture_bytes_offset, sizeof(unsigned short) );
+
+	unsigned int texture_height= texture_size / 64u;
+
 	WriteTGA(
 		64u,
-		( file_content.size() - c_texture_offset ) / 64u,
+		texture_height,
 		( file_content.data() + c_texture_offset ),
 		palette.data(),
-		( std::string( file_name ) + ".tga" ).c_str() );
+		( std::string( file_name ) + ".texture.tga" ).c_str() );
 }
