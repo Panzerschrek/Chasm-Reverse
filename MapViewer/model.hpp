@@ -15,7 +15,15 @@ struct Model final
 		unsigned char texture_id;
 	};
 
+	struct Animation
+	{
+		unsigned int id; // animation id from original file
+		unsigned int first_frame;
+		unsigned int frame_count;
+	};
+
 	unsigned int frame_count;
+	std::vector<Animation> animations;
 	std::vector<Vertex> vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;

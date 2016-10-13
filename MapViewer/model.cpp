@@ -161,6 +161,14 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			out_model.vertices[ frame * out_vertex_count + v ]=
 				tmp_vertices[ v * out_model.frame_count + frame ];
 	}
+
+	// Setup animation
+	out_model.animations.resize( 1u );
+	Model::Animation& anim= out_model.animations.back();
+
+	anim.id= 0u;
+	anim.first_frame= out_model.frame_count;
+	anim.frame_count= out_model.frame_count;
 }
 
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
@@ -183,10 +191,22 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		model_file.data() + c_textures_offset,
 		texture_texels );
 
-	unsigned int total_frames_vertices_bytes= 0u;
+	out_model.frame_count= 0u;
 	const unsigned short* const animations= reinterpret_cast<const unsigned short*>( model_file.data() + 0x00u );
 	for( unsigned int i= 0u; i < 20u; i++ )
-		total_frames_vertices_bytes+= animations[i];
+	{
+		const unsigned int animation_frame_count= animations[i] / ( sizeof(Vertex_o3) * vertex_count );
+		if( animation_frame_count == 0u ) continue;
+
+		out_model.animations.emplace_back();
+		Model::Animation& anim= out_model.animations.back();
+
+		anim.id= i;
+		anim.first_frame= out_model.frame_count;
+		anim.frame_count= animation_frame_count;
+
+		out_model.frame_count+= animation_frame_count;
+	}
 
 	const Vertex_o3* vertices=
 		reinterpret_cast<const Vertex_o3*>( model_file.data() + c_textures_offset + texture_texels );
@@ -197,11 +217,9 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			model_file.size() - (
 			c_textures_offset +
 			out_model.texture_data.size() +
-			total_frames_vertices_bytes );
+			out_model.frame_count * sizeof(Vertex_o3) * vertex_count );
 
 	std::cout << "Bytes left: " << int(bytes_left)  << std::endl;
-
-	out_model.frame_count= total_frames_vertices_bytes / ( sizeof(Vertex_o3) * vertex_count );
 
 	std::vector<Model::Vertex> tmp_vertices;
 	unsigned int current_vertex_index= 0u;
