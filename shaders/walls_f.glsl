@@ -9,5 +9,10 @@ out vec4 color;
 void main()
 {
 	float light= texture( lightmap, f_lightmap_coord ).x;
-	color= texture( tex, f_tex_coord ) * light;
+	vec4 c= texture( tex, f_tex_coord );
+
+	if( c.a < 0.5 )
+		discard;
+
+	color= c * light;
 }
