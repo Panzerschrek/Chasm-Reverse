@@ -48,6 +48,8 @@ int main( const int argc, const char* const argv[] )
 		palette.data(),
 		( std::string( file_name ) + ".texture.tga" ).c_str() );
 
+	file_content.resize( ( file_content.size() + 63u ) & (~63u), 0u );
+
 	WriteTGA(
 		64u,
 		file_content.size() / 64u,
