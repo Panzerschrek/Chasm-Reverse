@@ -36,6 +36,8 @@ static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 static const unsigned int g_3o_model_texture_width= 64u;
 static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
+static const unsigned int g_car_model_texture_width= 64u;
+
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	// Clear output
@@ -152,6 +154,38 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		for( unsigned int v= 0u; v < out_vertex_count; v++ )
 			out_model.vertices[ frame * out_vertex_count + v ]=
 				tmp_vertices[ v * out_model.frame_count + frame ];
+	}
+}
+
+void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
+{
+	unsigned short polygon_count;
+	unsigned short vertex_count;
+	unsigned short texture_texels;
+	std::memcpy( &polygon_count, model_file.data() + 0x4866u, sizeof(unsigned short) );
+	std::memcpy( &vertex_count, model_file.data() + 0x4868u, sizeof(unsigned short) );
+	std::memcpy( &texture_texels, model_file.data() + 0x486Au, sizeof(unsigned short) );
+
+	out_model.texture_size[0u]= g_car_model_texture_width;
+	out_model.texture_size[1u]= texture_texels / g_car_model_texture_width;
+
+	out_model.texture_data.resize( texture_texels );
+	std::memcpy(
+		out_model.texture_data.data(),
+		model_file.data() + 0x486Cu,
+		texture_texels );
+
+
+	const Vertex_o3* in_vertices= reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3200u + 0x66u );
+	out_model.vertices.resize( vertex_count );
+
+	for( unsigned int v= 0u; v < vertex_count; v++ )
+	{
+		for( unsigned int j= 0u; j < 3u; j++ )
+			out_model.vertices[v].pos[j]= float(in_vertices[v].xyz[j]) / 1024.0f;
+
+		out_model.vertices[v].tex_coord[0u]= out_model.vertices[v].tex_coord[1u]= 0.0f;
+		out_model.vertices[v].texture_id= 0u;
 	}
 }
 

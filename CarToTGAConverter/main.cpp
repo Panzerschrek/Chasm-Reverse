@@ -47,4 +47,11 @@ int main( const int argc, const char* const argv[] )
 		( file_content.data() + c_texture_offset ),
 		palette.data(),
 		( std::string( file_name ) + ".texture.tga" ).c_str() );
+
+	WriteTGA(
+		64u,
+		file_content.size() / 64u,
+		file_content.data(),
+		palette.data(),
+		( std::string( file_name ) + ".tga" ).c_str() );
 }

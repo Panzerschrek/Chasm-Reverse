@@ -86,6 +86,9 @@ private:
 	LevelModels level_models_;
 
 	unsigned int frame_count_= 0u;
+
+	r_PolygonBuffer test_model_vbo_;
+	r_Texture test_model_texture_;
 };
 
 } // namespace ChasmReverse

@@ -7,3 +7,10 @@ nacinaja so smescenija 0x486C ležat dannyje tekstury modeli. Oni hranätsä tam
 Dlä každoj modeli razmer tekstury raznyj, po vidu izobraženija kažetsä, cto posle tekstury idut plotno-upakovannyje dannyje.
 
 Po smesceniju 0x486A nahoditsä "unsigned short", znacenije kotorogo ravno proizvedeniju širiny tekstury (64) na vysotu tekstury.
+
+".car" format ocenj napominajet ".3o" format.
+Po smesceniju 0x4866 v nöm ležit necto pohožeje na kolicestvo poligonov,
+a po smesceniju 0x4868 ležit cto-to pohožeje na kolicestvo veršin.
+So smescenija 0x3266 nacinajetsä blok dannyh, ocenj pohožih na 3short veršiny.
+
+V ".3o" fajle po smescenijam, menjšim cem v ".car" na 0x66 ležat te že dannyje.

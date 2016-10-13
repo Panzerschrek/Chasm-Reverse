@@ -25,5 +25,6 @@ struct Model final
 };
 
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model );
+void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model );
 
 } // namespace ChasmReverse

@@ -383,6 +383,48 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 	}
 
 	LoadModels( *vfs, resource_file, palette.data() );
+
+
+	{
+		const Vfs::FileContent car_model= vfs->ReadFile( "JOKER6.CAR" );
+
+		Model loaded_model;
+		LoadModel_car( car_model, loaded_model );
+		{ // texture
+			std::vector<unsigned char> texture_data_rgba( 4u * loaded_model.texture_data.size() );
+			for( unsigned int i= 0u; i < loaded_model.texture_data.size(); i++ )
+			{
+				for( unsigned int j= 0u; j < 3u; j++ )
+					texture_data_rgba[ i * 4u + j ]= palette[ loaded_model.texture_data[i] * 3u + j ];
+			}
+
+			test_model_texture_=
+				r_Texture(
+					r_Texture::PixelFormat::RGBA8,
+					loaded_model.texture_size[0u], loaded_model.texture_size[1u],
+					texture_data_rgba.data() );
+		}
+
+		test_model_vbo_.VertexData(
+			loaded_model.vertices.data(),
+			loaded_model.vertices.size() * sizeof(Model::Vertex),
+			sizeof(Model::Vertex) );
+
+		test_model_vbo_.SetPrimitiveType( GL_POINTS );
+
+		Model::Vertex v;
+		test_model_vbo_.VertexAttribPointer(
+			0, 3, GL_FLOAT, false,
+			((char*)v.pos) - ((char*)&v) );
+
+		test_model_vbo_.VertexAttribPointer(
+			1, 3, GL_FLOAT, false,
+			((char*)v.tex_coord) - ((char*)&v) );
+
+		test_model_vbo_.VertexAttribPointerInt(
+			2, 1, GL_UNSIGNED_BYTE,
+			((char*)&v.texture_id) - ((char*)&v) );
+	}
 }
 
 MapViewer::~MapViewer()
@@ -500,6 +542,10 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			model.first_vertex_index + model_frame * model.vertex_count );
 	}
 	glDisable( GL_BLEND );
+
+	glPointSize( 3.0f );
+	models_shader_.Uniform( "view_matrix", view_matrix );
+	test_model_vbo_.Draw();
 
 	glDisable( GL_CULL_FACE );
 
