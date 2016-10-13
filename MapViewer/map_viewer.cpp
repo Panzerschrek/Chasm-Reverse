@@ -389,6 +389,7 @@ MapViewer::~MapViewer()
 {
 	glDeleteTextures( 1, &floor_textures_array_id_ );
 	glDeleteTextures( 1, &wall_textures_array_id_ );
+	glDeleteTextures( 1, &models_textures_array_id_ );
 }
 
 void MapViewer::Draw( const m_Mat4& view_matrix )
