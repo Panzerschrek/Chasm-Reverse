@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iostream>
 
 #include "model.hpp"
 
@@ -159,11 +160,11 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 {
-	unsigned short polygon_count;
 	unsigned short vertex_count;
+	unsigned short polygon_count;
 	unsigned short texture_texels;
-	std::memcpy( &polygon_count, model_file.data() + 0x4866u, sizeof(unsigned short) );
-	std::memcpy( &vertex_count, model_file.data() + 0x4868u, sizeof(unsigned short) );
+	std::memcpy( &vertex_count, model_file.data() + 0x4866u, sizeof(unsigned short) );
+	std::memcpy( &polygon_count, model_file.data() + 0x4868u, sizeof(unsigned short) );
 	std::memcpy( &texture_texels, model_file.data() + 0x486Au, sizeof(unsigned short) );
 
 	out_model.texture_size[0u]= g_car_model_texture_width;
@@ -175,9 +176,22 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		model_file.data() + 0x486Cu,
 		texture_texels );
 
-
 	const Vertex_o3* in_vertices= reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3200u + 0x66u );
 	out_model.vertices.resize( vertex_count );
+
+	const Polygon_o3* const polygons= reinterpret_cast<const Polygon_o3*>( model_file.data() + 0x66u );
+
+	for( unsigned int p= 0u; p < polygon_count; p++ )
+	{
+		std::cout << "Polygon " << p << ": "
+			<< polygons[p].vertices_indeces[0u] << " "
+			<< polygons[p].vertices_indeces[1u] << " "
+			<< polygons[p].vertices_indeces[2u] << " "
+			<< polygons[p].vertices_indeces[3u] << " " << std::endl;
+	}
+
+	std::cout << "Polygon count: " << polygon_count << std::endl;
+	std::cout << "Vertex count: " << vertex_count << std::endl;
 
 	for( unsigned int v= 0u; v < vertex_count; v++ )
 	{
