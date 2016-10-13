@@ -1,0 +1,7 @@
+﻿Vo vseh ".car" fajlah v nacale nahoditsä dva nenulevyh bajta i dva nulevyh.
+Ocenj pohože, cto eto "unsigned int".
+Znacenije eto korrelirujet s razmerom fajla. Dlä boljših fajlov ono boljšoje, dlä malenjkih - malenjkoje.
+
+Cerez interpretašiju fajla ".car" kak izobraženija, vyjasnilosj, cto vo vseh takih fajlah
+nacinaja so smescenija 0x486C ležat dannyje tekstury modeli. Oni hranätsä tam kak stroki v 64 pikselä.
+Dlä každoj modeli razmer tekstury raznyj, po vidu izobraženija kažetsä, cto posle tekstury idut plotno-upakovannyje dannyje.
