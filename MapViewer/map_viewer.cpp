@@ -403,6 +403,9 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 					r_Texture::PixelFormat::RGBA8,
 					loaded_model.texture_size[0u], loaded_model.texture_size[1u],
 					texture_data_rgba.data() );
+
+			test_model_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+			test_model_texture_.BuildMips();
 		}
 
 		test_model_.first_index= 0u;
@@ -559,7 +562,11 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	glDisable( GL_BLEND );
 
 	{ // test model
+
+		test_model_texture_.Bind(0);
+
 		models_shader_.Uniform( "view_matrix", view_matrix );
+		models_shader_.Uniform( "tex", int(0) );
 
 		test_model_vbo_.Bind();
 

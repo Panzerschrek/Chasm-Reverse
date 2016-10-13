@@ -34,6 +34,11 @@ struct Vertex_o3
 
 static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 
+struct Animation_car
+{
+	unsigned short vertex_count;
+};
+
 static const unsigned int g_3o_model_texture_width= 64u;
 static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
@@ -178,17 +183,25 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		model_file.data() + c_textures_offset,
 		texture_texels );
 
-
-	//const Vertex_o3* vertices= reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3266u );
+	unsigned int total_frames_vertices_bytes= 0u;
+	const unsigned short* const animations= reinterpret_cast<const unsigned short*>( model_file.data() + 0x00u );
+	for( unsigned int i= 0u; i < 20u; i++ )
+		total_frames_vertices_bytes+= animations[i];
 
 	const Vertex_o3* vertices=
 		reinterpret_cast<const Vertex_o3*>( model_file.data() + c_textures_offset + texture_texels );
 
 	const Polygon_o3* const polygons= reinterpret_cast<const Polygon_o3*>( model_file.data() + 0x66u );
 
-	unsigned int left= ( model_file.size() - 0x486Cu + out_model.texture_data.size() );
+	const unsigned int bytes_left=
+			model_file.size() - (
+			c_textures_offset +
+			out_model.texture_data.size() +
+			total_frames_vertices_bytes );
 
-	out_model.frame_count= 16;// left / ( sizeof(Vertex_o3) * vertex_count );
+	std::cout << "Bytes left: " << int(bytes_left)  << std::endl;
+
+	out_model.frame_count= total_frames_vertices_bytes / ( sizeof(Vertex_o3) * vertex_count );
 
 	std::vector<Model::Vertex> tmp_vertices;
 	unsigned int current_vertex_index= 0u;
@@ -214,8 +227,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 				Model::Vertex& vertex= v[ frame + j * out_model.frame_count ];
 				const Vertex_o3& in_vertex= vertices[ polygon.vertices_indeces[j] + frame * vertex_count ];
 
-				vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
-				vertex.tex_coord[1]= float( polygon.uv[j][1] + polygon.v_offset ) / float( out_model.texture_size[1] );
+				vertex.tex_coord[0]= float( polygon.uv[j][0]) / float( out_model.texture_size[0] << 8u );
+				vertex.tex_coord[1]= float( polygon.uv[j][1] + 4u * polygon.v_offset ) / float( out_model.texture_size[1] << 8u );
 
 				for( unsigned int c= 0u; c < 3u; c++ )
 					vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
