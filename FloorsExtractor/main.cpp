@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../Common/files.hpp"
+#include "../Common/palette.hpp"
 #include "../Common/tga.hpp"
 using namespace ChasmReverse;
 
@@ -12,26 +13,6 @@ const constexpr unsigned int g_header_size= 64;
 const constexpr unsigned int g_floor_texture_size= 64;
 const constexpr unsigned int g_floor_texture_data_size= g_floor_texture_size * 86;
 const constexpr unsigned int g_floors_in_file= 64;
-
-static void LoadPalette(unsigned char* palette )
-{
-	const char* const palette_file_name= "CHASM2.PAL";
-
-	std::FILE* const file= std::fopen( palette_file_name, "rb" );
-
-	if( file == nullptr )
-	{
-		std::cout << "Could not read file \"" << palette_file_name << "\"" << std::endl;
-		return;
-	}
-
-	FileRead( file, palette, 768 );
-
-	std::fclose( file );
-
-	for( unsigned int i= 0; i < 768; i++ )
-		palette[i]<<= 2;
-}
 
 static std::vector<unsigned char> RepackFloors( const std::vector<unsigned char>& in_floors )
 {
@@ -102,7 +83,7 @@ int main( const int argc, const char* const argv[] )
 
 	std::fclose( file );
 
-	unsigned char palette[768];
+	Palette palette;
 	LoadPalette( palette );
 
 	const std::vector<unsigned char> floors_repacked= RepackFloors( file_data );
@@ -110,6 +91,6 @@ int main( const int argc, const char* const argv[] )
 	WriteTGA(
 		g_floor_texture_size, floors_repacked.size() / g_floor_texture_size,
 		floors_repacked.data(),
-		palette,
+		palette.data(),
 		out_file_name );
 }

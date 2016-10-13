@@ -1,0 +1,13 @@
+﻿Sprajty hranätsä v ".obj" fajlah.
+
+Po smesceniju 0x00 ležit "unsigned short" s kolicestvom kadrov. Posle nego idut dannyje kadrov.
+
+Kadr sostoit iz zagolovka i sledujuscih za nim pikselej. Format zagolovka primerno takoj:
+struct SpriteFrame
+{
+	unsigned short width;
+	unsigned short height;
+	unsigned short unknown;
+};
+
+Posle zagolovka sledujut pikseli sprajta v porädke po stolbçam.
