@@ -675,6 +675,28 @@ void MapViewer::LoadModels(
 				texture_dst[ i + j ]= palette[ color_index * 3u + j ];
 		}
 
+		// Fill free texture space
+		for(
+			unsigned int y= model.texture_size[1u];
+			y < ( ( c_max_texture_size[1u] + model.texture_size[1u] ) >> 1u );
+			y++ )
+		{
+			std::memcpy(
+				texture_dst + 4u * c_max_texture_size[0u] * y,
+				texture_dst + 4u * c_max_texture_size[0u] * ( model.texture_size[1u] - 1u ),
+				4u * c_max_texture_size[0u] );
+		}
+		for(
+			unsigned int y= ( c_max_texture_size[1u] + model.texture_size[1u] )>> 1u;
+			y < c_max_texture_size[1u];
+			y++ )
+		{
+			std::memcpy(
+				texture_dst + 4u * c_max_texture_size[0u] * y,
+				texture_dst,
+				4u * c_max_texture_size[0u] );
+		}
+
 		// Copy vertices, transform textures coordinates, set texture layer.
 		const unsigned int first_vertex_index= vertices.size();
 		vertices.resize( vertices.size() + model.vertices.size() );
