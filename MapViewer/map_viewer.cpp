@@ -1,6 +1,11 @@
 #include <cstring>
+#include <sstream>
+#include <iostream>
 
 #include <shaders_loading.hpp>
+
+#include "math_utils.hpp"
+#include "model.hpp"
 
 #include "map_viewer.hpp"
 
@@ -58,23 +63,25 @@ struct MapWall
 
 SIZE_ASSERT( MapWall, 11u );
 
-typedef std::array<char[16], 256> WallsTexturesNames;
+typedef std::array<char[16u], 256u> WallsTexturesNames;
 
-void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTexturesNames& out_names )
+struct ModelDescription
 {
-	char resource_file_name[16];
-	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
+	char model_file_name[16u];
+	char animation_file_name[16u];
+};
 
-	Vfs::FileContent resource_file= vfs.ReadFile( resource_file_name );
-	resource_file.push_back( '\0' ); // make happy string functions
+typedef std::array<ModelDescription, 128u> ModeslDescription;
 
+void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTexturesNames& out_names )
+{
 	// Very complex stuff here.
 	// TODO - use parser.
 
 	for( char* const file_name : out_names )
 		file_name[0]= '\0';
 
-	const char* const gfx_section= std::strstr( reinterpret_cast<char*>( resource_file.data() ), "#GFX" );
+	const char* const gfx_section= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#GFX" );
 	const char* const gfx_section_end= std::strstr( gfx_section, "#end" );
 	const char* stream= gfx_section + std::strlen( "#GFX" );
 
@@ -103,6 +110,49 @@ void LoadWallsTexturesNames( const Vfs& vfs, unsigned int map_number, WallsTextu
 		}
 		*dst= '\0';
 	}
+}
+
+unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModeslDescription& out_names )
+{
+	const char* start= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#newobjects" );
+
+	while( *start != '\n' ) start++;
+	start++;
+
+	const char* const end= std::strstr( start, "#end" );
+
+	std::istringstream stream( std::string( start, end ) );
+
+	unsigned int count= 0u;
+	while( !stream.eof() )
+	{
+		char line[ 512u ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+		std::istringstream line_stream{ std::string( line ) };
+
+		double num;
+		line_stream >> num; // GoRad
+		line_stream >> num; // Shad
+		line_stream >> num; // BObj
+		line_stream >> num; // BMPz
+		line_stream >> num; // AC
+		line_stream >> num; // Blw
+		line_stream >> num; // BLmt
+		line_stream >> num; // SFX
+		line_stream >> num; // BSfx
+
+		line_stream >> out_names[ count ].model_file_name; // FileName
+
+		out_names[ count ].animation_file_name[0u]= '\0';
+		line_stream >> out_names[ count ].animation_file_name; // Animation
+
+		count++;
+	}
+
+	return count;
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
@@ -185,9 +235,12 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)&v.texture_id) - ((char*)&v) );
 	}
 
+	std::snprintf( map_file_name, sizeof(map_file_name), "RESOURCE.%02u", map_number );
+	const Vfs::FileContent resource_file= vfs->ReadFile( map_file_name );
+
 	// Walls textures
 	bool wall_texture_exist[ g_max_wall_textures ];
-	LoadWallsTextures( *vfs, map_number, palette.data(), wall_texture_exist );
+	LoadWallsTextures( *vfs, resource_file, palette.data(), wall_texture_exist );
 
 	// Load walls geometry
 	std::vector<WallVertex> walls_vertices;
@@ -198,7 +251,23 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + 0x18001u + sizeof(MapWall) * ( x + y * g_map_size ) );
 
-		if( map_wall.texture_id >= 128u ||
+		if( map_wall.texture_id >= 128u )
+		{
+			const int model_id= int(map_wall.texture_id) - 163;
+			if( model_id >= 0 )
+			{
+				level_models_.emplace_back();
+				LevelModel& model= level_models_.back();
+				model.pos.x= float(map_wall.vert_coord[0][0]) / 256.0f;
+				model.pos.y= float(map_wall.vert_coord[0][1]) / 256.0f;
+				model.pos.z= 0.0f;
+				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
+				model.id= model_id;
+			}
+			continue;
+		}
+
+		if(
 			!wall_texture_exist[ map_wall.texture_id ] )
 			continue;
 
@@ -301,7 +370,17 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		walls_shader_.SetAttribLocation( "tex_id", 2u );
 		walls_shader_.SetAttribLocation( "normal", 3u );
 		walls_shader_.Create();
+
+		models_shader_.ShaderSource(
+			rLoadShader( "models_f.glsl", glsl_version ),
+			rLoadShader( "models_v.glsl", glsl_version ) );
+		models_shader_.SetAttribLocation( "pos", 0u );
+		models_shader_.SetAttribLocation( "tex_coord", 1u );
+		models_shader_.SetAttribLocation( "tex_id", 2u );
+		models_shader_.Create();
 	}
+
+	LoadModels( *vfs, resource_file, palette.data() );
 }
 
 MapViewer::~MapViewer()
@@ -354,6 +433,75 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			floors_geometry_info[z].first_vertex_number,
 			floors_geometry_info[z].vertex_count );
 	}
+
+	// Test model
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+
+	models_shader_.Uniform( "tex", int(0) );
+
+	models_geometry_data_.Bind();
+
+	glEnable( GL_CULL_FACE );
+
+	// Regular models geometry
+	for( const LevelModel& level_model : level_models_ )
+	{
+		m_Mat4 rotate_mat, shift_mat;
+
+		rotate_mat.RotateZ( level_model.angle );
+		shift_mat.Translate( level_model.pos );
+
+		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+		if( level_model.id >= models_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model= models_geometry_[ level_model.id ];
+		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			model.index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ),
+			model.first_vertex_index + model_frame * model.vertex_count );
+	}
+
+	// Transpaent models geometry
+	glEnable( GL_BLEND );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	for( const LevelModel& level_model : level_models_ )
+	{
+		m_Mat4 rotate_mat, shift_mat;
+
+		rotate_mat.RotateZ( level_model.angle );
+		shift_mat.Translate( level_model.pos );
+
+		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+		if( level_model.id >= models_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model= models_geometry_[ level_model.id ];
+		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			model.transparent_index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ),
+			model.first_vertex_index + model_frame * model.vertex_count );
+	}
+	glDisable( GL_BLEND );
+
+	glDisable( GL_CULL_FACE );
+
+	// End frame
+	frame_count_++;
 }
 
 void MapViewer::LoadFloorsTextures(
@@ -398,12 +546,12 @@ void MapViewer::LoadFloorsTextures(
 
 void MapViewer::LoadWallsTextures(
 	const Vfs& vfs,
-	const unsigned int map_number,
+	const Vfs::FileContent& resources_file,
 	const unsigned char* const palette,
 	bool* const out_textures_exist_flags )
 {
 	WallsTexturesNames walls_textures_names;
-	LoadWallsTexturesNames( vfs, map_number, walls_textures_names );
+	LoadWallsTexturesNames( resources_file, walls_textures_names );
 
 	glGenTextures( 1, &wall_textures_array_id_ );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
@@ -472,6 +620,140 @@ void MapViewer::LoadWallsTextures(
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+}
+
+void MapViewer::LoadModels(
+	const Vfs& vfs,
+	const Vfs::FileContent& resources_file,
+	const unsigned char* palette )
+{
+	ModeslDescription models;
+	const unsigned int model_count=
+		LoadModelsNames( resources_file, models );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+	Model model;
+
+	std::vector<unsigned  short> indeces;
+	std::vector<Model::Vertex> vertices;
+
+	// TODO - use atlas instead textures array
+	const unsigned int c_max_texture_size[2]= { 64u, 1024u };
+	const unsigned int c_texels_in_layer= c_max_texture_size[0u] * c_max_texture_size[1u];
+	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * model_count, 0u );
+
+	models_geometry_.resize( model_count );
+
+	for( unsigned int m= 0u; m < model_count; m++ )
+	{
+		vfs.ReadFile( models[m].model_file_name, file_content );
+
+		if( models[m].animation_file_name[0u] != '\0' )
+			vfs.ReadFile( models[m].animation_file_name, animation_file_content );
+		else
+			animation_file_content.clear();
+
+		LoadModel( file_content, animation_file_content, model );
+
+		if( model.texture_size[1u] > c_max_texture_size[1u] )
+		{
+			std::cout << "Model \"" << models[m].model_file_name << "\" texture height is too big: " << model.texture_size[1u] << std::endl;
+			model.texture_size[1u]= c_max_texture_size[1u];
+		}
+
+		// Copy texture into atlas.
+		unsigned char* const texture_dst= textures_data_rgba.data() + 4u * c_texels_in_layer * m;
+		for( unsigned int y= 0u; y < model.texture_size[1u]; y++ )
+		for( unsigned int x= 0u; x < model.texture_size[0u]; x++ )
+		{
+			const unsigned int i= ( x + y * c_max_texture_size[0u] ) << 2u;
+			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
+			for( unsigned int j= 0u; j < 3u; j++ )
+				texture_dst[ i + j ]= palette[ color_index * 3u + j ] << 2u;
+		}
+
+		// Copy vertices, transform textures coordinates, set texture layer.
+		const unsigned int first_vertex_index= vertices.size();
+		vertices.resize( vertices.size() + model.vertices.size() );
+		Model::Vertex* const vertex= vertices.data() + first_vertex_index;
+
+		const float tex_coord_scaler[2u]=
+		{
+			 float(model.texture_size[0u]) / float(c_max_texture_size[0u]),
+			 float(model.texture_size[1u]) / float(c_max_texture_size[1u]),
+		};
+		for( unsigned int v= 0u; v < model.vertices.size(); v++ )
+		{
+			vertex[v]= model.vertices[v];
+			vertex[v].texture_id= m;
+			for( unsigned int j= 0u; j < 2u; j++ )
+				vertex[v].tex_coord[j]*= tex_coord_scaler[j];
+		}
+
+		// Copy and recalculate indeces.
+		const unsigned int first_index= indeces.size();
+		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
+		unsigned short* const ind= indeces.data() + first_index;
+
+		std::memcpy(
+			ind,
+			model.regular_triangles_indeces.data(),
+			model.regular_triangles_indeces.size() * sizeof(unsigned short) );
+
+		std::memcpy(
+			ind + model.regular_triangles_indeces.size(),
+			model.transparent_triangles_indeces.data(),
+			model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
+
+		models_geometry_[m].frame_count= model.frame_count;
+		models_geometry_[m].vertex_count= model.vertices.size() / model.frame_count;
+		models_geometry_[m].first_vertex_index= first_vertex_index;
+
+		models_geometry_[m].first_index= first_index;
+		models_geometry_[m].index_count= model.regular_triangles_indeces.size();
+
+		models_geometry_[m].first_transparent_index= first_index + model.regular_triangles_indeces.size();
+		models_geometry_[m].transparent_index_count= model.transparent_triangles_indeces.size();
+
+	}
+
+	// Prepare texture.
+	glGenTextures( 1, &models_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		c_max_texture_size[0u], c_max_texture_size[1u], model_count,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, textures_data_rgba.data() );
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+
+	// Prepare vertex and index buffer.
+	models_geometry_data_.VertexData(
+		vertices.data(),
+		vertices.size() * sizeof(Model::Vertex),
+		sizeof(Model::Vertex) );
+
+	models_geometry_data_.IndexData(
+		indeces.data(),
+		indeces.size() * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
+
+	Model::Vertex v;
+	models_geometry_data_.VertexAttribPointer(
+		0, 3, GL_FLOAT, false,
+		((char*)v.pos) - ((char*)&v) );
+
+	models_geometry_data_.VertexAttribPointer(
+		1, 3, GL_FLOAT, false,
+		((char*)v.tex_coord) - ((char*)&v) );
+
+	models_geometry_data_.VertexAttribPointerInt(
+		2, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.texture_id) - ((char*)&v) );
 }
 
 } // namespace ChasmReverse

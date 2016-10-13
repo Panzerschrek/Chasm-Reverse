@@ -1,0 +1,11 @@
+﻿Format modelej ".3o" nemnogo opisan v http://www.shikadi.net/moddingwiki/3O_Format
+
+Format .ani animaçij:
+
+Po smesceniju 0x00 hranitsä "unsigned short".
+Jego znacenije sovpadajet s kolicestvom veršin v sootvetstvujuscem .3o fajle.
+
+Jesli delitj razmer .ani fajla za isklücenijem dvuh bajt na eto cislo, to polucajutsä çelyje cisla, kratnyje 6.
+
+Možno predpoložitj, cto v ".ani" fajle hranitsä posledovateljnostj kadrov poziçij veršin.
+Kolicestvo kadrov opredeläjetsä ishodä iz kolicestvo veršin i razmera fajla.
