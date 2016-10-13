@@ -36,7 +36,7 @@ static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 static const unsigned int g_3o_model_texture_width= 64u;
 static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
-void LoadModel( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
+void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	// Clear output
 	out_model.vertices.clear();

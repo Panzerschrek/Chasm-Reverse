@@ -657,7 +657,7 @@ void MapViewer::LoadModels(
 		else
 			animation_file_content.clear();
 
-		LoadModel( file_content, animation_file_content, model );
+		LoadModel_o3( file_content, animation_file_content, model );
 
 		if( model.texture_size[1u] > c_max_texture_size[1u] )
 		{
