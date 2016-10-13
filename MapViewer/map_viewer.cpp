@@ -159,8 +159,10 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 {
 	char map_file_name[16];
 
-	// Load floors textures
-	const Vfs::FileContent palette= vfs->ReadFile( "CHASM2.PAL" );
+	// Load palette and convert to 8 bit from 6 bit.
+	Vfs::FileContent palette= vfs->ReadFile( "CHASM2.PAL" );
+	for( unsigned char& palette_element : palette )
+		palette_element<<= 2u;
 
 	std::snprintf( map_file_name, sizeof(map_file_name), "FLOORS.%02u", map_number );
 	LoadFloorsTextures( vfs->ReadFile( map_file_name ), palette.data() );
@@ -526,7 +528,7 @@ void MapViewer::LoadFloorsTextures(
 		{
 			const unsigned char color_index= in_data[i];
 			for( unsigned int j= 0; j < 3u; j++ )
-				texture_data[ (i << 2u) + j ]= palette[ color_index * 3u + j ] << 2u;
+				texture_data[ (i << 2u) + j ]= palette[ color_index * 3u + j ];
 			texture_data[ (i << 2u) + 3 ]= 255;
 		}
 
@@ -594,7 +596,7 @@ void MapViewer::LoadWallsTextures(
 				const unsigned int i= ( x + y * g_max_wall_texture_width ) << 2;
 
 				for( unsigned int j= 0u; j < 3u; j++ )
-					texture_data[ i + j ]= palette[ color_index * 3u + j ] << 2;
+					texture_data[ i + j ]= palette[ color_index * 3u + j ];
 
 				texture_data[ i + 3u ]= color_index == 255u ? 0u : 255u;
 			}
@@ -670,7 +672,7 @@ void MapViewer::LoadModels(
 			const unsigned int i= ( x + y * c_max_texture_size[0u] ) << 2u;
 			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
 			for( unsigned int j= 0u; j < 3u; j++ )
-				texture_dst[ i + j ]= palette[ color_index * 3u + j ] << 2u;
+				texture_dst[ i + j ]= palette[ color_index * 3u + j ];
 		}
 
 		// Copy vertices, transform textures coordinates, set texture layer.
