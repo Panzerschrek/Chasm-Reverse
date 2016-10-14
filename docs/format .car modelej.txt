@@ -42,3 +42,6 @@ Nacinaja so smescenija 0x4806u ležat sami dannyje poveršinnoj animaçii.
 Summa pervyh dvuh "unsigned short" znacenij nacinaja s absolütnogo smescenija 0x28 casto byvajet
 v tocnosti ravna eksperimentaljno opredelönnomu kolicestvu bajt animaçii podmodeli.
 Pohože, cto eti cisla zadajut dve animaçii pervoj podmodeli.
+
+Vo mnogih, vrode, modeläh jestj tri podmodeli - otorvannyje ruki (ili nogi), golova.
+Dlä každoj iz tröh podmodeli jestj dve animaçii (nacinaja so smesceni 0x28).
