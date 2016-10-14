@@ -34,10 +34,14 @@ struct Vertex_o3
 
 static_assert( sizeof(Vertex_o3) == 6u, "Invalid size" );
 
-struct Animation_car
+struct CARHeader
 {
-	unsigned short vertex_count;
+	unsigned short animations[20u];
+	unsigned short submodels_animations[3u][2u];
+	unsigned short unknown[25u];
 };
+
+static_assert( sizeof(CARHeader) == 0x66u, "Invalid size" );
 
 static const unsigned int g_3o_model_texture_width= 64u;
 static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
@@ -205,14 +209,12 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		model_file.data() + c_textures_offset,
 		texture_texels );
 
+	const CARHeader* const header= reinterpret_cast<const CARHeader*>( model_file.data() );
+
 	out_model.frame_count= 0u;
-	const unsigned short* const animations=
-		reinterpret_cast<const unsigned short*>( model_file.data() + 0x00u );
-	const unsigned short* const submodels_animations=
-		reinterpret_cast<const unsigned short*>( model_file.data() + 0x28u );
 	for( unsigned int i= 0u; i < 20u; i++ )
 	{
-		const unsigned int animation_frame_count= animations[i] / ( sizeof(Vertex_o3) * vertex_count );
+		const unsigned int animation_frame_count= header->animations[i] / ( sizeof(Vertex_o3) * vertex_count );
 		if( animation_frame_count == 0u ) continue;
 
 		out_model.animations.emplace_back();
@@ -320,7 +322,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		const unsigned int c_animation_data_offset= 0x4806u;
 
 		const unsigned int submodel_animation_data_size=
-			submodels_animations[ i * 2u ] + submodels_animations[ i * 2u + 1u ];
+			header->submodels_animations[i][0u] + header->submodels_animations[i][1u];
 
 		if( submodel_animation_data_size == 0u )
 			continue;
@@ -345,7 +347,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		for( unsigned int a= 0u; a < 2u; a++ )
 		{
 			const unsigned int animation_frame_count=
-				submodels_animations[ i * 2u + a ] / ( sizeof(Vertex_o3) * vertex_count );
+				header->submodels_animations[i][a] / ( sizeof(Vertex_o3) * vertex_count );
 			if( animation_frame_count == 0u )
 				continue;
 
