@@ -72,6 +72,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 	out_model.vertices.clear();
 	out_model.regular_triangles_indeces.clear();
 	out_model.transparent_triangles_indeces.clear();
+	out_model.submodels.clear();
 	out_model.texture_data.clear();
 
 	unsigned short polygon_count;
