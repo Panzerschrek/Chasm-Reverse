@@ -49,10 +49,15 @@ Dlä každoj iz tröh podmodeli jestj dve animaçii (nacinaja so smesceni 0x28).
 V pole razmerom bajt po smesceniju 0x1C v strukture poligona ležit nomer gruppy poligonov modeli.
 
 Gruppy obycno sootvetstvujut castäm modeli:
- 0 - telo
- 1 - levaja ruka (ili noga)
- 2 - mesto otsecenija levoj konecnosti
- 4 - pravaja ruka (ili noga)
- 8 - mesto otsecenija pravoj konecnosti
-16 - golova
-32 - mesto otsecenija golovy
+  0 - telo
+  1 - levaja ruka (ili noga)
+  2 - mesto otsecenija levoj konecnosti
+  4 - pravaja ruka (ili noga)
+  8 - mesto otsecenija pravoj konecnosti
+ 16 - golova
+ 32 - mesto otsecenija golovy
+128 - ogonj ognestreljnogo oružija
+
+
+Jesli interpretirocatj ostatko ".car" fajla ( posle vesh podmodelej ) kak 16bitnyj zvuk,
+to dejstviteljno, slyšitsä cto-to pohožeje na zvuk.
