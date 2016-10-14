@@ -44,6 +44,28 @@ static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
 static const unsigned int g_car_model_texture_width= 64u;
 
+// Swap from order
+// v0.f0 v0.f1 v0.f2  v1.f0 v1.f1 v1.f2
+// to
+// v0.f0 v1.f0  v0.f1 v1.f1  v0.f2 v1.f2
+static void SwapVertexOrder(
+	Model::Vertices& in_vertices,
+	const unsigned int frame_count,
+	Model::Vertices& out_vertices )
+{
+	out_vertices.resize( in_vertices.size() );
+
+	const unsigned int out_vertex_count= in_vertices.size() / frame_count;
+
+	for( unsigned int frame= 0u; frame < frame_count; frame++ )
+	{
+		for( unsigned int v= 0u; v < out_vertex_count; v++ )
+			out_vertices[ frame * out_vertex_count + v ]=
+				in_vertices[ v * frame_count + frame ];
+	}
+}
+
+
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	// Clear output
@@ -151,16 +173,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		current_vertex_index+= polygon_vertex_count;
 	} // for polygons
 
-	// Change vertices frames order.
-	out_model.vertices.resize( tmp_vertices.size() );
-	const unsigned int out_vertex_count= tmp_vertices.size() / out_model.frame_count;
-
-	for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
-	{
-		for( unsigned int v= 0u; v < out_vertex_count; v++ )
-			out_model.vertices[ frame * out_vertex_count + v ]=
-				tmp_vertices[ v * out_model.frame_count + frame ];
-	}
+	SwapVertexOrder( tmp_vertices, out_model.frame_count, out_model.vertices );
 
 	// Setup animation
 	out_model.animations.resize( 1u );
@@ -288,16 +301,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		current_vertex_index+= polygon_vertex_count;
 	} // for polygons
 
-	// Change vertices frames order.
-	out_model.vertices.resize( tmp_vertices.size() );
-	const unsigned int out_vertex_count= tmp_vertices.size() / out_model.frame_count;
-
-	for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
-	{
-		for( unsigned int v= 0u; v < out_vertex_count; v++ )
-			out_model.vertices[ frame * out_vertex_count + v ]=
-				tmp_vertices[ v * out_model.frame_count + frame ];
-	}
+	SwapVertexOrder( tmp_vertices, out_model.frame_count, out_model.vertices );
 }
 
 } // namespace ChasmReverse

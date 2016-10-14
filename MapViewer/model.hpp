@@ -15,6 +15,8 @@ struct Model final
 		unsigned char texture_id;
 	};
 
+	typedef std::vector<Vertex> Vertices;
+
 	struct Animation
 	{
 		unsigned int id; // animation id from original file
@@ -24,7 +26,7 @@ struct Model final
 
 	unsigned int frame_count;
 	std::vector<Animation> animations;
-	std::vector<Vertex> vertices;
+	Model::Vertices vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
 
