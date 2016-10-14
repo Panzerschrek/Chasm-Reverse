@@ -87,6 +87,8 @@ private:
 
 	unsigned int frame_count_= 0u;
 
+	r_GLSLProgram single_texture_models_shader_;
+
 	ModelGeometry test_model_;
 	r_PolygonBuffer test_model_vbo_;
 	r_Texture test_model_texture_;

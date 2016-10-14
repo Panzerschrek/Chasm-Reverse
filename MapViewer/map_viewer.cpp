@@ -380,6 +380,14 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 		models_shader_.SetAttribLocation( "tex_coord", 1u );
 		models_shader_.SetAttribLocation( "tex_id", 2u );
 		models_shader_.Create();
+
+		single_texture_models_shader_.ShaderSource(
+			rLoadShader( "single_texture_models_f.glsl", glsl_version ),
+			rLoadShader( "models_v.glsl", glsl_version ) );
+		single_texture_models_shader_.SetAttribLocation( "pos", 0u );
+		single_texture_models_shader_.SetAttribLocation( "tex_coord", 1u );
+		single_texture_models_shader_.SetAttribLocation( "tex_id", 2u );
+		single_texture_models_shader_.Create();
 	}
 
 	LoadModels( *vfs, resource_file, palette.data() );
@@ -563,10 +571,12 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	{ // test model
 
+		single_texture_models_shader_.Bind();
+
 		test_model_texture_.Bind(0);
 
-		models_shader_.Uniform( "view_matrix", view_matrix );
-		models_shader_.Uniform( "tex", int(0) );
+		single_texture_models_shader_.Uniform( "view_matrix", view_matrix );
+		single_texture_models_shader_.Uniform( "tex", int(0) );
 
 		test_model_vbo_.Bind();
 
