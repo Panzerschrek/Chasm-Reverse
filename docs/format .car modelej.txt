@@ -34,7 +34,11 @@ Ocenj pohože, cto eto massiv struktur razmerom 32 bajta.
 V VIKING4.CAR obnaruženo sledujusceje: posle dannyh tekstury i animaçij idut snova kakije-to poligony.
 Po smesceniju 0x3200 ot predyduscih dannyh idut dannyje veršin, po smesceniju 0x4802u ležit kolicestvo poligonov.
 Takim obrazom, tam ležit polnoçennaja modelj ruki s toporom.
-Po smesceniju 0x4800u v podmodeli ležit kolicestvo veršin. Po smesceniju 0x4804u ležit kolicestvo bajt poveršinnoj animaçii.
+Po smesceniju 0x4800u v podmodeli ležit kolicestvo veršin.
+Po smesceniju 0x4804u ležit neizvestnoje cislo.
 Nacinaja so smescenija 0x4806u ležat sami dannyje poveršinnoj animaçii.
 
-"Unsigned short" znacenije po smesceniju 0x40 ot nacala fajla casto (ili vsegda) kratno kolicestvu veršin podmodeli.
+"Unsigned short" znacenije po smesceniju 0x28 ot nacala fajla casto (ili vsegda) kratno kolicestvu veršin podmodeli.
+Summa pervyh dvuh "unsigned short" znacenij nacinaja s absolütnogo smescenija 0x28 casto byvajet
+v tocnosti ravna eksperimentaljno opredelönnomu kolicestvu bajt animaçii podmodeli.
+Pohože, cto eti cisla zadajut dve animaçii pervoj podmodeli.
