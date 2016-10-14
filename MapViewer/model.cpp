@@ -11,7 +11,7 @@ struct Polygon_o3
 	unsigned short vertices_indeces[4u];
 	unsigned short uv[4u][2u];
 	unsigned char unknown0[4];
-	unsigned char unknown1;
+	unsigned char group_id; // For monsters - body, left hand, right hand, head, etc.
 	unsigned char flags;
 	unsigned short v_offset;
 
