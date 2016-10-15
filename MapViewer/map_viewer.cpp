@@ -31,19 +31,25 @@ static const unsigned int g_max_wall_textures= 128u;
 
 #define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size" )
 
-struct MapSomething
+struct MapLight
 {
-	unsigned short unknown[6u];
+	unsigned short position[2u];
+	unsigned short r0;
+	unsigned short r1;
+	unsigned char unknown[4u];
 };
 
-SIZE_ASSERT( MapSomething, 12u );
+SIZE_ASSERT( MapLight, 12u );
 
-struct MapSomething2
+struct MapMonster
 {
-	unsigned short unknown[4u];
+	unsigned short position[2u];
+	unsigned short id;
+	unsigned char angle; // bits 0-3 is angle. Other bits - unknown.
+	unsigned char unknown;
 };
 
-SIZE_ASSERT( MapSomething2, 8u );
+SIZE_ASSERT( MapMonster, 8u );
 
 struct FloorVertex
 {
@@ -394,49 +400,45 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)v.normal) - ((char*)&v) );
 	}
 
-	// Load monsters
+	// Load monsters and lights
 	{
-		const unsigned int c_something_count_offset= 0x27001u;
-		const unsigned int c_something_offset= 0x27003u;
-		const MapSomething* something= reinterpret_cast<const MapSomething*>( map_file.data() + c_something_offset );
-		unsigned short something_count;
-		std::memcpy( &something_count, map_file.data() + c_something_count_offset, sizeof(unsigned short) );
+		const unsigned int c_lights_count_offset= 0x27001u;
+		const unsigned int c_lights_offset= 0x27003u;
+		//const MapLight* map_lights= reinterpret_cast<const MapLight*>( map_file.data() + c_lights_offset );
+		unsigned short lights_count;
+		std::memcpy( &lights_count, map_file.data() + c_lights_count_offset, sizeof(unsigned short) );
 
-		for( unsigned int i= 0u; i < something_count; i++ )
+		/*
+		for( unsigned int l= 0u; l < lights_count; l++ )
 		{
-			std::cout << "Something " << i << ": ";
-			for( unsigned int j= 0u; j < 6u; j++ )
-				std::cout<< something[i].unknown[j] << " ";
-			std::cout << std::endl;
-
-			/*level_monsters_.emplace_back();
-			LevelModel& monster= level_monsters_.back();
-			monster.pos.x= float(something[i].unknown[0u]) / 256.0f;
-			monster.pos.y= float(something[i].unknown[1u]) / 256.0f;
-			monster.pos.z= 0.0f;
-			monster.angle= 0.0f;*/
-		}
-
-		const unsigned int something2_offset= c_something_offset + sizeof(MapSomething) * something_count + 2u;
-		const MapSomething2* something2= reinterpret_cast<const MapSomething2*>( map_file.data() + something2_offset );
-		//unsigned short something2_count= ( map_file.size() - something2_offset ) / sizeof(MapSomething2);
-		unsigned short something2_count;
-		std::memcpy( &something2_count, map_file.data() + something2_offset - 2u, sizeof(unsigned short) );
-
-		for( unsigned int i= 0u; i < something2_count; i++ )
-		{
-			std::cout << "Something2 " << i << ": ";
+			std::cout << "Light " << l << ": ";
+			std::cout << " pos: " << map_lights[l].position[0u] << " " << map_lights[l].position[1u];
+			std::cout << " r0: " << map_lights[l].r0 << " r1: " << map_lights[l].r1;
+			std::cout << " unknown: ";
 			for( unsigned int j= 0u; j < 4u; j++ )
-				std::cout<< something2[i].unknown[j] << " ";
+				std::cout << int(map_lights[l].unknown[j]) << " ";
 			std::cout << std::endl;
+		}
+		*/
 
+		const unsigned int monsters_count_offset= c_lights_offset + sizeof(MapLight) * lights_count;
+		const unsigned int monsters_offset= monsters_count_offset + 2u;
+		const MapMonster* map_monsters= reinterpret_cast<const MapMonster*>( map_file.data() + monsters_offset );
+		unsigned short monster_count;
+		std::memcpy( &monster_count, map_file.data() + monsters_count_offset, sizeof(unsigned short) );
+
+		for( unsigned int m= 0u; m < monster_count; m++ )
+		{
 			level_monsters_.emplace_back();
 			LevelModel& monster= level_monsters_.back();
-			monster.pos.x= float(something2[i].unknown[0u]) / 256.0f;
-			monster.pos.y= float(something2[i].unknown[1u]) / 256.0f;
-			monster.id= something2[i].unknown[2u] - 100u;
+
+			monster.pos.x= float(map_monsters[m].position[0u]) / 256.0f;
+			monster.pos.y= float(map_monsters[m].position[1u]) / 256.0f;
+			monster.id= map_monsters[m].id - 100u;
 			monster.pos.z= 0.0f;
-			monster.angle= 0.0f;
+			monster.angle=
+				float( map_monsters[m].angle & 7u) / 8.0f * Constants::two_pi +
+				1.5f * Constants::pi;
 		}
 	}
 
