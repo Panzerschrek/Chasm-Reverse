@@ -68,3 +68,9 @@ V pervoj tabliçe (smescenije 0x23000) hranitsä, predpoložiteljno, nomer tektu
 Vo vtoroj tabliçe (smescenijee 0x24000) hranitsä, predpoložiteljno, nomer tekstury pola.
 
 V cetvörtoj tabliçe (smescenije 0x26000) hranitsä cto-to, obsceje dlä çelyh zon urovnej. Ocenj pohože, cto eto karta fonovyh zvukov.
+
+Po smesceniju 0x27001 nahoditsä "unsigned short" s kolicestvom štruktur, razmerom 12 bajt. Zatem sledujet massiv etih struktur.
+Pervyje dva "unsigned short" etih struktur ocenj pohoži na koordinaty istocnikov sveta.
+
+Posle etih dannyh idöt "unsigned short" s kolicestvom 8-bajtnyh struktur, a potom massiv etih struktur.
+Pervyje dva "unsigned short" etih struktur jestj koordinaty monstrov, a tretij "unsigned short" - id monstra + 100.

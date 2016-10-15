@@ -103,6 +103,8 @@ private:
 
 	MonstersModels monsters_models_;
 	r_PolygonBuffer monsters_models_geometry_data_;
+
+	LevelModels level_monsters_;
 };
 
 } // namespace ChasmReverse

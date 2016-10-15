@@ -31,6 +31,20 @@ static const unsigned int g_max_wall_textures= 128u;
 
 #define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size" )
 
+struct MapSomething
+{
+	unsigned short unknown[6u];
+};
+
+SIZE_ASSERT( MapSomething, 12u );
+
+struct MapSomething2
+{
+	unsigned short unknown[4u];
+};
+
+SIZE_ASSERT( MapSomething2, 8u );
+
 struct FloorVertex
 {
 	unsigned char xy[2];
@@ -380,6 +394,52 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 			((char*)v.normal) - ((char*)&v) );
 	}
 
+	// Load monsters
+	{
+		const unsigned int c_something_count_offset= 0x27001u;
+		const unsigned int c_something_offset= 0x27003u;
+		const MapSomething* something= reinterpret_cast<const MapSomething*>( map_file.data() + c_something_offset );
+		unsigned short something_count;
+		std::memcpy( &something_count, map_file.data() + c_something_count_offset, sizeof(unsigned short) );
+
+		for( unsigned int i= 0u; i < something_count; i++ )
+		{
+			std::cout << "Something " << i << ": ";
+			for( unsigned int j= 0u; j < 6u; j++ )
+				std::cout<< something[i].unknown[j] << " ";
+			std::cout << std::endl;
+
+			/*level_monsters_.emplace_back();
+			LevelModel& monster= level_monsters_.back();
+			monster.pos.x= float(something[i].unknown[0u]) / 256.0f;
+			monster.pos.y= float(something[i].unknown[1u]) / 256.0f;
+			monster.pos.z= 0.0f;
+			monster.angle= 0.0f;*/
+		}
+
+		const unsigned int something2_offset= c_something_offset + sizeof(MapSomething) * something_count + 2u;
+		const MapSomething2* something2= reinterpret_cast<const MapSomething2*>( map_file.data() + something2_offset );
+		//unsigned short something2_count= ( map_file.size() - something2_offset ) / sizeof(MapSomething2);
+		unsigned short something2_count;
+		std::memcpy( &something2_count, map_file.data() + something2_offset - 2u, sizeof(unsigned short) );
+
+		for( unsigned int i= 0u; i < something2_count; i++ )
+		{
+			std::cout << "Something2 " << i << ": ";
+			for( unsigned int j= 0u; j < 4u; j++ )
+				std::cout<< something2[i].unknown[j] << " ";
+			std::cout << std::endl;
+
+			level_monsters_.emplace_back();
+			LevelModel& monster= level_monsters_.back();
+			monster.pos.x= float(something2[i].unknown[0u]) / 256.0f;
+			monster.pos.y= float(something2[i].unknown[1u]) / 256.0f;
+			monster.id= something2[i].unknown[2u] - 100u;
+			monster.pos.z= 0.0f;
+			monster.angle= 0.0f;
+		}
+	}
+
 	// Shaders
 	{
 		const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
@@ -542,18 +602,25 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 	}
 	glDisable( GL_BLEND );
 
-	{ // test model
+	single_texture_models_shader_.Bind();
+	monsters_models_geometry_data_.Bind();
 
-		const MonsterModel& model= monsters_models_.front();
+	for( const LevelModel& monster : level_monsters_ )
+	{
+		if( monster.id >= monsters_models_.size() )
+			continue;
 
-		single_texture_models_shader_.Bind();
+		const MonsterModel& model= monsters_models_[ monster.id ];
 
 		model.texture.Bind(0u);
-
-		single_texture_models_shader_.Uniform( "view_matrix", view_matrix );
 		single_texture_models_shader_.Uniform( "tex", int(0) );
 
-		monsters_models_geometry_data_.Bind();
+		m_Mat4 rotate_mat, shift_mat;
+
+		rotate_mat.RotateZ( monster.angle );
+		shift_mat.Translate( monster.pos );
+
+		single_texture_models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
 
 		const unsigned int model_frame= ( frame_count_ / 5u ) % model.geometry_info.frame_count;
 
