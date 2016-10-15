@@ -47,6 +47,14 @@ private:
 
 	typedef std::vector<LevelModel> LevelModels;
 
+	struct MonsterModel
+	{
+		ModelGeometry geometry_info;
+		r_Texture texture;
+	};
+
+	typedef std::vector<MonsterModel> MonstersModels;
+
 private:
 	void LoadFloorsTextures(
 		const Vfs::FileContent& floors_file,
@@ -61,6 +69,10 @@ private:
 	void LoadModels(
 		const Vfs& vfs,
 		const Vfs::FileContent& resources_file,
+		const unsigned char* palette );
+
+	void LoadMonstersModels(
+		const Vfs& vfs,
 		const unsigned char* palette );
 
 private:
@@ -89,9 +101,8 @@ private:
 
 	r_GLSLProgram single_texture_models_shader_;
 
-	ModelGeometry test_model_;
-	r_PolygonBuffer test_model_vbo_;
-	r_Texture test_model_texture_;
+	MonstersModels monsters_models_;
+	r_PolygonBuffer monsters_models_geometry_data_;
 };
 
 } // namespace ChasmReverse

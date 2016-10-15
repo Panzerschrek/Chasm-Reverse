@@ -69,15 +69,19 @@ static void SwapVertexOrder(
 	}
 }
 
+static void ClearModel( Model& model )
+{
+	model.animations.clear();
+	model.vertices.clear();
+	model.regular_triangles_indeces.clear();
+	model.transparent_triangles_indeces.clear();
+	model.texture_data.clear();
+	model.submodels.clear();
+}
 
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
-	// Clear output
-	out_model.vertices.clear();
-	out_model.regular_triangles_indeces.clear();
-	out_model.transparent_triangles_indeces.clear();
-	out_model.texture_data.clear();
-	out_model.submodels.clear();
+	ClearModel( out_model );
 
 	unsigned short polygon_count;
 	unsigned short vertex_count;
@@ -191,6 +195,8 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 {
+	ClearModel( out_model );
+
 	const unsigned int c_textures_offset= 0x486Cu;
 
 	unsigned short vertex_count;

@@ -73,6 +73,8 @@ struct ModelDescription
 
 typedef std::array<ModelDescription, 128u> ModeslDescription;
 
+typedef std::array<char[16u], 48u> MonstersModelsNames;
+
 void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTexturesNames& out_names )
 {
 	// Very complex stuff here.
@@ -153,6 +155,36 @@ unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModeslDesc
 	}
 
 	return count;
+}
+
+unsigned int LoadMonstersModelsNames(
+	const Vfs::FileContent& inf_file,
+	MonstersModelsNames& out_names )
+{
+	const char* const monsters_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[MONSTERS]" );
+	const char* const monsters_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( monsters_start, monsters_end ) );
+
+	char line[ 512u ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int monsters_count= 0u;
+	stream >> monsters_count;
+	stream.getline( line, sizeof(line), '\n' );
+
+	for( unsigned int i= 0u; i < monsters_count; i++ )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		std::istringstream line_stream{ std::string( line ) };
+
+		line_stream >> out_names[ i ];
+
+		// TODO - read various monsters stats here
+	}
+
+	return monsters_count;
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
@@ -392,65 +424,7 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 	LoadModels( *vfs, resource_file, palette.data() );
 
-
-	{
-		const Vfs::FileContent car_model= vfs->ReadFile( "JOKER6.CAR" );
-
-		Model loaded_model;
-		LoadModel_car( car_model, loaded_model );
-		{ // texture
-			std::vector<unsigned char> texture_data_rgba( 4u * loaded_model.texture_data.size() );
-			for( unsigned int i= 0u; i < loaded_model.texture_data.size(); i++ )
-			{
-				for( unsigned int j= 0u; j < 3u; j++ )
-					texture_data_rgba[ i * 4u + j ]= palette[ loaded_model.texture_data[i] * 3u + j ];
-			}
-
-			test_model_texture_=
-				r_Texture(
-					r_Texture::PixelFormat::RGBA8,
-					loaded_model.texture_size[0u], loaded_model.texture_size[1u],
-					texture_data_rgba.data() );
-
-			test_model_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
-			test_model_texture_.BuildMips();
-		}
-
-		test_model_.first_index= 0u;
-		test_model_.first_transparent_index= 0u;
-		test_model_.first_vertex_index= 0u;
-		test_model_.frame_count= loaded_model.frame_count;
-		test_model_.index_count= loaded_model.regular_triangles_indeces.size();
-		test_model_.transparent_index_count= 0u;
-		test_model_.vertex_count= loaded_model.vertices.size() / loaded_model.frame_count;
-
-		for( Model::Vertex& v : loaded_model.vertices )
-			v.texture_id= 0u;
-
-		test_model_vbo_.VertexData(
-			loaded_model.vertices.data(),
-			loaded_model.vertices.size() * sizeof(Model::Vertex),
-			sizeof(Model::Vertex) );
-
-		test_model_vbo_.IndexData(
-			loaded_model.regular_triangles_indeces.data(),
-			loaded_model.regular_triangles_indeces.size() * sizeof(unsigned short),
-			GL_UNSIGNED_SHORT,
-			GL_TRIANGLES );
-
-		Model::Vertex v;
-		test_model_vbo_.VertexAttribPointer(
-			0, 3, GL_FLOAT, false,
-			((char*)v.pos) - ((char*)&v) );
-
-		test_model_vbo_.VertexAttribPointer(
-			1, 3, GL_FLOAT, false,
-			((char*)v.tex_coord) - ((char*)&v) );
-
-		test_model_vbo_.VertexAttribPointerInt(
-			2, 1, GL_UNSIGNED_BYTE,
-			((char*)&v.texture_id) - ((char*)&v) );
-	}
+	LoadMonstersModels( *vfs, palette.data() );
 }
 
 MapViewer::~MapViewer()
@@ -505,7 +479,6 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 			floors_geometry_info[z].vertex_count );
 	}
 
-	// Test model
 	models_shader_.Bind();
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
@@ -571,23 +544,25 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	{ // test model
 
+		const MonsterModel& model= monsters_models_.front();
+
 		single_texture_models_shader_.Bind();
 
-		test_model_texture_.Bind(0);
+		model.texture.Bind(0u);
 
 		single_texture_models_shader_.Uniform( "view_matrix", view_matrix );
 		single_texture_models_shader_.Uniform( "tex", int(0) );
 
-		test_model_vbo_.Bind();
+		monsters_models_geometry_data_.Bind();
 
-		const unsigned int model_frame= ( frame_count_ / 3u ) % test_model_.frame_count;
+		const unsigned int model_frame= ( frame_count_ / 5u ) % model.geometry_info.frame_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
-			test_model_.index_count,
+			model.geometry_info.index_count,
 			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( test_model_.first_index * sizeof(unsigned short) ),
-			test_model_.first_vertex_index + model_frame * test_model_.vertex_count );
+			reinterpret_cast<void*>( model.geometry_info.first_index * sizeof(unsigned short) ),
+			model.geometry_info.first_vertex_index + model_frame * model.geometry_info.vertex_count );
 	}
 
 	glDisable( GL_CULL_FACE );
@@ -866,6 +841,116 @@ void MapViewer::LoadModels(
 		((char*)v.tex_coord) - ((char*)&v) );
 
 	models_geometry_data_.VertexAttribPointerInt(
+		2, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.texture_id) - ((char*)&v) );
+}
+
+void MapViewer::LoadMonstersModels(
+	const Vfs& vfs,
+	const unsigned char* palette )
+{
+	MonstersModelsNames models_names;
+
+	const unsigned int models_count=
+		LoadMonstersModelsNames(
+			vfs.ReadFile( "CHASM.INF" ),
+			models_names );
+
+	monsters_models_.resize( models_count );
+
+	Model model;
+	Vfs::FileContent file_content;
+	std::vector<unsigned char> texture_data_rgba;
+
+	Model::Vertices vertices;
+	std::vector<unsigned short> indeces;
+
+	for( unsigned int m= 0u; m < models_count; m++ )
+	{
+		vfs.ReadFile( models_names[m], file_content );
+		LoadModel_car( file_content, model );
+
+		MonsterModel& model_info= monsters_models_[m];
+
+		{ // texture
+			texture_data_rgba.resize( 4u * model.texture_data.size() );
+			for( unsigned int i= 0u; i < model.texture_data.size(); i++ )
+			{
+				for( unsigned int j= 0u; j < 3u; j++ )
+					texture_data_rgba[ i * 4u + j ]= palette[ model.texture_data[i] * 3u + j ];
+			}
+
+			r_Texture& texture= model_info.texture;
+
+			texture=
+				r_Texture(
+					r_Texture::PixelFormat::RGBA8,
+					model.texture_size[0u], model.texture_size[1u],
+					texture_data_rgba.data() );
+
+			texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+			texture.BuildMips();
+		}
+
+		// Copy vertices.
+		const unsigned int first_vertex_index= vertices.size();
+		vertices.resize( vertices.size() + model.vertices.size() );
+
+		std::memcpy(
+			vertices.data() + first_vertex_index,
+			model.vertices.data(),
+			model.vertices.size() * sizeof(Model::Vertex) );
+
+		// Copy indeces.
+		const unsigned int first_index= indeces.size();
+		indeces.resize(
+			indeces.size() +
+			model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
+		unsigned short* const ind= indeces.data() + first_index;
+
+		std::memcpy(
+			ind,
+			model.regular_triangles_indeces.data(),
+			model.regular_triangles_indeces.size() * sizeof(unsigned short) );
+
+		std::memcpy(
+			ind + model.regular_triangles_indeces.size(),
+			model.transparent_triangles_indeces.data(),
+			model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
+
+		ModelGeometry& geometry_info= model_info.geometry_info;
+		geometry_info.frame_count= model.frame_count;
+		geometry_info.vertex_count= model.vertices.size() / model.frame_count;
+		geometry_info.first_vertex_index= first_vertex_index;
+
+		geometry_info.first_index= first_index;
+		geometry_info.index_count= model.regular_triangles_indeces.size();
+
+		geometry_info.first_transparent_index= first_index + model.regular_triangles_indeces.size();
+		geometry_info.transparent_index_count= model.transparent_triangles_indeces.size();
+	} // for models
+
+	monsters_models_geometry_data_.VertexData(
+		vertices.data(),
+		vertices.size() * sizeof(Model::Vertex),
+		sizeof(Model::Vertex) );
+
+	monsters_models_geometry_data_.IndexData(
+		indeces.data(),
+		indeces.size() * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
+
+	Model::Vertex v;
+	monsters_models_geometry_data_.VertexAttribPointer(
+		0, 3, GL_FLOAT, false,
+		((char*)v.pos) - ((char*)&v) );
+
+	monsters_models_geometry_data_.VertexAttribPointer(
+		1, 3, GL_FLOAT, false,
+		((char*)v.tex_coord) - ((char*)&v) );
+
+	monsters_models_geometry_data_.VertexAttribPointerInt(
 		2, 1, GL_UNSIGNED_BYTE,
 		((char*)&v.texture_id) - ((char*)&v) );
 }
