@@ -17,7 +17,14 @@ struct SystemEvent
 
 	struct KeyEvent
 	{
-		unsigned int key_code;
+		enum class KeyCode
+		{
+			Unknown= 0,
+			Escape,
+			Enter,
+		};
+
+		KeyCode key_code;
 		bool pressed;
 	};
 

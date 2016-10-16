@@ -12,17 +12,27 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
 	host.cpp \
+	images.cpp \
 	log.cpp \
 	main.cpp \
+	menu.cpp \
 	system_window.cpp \
+	text_draw.cpp \
+	vfs.cpp \
 
 HEADERS+= \
+	game_resources.hpp \
 	host.hpp \
+	images.hpp \
 	log.hpp \
+	menu.hpp \
 	system_event.hpp \
 	system_window.hpp \
+	text_draw.hpp \
+	vfs.hpp \
 
 SOURCES+= \
+	../Common/files.cpp \
 	../../panzer_ogl_lib/polygon_buffer.cpp \
 	../../panzer_ogl_lib/shaders_loading.cpp \
 	../../panzer_ogl_lib/texture.cpp \
@@ -33,6 +43,7 @@ SOURCES+= \
 	../../panzer_ogl_lib/ogl_state_manager.cpp \
 
 HEADERS+= \
+	../Common/files.hpp \
 	../../panzer_ogl_lib/ogl_state_manager.hpp \
 	../../panzer_ogl_lib/panzer_ogl_lib.hpp \
 	../../panzer_ogl_lib/polygon_buffer.hpp \

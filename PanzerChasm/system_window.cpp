@@ -48,6 +48,16 @@ SystemWindow::~SystemWindow()
 	SDL_DestroyWindow( window_ );
 }
 
+unsigned int SystemWindow::Width () const
+{
+	return viewport_size_[0];
+}
+
+unsigned int SystemWindow::Height() const
+{
+	return viewport_size_[1];
+}
+
 void SystemWindow::SwapBuffers()
 {
 	SDL_GL_SwapWindow( window_ );
