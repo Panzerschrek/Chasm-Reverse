@@ -30,6 +30,13 @@ void FlipAndConvertToRGBA(
 	const Palette& palette,
 	unsigned char* out_data );
 
+void ColorShift(
+	unsigned char start_color, unsigned char end_color,
+	char shift,
+	unsigned int pixel_count,
+	const unsigned char* in_data,
+	unsigned char* out_data );
+
 void LoadPalette(
 	const Vfs& vfs,
 	Palette& out_palette );

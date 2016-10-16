@@ -19,6 +19,20 @@ static const int g_space_width= 6u;
 static const unsigned int g_atlas_width = 16u * g_letter_place_width ;
 static const unsigned int g_atlas_height= 16u * g_letter_place_height;
 
+static const unsigned int g_colors_variations= 4u;
+
+// Indeces of colors, used in font as inner for letters.
+static const unsigned char g_start_inner_color= 4u;
+static const unsigned char g_end_inner_color= 16u;
+
+static const int g_color_shifts[ g_colors_variations ]=
+{
+	  0, // white
+	 38, // dark-yellow
+	176, // golden
+	194, // dark-yellow with green
+};
+
 static void CalculateLettersWidth(
 	const unsigned char* const texture_data,
 	unsigned char* const out_width )
@@ -56,25 +70,36 @@ TextDraw::TextDraw(
 	// Texture
 	const Vfs::FileContent font_file= game_resources.vfs->ReadFile( "FONT256.CEL" );
 	const CelTextureHeader* const cel_header= reinterpret_cast<const CelTextureHeader*>( font_file.data() );
+	const unsigned char* const fond_data= font_file.data() + sizeof(CelTextureHeader);
 
 	const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
-	std::vector<unsigned char> font_rgba( 4u * pixel_count );
+	std::vector<unsigned char> font_rgba( g_colors_variations * 4u * pixel_count );
 
-	ConvertToRGBA(
-		pixel_count,
-		font_file.data() + sizeof(CelTextureHeader),
-		game_resources.palette,
-		font_rgba.data() );
+	std::vector<unsigned char> font_data_shifted( pixel_count );
+	for( unsigned int c= 0u; c < g_colors_variations; c++ )
+	{
+		ColorShift(
+			g_start_inner_color, g_end_inner_color,
+			g_color_shifts[c],
+			pixel_count,
+			fond_data, font_data_shifted.data() );
+
+		ConvertToRGBA(
+			pixel_count,
+			font_data_shifted.data(),
+			game_resources.palette,
+			font_rgba.data() + c * pixel_count * 4u );
+	}
 
 	CalculateLettersWidth(
-		font_file.data() + sizeof(CelTextureHeader),
+		fond_data,
 		letters_width_ );
 
 	texture_=
 		r_Texture(
 			r_Texture::PixelFormat::RGBA8,
 			cel_header->size[0],
-			cel_header->size[1],
+			cel_header->size[1] * g_colors_variations,
 			font_rgba.data() );
 
 	texture_.SetFiltration(
@@ -132,9 +157,13 @@ unsigned int TextDraw::GetLineWidth() const
 	return g_letter_height;
 }
 
-void TextDraw::Print( const int x, const int y, const char* text, const unsigned int scale )
+void TextDraw::Print(
+	const int x, const int y,
+	const char* text,
+	const unsigned int scale, const FontColor color )
 {
 	const int scale_i= int(scale);
+	const int d_tc_v= int(color) * int(g_atlas_height);
 
 	Vertex* v= vertex_buffer_.data();
 	int current_x= x;
@@ -145,7 +174,7 @@ void TextDraw::Print( const int x, const int y, const char* text, const unsigned
 		unsigned int code= *text;
 
 		const unsigned int tc_u= ( code & 15u ) * g_letter_place_width  + g_letter_u_offset;
-		const unsigned int tc_v= ( code >> 4u ) * g_letter_place_height + g_letter_v_offset;
+		const unsigned int tc_v= ( code >> 4u ) * g_letter_place_height + g_letter_v_offset + d_tc_v;
 		const unsigned char letter_width= letters_width_[code];
 
 		v[0].xy[0]= current_x;

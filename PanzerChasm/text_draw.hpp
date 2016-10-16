@@ -12,6 +12,14 @@ namespace PanzerChasm
 class TextDraw final
 {
 public:
+	enum class FontColor
+	{
+		White= 0u,
+		DrakYellow,
+		Golden,
+		YellowGreen,
+	};
+
 	TextDraw(
 		unsigned int viewport_width, unsigned int viewport_height,
 		const GameResources& game_resources );
@@ -19,7 +27,7 @@ public:
 
 	unsigned int GetLineWidth() const;
 
-	void Print( int x, int y, const char* text, unsigned int scale );
+	void Print( int x, int y, const char* text, unsigned int scale, FontColor color= FontColor::White );
 
 private:
 	struct Vertex

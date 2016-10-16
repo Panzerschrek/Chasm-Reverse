@@ -172,13 +172,13 @@ void Menu::Draw()
 
 	int y= 0;
 
-	text_draw_.Print( 10, y, "QUICK BROWN FOX JUMPS OVER THE LAZY DOG", 3 );
+	text_draw_.Print( 10, y, "QUICK BROWN FOX JUMPS OVER THE LAZY DOG", 3, TextDraw::FontColor::White );
 	y+= text_draw_.GetLineWidth() * 3 ;
-	text_draw_.Print( 10, y, "Quick brown fox jumps over the lazy dog", 3 );
+	text_draw_.Print( 10, y, "Quick brown fox jumps over the lazy dog", 3, TextDraw::FontColor::DrakYellow );
 	y+= text_draw_.GetLineWidth() * 3 ;
-	text_draw_.Print( 10, y, "123456789", 3 );
+	text_draw_.Print( 10, y, "123456789", 3, TextDraw::FontColor::Golden );
 	y+= text_draw_.GetLineWidth() * 3 ;
-	text_draw_.Print( 10, y, "level 1  health 100", 3 );
+	text_draw_.Print( 10, y, "level 1  health 100", 3, TextDraw::FontColor::YellowGreen );
 }
 
 } // namespace PanzerChasm
