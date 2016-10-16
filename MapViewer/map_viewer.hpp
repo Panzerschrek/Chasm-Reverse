@@ -96,6 +96,9 @@ private:
 	r_PolygonBuffer models_geometry_data_;
 
 	LevelModels level_models_;
+	LevelModels level_items_;
+	unsigned int first_level_model_;
+	unsigned int first_level_item_model_;
 
 	unsigned int frame_count_= 0u;
 

@@ -134,7 +134,7 @@ void LoadWallsTexturesNames( const Vfs::FileContent& resources_file, WallsTextur
 	}
 }
 
-unsigned int LoadModelsNames( const Vfs::FileContent& resources_file, ModeslDescription& out_names )
+unsigned int LoadModelsDescription( const Vfs::FileContent& resources_file, ModeslDescription& out_names )
 {
 	const char* start= std::strstr( reinterpret_cast<const char*>( resources_file.data() ), "#newobjects" );
 
@@ -205,6 +205,53 @@ unsigned int LoadMonstersModelsNames(
 	}
 
 	return monsters_count;
+}
+
+unsigned int LoadItemsModelsDescription(
+	const Vfs::FileContent& inf_file,
+	ModeslDescription& out_description )
+{
+	const char* const items_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[3D_OBJECTS]" );
+	const char* const items_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( items_start, items_end ) );
+
+	char line[ 512u ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int items_count= 0u;
+	stream >> items_count;
+	stream.getline( line, sizeof(line), '\n' );
+
+	for( unsigned int i= 0u; i < items_count; )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( line[0u] == ';' )
+			continue;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		double num;
+		line_stream >> num; // GoRad
+		line_stream >> num; // Shad
+		line_stream >> num; // BObj
+		line_stream >> num; // BMPz
+		line_stream >> num; // AC
+		line_stream >> num; // Blw
+		line_stream >> num; // BLmt
+		line_stream >> num; // SFX
+		line_stream >> num; // BSfx
+
+		line_stream >> out_description[i].model_file_name; // FileName
+
+		out_description[i].animation_file_name[0u]= '\0';
+		line_stream >> out_description[i].animation_file_name; // Animation
+
+		i++;
+	}
+
+	return items_count;
 }
 
 MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
@@ -307,11 +354,26 @@ MapViewer::MapViewer( const std::shared_ptr<Vfs>& vfs, unsigned int map_number )
 
 		if( map_wall.texture_id >= 128u )
 		{
-			const int model_id= int(map_wall.texture_id) - 163;
+			// 131 - items
+			// 163 - static models
+
+			int model_id= -1;
+			LevelModels* dst_models;
+			if( map_wall.texture_id >= 163u )
+			{
+				model_id= int(map_wall.texture_id) - 163;
+				dst_models= &level_models_;
+			}
+			else if( map_wall.texture_id >= 131u )
+			{
+				model_id= int(map_wall.texture_id)  - 131;
+				dst_models= &level_items_;
+			}
+
 			if( model_id >= 0 )
 			{
-				level_models_.emplace_back();
-				LevelModel& model= level_models_.back();
+				dst_models->emplace_back();
+				LevelModel& model= dst_models->back();
 				model.pos.x= float(map_wall.vert_coord[0][0]) / 256.0f;
 				model.pos.y= float(map_wall.vert_coord[0][1]) / 256.0f;
 				model.pos.z= 0.0f;
@@ -552,56 +614,50 @@ void MapViewer::Draw( const m_Mat4& view_matrix )
 
 	glEnable( GL_CULL_FACE );
 
-	// Regular models geometry
-	for( const LevelModel& level_model : level_models_ )
+	const auto draw_models=
+	[&](
+		const LevelModels& models,
+		const unsigned int first_model_id,
+		const bool transparent )
 	{
-		m_Mat4 rotate_mat, shift_mat;
+		for( const LevelModel& level_model : models )
+		{
+			m_Mat4 rotate_mat, shift_mat;
+			rotate_mat.RotateZ( level_model.angle );
+			shift_mat.Translate( level_model.pos );
 
-		rotate_mat.RotateZ( level_model.angle );
-		shift_mat.Translate( level_model.pos );
+			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
 
-		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+			const unsigned int model_id= level_model.id + first_model_id;
+			if( model_id >= models_geometry_.size() )
+				continue;
 
-		if( level_model.id >= models_geometry_.size() )
-			continue;
+			const ModelGeometry& model= models_geometry_[ model_id ];
+			const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
 
-		const ModelGeometry& model= models_geometry_[ level_model.id ];
-		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
+			const unsigned int index_count= transparent ? model.transparent_index_count : model.index_count;
+			const unsigned int first_index= transparent ? model.first_transparent_index : model.first_index;
 
-		glDrawElementsBaseVertex(
-			GL_TRIANGLES,
-			model.index_count,
-			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( model.first_index * sizeof(unsigned short) ),
-			model.first_vertex_index + model_frame * model.vertex_count );
-	}
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				 model.first_vertex_index + model_frame * model.vertex_count );
+		}
+	};
 
-	// Transpaent models geometry
+	// Regular models parts geometry
+	draw_models( level_models_, first_level_model_, false );
+	draw_models( level_items_, first_level_item_model_, false );
+
+	// Transpaent models parts geometry
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-	for( const LevelModel& level_model : level_models_ )
-	{
-		m_Mat4 rotate_mat, shift_mat;
+	draw_models( level_models_, first_level_model_, true );
+	draw_models( level_items_, first_level_item_model_, true );
 
-		rotate_mat.RotateZ( level_model.angle );
-		shift_mat.Translate( level_model.pos );
-
-		models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
-
-		if( level_model.id >= models_geometry_.size() )
-			continue;
-
-		const ModelGeometry& model= models_geometry_[ level_model.id ];
-		const unsigned int model_frame= ( frame_count_ / 3u ) % model.frame_count;
-
-		glDrawElementsBaseVertex(
-			GL_TRIANGLES,
-			model.transparent_index_count,
-			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( model.first_transparent_index * sizeof(unsigned short) ),
-			model.first_vertex_index + model_frame * model.vertex_count );
-	}
 	glDisable( GL_BLEND );
 
 	single_texture_models_shader_.Bind();
@@ -763,9 +819,20 @@ void MapViewer::LoadModels(
 	const Vfs::FileContent& resources_file,
 	const unsigned char* palette )
 {
-	ModeslDescription models;
-	const unsigned int model_count=
-		LoadModelsNames( resources_file, models );
+	ModeslDescription models, items_models;
+
+	const unsigned int level_models_count=
+		LoadModelsDescription( resources_file, models );
+	const unsigned int items_models_count=
+		LoadItemsModelsDescription( vfs.ReadFile( "CHASM.INF" ), items_models );
+
+	for( unsigned int i= 0u; i < level_models_count; i++ )
+		models[ i + level_models_count ]= items_models[i];
+
+	const unsigned int model_count= items_models_count + level_models_count;
+
+	first_level_model_= 0u;
+	first_level_item_model_= level_models_count;
 
 	Vfs::FileContent file_content;
 	Vfs::FileContent animation_file_content;
