@@ -129,6 +129,7 @@ Menu::Menu(
 	unsigned int viewport_height,
 	const GameResourcesPtr& game_resources )
 	: text_draw_( viewport_width, viewport_height, *game_resources )
+	, menu_drawer_( viewport_width, viewport_height, *game_resources )
 {
 }
 
@@ -172,6 +173,8 @@ void Menu::Draw()
 
 	int y= 0;
 
+	menu_drawer_.DrawMenuBackground( 512u, 384u, 3u );
+
 	text_draw_.Print( 10, y, "QUICK BROWN FOX JUMPS OVER THE LAZY DOG", 3, TextDraw::FontColor::White );
 	y+= text_draw_.GetLineWidth() * 3 ;
 	text_draw_.Print( 10, y, "Quick brown fox jumps over the lazy dog", 3, TextDraw::FontColor::DrakYellow );
@@ -179,6 +182,7 @@ void Menu::Draw()
 	text_draw_.Print( 10, y, "123456789", 3, TextDraw::FontColor::Golden );
 	y+= text_draw_.GetLineWidth() * 3 ;
 	text_draw_.Print( 10, y, "level 1  health 100", 3, TextDraw::FontColor::YellowGreen );
+
 }
 
 } // namespace PanzerChasm

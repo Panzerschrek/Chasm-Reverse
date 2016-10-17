@@ -16,6 +16,7 @@ SOURCES+= \
 	log.cpp \
 	main.cpp \
 	menu.cpp \
+	menu_drawer.cpp \
 	system_window.cpp \
 	text_draw.cpp \
 	vfs.cpp \
@@ -26,6 +27,7 @@ HEADERS+= \
 	images.hpp \
 	log.hpp \
 	menu.hpp \
+	menu_drawer.hpp \
 	system_event.hpp \
 	system_window.hpp \
 	text_draw.hpp \

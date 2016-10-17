@@ -1,9 +1,10 @@
 #pragma once
 #include <memory>
 
+#include "game_resources.hpp"
+#include "menu_drawer.hpp"
 #include "system_event.hpp"
 #include "text_draw.hpp"
-#include "game_resources.hpp"
 
 namespace PanzerChasm
 {
@@ -25,6 +26,7 @@ public:
 
 private:
 	TextDraw text_draw_;
+	MenuDrawer menu_drawer_;
 
 	std::unique_ptr<MenuBase> root_menu_;
 	MenuBase* current_menu_= nullptr;
