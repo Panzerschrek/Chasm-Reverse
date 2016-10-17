@@ -5,7 +5,26 @@
 namespace PanzerChasm
 {
 
-unsigned int g_max_quads= 512u;
+static const char* const g_menu_pictures[ size_t(MenuDrawer::MenuPicture::PicturesCount) ]=
+{
+	"M_MAIN.CEL",
+	"M_NEW.CEL",
+	"M_NETWRK.CEL",
+};
+
+static const unsigned int g_menu_pictures_shifts_count= 3u;
+static const int g_menu_pictures_shifts[ g_menu_pictures_shifts_count ]=
+{
+	 0,
+	64, // golden
+	96, // dark-yellow
+};
+
+// Indeces of colors, used in ,enu pictures as inner for letters.
+static const unsigned char g_start_inner_color= 7u * 16u;
+static const unsigned char g_end_inner_color= 8u * 16u;
+
+static const unsigned int g_max_quads= 512u;
 
 MenuDrawer::MenuDrawer(
 	const unsigned int viewport_width ,
@@ -39,6 +58,50 @@ MenuDrawer::MenuDrawer(
 		tiles_texture_.SetFiltration(
 			r_Texture::Filtration::Nearest,
 			r_Texture::Filtration::Nearest );
+	}
+	{ // Menu pictures
+		Vfs::FileContent picture_file;
+		std::vector<unsigned char> picture_data_shifted;
+		std::vector<unsigned char> picture_data_rgba;
+
+		for( unsigned int i= 0u; i < size_t(MenuPicture::PicturesCount); i++ )
+		{
+			game_resources.vfs->ReadFile( g_menu_pictures[i], picture_file );
+
+			const CelTextureHeader* const cel_header=
+				reinterpret_cast<const CelTextureHeader*>( picture_file.data() );
+
+			const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
+			picture_data_rgba.resize( 4u * g_menu_pictures_shifts_count * pixel_count );
+			picture_data_shifted.resize( pixel_count );
+
+			for( unsigned int s= 0u; s < g_menu_pictures_shifts_count; s++ )
+			{
+				ColorShift(
+					g_start_inner_color, g_end_inner_color,
+					g_menu_pictures_shifts[ s ],
+					pixel_count,
+					picture_file.data() + sizeof(CelTextureHeader),
+					picture_data_shifted.data() );
+
+				ConvertToRGBA(
+					pixel_count,
+					picture_data_shifted.data(),
+					game_resources.palette,
+					picture_data_rgba.data() + 4u * s * pixel_count );
+			}
+
+			menu_pictures_[i]=
+				r_Texture(
+					r_Texture::PixelFormat::RGBA8,
+					cel_header->size[0],
+					cel_header->size[1] * g_menu_pictures_shifts_count,
+					picture_data_rgba.data() );
+
+			menu_pictures_[i].SetFiltration(
+				r_Texture::Filtration::Nearest,
+				r_Texture::Filtration::Nearest );
+		}
 	}
 
 	// Polygon buffer

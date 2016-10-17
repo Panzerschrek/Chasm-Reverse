@@ -12,6 +12,15 @@ namespace PanzerChasm
 class MenuDrawer final
 {
 public:
+	enum class MenuPicture
+	{
+		Main,
+		New,
+		Network,
+
+		PicturesCount
+	};
+
 	MenuDrawer(
 		unsigned int viewport_width,
 		unsigned int viewport_height,
@@ -34,6 +43,8 @@ private:
 	r_Texture tiles_texture_;
 
 	r_PolygonBuffer polygon_buffer_;
+
+	r_Texture menu_pictures_[ size_t(MenuPicture::PicturesCount) ];
 };
 
 } // namespace PanzerChasm
