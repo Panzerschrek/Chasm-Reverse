@@ -7,14 +7,15 @@ void ConvertToRGBA(
 	const unsigned int pixel_count,
 	const unsigned char* const in_data,
 	const Palette& palette,
-	unsigned char* const out_data )
+	unsigned char* const out_data,
+	const unsigned char transpareny_color_index )
 {
 	for( unsigned int p= 0u; p < pixel_count; p++ )
 	{
 		for( unsigned int j= 0u; j < 3u; j++ )
 			out_data[ p * 4u + j ]= palette[ in_data[p] * 3u + j ];
 
-		out_data[ p * 4u + 3 ]= in_data[p] == 255u ? 0u : 255u;
+		out_data[ p * 4u + 3 ]= in_data[p] == transpareny_color_index ? 0u : 255u;
 	}
 }
 

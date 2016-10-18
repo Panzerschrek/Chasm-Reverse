@@ -22,7 +22,8 @@ void ConvertToRGBA(
 	unsigned int pixel_count,
 	const unsigned char* in_data,
 	const Palette& palette,
-	unsigned char* out_data );
+	unsigned char* out_data,
+	unsigned char transpareny_color_index= 255u );
 
 void FlipAndConvertToRGBA(
 	unsigned int width, unsigned int height,

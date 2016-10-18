@@ -175,6 +175,19 @@ void Menu::Draw()
 
 	menu_drawer_.DrawMenuBackground( 512u, 384u, 3u );
 
+	{
+		MenuDrawer::PictureColor colors[6]=
+		{
+			MenuDrawer::PictureColor::Unactive,
+			MenuDrawer::PictureColor::Active,
+			MenuDrawer::PictureColor::Disabled,
+			MenuDrawer::PictureColor::Unactive,
+			MenuDrawer::PictureColor::Unactive,
+			MenuDrawer::PictureColor::Unactive,
+		};
+		menu_drawer_.DrawMenuPicture( MenuDrawer::MenuPicture::Main, colors, 3u );
+	}
+
 	text_draw_.Print( 10, y, "QUICK BROWN FOX JUMPS OVER THE LAZY DOG", 3, TextDraw::FontColor::White );
 	y+= text_draw_.GetLineWidth() * 3 ;
 	text_draw_.Print( 10, y, "Quick brown fox jumps over the lazy dog", 3, TextDraw::FontColor::DrakYellow );

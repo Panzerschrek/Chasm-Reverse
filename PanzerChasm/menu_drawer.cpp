@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <shaders_loading.hpp>
 
 #include "menu_drawer.hpp"
@@ -23,6 +25,9 @@ static const int g_menu_pictures_shifts[ g_menu_pictures_shifts_count ]=
 // Indeces of colors, used in ,enu pictures as inner for letters.
 static const unsigned char g_start_inner_color= 7u * 16u;
 static const unsigned char g_end_inner_color= 8u * 16u;
+
+static const unsigned int g_menu_picture_row_height= 20u;
+static const unsigned int g_menu_picture_horizontal_border= 4u;
 
 static const unsigned int g_max_quads= 512u;
 
@@ -71,31 +76,47 @@ MenuDrawer::MenuDrawer(
 			const CelTextureHeader* const cel_header=
 				reinterpret_cast<const CelTextureHeader*>( picture_file.data() );
 
-			const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
-			picture_data_rgba.resize( 4u * g_menu_pictures_shifts_count * pixel_count );
-			picture_data_shifted.resize( pixel_count );
+			const unsigned int height_with_border= cel_header->size[1] + g_menu_picture_horizontal_border * 2u;
+
+			const unsigned int in_pixel_count= cel_header->size[0] * cel_header->size[1];
+			const unsigned int out_pixel_count= cel_header->size[0] * height_with_border;
+			picture_data_rgba.resize( 4u * g_menu_pictures_shifts_count * out_pixel_count );
+			picture_data_shifted.resize( in_pixel_count );
 
 			for( unsigned int s= 0u; s < g_menu_pictures_shifts_count; s++ )
 			{
 				ColorShift(
 					g_start_inner_color, g_end_inner_color,
 					g_menu_pictures_shifts[ s ],
-					pixel_count,
+					in_pixel_count,
 					picture_file.data() + sizeof(CelTextureHeader),
 					picture_data_shifted.data() );
 
+				const unsigned int border_size_bytes= 4u * g_menu_picture_horizontal_border * cel_header->size[0];
+
 				ConvertToRGBA(
-					pixel_count,
+					in_pixel_count,
 					picture_data_shifted.data(),
 					game_resources.palette,
-					picture_data_rgba.data() + 4u * s * pixel_count );
+					picture_data_rgba.data() + 4u * s * out_pixel_count + border_size_bytes,
+					0u );
+
+				// Fill up and down borders
+				std::memset(
+					picture_data_rgba.data() + 4u * s * out_pixel_count,
+					0,
+					border_size_bytes );
+				std::memset(
+					picture_data_rgba.data() + 4u * ( s * out_pixel_count + in_pixel_count ) + border_size_bytes,
+					0,
+					border_size_bytes );
 			}
 
 			menu_pictures_[i]=
 				r_Texture(
 					r_Texture::PixelFormat::RGBA8,
 					cel_header->size[0],
-					cel_header->size[1] * g_menu_pictures_shifts_count,
+					height_with_border * g_menu_pictures_shifts_count,
 					picture_data_rgba.data() );
 
 			menu_pictures_[i].SetFiltration(
@@ -125,15 +146,27 @@ MenuDrawer::MenuDrawer(
 		0,
 		2, GL_SHORT, false,
 		((char*)v.xy) - (char*)&v );
+	polygon_buffer_.VertexAttribPointer(
+		1,
+		2, GL_SHORT, false,
+		((char*)v.tex_coord) - (char*)&v );
 
-	// Shader
+	// Shaders
 	const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
 
-	shader_.ShaderSource(
+	menu_background_shader_.ShaderSource(
 		rLoadShader( "menu_f.glsl", glsl_version ),
 		rLoadShader( "menu_v.glsl", glsl_version ) );
-	shader_.SetAttribLocation( "pos", 0u );
-	shader_.Create();
+	menu_background_shader_.SetAttribLocation( "pos", 0u );
+	menu_background_shader_.SetAttribLocation( "tex_coord", 1u );
+	menu_background_shader_.Create();
+
+	menu_picture_shader_.ShaderSource(
+		rLoadShader( "menu_picture_f.glsl", glsl_version ),
+		rLoadShader( "menu_picture_v.glsl", glsl_version ) );
+	menu_picture_shader_.SetAttribLocation( "pos", 0u );
+	menu_picture_shader_.SetAttribLocation( "tex_coord", 1u );
+	menu_picture_shader_.Create();
 }
 
 MenuDrawer::~MenuDrawer()
@@ -171,20 +204,92 @@ void MenuDrawer::DrawMenuBackground(
 		0u );
 
 	// Draw
-	shader_.Bind();
+	menu_background_shader_.Bind();
 
 	tiles_texture_.Bind(0u);
-	shader_.Uniform( "tex", int(0) );
+	menu_background_shader_.Uniform( "tex", int(0) );
 
-	shader_.Uniform(
+	menu_background_shader_.Uniform(
 		"inv_viewport_size",
 		m_Vec2( 1.0f / float(viewport_size_[0]), 1.0f / float(viewport_size_[1]) ) );
 
-	shader_.Uniform(
+	menu_background_shader_.Uniform(
 		"inv_texture_size",
 		 m_Vec2(
 			1.0f / float(tiles_texture_.Width()),
 			1.0f / float(tiles_texture_.Height()) ) / float(texture_scale) );
+
+	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawer::DrawMenuPicture(
+	const MenuPicture pic,
+	const PictureColor* const rows_colors,
+	const unsigned int scale )
+{
+	const r_Texture& picture= menu_pictures_[ size_t(pic) ];
+
+	// Gen quad
+	Vertex vertices[ g_max_quads * 4u ];
+
+	const int x= int( ( viewport_size_[0] - picture.Width() * scale ) >> 1u );
+	const int y0= ( int(viewport_size_[1]) - int(picture.Height() * scale / g_menu_pictures_shifts_count ) ) >> 1;
+	const int height= int( picture.Height() / g_menu_pictures_shifts_count );
+	const int scale_i= int(scale);
+	const int raw_height= int(g_menu_picture_row_height);
+
+	const unsigned int row_count= picture.Height() / ( g_menu_picture_row_height * g_menu_pictures_shifts_count );
+
+	for( unsigned int r= 0u; r < row_count; r++ )
+	{
+		Vertex* const v= vertices + r * 4u;
+		const int y= y0 + int( ( row_count - 1u - r ) * g_menu_picture_row_height ) * scale_i;
+		const int tc_y= int(g_menu_picture_row_height * r) + height * static_cast<int>(rows_colors[r]);
+
+		v[0].xy[0]= x;
+		v[0].xy[1]= y;
+		v[0].tex_coord[0]= 0;
+		v[0].tex_coord[1]= tc_y + raw_height;
+
+		v[1].xy[0]= x + picture.Width() * scale_i;
+		v[1].xy[1]= y;
+		v[1].tex_coord[0]= picture.Width ();
+		v[1].tex_coord[1]= tc_y + raw_height;
+
+		v[2].xy[0]= x + picture.Width() * scale_i;
+		v[2].xy[1]= y + raw_height * scale_i;
+		v[2].tex_coord[0]= picture.Width();
+		v[2].tex_coord[1]= tc_y;
+
+		v[3].xy[0]= x;
+		v[3].xy[1]= y + raw_height * scale_i;
+		v[3].tex_coord[0]= 0;
+		v[3].tex_coord[1]= tc_y;
+	}
+
+	const unsigned int vertex_count= row_count * 4u;
+	const unsigned int index_count= row_count * 6u;
+
+	polygon_buffer_.VertexSubData(
+		vertices,
+		vertex_count * sizeof(Vertex),
+		0u );
+
+	// Draw
+	menu_picture_shader_.Bind();
+
+	picture.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_[0]), 1.0f / float(viewport_size_[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(picture.Width()),
+			1.0f / float(picture.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
