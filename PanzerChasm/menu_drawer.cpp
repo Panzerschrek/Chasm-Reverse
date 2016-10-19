@@ -29,6 +29,9 @@ static const unsigned char g_end_inner_color= 8u * 16u;
 static const unsigned int g_menu_picture_row_height= 20u;
 static const unsigned int g_menu_picture_horizontal_border= 4u;
 
+static const unsigned int g_menu_border= 2u;
+static const unsigned int g_menu_caption= 2u;
+
 static const unsigned int g_max_quads= 512u;
 
 MenuDrawer::MenuDrawer(
@@ -173,27 +176,38 @@ MenuDrawer::~MenuDrawer()
 {
 }
 
+unsigned int MenuDrawer::GetPictureWidth ( MenuPicture picture ) const
+{
+	return menu_pictures_[ size_t(picture) ].Width();
+}
+
+unsigned int MenuDrawer::GetPictureHeight( MenuPicture picture ) const
+{
+	return menu_pictures_[ size_t(picture) ].Height() / g_menu_pictures_shifts_count;
+}
+
 void MenuDrawer::DrawMenuBackground(
 	const unsigned int width, const unsigned int height,
-	const unsigned int texture_scale )
+	const unsigned int scale )
 {
 	// Gen quad
 	Vertex vertices[ g_max_quads * 4u ];
 
 	const int x= int( ( viewport_size_[0] - width ) >> 1u );
 	const int y= ( int(viewport_size_[1]) - int(height) ) >> 1;
+	const int scale_i= int(scale);
 
-	vertices[0].xy[0]= x;
-	vertices[0].xy[1]= y;
+	vertices[0].xy[0]= x - g_menu_border * scale_i;
+	vertices[0].xy[1]= y - g_menu_border * scale_i;
 
-	vertices[1].xy[0]= x + width ;
-	vertices[1].xy[1]= y;
+	vertices[1].xy[0]= x + width  + g_menu_border * scale_i;
+	vertices[1].xy[1]= y - g_menu_border * scale_i;
 
-	vertices[2].xy[0]= x + width ;
-	vertices[2].xy[1]= y + height;
+	vertices[2].xy[0]= x + width  + g_menu_border * scale_i;
+	vertices[2].xy[1]= y + height + ( g_menu_border + g_menu_caption ) * scale_i;
 
-	vertices[3].xy[0]= x;
-	vertices[3].xy[1]= y + height;
+	vertices[3].xy[0]= x - g_menu_border * scale_i;
+	vertices[3].xy[1]= vertices[2].xy[1];
 
 	const unsigned int vertex_count= 4u;
 	const unsigned int index_count= 6u;
@@ -217,7 +231,7 @@ void MenuDrawer::DrawMenuBackground(
 		"inv_texture_size",
 		 m_Vec2(
 			1.0f / float(tiles_texture_.Width()),
-			1.0f / float(tiles_texture_.Height()) ) / float(texture_scale) );
+			1.0f / float(tiles_texture_.Height()) ) / float(scale) );
 
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }

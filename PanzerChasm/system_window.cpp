@@ -7,6 +7,27 @@
 namespace PanzerChasm
 {
 
+static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
+{
+	using KeyCode= SystemEvent::KeyEvent::KeyCode;
+
+	switch( key_code )
+	{
+	case SDLK_ESCAPE: return KeyCode::Escape;
+	case SDLK_RETURN: return KeyCode::Enter;
+
+	case SDLK_RIGHT: return KeyCode::Right;
+	case SDLK_LEFT: return KeyCode::Left;
+	case SDLK_DOWN: return KeyCode::Down;
+	case SDLK_UP: return KeyCode::Up;
+
+	default:
+		break;
+	};
+
+	return KeyCode::Unknown;
+}
+
 SystemWindow::SystemWindow()
 {
 	// TODO -read from settings here
@@ -76,6 +97,13 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::Quit;
 			break;
+
+		case SDL_KEYUP:
+		case SDL_KEYDOWN:
+			out_events.emplace_back();
+			out_events.back().type= SystemEvent::Type::Key;
+			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.sym );
+			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
 
 		// TODO - fill other events here
 

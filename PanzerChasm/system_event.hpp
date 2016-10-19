@@ -22,6 +22,11 @@ struct SystemEvent
 			Unknown= 0,
 			Escape,
 			Enter,
+
+			Up,
+			Down,
+			Left,
+			Right,
 		};
 
 		KeyCode key_code;

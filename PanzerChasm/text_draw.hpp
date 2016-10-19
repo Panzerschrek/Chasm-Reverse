@@ -25,7 +25,7 @@ public:
 		const GameResources& game_resources );
 	~TextDraw();
 
-	unsigned int GetLineWidth() const;
+	unsigned int GetLineHeight() const;
 
 	void Print( int x, int y, const char* text, unsigned int scale, FontColor color= FontColor::White );
 

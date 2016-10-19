@@ -35,7 +35,10 @@ public:
 
 	~MenuDrawer();
 
-	void DrawMenuBackground( unsigned int width, unsigned int height, unsigned int texture_scale );
+	unsigned int GetPictureWidth ( MenuPicture picture ) const;
+	unsigned int GetPictureHeight( MenuPicture picture ) const;
+
+	void DrawMenuBackground( unsigned int width, unsigned int height, unsigned int scale );
 
 	void DrawMenuPicture(
 		MenuPicture picture,

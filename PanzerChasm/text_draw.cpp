@@ -152,7 +152,7 @@ TextDraw::TextDraw(
 TextDraw::~TextDraw()
 {}
 
-unsigned int TextDraw::GetLineWidth() const
+unsigned int TextDraw::GetLineHeight() const
 {
 	return g_letter_height;
 }
