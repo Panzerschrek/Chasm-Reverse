@@ -267,7 +267,7 @@ windowed:
 		#endif
 
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
 		// 0 - no msaa, 1 - msaa2x, 2 - msaa4x, 3 - msaa8x, 4 - msaa16x
@@ -479,7 +479,7 @@ RenderingContextGL SystemWindow::GetRenderingContextGL()
 
 	RenderingContextGL result;
 
-	result.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
+	result.glsl_version= r_GLSLVersion( r_GLSLVersion::v140, r_GLSLVersion::Profile::None );
 	result.viewport_size= viewport_size_;
 
 	return result;
