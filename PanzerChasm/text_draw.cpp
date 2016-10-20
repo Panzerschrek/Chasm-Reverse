@@ -61,12 +61,10 @@ static void CalculateLettersWidth(
 }
 
 TextDraw::TextDraw(
-	unsigned int viewport_width, unsigned int viewport_height,
+	const RenderingContext& rendering_context,
 	const GameResources& game_resources )
+	: viewport_size_(rendering_context.viewport_size)
 {
-	viewport_size_[0]= viewport_width ;
-	viewport_size_[1]= viewport_height;
-
 	// Texture
 	const Vfs::FileContent font_file= game_resources.vfs->ReadFile( "FONT256.CEL" );
 	const CelTextureHeader* const cel_header= reinterpret_cast<const CelTextureHeader*>( font_file.data() );
@@ -139,11 +137,10 @@ TextDraw::TextDraw(
 		((char*)v.tex_coord) - (char*)&v );
 
 	// Shader
-	const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
 
 	shader_.ShaderSource(
-		rLoadShader( "text_f.glsl", glsl_version ),
-		rLoadShader( "text_v.glsl", glsl_version ) );
+		rLoadShader( "text_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "text_v.glsl", rendering_context.glsl_version ) );
 	shader_.SetAttribLocation( "pos", 0u );
 	shader_.SetAttribLocation( "tex_coord", 1u );
 	shader_.Create();
@@ -160,18 +157,41 @@ unsigned int TextDraw::GetLineHeight() const
 void TextDraw::Print(
 	const int x, const int y,
 	const char* text,
-	const unsigned int scale, const FontColor color )
+	const unsigned int scale,
+	const FontColor color,
+	const Alignment alignment )
 {
 	const int scale_i= int(scale);
 	const int d_tc_v= int(color) * int(g_atlas_height);
 
 	Vertex* v= vertex_buffer_.data();
 	int current_x= x;
-	int current_y= viewport_size_[1] - y - scale * g_letter_height;
+	int current_y= viewport_size_.Height() - y - scale * g_letter_height;
 
-	while( *text != '\0' )
+	Vertex* last_newline_vertex_index= v;
+	while( 1 )
 	{
-		unsigned int code= *text;
+		const unsigned int code= *text;
+		if( code == '\n' || code == '\0' )
+		{
+			if( alignment == Alignment::Center )
+			{
+				const int center_x= ( last_newline_vertex_index->xy[0] + current_x ) / 2;
+				const int delta_x= x - center_x;
+				while( last_newline_vertex_index < v )
+				{
+					last_newline_vertex_index->xy[0]+= delta_x;
+					last_newline_vertex_index++;
+				}
+			}
+
+			current_x= x;
+			current_y-= int(g_letter_height * scale);
+			text++;
+
+			if( code == '\0' ) break;
+			else continue;
+		}
 
 		const unsigned int tc_u= ( code & 15u ) * g_letter_place_width  + g_letter_u_offset;
 		const unsigned int tc_v= ( code >> 4u ) * g_letter_place_height + g_letter_v_offset + d_tc_v;
@@ -217,7 +237,7 @@ void TextDraw::Print(
 
 	shader_.Uniform(
 		"inv_viewport_size",
-		m_Vec2( 1.0f / float(viewport_size_[0]), 1.0f / float(viewport_size_[1]) ) );
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
 
 	shader_.Uniform(
 		"inv_texture_size",

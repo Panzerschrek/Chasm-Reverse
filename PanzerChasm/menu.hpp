@@ -3,6 +3,7 @@
 
 #include "game_resources.hpp"
 #include "menu_drawer.hpp"
+#include "rendering_context.hpp"
 #include "system_event.hpp"
 #include "text_draw.hpp"
 
@@ -16,8 +17,7 @@ class Menu final
 {
 public:
 	Menu(
-		unsigned int viewport_width ,
-		unsigned int viewport_height,
+		const RenderingContext& rendering_context,
 		const GameResourcesPtr& game_resources );
 	~Menu();
 

@@ -30,10 +30,13 @@ Host::Host()
 		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
 	}
 
+	RenderingContext rendering_context;
+	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
+	rendering_context.viewport_size= system_window_->GetViewportSize();
+
 	menu_.reset(
 		new Menu(
-			system_window_->Width() ,
-			system_window_->Height() ,
+			rendering_context,
 			game_resources_ ) );
 }
 

@@ -30,18 +30,15 @@ static const unsigned int g_menu_picture_row_height= 20u;
 static const unsigned int g_menu_picture_horizontal_border= 4u;
 
 static const unsigned int g_menu_border= 2u;
-static const unsigned int g_menu_caption= 2u;
+static const unsigned int g_menu_caption= 11u;
 
 static const unsigned int g_max_quads= 512u;
 
 MenuDrawer::MenuDrawer(
-	const unsigned int viewport_width ,
-	const unsigned int viewport_height,
+	const RenderingContext& rendering_context,
 	const GameResources& game_resources )
+	: viewport_size_(rendering_context.viewport_size)
 {
-	viewport_size_[0]= viewport_width ;
-	viewport_size_[1]= viewport_height;
-
 	{ // Tiles texture
 		const Vfs::FileContent tiles_texture_file= game_resources.vfs->ReadFile( "M_TILE1.CEL" );
 		const CelTextureHeader* const cel_header=
@@ -155,18 +152,17 @@ MenuDrawer::MenuDrawer(
 		((char*)v.tex_coord) - (char*)&v );
 
 	// Shaders
-	const r_GLSLVersion glsl_version( r_GLSLVersion::KnowmNumbers::v330, r_GLSLVersion::Profile::Core );
 
 	menu_background_shader_.ShaderSource(
-		rLoadShader( "menu_f.glsl", glsl_version ),
-		rLoadShader( "menu_v.glsl", glsl_version ) );
+		rLoadShader( "menu_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "menu_v.glsl", rendering_context.glsl_version ) );
 	menu_background_shader_.SetAttribLocation( "pos", 0u );
 	menu_background_shader_.SetAttribLocation( "tex_coord", 1u );
 	menu_background_shader_.Create();
 
 	menu_picture_shader_.ShaderSource(
-		rLoadShader( "menu_picture_f.glsl", glsl_version ),
-		rLoadShader( "menu_picture_v.glsl", glsl_version ) );
+		rLoadShader( "menu_picture_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "menu_picture_v.glsl", rendering_context.glsl_version ) );
 	menu_picture_shader_.SetAttribLocation( "pos", 0u );
 	menu_picture_shader_.SetAttribLocation( "tex_coord", 1u );
 	menu_picture_shader_.Create();
@@ -176,25 +172,25 @@ MenuDrawer::~MenuDrawer()
 {
 }
 
-unsigned int MenuDrawer::GetPictureWidth ( MenuPicture picture ) const
+Size2 MenuDrawer::GetViewportSize() const
 {
-	return menu_pictures_[ size_t(picture) ].Width();
+	return viewport_size_;
 }
 
-unsigned int MenuDrawer::GetPictureHeight( MenuPicture picture ) const
+Size2 MenuDrawer::GetPictureSize( MenuPicture picture ) const
 {
-	return menu_pictures_[ size_t(picture) ].Height() / g_menu_pictures_shifts_count;
+	const r_Texture& tex= menu_pictures_[ size_t(picture) ];
+	return Size2( tex.Width(), tex.Height() / g_menu_pictures_shifts_count );
 }
 
 void MenuDrawer::DrawMenuBackground(
+	const int x, const int y,
 	const unsigned int width, const unsigned int height,
 	const unsigned int scale )
 {
 	// Gen quad
 	Vertex vertices[ g_max_quads * 4u ];
 
-	const int x= int( ( viewport_size_[0] - width ) >> 1u );
-	const int y= ( int(viewport_size_[1]) - int(height) ) >> 1;
 	const int scale_i= int(scale);
 
 	vertices[0].xy[0]= x - g_menu_border * scale_i;
@@ -225,7 +221,7 @@ void MenuDrawer::DrawMenuBackground(
 
 	menu_background_shader_.Uniform(
 		"inv_viewport_size",
-		m_Vec2( 1.0f / float(viewport_size_[0]), 1.0f / float(viewport_size_[1]) ) );
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
 
 	menu_background_shader_.Uniform(
 		"inv_texture_size",
@@ -237,6 +233,7 @@ void MenuDrawer::DrawMenuBackground(
 }
 
 void MenuDrawer::DrawMenuPicture(
+	const int x, const int y0,
 	const MenuPicture pic,
 	const PictureColor* const rows_colors,
 	const unsigned int scale )
@@ -246,8 +243,6 @@ void MenuDrawer::DrawMenuPicture(
 	// Gen quad
 	Vertex vertices[ g_max_quads * 4u ];
 
-	const int x= int( ( viewport_size_[0] - picture.Width() * scale ) >> 1u );
-	const int y0= ( int(viewport_size_[1]) - int(picture.Height() * scale / g_menu_pictures_shifts_count ) ) >> 1;
 	const int height= int( picture.Height() / g_menu_pictures_shifts_count );
 	const int scale_i= int(scale);
 	const int raw_height= int(g_menu_picture_row_height);
@@ -297,7 +292,7 @@ void MenuDrawer::DrawMenuPicture(
 
 	menu_picture_shader_.Uniform(
 		"inv_viewport_size",
-		m_Vec2( 1.0f / float(viewport_size_[0]), 1.0f / float(viewport_size_[1]) ) );
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
 
 	menu_picture_shader_.Uniform(
 		"inv_texture_size",

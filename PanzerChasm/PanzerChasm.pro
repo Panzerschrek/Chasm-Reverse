@@ -28,6 +28,8 @@ HEADERS+= \
 	log.hpp \
 	menu.hpp \
 	menu_drawer.hpp \
+	rendering_context.hpp \
+	size.hpp \
 	system_event.hpp \
 	system_window.hpp \
 	text_draw.hpp \

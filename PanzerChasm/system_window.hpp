@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 
+#include "size.hpp"
 #include "system_event.hpp"
 
 namespace PanzerChasm
@@ -14,8 +15,7 @@ public:
 	SystemWindow();
 	~SystemWindow();
 
-	unsigned int Width () const;
-	unsigned int Height() const;
+	Size2 GetViewportSize() const;
 
 	// Commit any draw operations and show frame.
 	// May wait for vsync.
@@ -24,7 +24,7 @@ public:
 	void GetInput( SystemEvents& out_events );
 
 private:
-	unsigned int viewport_size_[2];
+	Size2 viewport_size_;
 
 	SDL_Window* window_= nullptr;
 	SDL_GLContext gl_context_= nullptr;

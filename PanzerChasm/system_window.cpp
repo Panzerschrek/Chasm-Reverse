@@ -31,8 +31,8 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
 SystemWindow::SystemWindow()
 {
 	// TODO -read from settings here
-	viewport_size_[0]= 1024u;
-	viewport_size_[1]= 768u;
+	viewport_size_.Width ()= 1024u;
+	viewport_size_.Height()=  768u;
 
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		Log::FatalError( "Can not initialize sdl video" );
@@ -48,7 +48,7 @@ SystemWindow::SystemWindow()
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			viewport_size_[0], viewport_size_[1],
+			viewport_size_.Width(), viewport_size_.Height(),
 			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
@@ -69,14 +69,9 @@ SystemWindow::~SystemWindow()
 	SDL_DestroyWindow( window_ );
 }
 
-unsigned int SystemWindow::Width () const
+Size2 SystemWindow::GetViewportSize() const
 {
-	return viewport_size_[0];
-}
-
-unsigned int SystemWindow::Height() const
-{
-	return viewport_size_[1];
+	return viewport_size_;
 }
 
 void SystemWindow::SwapBuffers()

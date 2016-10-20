@@ -5,6 +5,7 @@
 #include <texture.hpp>
 
 #include "game_resources.hpp"
+#include "rendering_context.hpp"
 
 namespace PanzerChasm
 {
@@ -20,14 +21,25 @@ public:
 		YellowGreen,
 	};
 
+	enum class Alignment
+	{
+		Left,
+		Center,
+	};
+
 	TextDraw(
-		unsigned int viewport_width, unsigned int viewport_height,
+		const RenderingContext& rendering_context,
 		const GameResources& game_resources );
 	~TextDraw();
 
 	unsigned int GetLineHeight() const;
 
-	void Print( int x, int y, const char* text, unsigned int scale, FontColor color= FontColor::White );
+	void Print(
+		int x, int y,
+		const char* text,
+		unsigned int scale,
+		FontColor color= FontColor::White,
+		Alignment alignment= Alignment::Left );
 
 private:
 	struct Vertex
@@ -37,7 +49,7 @@ private:
 	};
 
 private:
-	unsigned int viewport_size_[2];
+	const Size2 viewport_size_;
 	unsigned char letters_width_[256];
 
 	r_GLSLProgram shader_;

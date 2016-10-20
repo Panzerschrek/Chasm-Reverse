@@ -5,6 +5,7 @@
 #include <texture.hpp>
 
 #include "game_resources.hpp"
+#include "rendering_context.hpp"
 
 namespace PanzerChasm
 {
@@ -29,18 +30,21 @@ public:
 	};
 
 	MenuDrawer(
-		unsigned int viewport_width,
-		unsigned int viewport_height,
+		const RenderingContext& rendering_context,
 		const GameResources& game_resources );
 
 	~MenuDrawer();
 
-	unsigned int GetPictureWidth ( MenuPicture picture ) const;
-	unsigned int GetPictureHeight( MenuPicture picture ) const;
+	Size2 GetViewportSize() const;
+	Size2 GetPictureSize( MenuPicture picture ) const;
 
-	void DrawMenuBackground( unsigned int width, unsigned int height, unsigned int scale );
+	void DrawMenuBackground(
+		int x, int y,
+		unsigned int width, unsigned int height,
+		unsigned int scale );
 
 	void DrawMenuPicture(
+		int x, int y,
 		MenuPicture picture,
 		const PictureColor* rows_colors,
 		unsigned int scale );
@@ -53,7 +57,7 @@ private:
 	};
 
 private:
-	unsigned int viewport_size_[2];
+	const Size2 viewport_size_;
 
 	r_GLSLProgram menu_background_shader_;
 	r_Texture tiles_texture_;
