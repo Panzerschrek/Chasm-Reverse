@@ -1,0 +1,42 @@
+-------Vvedenije-------
+
+Igru planirujetsä delatj s razdelenijem na klijent i server. Server budet
+proizvoditj vse igrovyje rascöty i otdavatj rezuljtaty klijentam. Klient budet
+pokazyvatj rezuljtaty vycislenij poljzovatelü i polucatj ot nego vvod.
+
+Režim odinocnij igry planirujetsä realizovatj tože s razdelenijem na klijent i
+server, ctoby unifiçirovatj kod odinocnoj i mnogopoljzovateljskoj igry. Dlä
+odinocnoj igry v odnom proçesse na odnoj mašine budut zapuskatjsä klijent i
+server, setevoj obmen meždu nimi budet proishoditj cerez pamätj proçessa bez
+obrrascenija k sistemnym setevym interfejsam.
+
+
+-------Vybor protokolov-------
+
+Setevoje vzaimodejstvije meždu adalönnymi klijentami i serverom planirujetsä
+realizovatj s ispoljzovanijem protokolov peredaci dannyh transportnogo urovnä
+TCP i UDP. TCP obespecivajet nadöžnuju peredacu dannyh, no inogda vnosit
+zaderžki. UDP rabotajet bez zaderžki, no dannyje mogut terätjsä.
+
+Planirujetsä ispoljzovatj TCP dlä peredaci dannyh, çelostnostj kotoryh važna i
+ne povlijajet fataljno na igrovoj proçess. UDP planitujetsä ispoljzovatj dlä
+dannyh, poterä casti kotoryh ne strašna.
+
+Cerez TCP budet peredavatjsä:
+*) Nacaljnoje sostojanije igry ot servera klijentu v moment podklücenija.
+*) Soobscenija o želanii klijenta vyjti iz igry.
+*) Soobscenije ob isklücenii klijenta iz igry.
+*) Soobscenija o roždenii i smetri monstrov, predmetov, igrokov.
+*) Pokazateli zdorovja, broni, snaräženija ot servera klijentu.
+*) Soobscenije ob osuscestvlenii vystrela ot klijenta serveru.
+
+Cerez UDP budet peredavatjsä:
+*) Položenije monstrov, igrokov, predmetov, detalej urovnä.
+*) Soobscenija o nacale graficeskih effektov (dyma, bryzg, iskr).
+*) Napravlenije tekuscego uskorenija igrokov ot klijenta serveru.
+
+
+-------Predskazanije-------
+Dlä kompensaçii zaderžek setevogo vzaimodejstvija i uvelicenija komforta igry
+planirujetsä vvesti kompensaçiju zaderžek. Na storone klijenta položenije
+igroka, monstrov, drugih igrokov budet predskazyvatjsä.
