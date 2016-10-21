@@ -7,11 +7,32 @@
 namespace PanzerChasm
 {
 
+static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
+{
+	using KeyCode= SystemEvent::KeyEvent::KeyCode;
+
+	switch( key_code )
+	{
+	case SDLK_ESCAPE: return KeyCode::Escape;
+	case SDLK_RETURN: return KeyCode::Enter;
+
+	case SDLK_RIGHT: return KeyCode::Right;
+	case SDLK_LEFT: return KeyCode::Left;
+	case SDLK_DOWN: return KeyCode::Down;
+	case SDLK_UP: return KeyCode::Up;
+
+	default:
+		break;
+	};
+
+	return KeyCode::Unknown;
+}
+
 SystemWindow::SystemWindow()
 {
 	// TODO -read from settings here
-	viewport_size_[0]= 1024u;
-	viewport_size_[1]= 768u;
+	viewport_size_.Width ()= 1024u;
+	viewport_size_.Height()=  768u;
 
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		Log::FatalError( "Can not initialize sdl video" );
@@ -27,7 +48,7 @@ SystemWindow::SystemWindow()
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			viewport_size_[0], viewport_size_[1],
+			viewport_size_.Width(), viewport_size_.Height(),
 			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
@@ -48,6 +69,11 @@ SystemWindow::~SystemWindow()
 	SDL_DestroyWindow( window_ );
 }
 
+Size2 SystemWindow::GetViewportSize() const
+{
+	return viewport_size_;
+}
+
 void SystemWindow::SwapBuffers()
 {
 	SDL_GL_SwapWindow( window_ );
@@ -65,6 +91,14 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 		case SDL_QUIT:
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::Quit;
+			break;
+
+		case SDL_KEYUP:
+		case SDL_KEYDOWN:
+			out_events.emplace_back();
+			out_events.back().type= SystemEvent::Type::Key;
+			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.sym );
+			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
 			break;
 
 		// TODO - fill other events here
