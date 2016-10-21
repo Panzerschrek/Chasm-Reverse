@@ -29,8 +29,8 @@ static const unsigned char g_end_inner_color= 8u * 16u;
 static const unsigned int g_menu_picture_row_height= 20u;
 static const unsigned int g_menu_picture_horizontal_border= 4u;
 
-static const unsigned int g_menu_border= 2u;
-static const unsigned int g_menu_caption= 11u;
+static const unsigned int g_menu_border= 3u;
+static const unsigned int g_menu_caption= 10u;
 
 static const unsigned int g_max_quads= 512u;
 
@@ -125,6 +125,85 @@ MenuDrawer::MenuDrawer(
 		}
 	}
 
+	{ // Framing picture
+		constexpr const unsigned int size[2]= { 128u, 256u };
+		constexpr const unsigned int pixel_count= size[0] * size[1];
+		constexpr const unsigned int border_size= 16u;
+		constexpr const unsigned int up_border_size= 116u;
+		constexpr const unsigned int slope_size= 8u;
+		constexpr const unsigned int inner_offset= 6u;
+
+		unsigned char framing[ pixel_count ];
+
+		const unsigned char c_flat_light= 128u;
+		const unsigned char c_up_light= 224u;
+		const unsigned char c_down_light= 88u;
+		const unsigned char c_right_light= 88u;
+		const unsigned char c_left_light= 192u;
+
+		std::memset( framing, c_flat_light, pixel_count );
+
+		for( unsigned int s= 0u; s < slope_size; s++ )
+		{
+			const unsigned int y0= border_size + s;
+			const unsigned int y1= size[1] - up_border_size - 1u - s;
+			const unsigned int x0= border_size + s;
+			const unsigned int x1= size[0] - border_size - 1u - s;
+
+			for( unsigned int x= x0; x < x1; x++ )
+			{
+				framing[ x + y0 * size[0] ]= c_up_light;
+				framing[ x + y1 * size[0] ]= c_down_light;
+			}
+
+			for( unsigned int y= y0; y <= y1; y++ )
+			{
+				framing[ x0 + y * size[0] ]= c_right_light;
+				framing[ x1 + y * size[0] ]= c_left_light;
+			}
+		}
+		for( unsigned int s= 0u; s < slope_size; s++ )
+		{
+			const unsigned int y0= s;
+			const unsigned int y1= size[1] - 1u - s;
+			const unsigned int x0= s;
+			const unsigned int x1= size[0] - 1u - s;
+
+			for( unsigned int x= x0; x < x1; x++ )
+			{
+				framing[ x + y0 * size[0] ]= c_down_light;
+				framing[ x + y1 * size[0] ]= c_up_light;
+			}
+
+			for( unsigned int y= y0; y <= y1; y++ )
+			{
+				framing[ x0 + y * size[0] ]= c_left_light;
+				framing[ x1 + y * size[0] ]= c_right_light;
+			}
+		}
+
+		framing_tex_coords_[0][0]= 0;
+		framing_tex_coords_[0][1]= 0;
+
+		framing_tex_coords_[1][0]= border_size + slope_size + inner_offset;
+		framing_tex_coords_[1][1]= border_size + slope_size + inner_offset;
+
+		framing_tex_coords_[2][0]= size[0] - border_size - slope_size - inner_offset;
+		framing_tex_coords_[2][1]= size[1] - up_border_size - slope_size - inner_offset;
+
+		framing_tex_coords_[3][0]= size[0];
+		framing_tex_coords_[3][1]= size[1];
+
+		framing_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::R8,
+				size[0], size[1],
+				framing );
+
+		framing_texture_.BuildMips();
+		framing_texture_.SetWrapMode( r_Texture::WrapMode::Clamp );
+	}
+
 	// Polygon buffer
 	std::vector<unsigned short> indeces( 6u * g_max_quads );
 	for( unsigned int i= 0u; i < g_max_quads; i++ )
@@ -188,25 +267,53 @@ void MenuDrawer::DrawMenuBackground(
 	const unsigned int width, const unsigned int height,
 	const unsigned int scale )
 {
-	// Gen quad
+	// Gen quads
 	Vertex vertices[ g_max_quads * 4u ];
 
-	const int scale_i= int(scale);
+	const int quad_x[4]=
+	{
+		x - int( g_menu_border * scale ),
+		x,
+		x + int( width ),
+		x + int( width + g_menu_border * scale ),
+	};
+	const int quad_y[4]=
+	{
+		y - int( g_menu_border * scale ),
+		y,
+		y + int( height ),
+		y + int( height + ( g_menu_border + g_menu_caption ) * scale ),
+	};
 
-	vertices[0].xy[0]= x - g_menu_border * scale_i;
-	vertices[0].xy[1]= y - g_menu_border * scale_i;
+	Vertex* v= vertices;
+	for( unsigned int i= 0u; i < 3u; i++ )
+	for( unsigned int j= 0u; j < 3u; j++ )
+	{
+		v[0].xy[0]= quad_x[i];
+		v[0].xy[1]= quad_y[j];
+		v[0].tex_coord[0]= framing_tex_coords_[i][0];
+		v[0].tex_coord[1]= framing_tex_coords_[j][1];
 
-	vertices[1].xy[0]= x + width  + g_menu_border * scale_i;
-	vertices[1].xy[1]= y - g_menu_border * scale_i;
+		v[1].xy[0]= quad_x[ i + 1u ];
+		v[1].xy[1]= quad_y[j];
+		v[1].tex_coord[0]= framing_tex_coords_[ i + 1u ][0];
+		v[1].tex_coord[1]= framing_tex_coords_[j][1];
 
-	vertices[2].xy[0]= x + width  + g_menu_border * scale_i;
-	vertices[2].xy[1]= y + height + ( g_menu_border + g_menu_caption ) * scale_i;
+		v[2].xy[0]= quad_x[ i + 1u ];
+		v[2].xy[1]= quad_y[ j + 1u ];
+		v[2].tex_coord[0]= framing_tex_coords_[ i + 1u ][0];
+		v[2].tex_coord[1]= framing_tex_coords_[ j + 1u ][1];
 
-	vertices[3].xy[0]= x - g_menu_border * scale_i;
-	vertices[3].xy[1]= vertices[2].xy[1];
+		v[3].xy[0]= quad_x[i];
+		v[3].xy[1]= quad_y[ j + 1u ];
+		v[3].tex_coord[0]= framing_tex_coords_[i][0];
+		v[3].tex_coord[1]= framing_tex_coords_[ j + 1u ][1];
 
-	const unsigned int vertex_count= 4u;
-	const unsigned int index_count= 6u;
+		v+= 4;
+	}
+
+	const unsigned int vertex_count= ( v - vertices );
+	const unsigned int index_count= vertex_count / 4u * 6u;
 
 	polygon_buffer_.VertexSubData(
 		vertices,
@@ -217,17 +324,25 @@ void MenuDrawer::DrawMenuBackground(
 	menu_background_shader_.Bind();
 
 	tiles_texture_.Bind(0u);
-	menu_background_shader_.Uniform( "tex", int(0) );
+	framing_texture_.Bind(1u);
+	menu_background_shader_.Uniform( "tile_tex", int(0) );
+	menu_background_shader_.Uniform( "framing_tex", int(1) );
 
 	menu_background_shader_.Uniform(
 		"inv_viewport_size",
 		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
 
 	menu_background_shader_.Uniform(
-		"inv_texture_size",
+		"inv_tile_texture_size",
 		 m_Vec2(
 			1.0f / float(tiles_texture_.Width()),
 			1.0f / float(tiles_texture_.Height()) ) / float(scale) );
+
+	menu_background_shader_.Uniform(
+		"inv_framing_texture_size",
+		 m_Vec2(
+			1.0f / float(framing_texture_.Width ()),
+			1.0f / float(framing_texture_.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }

@@ -65,6 +65,9 @@ private:
 	r_GLSLProgram menu_picture_shader_;
 	r_Texture menu_pictures_[ size_t(MenuPicture::PicturesCount) ];
 
+	r_Texture framing_texture_;
+	short framing_tex_coords_[4][2];
+
 	r_PolygonBuffer polygon_buffer_;
 
 };
