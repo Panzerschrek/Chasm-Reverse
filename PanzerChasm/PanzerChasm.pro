@@ -24,6 +24,7 @@ SOURCES+= \
 HEADERS+= \
 	game_resources.hpp \
 	host.hpp \
+	host_commands.hpp \
 	images.hpp \
 	log.hpp \
 	menu.hpp \

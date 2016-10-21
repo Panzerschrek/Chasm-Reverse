@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 
+#include "host_commands.hpp"
 #include "game_resources.hpp"
 #include "menu_drawer.hpp"
 #include "rendering_context.hpp"
@@ -17,6 +18,7 @@ class Menu final
 {
 public:
 	Menu(
+		HostCommands& host_commands,
 		const RenderingContext& rendering_context,
 		const GameResourcesPtr& game_resources );
 	~Menu();

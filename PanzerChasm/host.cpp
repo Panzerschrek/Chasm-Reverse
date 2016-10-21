@@ -36,6 +36,7 @@ Host::Host()
 
 	menu_.reset(
 		new Menu(
+			*this,
 			rendering_context,
 			game_resources_ ) );
 }
@@ -63,17 +64,23 @@ bool Host::Loop()
 
 	events_.clear();
 
-	glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
-	glClear( GL_COLOR_BUFFER_BIT );
-
 	// Draw operations
-	if( menu_ != nullptr )
-		menu_->Draw();
-
 	if( system_window_ )
-		system_window_->SwapBuffers();
+	{
+		glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
+		glClear( GL_COLOR_BUFFER_BIT );
+
+		if( menu_ != nullptr )
+			menu_->Draw();
+			system_window_->SwapBuffers();
+	}
 
 	return !quit_requested_;
+}
+
+void Host::Quit()
+{
+	quit_requested_= true;
 }
 
 } // namespace PanzerChasm

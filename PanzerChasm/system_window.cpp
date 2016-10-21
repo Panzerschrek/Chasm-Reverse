@@ -99,6 +99,7 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().type= SystemEvent::Type::Key;
 			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.sym );
 			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
+			break;
 
 		// TODO - fill other events here
 

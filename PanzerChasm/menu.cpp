@@ -19,6 +19,8 @@ M_TILE1.CEL
 
 using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
+static const unsigned int g_menu_caption_offset= 2u;
+
 // Menu base
 
 class MenuBase
@@ -55,16 +57,19 @@ MenuBase* MenuBase::GetParent() const
 class QuitMenu final : public MenuBase
 {
 public:
-	QuitMenu( MenuBase* parent );
+	QuitMenu( MenuBase* parent, HostCommands& host_commands );
 	~QuitMenu() override;
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
 private:
+	HostCommands& host_commands_;
 };
 
-QuitMenu::QuitMenu( MenuBase* parent )
+QuitMenu::QuitMenu( MenuBase* parent, HostCommands& host_commands )
 	: MenuBase( parent )
+	, host_commands_(host_commands)
 {}
 
 QuitMenu::~QuitMenu()
@@ -83,7 +88,8 @@ void QuitMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale, scale );
 
 	text_draw.Print(
-		viewport_size.xy[0] >> 1u, y - ( 2u + text_draw.GetLineHeight() ) * scale,
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Quit",
 		scale,
 		TextDraw::FontColor::White, TextDraw::Alignment::Center );
@@ -104,7 +110,7 @@ MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
 			event.event.key.pressed &&
 			event.event.key.key_code == KeyCode::Enter )
 		{
-			// TODO - quit here
+			host_commands_.Quit();
 		}
 		break;
 
@@ -120,23 +126,22 @@ MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
 class MainMenu final : public MenuBase
 {
 public:
-	MainMenu();
+	explicit MainMenu( HostCommands& host_commands );
 	~MainMenu() override;
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
-
 	std::unique_ptr<MenuBase> submenus_[6];
 	int current_row_= 0;
 
 };
 
-MainMenu::MainMenu()
+MainMenu::MainMenu( HostCommands& host_commands )
 	: MenuBase( nullptr )
 {
-	submenus_[5].reset( new QuitMenu( this ) );
+	submenus_[5].reset( new QuitMenu( this, host_commands ) );
 }
 
 MainMenu::~MainMenu()
@@ -167,6 +172,14 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	};
 	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
 
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Main",
+		scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+
+
 	menu_drawer.DrawMenuPicture(
 		x, y,
 		MenuDrawer::MenuPicture::Main, colors, scale );
@@ -192,11 +205,12 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 // Menu
 
 Menu::Menu(
+	HostCommands& host_commands,
 	const RenderingContext& rendering_context,
 	const GameResourcesPtr& game_resources )
 	: text_draw_( rendering_context, *game_resources )
 	, menu_drawer_( rendering_context, *game_resources )
-	, root_menu_( new MainMenu )
+	, root_menu_( new MainMenu( host_commands ) )
 {
 	current_menu_= root_menu_.get();
 }

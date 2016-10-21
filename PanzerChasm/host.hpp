@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "game_resources.hpp"
+#include "host_commands.hpp"
 #include "menu.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
@@ -10,14 +11,17 @@
 namespace PanzerChasm
 {
 
-class Host final
+class Host final : public HostCommands
 {
 public:
 	Host();
-	~Host();
+	virtual ~Host() override;
 
 	// Returns false on quit
 	bool Loop();
+
+public: // HostCommands
+	virtual void Quit() override;
 
 private:
 	// Put members here in reverse deinitialization order.
