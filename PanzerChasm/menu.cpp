@@ -207,7 +207,7 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 Menu::Menu(
 	HostCommands& host_commands,
 	const RenderingContext& rendering_context,
-	const GameResourcesPtr& game_resources )
+	const GameResourcesConstPtr& game_resources )
 	: text_draw_( rendering_context, *game_resources )
 	, menu_drawer_( rendering_context, *game_resources )
 	, root_menu_( new MainMenu( host_commands ) )

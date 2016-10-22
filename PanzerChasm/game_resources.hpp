@@ -17,5 +17,6 @@ struct GameResources
 };
 
 typedef std::shared_ptr<GameResources> GameResourcesPtr;
+typedef std::shared_ptr<GameResources> GameResourcesConstPtr;
 
 } // namespace PanzerChasm

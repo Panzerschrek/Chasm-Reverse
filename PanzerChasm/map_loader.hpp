@@ -109,4 +109,6 @@ private:
 	MapDataConstPtr last_loaded_map_;
 };
 
+typedef std::shared_ptr<MapLoader> MapLoaderPtr;
+
 } // namespace PanzerChasm

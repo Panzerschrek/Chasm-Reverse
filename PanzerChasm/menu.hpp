@@ -20,7 +20,7 @@ public:
 	Menu(
 		HostCommands& host_commands,
 		const RenderingContext& rendering_context,
-		const GameResourcesPtr& game_resources );
+		const GameResourcesConstPtr& game_resources );
 	~Menu();
 
 	void ProcessEvents( const SystemEvents& events );

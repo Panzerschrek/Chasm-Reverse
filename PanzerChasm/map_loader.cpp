@@ -18,7 +18,7 @@ constexpr float g_map_coords_scale= 1.0f / 256.0f;
 
 } // namespace
 
-#define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size" )
+#define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size of " #x ", expected " #size )
 
 #pragma pack(push, 1)
 
