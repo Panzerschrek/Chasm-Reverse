@@ -15,6 +15,7 @@ SOURCES+= \
 	images.cpp \
 	log.cpp \
 	main.cpp \
+	map_loader.cpp \
 	menu.cpp \
 	menu_drawer.cpp \
 	system_window.cpp \
@@ -27,6 +28,8 @@ HEADERS+= \
 	host_commands.hpp \
 	images.hpp \
 	log.hpp \
+	map_loader.hpp \
+	math_utils.hpp \
 	menu.hpp \
 	menu_drawer.hpp \
 	rendering_context.hpp \
