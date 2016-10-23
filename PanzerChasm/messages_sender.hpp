@@ -14,15 +14,17 @@ public:
 	template<class Message>
 	void SendReliableMessage( const Message& message )
 	{
-		static_assert( std::is_pod<Message>::value, "Expected POD" );
 		SendReliableMessageImpl( &message, sizeof(Message) );
 	}
 
 	template<class Message>
 	void SendUnreliableMessage( const Message& message )
 	{
-		static_assert( std::is_pod<Message>::value, "Expected POD" );
-		SendReliableMessageImpl( &message, sizeof(Message) );
+		static_assert(
+			sizeof(Message) <= sizeof(unreliable_messages_buffer_),
+			"Message is too big" );
+
+		SendUnreliableMessageImpl( &message, sizeof(Message) );
 	}
 
 	void Flush();

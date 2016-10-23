@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
@@ -24,6 +25,7 @@ public:
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
+	void operator()( const Messages::PlayerMove& message );
 
 private:
 	struct ConnectionInfo
@@ -49,6 +51,11 @@ private:
 	State state_= State::NoMap;
 
 	std::unique_ptr<ConnectionInfo> connection_;
+
+	std::chrono::milliseconds last_tick_;
+	float last_tick_duration_s_;
+
+	m_Vec3 player_pos_;
 };
 
 
