@@ -1,4 +1,6 @@
 #include "../assert.hpp"
+#include "../log.hpp"
+#include "../messages_extractor.inl"
 
 #include "server.hpp"
 
@@ -26,6 +28,7 @@ void Server::Loop()
 {
 	while( IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
+		MessagesExtractor( connection ).PrcessMessages( *this );
 	}
 }
 
@@ -37,6 +40,12 @@ void Server::ChangeMap( const unsigned int map_number )
 		return;
 
 	state_= State::PlayingMap;
+}
+
+void Server::operator()( const Messages::MessageBase& message )
+{
+	PC_ASSERT(false);
+	Log::Warning( "Unknown message for server: ", int(message.message_id) );
 }
 
 } // namespace PanzerChasm

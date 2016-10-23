@@ -8,7 +8,7 @@ namespace PanzerChasm
 class MessagesSender final
 {
 public:
-	MessagesSender( IConnectionPtr connection );
+	explicit MessagesSender( IConnectionPtr connection );
 	~MessagesSender();
 
 	template<class Message>

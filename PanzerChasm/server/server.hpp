@@ -2,6 +2,8 @@
 
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "../messages_extractor.hpp"
+#include "../messages_sender.hpp"
 #include "i_connections_listener.hpp"
 
 namespace PanzerChasm
@@ -20,7 +22,17 @@ public:
 
 	void ChangeMap( unsigned int map_number );
 
+public: // Messages handlers
+	void operator()( const Messages::MessageBase& message );
+
 private:
+	struct ConnectionInfo
+	{
+		IConnectionPtr connection;
+		MessagesExtractor messages_extractor;
+		MessagesSender messages_sender;
+	};
+
 	enum class State
 	{
 		NoMap,

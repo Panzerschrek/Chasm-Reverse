@@ -19,6 +19,7 @@ SOURCES+= \
 	map_loader.cpp \
 	menu.cpp \
 	menu_drawer.cpp \
+	messages_extractor.cpp \
 	messages_sender.cpp \
 	server/server.cpp \
 	system_window.cpp \
@@ -38,6 +39,9 @@ HEADERS+= \
 	math_utils.hpp \
 	menu.hpp \
 	menu_drawer.hpp \
+	messages.hpp \
+	messages_extractor.hpp \
+	messages_extractor.inl \
 	messages_sender.hpp \
 	rendering_context.hpp \
 	server/server.hpp \
