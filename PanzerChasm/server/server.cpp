@@ -7,6 +7,12 @@
 namespace PanzerChasm
 {
 
+Server::ConnectionInfo::ConnectionInfo( const IConnectionPtr& in_connection )
+	: connection( in_connection )
+	, messages_extractor( in_connection )
+	, messages_sender( in_connection )
+{}
+
 Server::Server(
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
@@ -21,15 +27,17 @@ Server::Server(
 }
 
 Server::~Server()
-{
-}
+{}
 
 void Server::Loop()
 {
 	while( IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
-		MessagesExtractor( connection ).PrcessMessages( *this );
+		connection_.reset( new ConnectionInfo( std::move( connection ) ) );
 	}
+
+	if( connection_ != nullptr )
+		connection_->messages_extractor.ProcessMessages( *this );
 }
 
 void Server::ChangeMap( const unsigned int map_number )

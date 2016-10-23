@@ -13,7 +13,7 @@ public:
 	~MessagesExtractor();
 
 	template<class MessagesHandler>
-	void PrcessMessages( MessagesHandler& messages_handler );
+	void ProcessMessages( MessagesHandler& messages_handler );
 
 private:
 	static size_t c_messages_size[ size_t(MessageId::NumMessages) ];

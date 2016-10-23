@@ -8,7 +8,7 @@ namespace PanzerChasm
 {
 
 template<class MessagesHandler>
-void MessagesExtractor::PrcessMessages( MessagesHandler& messages_handler )
+void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 {
 	for( unsigned int i= 0u; i < 2u; i++ ) // for reliable and unreliable messages
 	{

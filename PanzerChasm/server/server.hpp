@@ -28,6 +28,8 @@ public: // Messages handlers
 private:
 	struct ConnectionInfo
 	{
+		explicit ConnectionInfo( const IConnectionPtr& in_connection );
+
 		IConnectionPtr connection;
 		MessagesExtractor messages_extractor;
 		MessagesSender messages_sender;
@@ -45,6 +47,8 @@ private:
 	const IConnectionsListenerPtr connections_listener_;
 
 	State state_= State::NoMap;
+
+	std::unique_ptr<ConnectionInfo> connection_;
 };
 
 

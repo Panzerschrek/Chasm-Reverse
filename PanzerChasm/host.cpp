@@ -39,6 +39,13 @@ Host::Host()
 			*this,
 			rendering_context,
 			game_resources_ ) );
+
+
+	map_loader_= std::make_shared<MapLoader>( vfs_ );
+	loopback_buffer_= std::make_shared<LoopbackBuffer>();
+	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
+
+	loopback_buffer_->RequestConnect();
 }
 
 Host::~Host()
@@ -63,6 +70,9 @@ bool Host::Loop()
 		menu_->ProcessEvents( events_ );
 
 	events_.clear();
+
+	if( local_server_ != nullptr )
+		local_server_->Loop();
 
 	// Draw operations
 	if( system_window_ )
