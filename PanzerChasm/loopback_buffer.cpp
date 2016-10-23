@@ -94,26 +94,32 @@ LoopbackBuffer::LoopbackBuffer()
 {
 	client_side_connection_=
 		std::make_shared<Connection>(
-			server_to_client_reliable_buffer_,
-			server_to_client_unreliable_buffer_,
-			client_to_server_reliable_buffer_,
-			client_to_server_unreliable_buffer_ );
-
-	server_side_connection_=
-		std::make_shared<Connection>(
 			client_to_server_reliable_buffer_,
 			client_to_server_unreliable_buffer_,
 			server_to_client_reliable_buffer_,
 			server_to_client_unreliable_buffer_ );
+
+	server_side_connection_=
+		std::make_shared<Connection>(
+			server_to_client_reliable_buffer_,
+			server_to_client_unreliable_buffer_,
+			client_to_server_reliable_buffer_,
+			client_to_server_unreliable_buffer_ );
 }
 
 LoopbackBuffer::~LoopbackBuffer()
 {}
 
+void LoopbackBuffer::RequestConnect()
+{
+	state_= State::WaitingForConnection;
+}
+
 IConnectionPtr LoopbackBuffer::GetNewConnection()
 {
-	if( server_side_connection_ )
+	if( state_ == State::WaitingForConnection )
 	{
+		state_= State::Connected;
 		return server_side_connection_;
 	}
 

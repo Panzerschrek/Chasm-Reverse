@@ -12,6 +12,8 @@ public:
 	LoopbackBuffer();
 	virtual ~LoopbackBuffer() override;
 
+	void RequestConnect();
+
 public: // IConnectionsListener
 	virtual IConnectionPtr GetNewConnection() override;
 
@@ -21,7 +23,16 @@ public: // IConnectionsListener
 	// Output - pop_front
 	typedef std::deque<unsigned char> Buffer;
 
+	enum class State
+	{
+		Unconnected,
+		WaitingForConnection,
+		Connected,
+	};
+
 private:
+	State state_= State::Unconnected;
+
 	IConnectionPtr client_side_connection_;
 	IConnectionPtr server_side_connection_;
 
