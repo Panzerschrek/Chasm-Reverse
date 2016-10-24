@@ -76,7 +76,7 @@ unsigned int LoopbackBuffer::Connection::ReadRealiableData( void* out_data, unsi
 
 unsigned int LoopbackBuffer::Connection::ReadUnrealiableData( void* out_data, unsigned int buffer_size )
 {
-	unsigned int result_size= std::min( buffer_size, out_reliable_buffer_.size() );
+	unsigned int result_size= std::min( buffer_size, out_unreliable_buffer_.size() );
 
 	std::memcpy( out_data, &*out_unreliable_buffer_.begin(), result_size );
 	out_unreliable_buffer_.erase( out_unreliable_buffer_.begin(), out_unreliable_buffer_.begin() + result_size );

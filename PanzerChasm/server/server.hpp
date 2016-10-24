@@ -1,10 +1,9 @@
 #pragma once
 #include <chrono>
 
+#include "../connection_info.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
-#include "../messages_extractor.hpp"
-#include "../messages_sender.hpp"
 #include "i_connections_listener.hpp"
 
 namespace PanzerChasm
@@ -28,15 +27,6 @@ public: // Messages handlers
 	void operator()( const Messages::PlayerMove& message );
 
 private:
-	struct ConnectionInfo
-	{
-		explicit ConnectionInfo( const IConnectionPtr& in_connection );
-
-		IConnectionPtr connection;
-		MessagesExtractor messages_extractor;
-		MessagesSender messages_sender;
-	};
-
 	enum class State
 	{
 		NoMap,

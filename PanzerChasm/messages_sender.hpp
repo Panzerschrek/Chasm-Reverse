@@ -1,6 +1,8 @@
 #pragma once
+#include <type_traits>
 
 #include "i_connection.hpp"
+#include "messages.hpp"
 
 namespace PanzerChasm
 {
@@ -14,12 +16,20 @@ public:
 	template<class Message>
 	void SendReliableMessage( const Message& message )
 	{
+		static_assert(
+			std::is_base_of< Messages::MessageBase, Message >::value,
+			"Invalid message type" );
+
 		SendReliableMessageImpl( &message, sizeof(Message) );
 	}
 
 	template<class Message>
 	void SendUnreliableMessage( const Message& message )
 	{
+		static_assert(
+			std::is_base_of< Messages::MessageBase, Message >::value,
+			"Invalid message type" );
+
 		static_assert(
 			sizeof(Message) <= sizeof(unreliable_messages_buffer_),
 			"Message is too big" );

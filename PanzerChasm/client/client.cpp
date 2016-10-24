@@ -1,4 +1,7 @@
 #include "assert.hpp"
+#include "log.hpp"
+#include "math_utils.hpp"
+#include "messages_extractor.inl"
 
 #include "client.hpp"
 
@@ -15,6 +18,8 @@ Client::Client(
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
+
+	connection_info_.reset( new ConnectionInfo( loopback_buffer_->GetClientSideConnection() ) );
 }
 
 Client::~Client()
@@ -42,11 +47,38 @@ void Client::ProcessEvents( const SystemEvents& events )
 
 void Client::Loop()
 {
+	if( connection_info_ != nullptr )
+		connection_info_->messages_extractor.ProcessMessages( *this );
+
 	camera_controller_.Tick();
 
-	float move_direction, move_acceleration;
-	camera_controller_.GetAcceleration( move_direction, move_acceleration );
+	if( connection_info_ != nullptr )
+	{
+		float move_direction, move_acceleration;
+		camera_controller_.GetAcceleration( move_direction, move_acceleration );
 
+		Messages::PlayerMove message;
+		message.message_id= MessageId::PlayerMove;
+		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
+		message.angle= static_cast<unsigned short>( move_direction * 65536.0f / Constants::two_pi );
+
+		connection_info_->messages_sender.SendUnreliableMessage( message );
+		connection_info_->messages_sender.Flush();
+	}
+
+	Log::Info( "Pos: ", player_position_.x, " ", player_position_.y, " ", player_position_.z );
+}
+
+void Client::operator()( const Messages::MessageBase& message )
+{
+	PC_ASSERT(false);
+	Log::Warning( "Unknown message for server: ", int(message.message_id) );
+}
+
+void Client::operator()( const Messages::PlayerPosition& message )
+{
+	for( unsigned int j= 0u; j < 3u; j++ )
+		player_position_.ToArr()[j]= float(message.xyz[j]) / 256.0f;
 }
 
 } // namespace PanzerChasm

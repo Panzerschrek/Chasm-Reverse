@@ -13,12 +13,6 @@ static std::chrono::milliseconds GetTime()
 	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
 }
 
-Server::ConnectionInfo::ConnectionInfo( const IConnectionPtr& in_connection )
-	: connection( in_connection )
-	, messages_extractor( in_connection )
-	, messages_sender( in_connection )
-{}
-
 Server::Server(
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
@@ -61,7 +55,7 @@ void Server::Loop()
 		position_msg.message_id= MessageId::PlayerPosition;
 
 		for( unsigned int j= 0u; j < 3u; j++ )
-			position_msg.xyz[j]= static_cast<short>(player_pos_.ToArr()[j] * 256.0f );
+			position_msg.xyz[j]= static_cast<short>( player_pos_.ToArr()[j] * 256.0f );
 
 		connection_->messages_sender.SendUnreliableMessage( position_msg );
 		connection_->messages_sender.Flush();
@@ -86,7 +80,7 @@ void Server::operator()( const Messages::MessageBase& message )
 
 void Server::operator()( const Messages::PlayerMove& message )
 {
-	const float c_max_speed= 5.0f;
+	const float c_max_speed= 0.25f;
 	const float speed= c_max_speed * float(message.acceleration) / 255.0f;
 
 	const float angle= float(message.angle) / 65536.0f * Constants::two_pi;

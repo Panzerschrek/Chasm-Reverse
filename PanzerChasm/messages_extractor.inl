@@ -27,7 +27,7 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 						max_buffer_size - buffer_pos );
 			else
 				bytes_read=
-					connection_->ReadRealiableData(
+					connection_->ReadUnrealiableData(
 						buffer + buffer_pos,
 						max_buffer_size - buffer_pos );
 
