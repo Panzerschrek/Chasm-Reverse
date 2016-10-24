@@ -14,9 +14,12 @@ public:
 
 	void RequestConnect();
 
+	IConnectionPtr GetClientSideConnection();
+
 public: // IConnectionsListener
 	virtual IConnectionPtr GetNewConnection() override;
 
+private:
 	class Connection;
 
 	// Input - push_back
@@ -42,5 +45,7 @@ private:
 	Buffer server_to_client_reliable_buffer_;
 	Buffer server_to_client_unreliable_buffer_;
 };
+
+typedef  std::shared_ptr<LoopbackBuffer> LoopbackBufferPtr;
 
 } // namespace PanzerChasm

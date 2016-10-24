@@ -46,6 +46,8 @@ Host::Host()
 	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
 
 	loopback_buffer_->RequestConnect();
+
+	client_.reset( new Client( game_resources_, map_loader_, loopback_buffer_ ) );
 }
 
 Host::~Host()
@@ -69,10 +71,16 @@ bool Host::Loop()
 	if( menu_ != nullptr )
 		menu_->ProcessEvents( events_ );
 
+	if( client_ != nullptr )
+		client_->ProcessEvents( events_ );
+
 	events_.clear();
 
 	if( local_server_ != nullptr )
 		local_server_->Loop();
+
+	if( client_ != nullptr )
+		client_->Loop();
 
 	// Draw operations
 	if( system_window_ )

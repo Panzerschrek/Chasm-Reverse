@@ -11,6 +11,8 @@ INCLUDEPATH+= ../../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
+	client/client.cpp \
+	client/movement_controller.cpp \
 	host.cpp \
 	images.cpp \
 	log.cpp \
@@ -28,6 +30,8 @@ SOURCES+= \
 
 HEADERS+= \
 	assert.hpp \
+	client/client.hpp \
+	client/movement_controller.hpp \
 	game_resources.hpp \
 	host.hpp \
 	host_commands.hpp \

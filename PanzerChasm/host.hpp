@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 
+#include "client/client.hpp"
 #include "game_resources.hpp"
 #include "host_commands.hpp"
 #include "loopback_buffer.hpp"
@@ -43,6 +44,8 @@ private:
 
 	std::shared_ptr<LoopbackBuffer> loopback_buffer_;
 	std::unique_ptr<Server> local_server_;
+
+	std::unique_ptr<Client> client_;
 };
 
 } // namespace PanzerChasm

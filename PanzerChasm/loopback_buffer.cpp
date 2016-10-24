@@ -115,6 +115,11 @@ void LoopbackBuffer::RequestConnect()
 	state_= State::WaitingForConnection;
 }
 
+IConnectionPtr LoopbackBuffer::GetClientSideConnection()
+{
+	return client_side_connection_;
+}
+
 IConnectionPtr LoopbackBuffer::GetNewConnection()
 {
 	if( state_ == State::WaitingForConnection )

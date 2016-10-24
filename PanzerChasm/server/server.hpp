@@ -58,5 +58,4 @@ private:
 	m_Vec3 player_pos_;
 };
 
-
 } // PanzerChasm
