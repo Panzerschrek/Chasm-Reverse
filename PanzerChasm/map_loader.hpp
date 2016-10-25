@@ -17,7 +17,8 @@ public:
 	static constexpr unsigned int c_floor_texture_size_log2= 6u;
 	static constexpr unsigned int c_floor_texture_size= 1u << c_floor_texture_size_log2;
 
-	static constexpr unsigned int c_lightmap_size= 4u * c_map_size;
+	static constexpr unsigned int c_lightmap_scale= 4u;
+	static constexpr unsigned int c_lightmap_size= c_lightmap_scale * c_map_size;
 
 	static constexpr unsigned int c_max_walls_textures= 128u;
 	static constexpr unsigned int c_floors_textures_count= 64u;

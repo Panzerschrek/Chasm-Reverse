@@ -29,6 +29,8 @@ Host::Host()
 		rSetShaderLoadingLogCallback( shaders_log_callback );
 		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
 	}
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
 	RenderingContext rendering_context;
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
@@ -47,7 +49,12 @@ Host::Host()
 
 	loopback_buffer_->RequestConnect();
 
-	client_.reset( new Client( game_resources_, map_loader_, loopback_buffer_ ) );
+	client_.reset(
+		new Client(
+			game_resources_,
+			map_loader_,
+			loopback_buffer_,
+			rendering_context ) );
 }
 
 Host::~Host()
@@ -85,8 +92,12 @@ bool Host::Loop()
 	// Draw operations
 	if( system_window_ )
 	{
+		// TODO - remove draww stuff from here
 		glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
-		glClear( GL_COLOR_BUFFER_BIT );
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+		if( client_ != nullptr )
+			client_->Draw();
 
 		if( menu_ != nullptr )
 			menu_->Draw();

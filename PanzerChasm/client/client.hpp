@@ -4,7 +4,9 @@
 #include "../game_resources.hpp"
 #include "../loopback_buffer.hpp"
 #include "../map_loader.hpp"
+#include "../rendering_context.hpp"
 #include "../system_event.hpp"
+#include "map_drawer.hpp"
 #include "movement_controller.hpp"
 
 namespace PanzerChasm
@@ -16,13 +18,15 @@ public:
 	Client(
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
-		const LoopbackBufferPtr& loopback_buffer );
+		const LoopbackBufferPtr& loopback_buffer,
+		const RenderingContext& rendering_context );
 
 	~Client();
 
 	void ProcessEvents( const SystemEvents& events );
 
 	void Loop();
+	void Draw();
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
@@ -37,6 +41,8 @@ private:
 
 	m_Vec3 player_position_;
 	MovementController camera_controller_;
+
+	MapDrawer map_drawer_;
 };
 
 } // PanzerChasm

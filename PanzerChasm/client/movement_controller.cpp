@@ -57,7 +57,7 @@ void MovementController::GetAcceleration( float& out_dir, float& out_acceleratio
 
 	move_vector= move_vector * move_vector_rot_mat;
 
-	const float move_vector_length= move_vector.Length();
+	const float move_vector_length= move_vector.xy().Length();
 	if( move_vector_length <= 0.001f )
 	{
 		out_dir= 0.0f;

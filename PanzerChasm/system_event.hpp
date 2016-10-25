@@ -22,6 +22,7 @@ struct SystemEvent
 			Unknown= 0,
 			Escape,
 			Enter,
+			Space,
 
 			Up,
 			Down,

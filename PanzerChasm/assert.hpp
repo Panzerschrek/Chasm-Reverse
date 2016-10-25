@@ -11,3 +11,5 @@
 #endif
 
 #define PC_UNUSED(x) (void)x
+
+#define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size of " #x ", expected " #size )

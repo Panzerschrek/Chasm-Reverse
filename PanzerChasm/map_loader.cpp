@@ -1,6 +1,7 @@
 #include <cstring>
 #include <sstream>
 
+#include "assert.hpp"
 #include "math_utils.hpp"
 
 #include "map_loader.hpp"
@@ -17,8 +18,6 @@ constexpr unsigned int g_floors_file_header_size= 64u;
 constexpr float g_map_coords_scale= 1.0f / 256.0f;
 
 } // namespace
-
-#define SIZE_ASSERT(x, size) static_assert( sizeof(x) == size, "Invalid size of " #x ", expected " #size )
 
 #pragma pack(push, 1)
 
@@ -192,7 +191,7 @@ void MapLoader::LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData
 		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
 		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 		{
-			const unsigned char texture_number= in_data[ x * MapData::c_map_size + y ];
+			const unsigned char texture_number= in_data[ y * MapData::c_map_size + x ];
 			out_data[ x + y * MapData::c_map_size ]= texture_number;
 		}
 	}
