@@ -327,6 +327,8 @@ void MenuDrawer::DrawMenuBackground(
 		0u );
 
 	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
 	menu_background_shader_.Bind();
 
 	tiles_texture_.Bind(0u);
