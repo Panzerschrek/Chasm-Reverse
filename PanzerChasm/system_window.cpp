@@ -15,6 +15,7 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
 	{
 	case SDLK_ESCAPE: return KeyCode::Escape;
 	case SDLK_RETURN: return KeyCode::Enter;
+	case SDLK_SPACE: return KeyCode::Space;
 
 	case SDLK_RIGHT: return KeyCode::Right;
 	case SDLK_LEFT: return KeyCode::Left;
@@ -22,7 +23,11 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
 	case SDLK_UP: return KeyCode::Up;
 
 	default:
-		break;
+		if( key_code >= SDLK_a && key_code <= SDLK_z )
+			return KeyCode( int(KeyCode::A) + (key_code - SDLK_a) );
+		if( key_code >= SDLK_0 && key_code <= SDLK_9 )
+			return KeyCode( int(KeyCode::K0) + (key_code - SDLK_0) );
+
 	};
 
 	return KeyCode::Unknown;

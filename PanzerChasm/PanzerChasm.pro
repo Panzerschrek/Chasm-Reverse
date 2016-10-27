@@ -7,32 +7,56 @@ LIBS+= $$SDL_LIBS_DIR/SDL2main.lib
 LIBS+= $$SDL_LIBS_DIR/SDL2.lib
 LIBS+= libopengl32
 
+CONFIG( debug, debug|release ) {
+	DEFINES+= DEBUG
+}
+
 INCLUDEPATH+= ../../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
+	client/client.cpp \
+	client/map_drawer.cpp \
+	client/movement_controller.cpp \
+	connection_info.cpp \
 	host.cpp \
 	images.cpp \
 	log.cpp \
+	loopback_buffer.cpp \
 	main.cpp \
 	map_loader.cpp \
 	menu.cpp \
 	menu_drawer.cpp \
+	messages_extractor.cpp \
+	messages_sender.cpp \
+	server/server.cpp \
 	system_window.cpp \
 	text_draw.cpp \
 	vfs.cpp \
 
 HEADERS+= \
+	assert.hpp \
+	client/client.hpp \
+	client/map_drawer.hpp \
+	client/movement_controller.hpp \
+	connection_info.hpp \
 	game_resources.hpp \
 	host.hpp \
 	host_commands.hpp \
+	i_connection.hpp \
 	images.hpp \
 	log.hpp \
+	loopback_buffer.hpp \
 	map_loader.hpp \
 	math_utils.hpp \
 	menu.hpp \
 	menu_drawer.hpp \
+	messages.hpp \
+	messages_extractor.hpp \
+	messages_extractor.inl \
+	messages_sender.hpp \
 	rendering_context.hpp \
+	server/server.hpp \
 	size.hpp \
 	system_event.hpp \
 	system_window.hpp \

@@ -15,6 +15,7 @@ enum class MessageId : unsigned char
 	PlayerPosition, // position of player, which recieve this message.
 
 	// Reliable server to client
+	MapChange,
 	EntityBirth,
 	EntityDeath,
 
@@ -23,6 +24,9 @@ enum class MessageId : unsigned char
 
 	// Reliable client to server
 	PlayerShot,
+
+	// Put it last here
+	NumMessages,
 };
 
 namespace Messages
@@ -56,6 +60,11 @@ struct PlayerPosition : public MessageBase
 	short xyz[3];
 };
 
+struct MapChange : public MessageBase
+{
+	unsigned int map_number;
+};
+
 struct EntityBirth : public MessageBase
 {
 	EntityId id;
@@ -80,38 +89,6 @@ struct PlayerShot : public MessageBase
 };
 
 #pragma pack(pop)
-
-
-class IClientMessagesProcessor
-{
-
-	virtual void Process( const PlayerMove& entity_state )= 0;
-
-	virtual void Process( const PlayerShot& entity_state )= 0;
-};
-
-class IServerMessagesProcessor
-{
-	virtual void Process( const EntityState& entity_state )= 0;
-	virtual void Process( const WallPosition& entity_state )= 0;
-	virtual void Process( const PlayerPosition& entity_state )= 0;
-
-	virtual void Process( const EntityBirth& entity_state )= 0;
-	virtual void Process( const EntityDeath& entity_state )= 0;
-
-};
-
-class IClientMessagesExtractor
-{
-public:
-	ProcessMessages( IClientMessagesProcessor& messages_processor )= 0;
-};
-
-class IServerMessagesExtractor
-{
-public:
-	ProcessMessages( IServerMessagesProcessor& messages_processor )= 0;
-};
 
 } // namespace Messages
 

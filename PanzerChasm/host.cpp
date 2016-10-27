@@ -29,6 +29,8 @@ Host::Host()
 		rSetShaderLoadingLogCallback( shaders_log_callback );
 		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
 	}
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
 	RenderingContext rendering_context;
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
@@ -39,6 +41,21 @@ Host::Host()
 			*this,
 			rendering_context,
 			game_resources_ ) );
+
+
+	map_loader_= std::make_shared<MapLoader>( vfs_ );
+	loopback_buffer_= std::make_shared<LoopbackBuffer>();
+	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
+
+	loopback_buffer_->RequestConnect();
+	local_server_->ChangeMap( 1 );
+
+	client_.reset(
+		new Client(
+			game_resources_,
+			map_loader_,
+			loopback_buffer_,
+			rendering_context ) );
 }
 
 Host::~Host()
@@ -62,13 +79,26 @@ bool Host::Loop()
 	if( menu_ != nullptr )
 		menu_->ProcessEvents( events_ );
 
+	if( client_ != nullptr )
+		client_->ProcessEvents( events_ );
+
 	events_.clear();
+
+	if( local_server_ != nullptr )
+		local_server_->Loop();
+
+	if( client_ != nullptr )
+		client_->Loop();
 
 	// Draw operations
 	if( system_window_ )
 	{
+		// TODO - remove draww stuff from here
 		glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
-		glClear( GL_COLOR_BUFFER_BIT );
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+		if( client_ != nullptr )
+			client_->Draw();
 
 		if( menu_ != nullptr )
 			menu_->Draw();

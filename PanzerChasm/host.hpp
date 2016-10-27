@@ -1,9 +1,13 @@
 #pragma once
 #include <memory>
 
+#include "client/client.hpp"
 #include "game_resources.hpp"
 #include "host_commands.hpp"
+#include "loopback_buffer.hpp"
+#include "map_loader.hpp"
 #include "menu.hpp"
+#include "server/server.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
 #include "vfs.hpp"
@@ -35,6 +39,13 @@ private:
 	SystemEvents events_;
 
 	std::unique_ptr<Menu> menu_;
+
+	MapLoaderPtr map_loader_;
+
+	std::shared_ptr<LoopbackBuffer> loopback_buffer_;
+	std::unique_ptr<Server> local_server_;
+
+	std::unique_ptr<Client> client_;
 };
 
 } // namespace PanzerChasm
