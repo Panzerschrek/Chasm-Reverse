@@ -493,6 +493,9 @@ void MapLoader::LoadProcedure( std::istringstream& stream, MapData& map_data )
 
 		char thing[64];
 		line_stream >> thing;
+
+		if( line_stream.fail() )
+			continue;
 		if( std::strcmp( thing, "#end" ) == 0 )
 			break;
 
