@@ -48,6 +48,11 @@ private:
 	float last_tick_duration_s_;
 
 	m_Vec3 player_pos_;
+	struct
+	{
+		float acceleration; // 0.0f - 1.0f
+		float direction;
+	} player_movement_;
 };
 
 } // PanzerChasm

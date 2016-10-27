@@ -43,6 +43,16 @@ void Server::Loop()
 
 		connection_->messages_sender.SendReliableMessage( map_change_msg );
 		connection_->messages_sender.Flush();
+
+		if( current_map_data_ != nullptr )
+			for( const MapData::Monster& monster : current_map_data_->monsters )
+			{
+				if( monster.monster_id == 0u )
+				{
+					player_pos_= m_Vec3( monster.pos, 0.0f );
+					break;
+				}
+			}
 	}
 
 	if( connection_ != nullptr )
@@ -56,6 +66,18 @@ void Server::Loop()
 
 	last_tick_= current_time;
 
+	// Do server logic
+	{
+		const float c_max_speed= 5.0f;
+		const float speed= c_max_speed * player_movement_.acceleration;
+
+		const float delta= last_tick_duration_s_ * speed;
+
+		player_pos_.x+= delta * std::cos(player_movement_.direction);
+		player_pos_.y+= delta * std::sin(player_movement_.direction);
+	}
+
+	// Send messages
 	if( connection_ != nullptr )
 	{
 		Messages::PlayerPosition position_msg;
@@ -90,13 +112,8 @@ void Server::operator()( const Messages::MessageBase& message )
 
 void Server::operator()( const Messages::PlayerMove& message )
 {
-	const float c_max_speed= 0.25f;
-	const float speed= c_max_speed * float(message.acceleration) / 255.0f;
-
-	const float angle= float(message.angle) / 65536.0f * Constants::two_pi;
-
-	player_pos_.x+= speed * std::cos(angle);
-	player_pos_.y+= speed * std::sin(angle);
+	player_movement_.acceleration= float(message.acceleration) / 255.0f;
+	player_movement_.direction= float(message.angle) / 65536.0f * Constants::two_pi;
 }
 
 } // namespace PanzerChasm

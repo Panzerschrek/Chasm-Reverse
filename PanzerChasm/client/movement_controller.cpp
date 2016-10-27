@@ -57,8 +57,7 @@ void MovementController::GetAcceleration( float& out_dir, float& out_acceleratio
 
 	move_vector= move_vector * move_vector_rot_mat;
 
-	const float move_vector_length= move_vector.xy().Length();
-	if( move_vector_length <= 0.001f )
+	if( move_vector.xy().SquareLength() <= 0.001f )
 	{
 		out_dir= 0.0f;
 		out_acceleration= 0.0f;
@@ -66,7 +65,7 @@ void MovementController::GetAcceleration( float& out_dir, float& out_acceleratio
 	else
 	{
 		out_dir= std::atan2( move_vector.y, move_vector.x );
-		out_acceleration= move_vector_length;
+		out_acceleration= 1.0f;
 	}
 }
 
