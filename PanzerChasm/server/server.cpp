@@ -41,7 +41,7 @@ void Server::Loop()
 		map_change_msg.message_id= MessageId::MapChange;
 		map_change_msg.map_number= current_map_number_;
 
-		connection_->messages_sender.SendUnreliableMessage( map_change_msg );
+		connection_->messages_sender.SendReliableMessage( map_change_msg );
 		connection_->messages_sender.Flush();
 	}
 
