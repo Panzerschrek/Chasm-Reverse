@@ -7,9 +7,12 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../rendering_context.hpp"
+#include "map_state.hpp"
 
 namespace PanzerChasm
 {
+
+struct WallVertex;
 
 class MapDrawer final
 {
@@ -21,14 +24,16 @@ public:
 
 	void SetMap( const MapDataConstPtr& map_data );
 
-	void Draw( const m_Mat4& view_matrix );
+	void Draw(
+		const MapState& map_state,
+		const m_Mat4& view_matrix );
 
 private:
 	struct FloorGeometryInfo
-		{
-			unsigned int first_vertex_number;
-			unsigned int vertex_count;
-		};
+	{
+		unsigned int first_vertex_number;
+		unsigned int vertex_count;
+	};
 
 private:
 	void LoadFloorsTextures( const MapData& map_data );
@@ -36,6 +41,8 @@ private:
 
 	void LoadFloors( const MapData& map_data );
 	void LoadWalls( const MapData& map_data );
+
+	void UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -55,7 +62,9 @@ private:
 
 	r_GLSLProgram walls_shader_;
 	r_PolygonBuffer walls_geometry_;
+
 	r_PolygonBuffer dynamic_walls_geometry_;
+	std::vector<WallVertex> dynamc_walls_vertices_;
 };
 
 } // PanzerChasm

@@ -17,6 +17,7 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 SOURCES+= \
 	client/client.cpp \
 	client/map_drawer.cpp \
+	client/map_state.cpp \
 	client/movement_controller.cpp \
 	connection_info.cpp \
 	host.cpp \
@@ -38,6 +39,7 @@ HEADERS+= \
 	assert.hpp \
 	client/client.hpp \
 	client/map_drawer.hpp \
+	client/map_state.hpp \
 	client/movement_controller.hpp \
 	connection_info.hpp \
 	game_resources.hpp \

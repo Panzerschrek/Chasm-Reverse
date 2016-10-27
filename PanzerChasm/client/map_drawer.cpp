@@ -107,10 +107,14 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 }
 
-void MapDrawer::Draw( const m_Mat4& view_matrix )
+void MapDrawer::Draw(
+	const MapState& map_state,
+	const m_Mat4& view_matrix )
 {
 	if( current_map_data_ == nullptr )
 		return;
+
+	UpdateDynamicWalls( map_state.GetDynamicWalls() );
 
 	// Draw walls
 	r_OGLStateManager::UpdateState( g_walls_gl_state );
@@ -133,6 +137,8 @@ void MapDrawer::Draw( const m_Mat4& view_matrix )
 
 	walls_geometry_.Bind();
 	walls_geometry_.Draw();
+	dynamic_walls_geometry_.Bind();
+	dynamic_walls_geometry_.Draw();
 
 	// Draw floors and ceilings
 	r_OGLStateManager::UpdateState( g_floors_gl_state );
@@ -408,18 +414,84 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 	setup_attribs( walls_geometry_ );
 
 	// Reserve place for dynamic walls geometry
+	dynamc_walls_vertices_.resize( map_data.dynamic_walls.size() * 4u );
+
+	// Try reuse indeces from regular walls
+	if( walls_indeces.size() < map_data.dynamic_walls.size() * 6u )
+	{
+		walls_indeces.resize( map_data.dynamic_walls.size() * 6u );
+
+		for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
+		{
+			unsigned short* const ind= walls_indeces.data() + w * 6u;
+			const unsigned int first_vertex_index= w * 4u;
+			ind[0]= first_vertex_index + 0u;
+			ind[1]= first_vertex_index + 1u;
+			ind[2]= first_vertex_index + 3u;
+			ind[3]= first_vertex_index + 0u;
+			ind[4]= first_vertex_index + 3u;
+			ind[5]= first_vertex_index + 2u;
+		}
+	}
+
 	dynamic_walls_geometry_.VertexData(
 		nullptr,
 		sizeof(WallVertex) * map_data.dynamic_walls.size() * 4u,
 		sizeof(WallVertex) );
 
 	dynamic_walls_geometry_.IndexData(
-		nullptr,
+		walls_indeces.data(),
 		map_data.dynamic_walls.size() * 6u * sizeof(unsigned short),
 		GL_UNSIGNED_SHORT,
 		GL_TRIANGLES );
 
 	setup_attribs( dynamic_walls_geometry_ );
+}
+
+void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls )
+{
+	PC_ASSERT( current_map_data_->dynamic_walls.size() == dynamic_walls.size() );
+
+	for( unsigned int w= 0u; w < dynamic_walls.size(); w++ )
+	{
+		const MapData::Wall& map_wall= current_map_data_->dynamic_walls[w];
+		const MapState::DynamicWall wall= dynamic_walls[w];
+		// TODO - discard walls without textures.
+
+		WallVertex* const v= dynamc_walls_vertices_.data() + w * 4u;
+
+		v[0].xyz[0]= v[2].xyz[0]= wall.xy[0][0];
+		v[0].xyz[1]= v[2].xyz[1]= wall.xy[0][1];
+		v[1].xyz[0]= v[3].xyz[0]= wall.xy[1][0];
+		v[1].xyz[1]= v[3].xyz[1]= wall.xy[1][1];
+
+		v[0].xyz[2]= v[1].xyz[2]= wall.z;
+		v[2].xyz[2]= v[3].xyz[2]= wall.z + (2u << 8u);
+
+		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
+
+		v[2].tex_coord_x= v[0].tex_coord_x= map_wall.vert_tex_coord[0];
+		v[1].tex_coord_x= v[3].tex_coord_x= map_wall.vert_tex_coord[1];
+
+		m_Vec2 wall_vec=
+			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
+			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1]));
+		wall_vec.Normalize();
+
+		const int normal[2]= {
+			int( +126.5f * wall_vec.y ),
+			int( -126.5f * wall_vec.x ) };
+		for( unsigned int j= 0u; j < 4u; j++ )
+		{
+			v[j].normal[0]= normal[0];
+			v[j].normal[1]= normal[1];
+		}
+	}
+
+	dynamic_walls_geometry_.VertexSubData(
+		dynamc_walls_vertices_.data(),
+		dynamc_walls_vertices_.size() * sizeof(WallVertex),
+		0u );
 }
 
 } // PanzerChasm

@@ -89,16 +89,32 @@ void Client::Loop()
 
 void Client::Draw()
 {
-	m_Mat4 view_matrix;
-	player_position_.z= 0.5f * 1.75f;
-	camera_controller_.GetViewMatrix( player_position_, view_matrix );
-	map_drawer_.Draw( view_matrix );
+	if( map_state_ != nullptr )
+	{
+		m_Mat4 view_matrix;
+		player_position_.z= 0.5f * 1.75f;
+		camera_controller_.GetViewMatrix( player_position_, view_matrix );
+
+		map_drawer_.Draw( *map_state_, view_matrix );
+	}
 }
 
 void Client::operator()( const Messages::MessageBase& message )
 {
 	PC_ASSERT(false);
 	Log::Warning( "Unknown message for server: ", int(message.message_id) );
+}
+
+void Client::operator()( const Messages::EntityState& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::WallPosition& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
 }
 
 void Client::operator()( const Messages::PlayerPosition& message )
@@ -109,7 +125,28 @@ void Client::operator()( const Messages::PlayerPosition& message )
 
 void Client::operator()( const Messages::MapChange& message )
 {
-	map_drawer_.SetMap( map_loader_->LoadMap( message.map_number ) );
+	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
+	if( map_data == nullptr )
+	{
+		// TODO - handel error
+		PC_ASSERT(false);
+		return;
+	}
+
+	map_drawer_.SetMap( map_data );
+	map_state_.reset( new MapState( map_data ) );
+}
+
+void Client::operator()( const Messages::EntityBirth& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::EntityDeath& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
 }
 
 } // namespace PanzerChasm
