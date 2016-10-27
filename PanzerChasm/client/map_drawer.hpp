@@ -55,6 +55,7 @@ private:
 
 	r_GLSLProgram walls_shader_;
 	r_PolygonBuffer walls_geometry_;
+	r_PolygonBuffer dynamic_walls_geometry_;
 };
 
 } // PanzerChasm

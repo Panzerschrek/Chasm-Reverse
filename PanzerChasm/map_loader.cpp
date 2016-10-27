@@ -146,9 +146,14 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 
 	MapDataPtr result= std::make_shared<MapData>();
 
+	LoadLevelScripts( process_file_content, *result );
+
+	DynamicWallsMask dynamic_walls_mask;
+	MarkDynamicWalls( *result, dynamic_walls_mask );
+
 	// Scan map file
 	LoadLightmap( map_file_content,*result );
-	LoadWalls( map_file_content, *result );
+	LoadWalls( map_file_content, *result, dynamic_walls_mask );
 	LoadFloorsAndCeilings( map_file_content,*result );
 	LoadMonsters( map_file_content, *result );
 
@@ -158,8 +163,6 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );
-
-	LoadLevelScripts( process_file_content, *result );
 
 	// Cache result and return it
 	last_loaded_map_number_= map_number;
@@ -182,13 +185,15 @@ void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_dat
 	}
 }
 
-void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
+void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask )
 {
 	const unsigned int c_walls_offset= 0x18001u;
 
 	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 	for( unsigned int x= 1u; x < MapData::c_map_size; x++ )
 	{
+		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
+
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( x + y * MapData::c_map_size ) );
 
@@ -221,8 +226,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
 		if( !( map_wall.wall_size == 64u || map_wall.wall_size == 128u ) )
 			continue;
 
-		map_data.static_walls.emplace_back();
-		MapData::Wall& wall= map_data.static_walls.back();
+		auto& walls_container= is_dynamic ? map_data.dynamic_walls : map_data.static_walls;
+		walls_container.emplace_back();
+		MapData::Wall& wall= walls_container.back();
 
 		wall.vert_pos[0].x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
 		wall.vert_pos[0].y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
@@ -564,6 +570,32 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 		line_stream >> link.proc_id;
 		link.type= LinkTypeFromString( link_type );
 	}
+}
+
+void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls )
+{
+	for( bool& wall_is_dynamic : out_dynamic_walls )
+		wall_is_dynamic= false;
+
+	for( const MapData::Procedure& procedure : map_data.procedures )
+	{
+		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		{
+			using Command= MapData::Procedure::ActionCommandId;
+			if( command.id == Command::Move ||
+				command.id == Command::Rotate ||
+				command.id == Command::Up )
+			{
+				const unsigned int y= static_cast<unsigned int>(command.args[0]);
+				const unsigned int x= static_cast<unsigned int>(command.args[1]);
+				if( x < MapData::c_map_size &&
+					y < MapData::c_map_size )
+				{
+					out_dynamic_walls[ x + y * MapData::c_map_size ]= true;
+				}
+			}
+		} // for commands
+	} // for procedures
 }
 
 } // namespace PanzerChasm

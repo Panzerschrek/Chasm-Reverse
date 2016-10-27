@@ -372,6 +372,28 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 		ind[5]= first_vertex_index + 2u;
 	} // for walls
 
+	const auto setup_attribs=
+	[]( r_PolygonBuffer& polygon_buffer )
+	{
+		WallVertex v;
+
+		polygon_buffer.VertexAttribPointer(
+			0, 3, GL_UNSIGNED_SHORT, false,
+			((char*)v.xyz) - ((char*)&v) );
+
+		polygon_buffer.VertexAttribPointer(
+			1, 1, GL_FLOAT, false,
+			((char*)&v.tex_coord_x) - ((char*)&v) );
+
+		polygon_buffer.VertexAttribPointerInt(
+			2, 1, GL_UNSIGNED_BYTE,
+			((char*)&v.texture_id) - ((char*)&v) );
+
+		polygon_buffer.VertexAttribPointer(
+			3, 2, GL_BYTE, true,
+			((char*)v.normal) - ((char*)&v) );
+	};
+
 	walls_geometry_.VertexData(
 		walls_vertices.data(),
 		walls_vertices.size() * sizeof(WallVertex),
@@ -383,23 +405,21 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 		GL_UNSIGNED_SHORT,
 		GL_TRIANGLES );
 
-	WallVertex v;
+	setup_attribs( walls_geometry_ );
 
-	walls_geometry_.VertexAttribPointer(
-		0, 3, GL_UNSIGNED_SHORT, false,
-		((char*)v.xyz) - ((char*)&v) );
+	// Reserve place for dynamic walls geometry
+	dynamic_walls_geometry_.VertexData(
+		nullptr,
+		sizeof(WallVertex) * map_data.dynamic_walls.size() * 4u,
+		sizeof(WallVertex) );
 
-	walls_geometry_.VertexAttribPointer(
-		1, 1, GL_FLOAT, false,
-		((char*)&v.tex_coord_x) - ((char*)&v) );
+	dynamic_walls_geometry_.IndexData(
+		nullptr,
+		map_data.dynamic_walls.size() * 6u * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
 
-	walls_geometry_.VertexAttribPointerInt(
-		2, 1, GL_UNSIGNED_BYTE,
-		((char*)&v.texture_id) - ((char*)&v) );
-
-	walls_geometry_.VertexAttribPointer(
-		3, 2, GL_BYTE, true,
-		((char*)v.normal) - ((char*)&v) );
+	setup_attribs( dynamic_walls_geometry_ );
 }
 
 } // PanzerChasm

@@ -172,8 +172,11 @@ public:
 	MapDataConstPtr LoadMap( unsigned int map_number );
 
 private:
+	typedef std::array< bool, MapData::c_map_size * MapData::c_map_size > DynamicWallsMask;
+
+private:
 	void LoadLightmap( const Vfs::FileContent& map_file, MapData& map_data );
-	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data );
+	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask );
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
@@ -187,6 +190,8 @@ private:
 	void LoadMessage( std::istringstream& stream, MapData& map_data );
 	void LoadProcedure( std::istringstream& stream, MapData& map_data );
 	void LoadLinks( std::istringstream& stream, MapData& map_data );
+
+	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
 
 private:
 	const VfsPtr vfs_;
