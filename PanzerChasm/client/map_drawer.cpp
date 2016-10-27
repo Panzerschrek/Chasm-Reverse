@@ -61,7 +61,7 @@ MapDrawer::MapDrawer(
 
 	// Shaders
 	char lightmap_scale[32];
-	std::snprintf( lightmap_scale, sizeof(lightmap_scale), "LIGHTMAP_SCALE %f", 1.0f / float(MapData::c_lightmap_size) );
+	std::snprintf( lightmap_scale, sizeof(lightmap_scale), "LIGHTMAP_SCALE %f", 1.0f / float(MapData::c_map_size) );
 
 	const std::vector<std::string> defines{ lightmap_scale };
 

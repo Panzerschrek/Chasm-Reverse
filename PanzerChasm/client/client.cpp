@@ -90,7 +90,7 @@ void Client::Loop()
 void Client::Draw()
 {
 	m_Mat4 view_matrix;
-	player_position_.z= 8.0f;
+	player_position_.z= 0.5f * 1.75f;
 	camera_controller_.GetViewMatrix( player_position_, view_matrix );
 	map_drawer_.Draw( view_matrix );
 }
