@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include <ogl_state_manager.hpp>
+
 #include "../assert.hpp"
 #include "../log.hpp"
 
@@ -15,6 +17,13 @@ constexpr unsigned int g_wall_texture_height= 128u;
 constexpr unsigned int g_max_wall_texture_width= 128u;
 
 constexpr float g_walls_coords_scale= 256.0f;
+
+const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
+const r_OGLState g_walls_gl_state(
+	false, false, true, false,
+	g_gl_state_blend_func );
+
+const r_OGLState g_floors_gl_state= g_walls_gl_state;
 
 } // namespace
 
@@ -104,6 +113,8 @@ void MapDrawer::Draw( const m_Mat4& view_matrix )
 		return;
 
 	// Draw walls
+	r_OGLStateManager::UpdateState( g_walls_gl_state );
+
 	walls_shader_.Bind();
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
@@ -124,6 +135,8 @@ void MapDrawer::Draw( const m_Mat4& view_matrix )
 	walls_geometry_.Draw();
 
 	// Draw floors and ceilings
+	r_OGLStateManager::UpdateState( g_floors_gl_state );
+
 	floors_geometry_.Bind();
 	floors_shader_.Bind();
 

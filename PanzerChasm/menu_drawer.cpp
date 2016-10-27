@@ -1,5 +1,6 @@
 #include <cstring>
 
+#include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
 #include "menu_drawer.hpp"
@@ -33,6 +34,11 @@ static const unsigned int g_menu_border= 3u;
 static const unsigned int g_menu_caption= 10u;
 
 static const unsigned int g_max_quads= 512u;
+
+static const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
+static const r_OGLState g_gl_state(
+	false, false, false, false,
+	g_gl_state_blend_func );
 
 MenuDrawer::MenuDrawer(
 	const RenderingContext& rendering_context,
@@ -400,6 +406,8 @@ void MenuDrawer::DrawMenuPicture(
 		0u );
 
 	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
 	menu_picture_shader_.Bind();
 
 	picture.Bind(0u);

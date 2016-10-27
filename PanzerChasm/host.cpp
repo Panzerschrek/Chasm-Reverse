@@ -29,8 +29,6 @@ Host::Host()
 		rSetShaderLoadingLogCallback( shaders_log_callback );
 		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
 	}
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
 
 	RenderingContext rendering_context;
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );

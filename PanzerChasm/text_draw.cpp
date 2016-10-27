@@ -1,9 +1,10 @@
+#include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
 #include "images.hpp"
 
 #include "text_draw.hpp"
-#include <iostream>
+
 namespace PanzerChasm
 {
 
@@ -32,6 +33,11 @@ static const int g_color_shifts[ g_colors_variations ]=
 	176, // golden
 	194, // dark-yellow with green
 };
+
+static const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
+static const r_OGLState g_gl_state(
+	false, false, false, false,
+	g_gl_state_blend_func );
 
 static void CalculateLettersWidth(
 	const unsigned char* const texture_data,
@@ -225,10 +231,14 @@ void TextDraw::Print(
 	const unsigned int vertex_count= v - vertex_buffer_.data();
 	const unsigned int index_count= vertex_count / 4u * 6u;
 
+
 	polygon_buffer_.VertexSubData(
 		vertex_buffer_.data(),
 		vertex_count * sizeof(Vertex),
 		0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
 
 	shader_.Bind();
 
