@@ -39,6 +39,8 @@ private:
 	const IConnectionsListenerPtr connections_listener_;
 
 	State state_= State::NoMap;
+	unsigned int current_map_number_= ~0;
+	MapDataConstPtr current_map_data_;
 
 	std::unique_ptr<ConnectionInfo> connection_;
 

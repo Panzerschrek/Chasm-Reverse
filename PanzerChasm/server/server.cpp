@@ -36,6 +36,13 @@ void Server::Loop()
 	while( IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
 		connection_.reset( new ConnectionInfo( std::move( connection ) ) );
+
+		Messages::MapChange map_change_msg;
+		map_change_msg.message_id= MessageId::MapChange;
+		map_change_msg.map_number= current_map_number_;
+
+		connection_->messages_sender.SendUnreliableMessage( map_change_msg );
+		connection_->messages_sender.Flush();
 	}
 
 	if( connection_ != nullptr )
@@ -68,6 +75,9 @@ void Server::ChangeMap( const unsigned int map_number )
 
 	if( map_data == nullptr )
 		return;
+
+	current_map_number_= map_number;
+	current_map_data_= map_data;
 
 	state_= State::PlayingMap;
 }

@@ -31,6 +31,7 @@ public:
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::PlayerPosition& message );
+	void operator()( const Messages::MapChange& message );
 
 private:
 	const GameResourcesConstPtr game_resources_;

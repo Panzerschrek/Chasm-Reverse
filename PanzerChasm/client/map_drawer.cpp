@@ -83,6 +83,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 {
 	PC_ASSERT( map_data != nullptr );
 
+	current_map_data_= map_data;
+
 	LoadFloorsTextures( *map_data );
 	LoadWallsTextures( *map_data );
 	LoadFloors( *map_data );
@@ -98,6 +100,9 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 void MapDrawer::Draw( const m_Mat4& view_matrix )
 {
+	if( current_map_data_ == nullptr )
+		return;
+
 	// Draw walls
 	walls_shader_.Bind();
 

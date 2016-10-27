@@ -41,6 +41,8 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContext rendering_context_;
 
+	MapDataConstPtr current_map_data_;
+
 	r_Texture lightmap_;
 
 	GLuint floor_textures_array_id_= ~0;

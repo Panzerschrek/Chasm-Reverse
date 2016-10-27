@@ -15,6 +15,7 @@ enum class MessageId : unsigned char
 	PlayerPosition, // position of player, which recieve this message.
 
 	// Reliable server to client
+	MapChange,
 	EntityBirth,
 	EntityDeath,
 
@@ -57,6 +58,11 @@ struct WallPosition : public MessageBase
 struct PlayerPosition : public MessageBase
 {
 	short xyz[3];
+};
+
+struct MapChange : public MessageBase
+{
+	unsigned int map_number;
 };
 
 struct EntityBirth : public MessageBase

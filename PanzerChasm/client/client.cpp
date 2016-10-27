@@ -25,8 +25,6 @@ Client::Client(
 	PC_ASSERT( map_loader_ != nullptr );
 
 	connection_info_.reset( new ConnectionInfo( loopback_buffer_->GetClientSideConnection() ) );
-
-	map_drawer_.SetMap( map_loader_->LoadMap( 1u ) );
 }
 
 Client::~Client()
@@ -107,6 +105,11 @@ void Client::operator()( const Messages::PlayerPosition& message )
 {
 	for( unsigned int j= 0u; j < 3u; j++ )
 		player_position_.ToArr()[j]= float(message.xyz[j]) / 256.0f;
+}
+
+void Client::operator()( const Messages::MapChange& message )
+{
+	map_drawer_.SetMap( map_loader_->LoadMap( message.map_number ) );
 }
 
 } // namespace PanzerChasm

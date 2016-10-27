@@ -11,6 +11,7 @@ size_t MessagesExtractor::c_messages_size[ size_t(MessageId::NumMessages) ]=
 	[size_t(MessageId::WallPosition)]= sizeof(Messages::WallPosition),
 	[size_t(MessageId::PlayerPosition)]= sizeof(Messages::PlayerPosition),
 
+	[size_t(MessageId::MapChange)]= sizeof(Messages::MapChange),
 	[size_t(MessageId::EntityBirth)]= sizeof(Messages::EntityBirth),
 	[size_t(MessageId::EntityDeath)]= sizeof(Messages::EntityDeath),
 

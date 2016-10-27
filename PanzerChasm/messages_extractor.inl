@@ -80,6 +80,10 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					break;
 
 				// Reliable
+				case MessageId::MapChange:
+					messages_handler( *reinterpret_cast<const Messages::MapChange*>( msg_ptr ) );
+
+					break;
 				case MessageId::EntityBirth:
 					messages_handler( *reinterpret_cast<const Messages::EntityBirth*>( msg_ptr ) );
 					break;

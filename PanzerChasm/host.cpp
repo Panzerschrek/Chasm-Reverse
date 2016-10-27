@@ -48,6 +48,7 @@ Host::Host()
 	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
 
 	loopback_buffer_->RequestConnect();
+	local_server_->ChangeMap( 1 );
 
 	client_.reset(
 		new Client(
