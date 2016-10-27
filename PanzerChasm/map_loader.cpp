@@ -1,7 +1,7 @@
 #include <cstring>
-#include <sstream>
 
 #include "assert.hpp"
+#include "log.hpp"
 #include "math_utils.hpp"
 
 #include "map_loader.hpp"
@@ -53,6 +53,62 @@ SIZE_ASSERT( MapMonster, 8 );
 
 #pragma pack(pop)
 
+namespace
+{
+
+decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
+{
+	if( std::strcmp( str, "link" ) == 0 )
+		return MapData::Link::Link_;
+	if( std::strcmp( str, "floor" ) == 0 )
+		return MapData::Link::Floor;
+	if( std::strcmp( str, "shoot" ) == 0 )
+		return MapData::Link::Shoot;
+	if( std::strcmp( str, "return" ) == 0 )
+		return MapData::Link::Return;
+	if( std::strcmp( str, "unlock" ) == 0 )
+		return MapData::Link::Unlock;
+	if( std::strcmp( str, "destroy" ) == 0 )
+		return MapData::Link::Destroy;
+	if( std::strcmp( str, "onofflink" ) == 0 )
+		return MapData::Link::OnOffLink;
+
+	return MapData::Link::None;
+}
+
+MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const str )
+{
+	using Command= MapData::Procedure::ActionCommandId;
+
+	if( std::strcmp( str, "lock" ) == 0 )
+		return Command::Lock;
+	if( std::strcmp( str, "unlock" ) == 0 )
+		return Command::Unlock;
+	if( std::strcmp( str, "playani" ) == 0 )
+		return Command::PlayAnimation;
+	if( std::strcmp( str, "stopani" ) == 0 )
+		return Command::StopAnimation;
+	if( std::strcmp( str, "move" ) == 0 )
+		return Command::Move;
+	if( std::strcmp( str, "xmove" ) == 0 )
+		return Command::XMove;
+	if( std::strcmp( str, "ymove" ) == 0 )
+		return Command::YMove;
+	if( std::strcmp( str, "rotate" ) == 0 )
+		return Command::Rotate;
+	if( std::strcmp( str, "up" ) == 0 )
+		return Command::Up;
+	if( std::strcmp( str, "light" ) == 0 )
+		return Command::Light;
+	if( std::strcmp( str, "waitout" ) == 0 )
+		return Command::Waitout;
+
+
+	return Command::Unknown;
+}
+
+} // namespace
+
 MapLoader::MapLoader( const VfsPtr& vfs )
 	: vfs_(vfs)
 {}
@@ -68,18 +124,22 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	char map_file_name[16];
 	char resource_file_name[16];
 	char floors_file_name[16];
+	char process_file_name[16];
 
 	std::snprintf( map_file_name, sizeof(map_file_name), "MAP.%02u", map_number );
 	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
 	std::snprintf( floors_file_name, sizeof(floors_file_name), "FLOORS.%02u", map_number );
+	std::snprintf( process_file_name, sizeof(process_file_name), "PROCESS.%02u", map_number );
 
 	const Vfs::FileContent map_file_content= vfs_->ReadFile( map_file_name );
 	const Vfs::FileContent resource_file_content= vfs_->ReadFile( resource_file_name );
 	const Vfs::FileContent floors_file_content= vfs_->ReadFile( floors_file_name );
+	const Vfs::FileContent process_file_content= vfs_->ReadFile( process_file_name );
 
 	if( map_file_content.empty() ||
 		resource_file_content.empty() ||
-		floors_file_content.empty() )
+		floors_file_content.empty() ||
+		process_file_content.empty() )
 	{
 		return nullptr;
 	}
@@ -98,6 +158,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );
+
+	LoadLevelScripts( process_file_content, *result );
 
 	// Cache result and return it
 	last_loaded_map_number_= map_number;
@@ -310,6 +372,197 @@ void MapLoader::LoadFloorsTexturesData( const Vfs::FileContent& floors_file, Map
 			map_data.floor_textures_data[t],
 			in_data,
 			MapData::c_floor_texture_size * MapData::c_floor_texture_size );
+	}
+}
+
+
+void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data )
+{
+	const char* const start= reinterpret_cast<const char*>( process_file.data() );
+	const char* const end= start + process_file.size();
+
+	std::istringstream stream( std::string( start, end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	while( !stream.eof() )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( stream.eof() || stream.fail() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing_type[ sizeof(line) ];
+		line_stream >> thing_type;
+
+		if( line_stream.fail() || thing_type[0] != '#' )
+			continue;
+		else if( std::strcmp( thing_type, "#mess" ) == 0 )
+			LoadMessage( stream, map_data );
+		else if( std::strcmp( thing_type, "#proc" ) == 0 )
+			LoadProcedure( stream, map_data );
+		else if( std::strcmp( thing_type, "#links" ) == 0 )
+			LoadLinks( stream, map_data );
+		else if( std::strcmp( thing_type, "#stopani" ) == 0 )
+		{ /* TODO */ }
+
+	} // for file
+
+	return;
+}
+
+void MapLoader::LoadMessage( std::istringstream& stream, MapData& map_data )
+{
+	map_data.messages.emplace_back();
+	MapData::Message& message= map_data.messages.back();
+
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing[64];
+		line_stream >> thing;
+		if( std::strcmp( thing, "#end" ) == 0 )
+			break;
+
+		else if( std::strcmp( thing, "Delay" ) == 0 )
+			line_stream >> message.delay_s;
+
+		else if( std::strncmp( thing, "Text", std::strlen("Text") ) == 0 )
+		{
+			message.texts.emplace_back();
+			MapData::Message::Text& text= message.texts.back();
+
+			line_stream >> text.x;
+			line_stream >> text.y;
+
+			// Read line in ""
+			char text_line[512];
+			line_stream >> text_line;
+			const int len= std::strlen(text_line);
+			line_stream.getline( text_line + len, sizeof(text_line) - len, '\n' );
+
+			text.data= std::string( text_line + 1u, text_line + std::strlen( text_line ) - 2u );
+		}
+	}
+}
+
+void MapLoader::LoadProcedure( std::istringstream& stream, MapData& map_data )
+{
+	map_data.procedures.emplace_back();
+	MapData::Procedure& procedure= map_data.procedures.back();
+
+	bool has_action= false;
+
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing[64];
+		line_stream >> thing;
+		if( std::strcmp( thing, "#end" ) == 0 )
+			break;
+
+		else if( std::strcmp( thing, "#StartDelay" ) == 0 )
+			line_stream >> procedure.start_delay_s;
+		else if( std::strcmp( thing, "#BackWait" ) == 0 )
+			line_stream >> procedure.back_wait_s;
+		else if( std::strcmp( thing, "#Speed" ) == 0 )
+			line_stream >> procedure.speed;
+		else if( std::strcmp( thing, "#LifeCheckon" ) == 0 )
+			line_stream >> procedure.life_check;
+		else if( std::strcmp( thing, "#Mortal" ) == 0 )
+			line_stream >> procedure.mortal;
+		else if( std::strcmp( thing, "#LightRemap" ) == 0 )
+			line_stream >> procedure.light_remap;
+		else if( std::strcmp( thing, "#Lock" ) == 0 )
+			line_stream >> procedure.locked;
+		else if( std::strcmp( thing, "#Loops" ) == 0 )
+			line_stream >> procedure.loops;
+		else if( std::strcmp( thing, "#LoopDelay" ) == 0 )
+			line_stream >> procedure.loop_delay_s;
+		else if( std::strcmp( thing, "#OnMessage" ) == 0 )
+			line_stream >> procedure.on_message_number;
+		else if( std::strcmp( thing, "#FirstMessage" ) == 0 )
+			line_stream >> procedure.first_message_number;
+		else if( std::strcmp( thing, "#LockMessage" ) == 0 )
+			line_stream >> procedure.lock_message_number;
+		else if( std::strcmp( thing, "#SfxId" ) == 0 )
+			line_stream >> procedure.sfx_id;
+		else if( std::strcmp( thing, "#SfxPosxy" ) == 0 )
+		{
+			line_stream >> procedure.sfx_pos[0];
+			line_stream >> procedure.sfx_pos[1];
+		}
+		else if( std::strcmp( thing, "#LinkSwitchAt" ) == 0 )
+		{
+			line_stream >> procedure.link_switch_pos[1];
+		}
+		else if( std::strcmp( thing, "#action" ) == 0 )
+			has_action= true;
+		else if( has_action )
+		{
+			const auto commnd_id= ActionCommandFormString( thing );
+			if( commnd_id == MapData::Procedure::ActionCommandId::Unknown )
+				Log::Warning( "Unknown coommand: ", thing );
+			else
+			{
+				procedure.action_commands.emplace_back();
+				auto& command= procedure.action_commands.back();
+
+				command.id= commnd_id;
+
+				unsigned int arg= 0u;
+				while( !line_stream.fail() )
+				{
+					line_stream >> command.args[arg];
+					arg++;
+				}
+			}
+		} // if has_action
+
+	} // for procedure
+}
+
+void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
+{
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char link_type[32];
+		line_stream >> link_type;
+		if( std::strcmp( link_type, "#end" ) == 0 )
+			break;
+
+		unsigned short x, y;
+		line_stream >> x;
+		line_stream >> y;
+
+		MapData::Link& link= map_data.links[ x + y * MapData::c_map_size ];
+
+		line_stream >> link.proc_id;
+		link.type= LinkTypeFromString( link_type );
 	}
 }
 

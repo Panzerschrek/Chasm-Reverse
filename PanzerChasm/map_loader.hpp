@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <sstream>
 
 #include "vec.hpp"
 
@@ -60,6 +61,79 @@ public:
 		char animation_file_name[ c_max_file_name_size ]; // May be empty
 	};
 
+	struct Procedure
+	{
+		float start_delay_s= 0.0f;
+		float back_wait_s= 0.0f;
+		float speed= 0.0f;
+		bool life_check= false;
+		bool mortal= false;
+		bool light_remap= false;
+		bool locked= false;
+		unsigned int loops= 0u;
+		float loop_delay_s= 0.0f;
+		unsigned int on_message_number= 0u;
+		unsigned int first_message_number= 0u;
+		unsigned int lock_message_number= 0u;
+		unsigned int sfx_id= 0u;
+		unsigned char sfx_pos[2];
+		unsigned char link_switch_pos[2];
+
+		enum class ActionCommandId
+		{
+			Lock,
+			Unlock,
+			PlayAnimation,
+			StopAnimation,
+			Move,
+			XMove,
+			YMove,
+			Rotate,
+			Up,
+			Light,
+			Waitout,
+
+			NumCommands,
+			Unknown,
+		};
+
+		struct ActionCommand
+		{
+			ActionCommandId id;
+			float args[8];
+		};
+
+		std::vector<ActionCommand> action_commands;
+	};
+
+	struct Message
+	{
+		float delay_s= 0.0f;
+
+		struct Text
+		{
+			int x= 0, y= 0;
+			std::string data;
+		};
+		std::vector<Text> texts;
+	};
+
+	struct Link
+	{
+		enum : unsigned char
+		{
+			None,
+			Link_,
+			Floor,
+			Shoot,
+			Return,
+			Unlock,
+			Destroy,
+			OnOffLink,
+		} type= None;
+		unsigned char proc_id= 0u;
+	};
+
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
@@ -69,7 +143,12 @@ public:
 
 	std::vector<ModelDescription> models_description;
 
+	std::vector<Message> messages;
+	std::vector<Procedure> procedures;
+
 	// All map tables cells are accesible via table[ x + y * size ].
+
+	Link links[ c_map_size * c_map_size ];
 
 	char walls_textures[ c_max_walls_textures ][ c_max_file_name_size ];
 
@@ -102,6 +181,12 @@ private:
 	void LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data );
 
 	void LoadFloorsTexturesData( const Vfs::FileContent& floors_file, MapData& map_data );
+
+	void LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data );
+
+	void LoadMessage( std::istringstream& stream, MapData& map_data );
+	void LoadProcedure( std::istringstream& stream, MapData& map_data );
+	void LoadLinks( std::istringstream& stream, MapData& map_data );
 
 private:
 	const VfsPtr vfs_;
