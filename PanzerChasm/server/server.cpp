@@ -20,6 +20,7 @@ Server::Server(
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
+	, startup_time_( GetTime() )
 	, last_tick_( GetTime() )
 	, player_pos_( 0.0f, 0.0f, 0.0f )
 {
@@ -67,6 +68,15 @@ void Server::Loop()
 	last_tick_= current_time;
 
 	// Do server logic
+
+	if( map_ != nullptr )
+	{
+		const Map::TimePoint absolute_time=
+			std::chrono::duration_cast<std::chrono::milliseconds>((startup_time_ - current_time)).count();
+
+		map_->Tick( absolute_time, last_tick_duration_s_ );
+	}
+
 	{
 		const float c_max_speed= 5.0f;
 		const float speed= c_max_speed * player_movement_.acceleration;
@@ -100,6 +110,7 @@ void Server::ChangeMap( const unsigned int map_number )
 
 	current_map_number_= map_number;
 	current_map_data_= map_data;
+	map_.reset( new Map( map_data ) );
 
 	state_= State::PlayingMap;
 }
