@@ -2,8 +2,9 @@
 #include <memory>
 #include <sstream>
 
-#include "vec.hpp"
+#include <vec.hpp>
 
+#include "assert.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -60,6 +61,23 @@ public:
 		char file_name[ c_max_file_name_size ];
 		char animation_file_name[ c_max_file_name_size ]; // May be empty
 	};
+
+	struct IndexElement
+	{
+		enum Type : unsigned short
+		{
+			None,
+			StaticWall,
+			DynamicWall,
+			StaticModel,
+			Item,
+		};
+
+		unsigned short type : 3;
+		unsigned short index : 13;
+	};
+
+	SIZE_ASSERT( IndexElement, 2u );
 
 	struct Procedure
 	{
@@ -147,6 +165,9 @@ public:
 	std::vector<Procedure> procedures;
 
 	// All map tables cells are accesible via table[ x + y * size ].
+
+	// [x; y] to element index in container (walls, items, etc.)
+	IndexElement map_index[ c_map_size * c_map_size ];
 
 	Link links[ c_map_size * c_map_size ];
 

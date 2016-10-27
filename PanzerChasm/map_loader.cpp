@@ -151,6 +151,9 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	DynamicWallsMask dynamic_walls_mask;
 	MarkDynamicWalls( *result, dynamic_walls_mask );
 
+	for( MapData::IndexElement & el : result->map_index )
+		el.type= MapData::IndexElement::None;
+
 	// Scan map file
 	LoadLightmap( map_file_content,*result );
 	LoadWalls( map_file_content, *result, dynamic_walls_mask );
@@ -193,6 +196,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 	for( unsigned int x= 1u; x < MapData::c_map_size; x++ )
 	{
 		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
+		MapData::IndexElement& index_element= map_data.map_index[ x + y * MapData::c_map_size ];
 
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( x + y * MapData::c_map_size ) );
@@ -210,6 +214,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.model_id= map_wall.texture_id - c_first_model;
+
+				index_element.type= MapData::IndexElement::StaticModel;
+				index_element.index= map_data.static_models.size() - 1u;
 			}
 			else if( map_wall.texture_id >= c_first_item )
 			{
@@ -219,6 +226,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.item_id=  map_wall.texture_id - c_first_item;
+
+				index_element.type= MapData::IndexElement::Item;
+				index_element.index= map_data.items.size() - 1u;
 			}
 			continue;
 		}
@@ -229,6 +239,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		auto& walls_container= is_dynamic ? map_data.dynamic_walls : map_data.static_walls;
 		walls_container.emplace_back();
 		MapData::Wall& wall= walls_container.back();
+
+		index_element.type= is_dynamic ? MapData::IndexElement::StaticWall : MapData::IndexElement::DynamicWall;
+		index_element.index= walls_container.size() - 1u;
 
 		wall.vert_pos[0].x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
 		wall.vert_pos[0].y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
