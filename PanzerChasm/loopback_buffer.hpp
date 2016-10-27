@@ -1,5 +1,5 @@
 #pragma once
-#include <deque>
+#include <vector>
 
 #include "server/i_connections_listener.hpp"
 
@@ -22,9 +22,24 @@ public: // IConnectionsListener
 private:
 	class Connection;
 
-	// Input - push_back
-	// Output - pop_front
-	typedef std::deque<unsigned char> Buffer;
+	class Queue final
+	{
+	public:
+		Queue();
+		~Queue();
+
+		unsigned int Size() const;
+
+		void PushBytes( const void* data, unsigned int data_size );
+		void PopBytes( void* out_data, unsigned int data_size );
+
+	private:
+		void TryShrink();
+
+	private:
+		std::vector<unsigned char> buffer_;
+		unsigned int pos_;
+	};
 
 	enum class State
 	{
@@ -39,11 +54,11 @@ private:
 	IConnectionPtr client_side_connection_;
 	IConnectionPtr server_side_connection_;
 
-	Buffer client_to_server_reliable_buffer_;
-	Buffer client_to_server_unreliable_buffer_;
+	Queue client_to_server_reliable_buffer_;
+	Queue client_to_server_unreliable_buffer_;
 
-	Buffer server_to_client_reliable_buffer_;
-	Buffer server_to_client_unreliable_buffer_;
+	Queue server_to_client_reliable_buffer_;
+	Queue server_to_client_unreliable_buffer_;
 };
 
 typedef  std::shared_ptr<LoopbackBuffer> LoopbackBufferPtr;

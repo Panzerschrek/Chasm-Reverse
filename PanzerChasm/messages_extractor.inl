@@ -1,5 +1,6 @@
 #include <cstring>
 
+#include "assert.hpp"
 #include "messages.hpp"
 
 #include "messages_extractor.hpp"
@@ -48,7 +49,10 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 				std::memcpy( &message_id, msg_ptr, sizeof(MessageId) );
 
 				if( message_id >= MessageId::NumMessages || message_id <= MessageId::Unknown )
-				{ /* TODO - handle error */ }
+				{
+					// TODO - handel error
+					PC_ASSERT( false );
+				}
 
 				const unsigned int message_size= c_messages_size[ size_t(message_id) ];
 				if( pos + message_size > bytes_to_process )

@@ -7,6 +7,10 @@ LIBS+= $$SDL_LIBS_DIR/SDL2main.lib
 LIBS+= $$SDL_LIBS_DIR/SDL2.lib
 LIBS+= libopengl32
 
+CONFIG( debug, debug|release ) {
+	DEFINES+= DEBUG
+}
+
 INCLUDEPATH+= ../../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
