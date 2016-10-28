@@ -97,6 +97,10 @@ public:
 		unsigned char sfx_pos[2];
 		unsigned char link_switch_pos[2];
 
+		bool red_key_required= false;
+		bool green_key_required= false;
+		bool blue_key_required= false;
+
 		enum class ActionCommandId
 		{
 			Lock,

@@ -550,8 +550,16 @@ void MapLoader::LoadProcedure( std::istringstream& stream, MapData& map_data )
 		}
 		else if( StringEquals( thing, "LinkSwitchAt" ) )
 		{
+			line_stream >> procedure.link_switch_pos[0];
 			line_stream >> procedure.link_switch_pos[1];
 		}
+		else if( StringEquals( thing, "RedKey" ) )
+			procedure.red_key_required= true;
+		else if( StringEquals( thing, "GreenKey" ) )
+			procedure.green_key_required= true;
+		else if( StringEquals( thing, "BlueKey" ) )
+			procedure.blue_key_required= true;
+
 		else if( StringEquals( thing, "#action" ) )
 			has_action= true;
 		else if( has_action )
