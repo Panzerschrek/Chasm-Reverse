@@ -7,6 +7,7 @@
 #include "../rendering_context.hpp"
 #include "../system_event.hpp"
 #include "map_drawer.hpp"
+#include "map_state.hpp"
 #include "movement_controller.hpp"
 
 namespace PanzerChasm
@@ -30,8 +31,13 @@ public:
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
+	void operator()( const Messages::EntityState& message );
+	void operator()( const Messages::WallPosition& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::MapChange& message );
+	void operator()( const Messages::EntityBirth& message );
+	void operator()( const Messages::EntityDeath& message );
+	void operator()( const Messages::TextMessage& message );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -44,6 +50,8 @@ private:
 	MovementController camera_controller_;
 
 	MapDrawer map_drawer_;
+	MapDataConstPtr current_map_data_;
+	std::unique_ptr<MapState> map_state_;
 };
 
 } // PanzerChasm

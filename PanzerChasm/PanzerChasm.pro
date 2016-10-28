@@ -17,6 +17,7 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 SOURCES+= \
 	client/client.cpp \
 	client/map_drawer.cpp \
+	client/map_state.cpp \
 	client/movement_controller.cpp \
 	connection_info.cpp \
 	host.cpp \
@@ -29,6 +30,8 @@ SOURCES+= \
 	menu_drawer.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
+	server/map.cpp \
+	server/player.cpp \
 	server/server.cpp \
 	system_window.cpp \
 	text_draw.cpp \
@@ -38,6 +41,7 @@ HEADERS+= \
 	assert.hpp \
 	client/client.hpp \
 	client/map_drawer.hpp \
+	client/map_state.hpp \
 	client/movement_controller.hpp \
 	connection_info.hpp \
 	game_resources.hpp \
@@ -56,6 +60,8 @@ HEADERS+= \
 	messages_extractor.inl \
 	messages_sender.hpp \
 	rendering_context.hpp \
+	server/map.hpp \
+	server/player.hpp \
 	server/server.hpp \
 	size.hpp \
 	system_event.hpp \

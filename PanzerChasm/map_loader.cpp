@@ -1,7 +1,7 @@
 #include <cstring>
-#include <sstream>
 
 #include "assert.hpp"
+#include "log.hpp"
 #include "math_utils.hpp"
 
 #include "map_loader.hpp"
@@ -53,6 +53,90 @@ SIZE_ASSERT( MapMonster, 8 );
 
 #pragma pack(pop)
 
+namespace
+{
+
+static bool StringEquals( const char* const s0, const char* const s1 )
+{
+	unsigned int i= 0;
+	while( s0[i] != '\0' && s1[i] != '\0' )
+	{
+		if( std::tolower( s0[i] ) != std::tolower( s1[i] ) )
+			return false;
+		i++;
+	}
+
+	return std::tolower( s0[i] ) == std::tolower( s1[i] );
+}
+
+decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
+{
+	if( StringEquals( str, "link" ) )
+		return MapData::Link::Link_;
+	if( StringEquals( str, "floor" ) )
+		return MapData::Link::Floor;
+	if( StringEquals( str, "shoot" ) )
+		return MapData::Link::Shoot;
+	if( StringEquals( str, "return" ) )
+		return MapData::Link::Return;
+	if( StringEquals( str, "unlock" ) )
+		return MapData::Link::Unlock;
+	if(StringEquals( str, "destroy" ) )
+		return MapData::Link::Destroy;
+	if( StringEquals( str, "onofflink" ) )
+		return MapData::Link::OnOffLink;
+
+	return MapData::Link::None;
+}
+
+MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const str )
+{
+	using Command= MapData::Procedure::ActionCommandId;
+
+	if( StringEquals( str, "lock" ) )
+		return Command::Lock;
+	if( StringEquals( str, "unlock" ) )
+		return Command::Unlock;
+	if( StringEquals( str, "playani" ) )
+		return Command::PlayAnimation;
+	if( StringEquals( str, "stopani" ) )
+		return Command::StopAnimation;
+	if( StringEquals( str, "move" ) )
+		return Command::Move;
+	if( StringEquals( str, "xmove" ) )
+		return Command::XMove;
+	if( StringEquals( str, "ymove" ) )
+		return Command::YMove;
+	if( StringEquals( str, "rotate" ) )
+		return Command::Rotate;
+	if( StringEquals( str, "up" ) )
+		return Command::Up;
+	if( StringEquals( str, "light" ) )
+		return Command::Light;
+	if( StringEquals( str, "change" ) )
+		return Command::Change;
+	if( StringEquals( str, "death" ) )
+		return Command::Death;
+	if( StringEquals( str, "explode" ) )
+		return Command::Explode;
+	if( StringEquals( str, "quake" ) )
+		return Command::Quake;
+	if( StringEquals( str, "ambient" ) )
+		return Command::Ambient;
+	if( StringEquals( str, "wind" ) )
+		return Command::Wind;
+	if( StringEquals( str, "source" ) )
+		return Command::Source;
+	if( StringEquals( str, "waitout" ) )
+		return Command::Waitout;
+	if( StringEquals( str, "nonstop" ) )
+		return Command::Nonstop;
+
+	return Command::Unknown;
+}
+
+} // namespace
+
 MapLoader::MapLoader( const VfsPtr& vfs )
 	: vfs_(vfs)
 {}
@@ -68,27 +152,39 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	char map_file_name[16];
 	char resource_file_name[16];
 	char floors_file_name[16];
+	char process_file_name[16];
 
 	std::snprintf( map_file_name, sizeof(map_file_name), "MAP.%02u", map_number );
 	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
 	std::snprintf( floors_file_name, sizeof(floors_file_name), "FLOORS.%02u", map_number );
+	std::snprintf( process_file_name, sizeof(process_file_name), "PROCESS.%02u", map_number );
 
 	const Vfs::FileContent map_file_content= vfs_->ReadFile( map_file_name );
 	const Vfs::FileContent resource_file_content= vfs_->ReadFile( resource_file_name );
 	const Vfs::FileContent floors_file_content= vfs_->ReadFile( floors_file_name );
+	const Vfs::FileContent process_file_content= vfs_->ReadFile( process_file_name );
 
 	if( map_file_content.empty() ||
 		resource_file_content.empty() ||
-		floors_file_content.empty() )
+		floors_file_content.empty() ||
+		process_file_content.empty() )
 	{
 		return nullptr;
 	}
 
 	MapDataPtr result= std::make_shared<MapData>();
 
+	LoadLevelScripts( process_file_content, *result );
+
+	DynamicWallsMask dynamic_walls_mask;
+	MarkDynamicWalls( *result, dynamic_walls_mask );
+
+	for( MapData::IndexElement & el : result->map_index )
+		el.type= MapData::IndexElement::None;
+
 	// Scan map file
 	LoadLightmap( map_file_content,*result );
-	LoadWalls( map_file_content, *result );
+	LoadWalls( map_file_content, *result, dynamic_walls_mask );
 	LoadFloorsAndCeilings( map_file_content,*result );
 	LoadMonsters( map_file_content, *result );
 
@@ -120,15 +216,18 @@ void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_dat
 	}
 }
 
-void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
+void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask )
 {
 	const unsigned int c_walls_offset= 0x18001u;
 
 	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 	for( unsigned int x= 1u; x < MapData::c_map_size; x++ )
 	{
+		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
+		MapData::IndexElement& index_element= map_data.map_index[ x + y * MapData::c_map_size ];
+
 		const MapWall& map_wall=
-			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( x + y * MapData::c_map_size ) );
+			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( y + x * MapData::c_map_size ) );
 
 		if( map_wall.texture_id >= 128u )
 		{
@@ -143,6 +242,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.model_id= map_wall.texture_id - c_first_model;
+
+				index_element.type= MapData::IndexElement::StaticModel;
+				index_element.index= map_data.static_models.size() - 1u;
 			}
 			else if( map_wall.texture_id >= c_first_item )
 			{
@@ -152,6 +254,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.item_id=  map_wall.texture_id - c_first_item;
+
+				index_element.type= MapData::IndexElement::Item;
+				index_element.index= map_data.items.size() - 1u;
 			}
 			continue;
 		}
@@ -159,8 +264,12 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data )
 		if( !( map_wall.wall_size == 64u || map_wall.wall_size == 128u ) )
 			continue;
 
-		map_data.static_walls.emplace_back();
-		MapData::Wall& wall= map_data.static_walls.back();
+		auto& walls_container= is_dynamic ? map_data.dynamic_walls : map_data.static_walls;
+		walls_container.emplace_back();
+		MapData::Wall& wall= walls_container.back();
+
+		index_element.type= is_dynamic ? MapData::IndexElement::DynamicWall : MapData::IndexElement::StaticWall;
+		index_element.index= walls_container.size() - 1u;
 
 		wall.vert_pos[0].x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
 		wall.vert_pos[0].y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
@@ -311,6 +420,257 @@ void MapLoader::LoadFloorsTexturesData( const Vfs::FileContent& floors_file, Map
 			in_data,
 			MapData::c_floor_texture_size * MapData::c_floor_texture_size );
 	}
+}
+
+
+void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data )
+{
+	const char* const start= reinterpret_cast<const char*>( process_file.data() );
+	const char* const end= start + process_file.size();
+
+	std::istringstream stream( std::string( start, end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	while( !stream.eof() )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( stream.eof() || stream.fail() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing_type[ sizeof(line) ];
+		line_stream >> thing_type;
+
+		if( line_stream.fail() || thing_type[0] != '#' )
+			continue;
+		else if( std::strcmp( thing_type, "#mess" ) == 0 )
+		{
+			unsigned int message_number= 0;
+			line_stream >> message_number;
+			if( !line_stream.fail() && message_number != 0 )
+				LoadMessage( message_number, stream, map_data );
+		}
+		else if( std::strcmp( thing_type, "#proc" ) == 0 )
+		{
+			unsigned int procedure_number= 0;
+			line_stream >> procedure_number;
+			if( !line_stream.fail() && procedure_number != 0 )
+				LoadProcedure( procedure_number, stream, map_data );
+		}
+		else if( std::strcmp( thing_type, "#links" ) == 0 )
+			LoadLinks( stream, map_data );
+		else if( std::strcmp( thing_type, "#stopani" ) == 0 )
+		{ /* TODO */ }
+
+	} // for file
+
+	return;
+}
+
+void MapLoader::LoadMessage(
+	const unsigned int message_number,
+	std::istringstream& stream,
+	MapData& map_data )
+{
+	if( message_number >= map_data.messages.size() )
+		map_data.messages.resize( message_number + 1u );
+	MapData::Message& message= map_data.messages[ message_number ];
+
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing[64];
+		line_stream >> thing;
+		if( std::strcmp( thing, "#end" ) == 0 )
+			break;
+
+		else if( std::strcmp( thing, "Delay" ) == 0 )
+			line_stream >> message.delay_s;
+
+		else if( std::strncmp( thing, "Text", std::strlen("Text") ) == 0 )
+		{
+			message.texts.emplace_back();
+			MapData::Message::Text& text= message.texts.back();
+
+			line_stream >> text.x;
+			line_stream >> text.y;
+
+			// Read line in ""
+			char text_line[512];
+			line_stream >> text_line;
+			const int len= std::strlen(text_line);
+			line_stream.getline( text_line + len, sizeof(text_line) - len, '\n' );
+
+			text.data= std::string( text_line + 1u, text_line + std::strlen( text_line ) - 2u );
+		}
+	}
+}
+
+void MapLoader::LoadProcedure(
+	const unsigned int procedure_number,
+	std::istringstream& stream,
+	MapData& map_data )
+{
+	if( procedure_number >= map_data.procedures.size() )
+		map_data.procedures.resize( procedure_number + 1u );
+	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
+
+	bool has_action= false;
+
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char thing[64];
+		line_stream >> thing;
+
+		if( line_stream.fail() )
+			continue;
+		if( std::strcmp( thing, "#end" ) == 0 )
+			break;
+		if( thing[0] == ';' )
+			continue;
+
+		else if( StringEquals( thing, "StartDelay" ) )
+			line_stream >> procedure.start_delay_s;
+		else if( StringEquals( thing, "BackWait" ) )
+			line_stream >> procedure.back_wait_s;
+		else if( StringEquals( thing, "Speed" ) )
+			line_stream >> procedure.speed;
+		else if( StringEquals( thing, "LifeCheckon" ) )
+			line_stream >> procedure.life_check;
+		else if( StringEquals( thing, "Mortal" ) )
+			line_stream >> procedure.mortal;
+		else if( StringEquals( thing, "LightRemap" ) )
+			line_stream >> procedure.light_remap;
+		else if( StringEquals( thing, "Lock" ) )
+			procedure.locked= true;
+		else if( StringEquals( thing, "Loops" ) )
+			line_stream >> procedure.loops;
+		else if( StringEquals( thing, "LoopDelay" ) )
+			line_stream >> procedure.loop_delay_s;
+		else if( StringEquals( thing, "OnMessage" ) )
+			line_stream >> procedure.on_message_number;
+		else if( StringEquals( thing, "FirstMessage" ) )
+			line_stream >> procedure.first_message_number;
+		else if( StringEquals( thing, "LockMessage" ) )
+			line_stream >> procedure.lock_message_number;
+		else if( StringEquals( thing, "SfxId" ) )
+			line_stream >> procedure.sfx_id;
+		else if( StringEquals( thing, "SfxPosxy" ) )
+		{
+			line_stream >> procedure.sfx_pos[0];
+			line_stream >> procedure.sfx_pos[1];
+		}
+		else if( StringEquals( thing, "LinkSwitchAt" ) )
+		{
+			line_stream >> procedure.link_switch_pos[0];
+			line_stream >> procedure.link_switch_pos[1];
+		}
+		else if( StringEquals( thing, "RedKey" ) )
+			procedure.red_key_required= true;
+		else if( StringEquals( thing, "GreenKey" ) )
+			procedure.green_key_required= true;
+		else if( StringEquals( thing, "BlueKey" ) )
+			procedure.blue_key_required= true;
+
+		else if( StringEquals( thing, "#action" ) )
+			has_action= true;
+		else if( has_action )
+		{
+			const auto commnd_id= ActionCommandFormString( thing );
+			if( commnd_id == MapData::Procedure::ActionCommandId::Unknown )
+				Log::Warning( "Unknown coommand: ", thing );
+			else
+			{
+				procedure.action_commands.emplace_back();
+				auto& command= procedure.action_commands.back();
+
+				command.id= commnd_id;
+
+				unsigned int arg= 0u;
+				while( !line_stream.fail() )
+				{
+					line_stream >> command.args[arg];
+					arg++;
+				}
+			}
+		} // if has_action
+
+	} // for procedure
+}
+
+void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
+{
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char link_type[32];
+		line_stream >> link_type;
+		if( line_stream.fail() )
+			continue;
+		if( std::strcmp( link_type, "#end" ) == 0 )
+			break;
+
+		unsigned short x, y, proc_id;
+		line_stream >> x;
+		line_stream >> y;
+		line_stream >> proc_id;
+
+		MapData::Link& link= map_data.links[ x + y * MapData::c_map_size ];
+
+		link.proc_id= proc_id;
+		link.type= LinkTypeFromString( link_type );
+	}
+}
+
+void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls )
+{
+	for( bool& wall_is_dynamic : out_dynamic_walls )
+		wall_is_dynamic= false;
+
+	for( const MapData::Procedure& procedure : map_data.procedures )
+	{
+		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		{
+			using Command= MapData::Procedure::ActionCommandId;
+			if( command.id == Command::Move ||
+				command.id == Command::Rotate ||
+				command.id == Command::Up )
+			{
+				const unsigned int x= static_cast<unsigned int>(command.args[0]);
+				const unsigned int y= static_cast<unsigned int>(command.args[1]);
+				if( x < MapData::c_map_size &&
+					y < MapData::c_map_size )
+				{
+					out_dynamic_walls[ x + y * MapData::c_map_size ]= true;
+				}
+			}
+		} // for commands
+	} // for procedures
 }
 
 } // namespace PanzerChasm

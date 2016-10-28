@@ -1,8 +1,10 @@
 #pragma once
 #include <memory>
+#include <sstream>
 
-#include "vec.hpp"
+#include <vec.hpp>
 
+#include "assert.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -60,6 +62,110 @@ public:
 		char animation_file_name[ c_max_file_name_size ]; // May be empty
 	};
 
+	struct IndexElement
+	{
+		enum Type : unsigned short
+		{
+			None,
+			StaticWall,
+			DynamicWall,
+			StaticModel,
+			Item,
+		};
+
+		unsigned short type : 3;
+		unsigned short index : 13;
+	};
+
+	SIZE_ASSERT( IndexElement, 2u );
+
+	struct Procedure
+	{
+		float start_delay_s= 0.0f;
+		float back_wait_s= 0.0f; // If zero - not reversible
+		float speed= 0.0f;
+		bool life_check= false;
+		bool mortal= false;
+		bool light_remap= false;
+		bool locked= false;
+		unsigned int loops= 0u;
+		float loop_delay_s= 0.0f;
+		unsigned int on_message_number= 0u;
+		unsigned int first_message_number= 0u;
+		unsigned int lock_message_number= 0u;
+		unsigned int sfx_id= 0u;
+		unsigned char sfx_pos[2];
+		unsigned char link_switch_pos[2];
+
+		bool red_key_required= false;
+		bool green_key_required= false;
+		bool blue_key_required= false;
+
+		enum class ActionCommandId
+		{
+			Lock,
+			Unlock,
+			PlayAnimation,
+			StopAnimation,
+			Move,
+			XMove,
+			YMove,
+			Rotate,
+			Up,
+			Light,
+
+			Change,
+			Death,
+			Explode,
+			Quake,
+			Ambient,
+			Wind,
+			Source,
+
+			Waitout,
+			Nonstop,
+
+			NumCommands,
+			Unknown,
+		};
+
+		struct ActionCommand
+		{
+			ActionCommandId id;
+			float args[8];
+		};
+
+		std::vector<ActionCommand> action_commands;
+	};
+
+	struct Message
+	{
+		float delay_s= 0.0f;
+
+		struct Text
+		{
+			int x= 0, y= 0;
+			std::string data;
+		};
+		std::vector<Text> texts;
+	};
+
+	struct Link
+	{
+		enum : unsigned char
+		{
+			None,
+			Link_,
+			Floor,
+			Shoot,
+			Return,
+			Unlock,
+			Destroy,
+			OnOffLink,
+		} type= None;
+		unsigned char proc_id= 0u;
+	};
+
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
@@ -69,7 +175,15 @@ public:
 
 	std::vector<ModelDescription> models_description;
 
+	std::vector<Message> messages;
+	std::vector<Procedure> procedures;
+
 	// All map tables cells are accesible via table[ x + y * size ].
+
+	// [x; y] to element index in container (walls, items, etc.)
+	IndexElement map_index[ c_map_size * c_map_size ];
+
+	Link links[ c_map_size * c_map_size ];
 
 	char walls_textures[ c_max_walls_textures ][ c_max_file_name_size ];
 
@@ -93,8 +207,11 @@ public:
 	MapDataConstPtr LoadMap( unsigned int map_number );
 
 private:
+	typedef std::array< bool, MapData::c_map_size * MapData::c_map_size > DynamicWallsMask;
+
+private:
 	void LoadLightmap( const Vfs::FileContent& map_file, MapData& map_data );
-	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data );
+	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask );
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
@@ -102,6 +219,14 @@ private:
 	void LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data );
 
 	void LoadFloorsTexturesData( const Vfs::FileContent& floors_file, MapData& map_data );
+
+	void LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data );
+
+	void LoadMessage( unsigned int message_number, std::istringstream& stream, MapData& map_data );
+	void LoadProcedure( unsigned int procedure_number, std::istringstream& stream, MapData& map_data );
+	void LoadLinks( std::istringstream& stream, MapData& map_data );
+
+	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
 
 private:
 	const VfsPtr vfs_;

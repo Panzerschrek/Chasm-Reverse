@@ -18,6 +18,7 @@ enum class MessageId : unsigned char
 	MapChange,
 	EntityBirth,
 	EntityDeath,
+	TextMessage,
 
 	// Unrealiable client to server
 	PlayerMove,
@@ -50,7 +51,7 @@ struct EntityState : public MessageBase
 
 struct WallPosition : public MessageBase
 {
-	unsigned char wall_xy[2]; // wall coordinate
+	unsigned short wall_index;
 	short vertices_xy[2][2];
 	short z;
 };
@@ -74,6 +75,11 @@ struct EntityBirth : public MessageBase
 struct EntityDeath : public MessageBase
 {
 	EntityId id;
+};
+
+struct TextMessage : public MessageBase
+{
+	unsigned short text_message_number;
 };
 
 struct PlayerMove : public MessageBase
