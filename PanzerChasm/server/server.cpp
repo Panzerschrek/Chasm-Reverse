@@ -82,7 +82,7 @@ void Server::Loop()
 	if( map_ != nullptr )
 	{
 		const Map::TimePoint absolute_time=
-			std::chrono::duration_cast<std::chrono::milliseconds>((current_time - startup_time_)).count();
+			std::chrono::duration_cast<std::chrono::milliseconds>((current_time - startup_time_)).count() * 0.001f;
 
 		map_->ProcessPlayerPosition( absolute_time, player_pos_ );
 		map_->Tick( absolute_time, last_tick_duration_s_ );

@@ -186,7 +186,7 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 			{
 				const unsigned char x= static_cast<unsigned char>(command.args[0]);
 				const unsigned char y= static_cast<unsigned char>(command.args[1]);
-				const float height= command.args[2] * g_commands_coords_scale;
+				const float height= command.args[2] * g_commands_coords_scale * 4.0f;
 				const float sound_number= command.args[3];
 				PC_UNUSED(sound_number);
 
