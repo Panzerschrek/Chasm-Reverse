@@ -6,6 +6,7 @@
 #include "../map_loader.hpp"
 #include "i_connections_listener.hpp"
 #include "map.hpp"
+#include "player.hpp"
 
 namespace PanzerChasm
 {
@@ -50,12 +51,7 @@ private:
 	std::chrono::milliseconds last_tick_;
 	float last_tick_duration_s_;
 
-	m_Vec3 player_pos_;
-	struct
-	{
-		float acceleration; // 0.0f - 1.0f
-		float direction;
-	} player_movement_;
+	Player player_;
 };
 
 } // PanzerChasm

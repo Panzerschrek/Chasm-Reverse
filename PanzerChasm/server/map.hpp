@@ -2,6 +2,7 @@
 
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
+#include "player.hpp"
 
 namespace PanzerChasm
 {
@@ -16,7 +17,7 @@ public:
 	explicit Map( const MapDataConstPtr& map_data );
 	~Map();
 
-	void ProcessPlayerPosition( TimePoint current_time, const m_Vec3& pos, MessagesSender& messages_sender );
+	void ProcessPlayerPosition( TimePoint current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( TimePoint current_time, TimeInterval frame_delta );
 
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;

@@ -31,6 +31,7 @@ SOURCES+= \
 	messages_extractor.cpp \
 	messages_sender.cpp \
 	server/map.cpp \
+	server/player.cpp \
 	server/server.cpp \
 	system_window.cpp \
 	text_draw.cpp \
@@ -60,6 +61,7 @@ HEADERS+= \
 	messages_sender.hpp \
 	rendering_context.hpp \
 	server/map.hpp \
+	server/player.hpp \
 	server/server.hpp \
 	size.hpp \
 	system_event.hpp \
