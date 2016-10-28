@@ -132,7 +132,6 @@ MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const s
 	if( StringEquals( str, "nonstop" ) )
 		return Command::Nonstop;
 
-
 	return Command::Unknown;
 }
 

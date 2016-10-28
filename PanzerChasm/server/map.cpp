@@ -39,6 +39,8 @@ void Map::ProcessPlayerPosition(
 		return;
 
 	const MapData::Link& link= map_data_->links[ x + y * MapData::c_map_size ];
+
+	// TODO - process other links types
 	if( link.type == MapData::Link::Floor )
 	{
 		PC_ASSERT( link.proc_id < procedures_.size() );
@@ -78,9 +80,13 @@ void Map::ProcessPlayerPosition(
 
 					procedures_[ proc_number ].locked= false;
 				}
+				// TODO - know, how animation commands works
 				else if( command.id == Command::PlayAnimation )
 				{}
 				else if( command.id == Command::StopAnimation )
+				{}
+				// TODO - process other commands
+				else
 				{}
 			}
 		} // if activated
@@ -189,6 +195,9 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 			switch( command.id )
 			{
 			case Action::Move:
+
+			case Action::XMove: // Xmove and YMove commands looks just like move command alias.
+			case Action::YMove:
 			{
 				const unsigned char x= static_cast<unsigned char>(command.args[0]);
 				const unsigned char y= static_cast<unsigned char>(command.args[1]);
