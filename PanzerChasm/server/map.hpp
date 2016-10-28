@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../map_loader.hpp"
+#include "../messages_sender.hpp"
 
 namespace PanzerChasm
 {
@@ -15,7 +16,10 @@ public:
 	explicit Map( const MapDataConstPtr& map_data );
 	~Map();
 
+	void ProcessPlayerPosition( TimePoint current_time, const m_Vec3& pos );
 	void Tick( TimePoint current_time, TimeInterval frame_delta );
+
+	void SendUpdateMessages( MessagesSender& messages_sender ) const;
 
 private:
 	struct ProcedureState

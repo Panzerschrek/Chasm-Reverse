@@ -22,6 +22,29 @@ Map::Map( const MapDataConstPtr& map_data )
 Map::~Map()
 {}
 
+void Map::ProcessPlayerPosition( const TimePoint current_time, const m_Vec3& pos )
+{
+	const unsigned int x= static_cast<unsigned int>( pos.x );
+	const unsigned int y= static_cast<unsigned int>( pos.y );
+	if( x >= MapData::c_map_size ||
+		y >= MapData::c_map_size )
+		return;
+
+	const MapData::Link& link= map_data_->links[ x + y * MapData::c_map_size ];
+	if( link.type == MapData::Link::Floor )
+	{
+		PC_ASSERT( link.proc_id < procedures_.size() );
+
+		ProcedureState& procedure_state= procedures_[ link.proc_id ];
+		if( procedure_state.movement_state == ProcedureState::MovementState::None )
+		{
+			procedure_state.movement_stage= 0.0f;
+			procedure_state.movement_state= ProcedureState::MovementState::Movement;
+			procedure_state.last_state_change_time= current_time;
+		}
+	}
+}
+
 void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 {
 	// Update state of procedures
@@ -30,7 +53,7 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
 
-		const float stage_delta= frame_delta * procedure.speed;
+		const float stage_delta= frame_delta * procedure.speed / 10.0f;
 		const float new_stage= procedure_state.movement_stage + stage_delta;
 
 		switch( procedure_state.movement_state )
@@ -53,7 +76,7 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 		{
 			const TimeInterval wait_time= current_time - procedure_state.last_state_change_time;
 			if(
-				procedure.back_wait_s >= 0.0f &&
+				procedure.back_wait_s > 0.0f &&
 				wait_time >= procedure.back_wait_s )
 			{
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
@@ -95,8 +118,8 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 			{
 			case Action::Move:
 			{
-				const unsigned char y= static_cast<unsigned char>(command.args[0]);
-				const unsigned char x= static_cast<unsigned char>(command.args[1]);
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
 				const float dx= command.args[2] * g_commands_coords_scale;
 				const float dy= command.args[3] * g_commands_coords_scale;
 				const float sound_number= command.args[4];
@@ -125,10 +148,10 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 			case Action::Rotate:
 			{
-				const unsigned char y= static_cast<unsigned char>(command.args[0]);
-				const unsigned char x= static_cast<unsigned char>(command.args[1]);
-				const float center_y= command.args[2] * g_commands_coords_scale;
-				const float center_x= command.args[3] * g_commands_coords_scale;
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
+				const float center_x= command.args[2] * g_commands_coords_scale;
+				const float center_y= command.args[3] * g_commands_coords_scale;
 				const float angle= command.args[4] * Constants::to_rad;
 				const float sound_number= command.args[5];
 				PC_UNUSED(sound_number);
@@ -161,8 +184,8 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 			case Action::Up:
 			{
-				const unsigned char y= static_cast<unsigned char>(command.args[0]);
-				const unsigned char x= static_cast<unsigned char>(command.args[1]);
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
 				const float height= command.args[2] * g_commands_coords_scale;
 				const float sound_number= command.args[3];
 				PC_UNUSED(sound_number);
@@ -192,6 +215,26 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 	} // for procedures
 
+}
+
+void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
+{
+	Messages::WallPosition wall_message;
+	wall_message.message_id= MessageId::WallPosition;
+
+	for( const DynamicWall& wall : dynamic_walls_ )
+	{
+		wall_message.wall_index= &wall - dynamic_walls_.data();
+
+		wall_message.vertices_xy[0][0]= short( wall.vert_pos[0].x * 256.0f );
+		wall_message.vertices_xy[0][1]= short( wall.vert_pos[0].y * 256.0f );
+		wall_message.vertices_xy[1][0]= short( wall.vert_pos[1].x * 256.0f );
+		wall_message.vertices_xy[1][1]= short( wall.vert_pos[1].y * 256.0f );
+
+		wall_message.z= short( wall.z * 256.0f );
+
+		messages_sender.SendUnreliableMessage( wall_message );
+	}
 }
 
 } // PanzerChasm

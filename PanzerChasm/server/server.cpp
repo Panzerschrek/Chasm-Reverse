@@ -69,14 +69,6 @@ void Server::Loop()
 
 	// Do server logic
 
-	if( map_ != nullptr )
-	{
-		const Map::TimePoint absolute_time=
-			std::chrono::duration_cast<std::chrono::milliseconds>((startup_time_ - current_time)).count();
-
-		map_->Tick( absolute_time, last_tick_duration_s_ );
-	}
-
 	{
 		const float c_max_speed= 5.0f;
 		const float speed= c_max_speed * player_movement_.acceleration;
@@ -87,9 +79,21 @@ void Server::Loop()
 		player_pos_.y+= delta * std::sin(player_movement_.direction);
 	}
 
+	if( map_ != nullptr )
+	{
+		const Map::TimePoint absolute_time=
+			std::chrono::duration_cast<std::chrono::milliseconds>((current_time - startup_time_)).count();
+
+		map_->ProcessPlayerPosition( absolute_time, player_pos_ );
+		map_->Tick( absolute_time, last_tick_duration_s_ );
+	}
+
 	// Send messages
 	if( connection_ != nullptr )
 	{
+		if( map_ != nullptr )
+			map_->SendUpdateMessages( connection_->messages_sender );
+
 		Messages::PlayerPosition position_msg;
 		position_msg.message_id= MessageId::PlayerPosition;
 

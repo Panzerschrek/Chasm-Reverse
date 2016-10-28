@@ -50,7 +50,7 @@ struct EntityState : public MessageBase
 
 struct WallPosition : public MessageBase
 {
-	unsigned char wall_xy[2]; // wall coordinate
+	unsigned short wall_index;
 	short vertices_xy[2][2];
 	short z;
 };

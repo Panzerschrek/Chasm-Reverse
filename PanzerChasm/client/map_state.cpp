@@ -41,19 +41,10 @@ void MapState::ProcessMessage( const Messages::EntityState& message )
 
 void MapState::ProcessMessage( const Messages::WallPosition& message )
 {
-	if( message.wall_xy[0] >= MapData::c_map_size ||
-		message.wall_xy[1] >= MapData::c_map_size )
-		return; // Bad coordinates
+	if( message.wall_index >= dynamic_walls_.size() )
+		return; // Bad wall index.
 
-	const MapData::IndexElement& index_element=
-		map_data_->map_index[ message.wall_xy[0] + message.wall_xy[1] * MapData::c_map_size ];
-
-	if( index_element.type != MapData::IndexElement::DynamicWall )
-		return; // there is no dynamic wall on this position
-
-	PC_ASSERT( index_element.index < dynamic_walls_.size() );
-
-	DynamicWall& wall= dynamic_walls_[ index_element.index ];
+	DynamicWall& wall= dynamic_walls_[ message.wall_index ];
 
 	wall.xy[0][0]= message.vertices_xy[0][0];
 	wall.xy[0][1]= message.vertices_xy[0][1];
