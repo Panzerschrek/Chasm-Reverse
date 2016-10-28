@@ -113,7 +113,17 @@ public:
 			Rotate,
 			Up,
 			Light,
+
+			Change,
+			Death,
+			Explode,
+			Quake,
+			Ambient,
+			Wind,
+			Source,
+
 			Waitout,
+			Nonstop,
 
 			NumCommands,
 			Unknown,

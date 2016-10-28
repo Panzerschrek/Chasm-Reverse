@@ -113,8 +113,24 @@ MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const s
 		return Command::Up;
 	if( StringEquals( str, "light" ) )
 		return Command::Light;
+	if( StringEquals( str, "change" ) )
+		return Command::Change;
+	if( StringEquals( str, "death" ) )
+		return Command::Death;
+	if( StringEquals( str, "explode" ) )
+		return Command::Explode;
+	if( StringEquals( str, "quake" ) )
+		return Command::Quake;
+	if( StringEquals( str, "ambient" ) )
+		return Command::Ambient;
+	if( StringEquals( str, "wind" ) )
+		return Command::Wind;
+	if( StringEquals( str, "source" ) )
+		return Command::Source;
 	if( StringEquals( str, "waitout" ) )
 		return Command::Waitout;
+	if( StringEquals( str, "nonstop" ) )
+		return Command::Nonstop;
 
 
 	return Command::Unknown;
@@ -529,6 +545,8 @@ void MapLoader::LoadProcedure(
 			continue;
 		if( std::strcmp( thing, "#end" ) == 0 )
 			break;
+		if( thing[0] == ';' )
+			continue;
 
 		else if( StringEquals( thing, "StartDelay" ) )
 			line_stream >> procedure.start_delay_s;
