@@ -66,7 +66,7 @@ static bool StringEquals( const char* const s0, const char* const s1 )
 		i++;
 	}
 
-	return true;
+	return std::tolower( s0[i] ) == std::tolower( s1[i] );
 }
 
 decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
@@ -93,7 +93,7 @@ MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const s
 {
 	using Command= MapData::Procedure::ActionCommandId;
 
-	if( StringEquals( str, "lock" )  )
+	if( StringEquals( str, "lock" ) )
 		return Command::Lock;
 	if( StringEquals( str, "unlock" ) )
 		return Command::Unlock;
@@ -412,6 +412,8 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 {
 	// Dummy zero procedure
 	map_data.procedures.resize( 1u );
+	// Dummy zero message
+	map_data.messages.resize( 1u );
 
 	const char* const start= reinterpret_cast<const char*>( process_file.data() );
 	const char* const end= start + process_file.size();
@@ -528,7 +530,7 @@ void MapLoader::LoadProcedure( std::istringstream& stream, MapData& map_data )
 		else if( StringEquals( thing, "LightRemap" ) )
 			line_stream >> procedure.light_remap;
 		else if( StringEquals( thing, "Lock" ) )
-			line_stream >> procedure.locked;
+			procedure.locked= true;
 		else if( StringEquals( thing, "Loops" ) )
 			line_stream >> procedure.loops;
 		else if( StringEquals( thing, "LoopDelay" ) )

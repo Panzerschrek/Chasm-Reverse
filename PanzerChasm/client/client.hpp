@@ -37,6 +37,7 @@ public: // Messages handlers
 	void operator()( const Messages::MapChange& message );
 	void operator()( const Messages::EntityBirth& message );
 	void operator()( const Messages::EntityDeath& message );
+	void operator()( const Messages::TextMessage& message );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -49,6 +50,7 @@ private:
 	MovementController camera_controller_;
 
 	MapDrawer map_drawer_;
+	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
 };
 

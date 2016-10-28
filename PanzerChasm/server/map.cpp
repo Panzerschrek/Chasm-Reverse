@@ -15,6 +15,11 @@ Map::Map( const MapDataConstPtr& map_data )
 	PC_ASSERT( map_data_ );
 
 	procedures_.resize( map_data_->procedures.size() );
+	for( unsigned int p= 0u; p < procedures_.size(); p++ )
+	{
+		if( map_data_->procedures[p].locked )
+			procedures_[p].locked= true;
+	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
 }
@@ -22,7 +27,7 @@ Map::Map( const MapDataConstPtr& map_data )
 Map::~Map()
 {}
 
-void Map::ProcessPlayerPosition( const TimePoint current_time, const m_Vec3& pos )
+void Map::ProcessPlayerPosition( const TimePoint current_time, const m_Vec3& pos, MessagesSender& messages_sender )
 {
 	const unsigned int x= static_cast<unsigned int>( pos.x );
 	const unsigned int y= static_cast<unsigned int>( pos.y );
@@ -35,12 +40,42 @@ void Map::ProcessPlayerPosition( const TimePoint current_time, const m_Vec3& pos
 	{
 		PC_ASSERT( link.proc_id < procedures_.size() );
 
+		const MapData::Procedure& procedure= map_data_->procedures[ link.proc_id ];
 		ProcedureState& procedure_state= procedures_[ link.proc_id ];
+
 		if( procedure_state.movement_state == ProcedureState::MovementState::None )
 		{
 			procedure_state.movement_stage= 0.0f;
 			procedure_state.movement_state= ProcedureState::MovementState::Movement;
 			procedure_state.last_state_change_time= current_time;
+		}
+
+		// Activation messages.
+		// TODO - send it only if player enters trigger zone.
+		if( procedure.first_message_number != 0u &&
+			!procedure_state.first_message_printed )
+		{
+			procedure_state.first_message_printed= true;
+
+			Messages::TextMessage text_message;
+			text_message.message_id= MessageId::TextMessage;
+			text_message.text_message_number= procedure.first_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
+		}
+		if( procedure.lock_message_number != 0u &&
+			procedure_state.locked )
+		{
+			Messages::TextMessage text_message;
+			text_message.message_id= MessageId::TextMessage;
+			text_message.text_message_number= procedure.lock_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
+		}
+		if( procedure.on_message_number != 0u )
+		{
+			Messages::TextMessage text_message;
+			text_message.message_id= MessageId::TextMessage;
+			text_message.text_message_number= procedure.on_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
 		}
 	}
 }

@@ -135,6 +135,8 @@ void Client::operator()( const Messages::MapChange& message )
 
 	map_drawer_.SetMap( map_data );
 	map_state_.reset( new MapState( map_data ) );
+
+	current_map_data_= map_data;
 }
 
 void Client::operator()( const Messages::EntityBirth& message )
@@ -147,6 +149,19 @@ void Client::operator()( const Messages::EntityDeath& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::TextMessage& message )
+{
+	if( current_map_data_ != nullptr )
+	{
+		if( message.text_message_number < current_map_data_->messages.size() )
+		{
+			const MapData::Message& text_message= current_map_data_->messages[ message.text_message_number ];
+			for( const  MapData::Message::Text& text : text_message.texts )
+				Log::Info( text.data );
+		}
+	}
 }
 
 } // namespace PanzerChasm

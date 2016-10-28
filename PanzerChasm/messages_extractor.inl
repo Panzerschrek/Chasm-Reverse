@@ -92,6 +92,10 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					messages_handler( *reinterpret_cast<const Messages::EntityDeath*>( msg_ptr ) );
 					break;
 
+				case MessageId::TextMessage:
+					messages_handler( *reinterpret_cast<const Messages::TextMessage*>( msg_ptr ) );
+					break;
+
 				// Unreliable
 				case MessageId::PlayerMove:
 					messages_handler( *reinterpret_cast<const Messages::PlayerMove*>( msg_ptr ) );

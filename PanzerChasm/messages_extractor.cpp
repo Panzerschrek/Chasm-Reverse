@@ -14,6 +14,7 @@ size_t MessagesExtractor::c_messages_size[ size_t(MessageId::NumMessages) ]=
 	[size_t(MessageId::MapChange)]= sizeof(Messages::MapChange),
 	[size_t(MessageId::EntityBirth)]= sizeof(Messages::EntityBirth),
 	[size_t(MessageId::EntityDeath)]= sizeof(Messages::EntityDeath),
+	[size_t(MessageId::TextMessage)]= sizeof(Messages::TextMessage),
 
 	[size_t(MessageId::PlayerMove)]= sizeof(Messages::PlayerMove),
 
