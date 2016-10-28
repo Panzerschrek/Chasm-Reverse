@@ -410,11 +410,6 @@ void MapLoader::LoadFloorsTexturesData( const Vfs::FileContent& floors_file, Map
 
 void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data )
 {
-	// Dummy zero procedure
-	map_data.procedures.resize( 1u );
-	// Dummy zero message
-	map_data.messages.resize( 1u );
-
 	const char* const start= reinterpret_cast<const char*>( process_file.data() );
 	const char* const end= start + process_file.size();
 
@@ -436,10 +431,20 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 
 		if( line_stream.fail() || thing_type[0] != '#' )
 			continue;
-		else if( std::strcmp( thing_type, "#mess" ) == 0 ) // TODO - use message number
-			LoadMessage( stream, map_data );
-		else if( std::strcmp( thing_type, "#proc" ) == 0 ) // TODO - use proc number
-			LoadProcedure( stream, map_data );
+		else if( std::strcmp( thing_type, "#mess" ) == 0 )
+		{
+			unsigned int message_number= 0;
+			line_stream >> message_number;
+			if( !line_stream.fail() && message_number != 0 )
+				LoadMessage( message_number, stream, map_data );
+		}
+		else if( std::strcmp( thing_type, "#proc" ) == 0 )
+		{
+			unsigned int procedure_number= 0;
+			line_stream >> procedure_number;
+			if( !line_stream.fail() && procedure_number != 0 )
+				LoadProcedure( procedure_number, stream, map_data );
+		}
 		else if( std::strcmp( thing_type, "#links" ) == 0 )
 			LoadLinks( stream, map_data );
 		else if( std::strcmp( thing_type, "#stopani" ) == 0 )
@@ -450,10 +455,14 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 	return;
 }
 
-void MapLoader::LoadMessage( std::istringstream& stream, MapData& map_data )
+void MapLoader::LoadMessage(
+	const unsigned int message_number,
+	std::istringstream& stream,
+	MapData& map_data )
 {
-	map_data.messages.emplace_back();
-	MapData::Message& message= map_data.messages.back();
+	if( message_number >= map_data.messages.size() )
+		map_data.messages.resize( message_number + 1u );
+	MapData::Message& message= map_data.messages[ message_number ];
 
 	while( !stream.eof() )
 	{
@@ -492,10 +501,14 @@ void MapLoader::LoadMessage( std::istringstream& stream, MapData& map_data )
 	}
 }
 
-void MapLoader::LoadProcedure( std::istringstream& stream, MapData& map_data )
+void MapLoader::LoadProcedure(
+	const unsigned int procedure_number,
+	std::istringstream& stream,
+	MapData& map_data )
 {
-	map_data.procedures.emplace_back();
-	MapData::Procedure& procedure= map_data.procedures.back();
+	if( procedure_number >= map_data.procedures.size() )
+		map_data.procedures.resize( procedure_number + 1u );
+	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
 
 	bool has_action= false;
 

@@ -212,8 +212,8 @@ private:
 
 	void LoadLevelScripts( const Vfs::FileContent& process_file, MapData& map_data );
 
-	void LoadMessage( std::istringstream& stream, MapData& map_data );
-	void LoadProcedure( std::istringstream& stream, MapData& map_data );
+	void LoadMessage( unsigned int message_number, std::istringstream& stream, MapData& map_data );
+	void LoadProcedure( unsigned int procedure_number, std::istringstream& stream, MapData& map_data );
 	void LoadLinks( std::istringstream& stream, MapData& map_data );
 
 	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
