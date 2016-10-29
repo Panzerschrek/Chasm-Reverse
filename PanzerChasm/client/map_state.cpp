@@ -1,3 +1,5 @@
+#include "../math_utils.hpp"
+
 #include "map_state.hpp"
 
 namespace PanzerChasm
@@ -68,6 +70,22 @@ void MapState::ProcessMessage( const Messages::WallPosition& message )
 	wall.xy[1][0]= message.vertices_xy[1][0];
 	wall.xy[1][1]= message.vertices_xy[1][1];
 	wall.z= message.z;
+}
+
+void MapState::ProcessMessage( const Messages::StaticModelState& message )
+{
+	if( message.static_model_index >= static_models_.size() )
+		return;
+
+	StaticModel& static_model= static_models_[ message.static_model_index ];
+
+	static_model.angle= float(message.angle) / 65536.0f * Constants::two_pi;
+
+	static_model.pos.x= float(message.xyz[0]) / 256.0f;
+	static_model.pos.y= float(message.xyz[1]) / 256.0f;
+	static_model.pos.z= 0.0f;
+
+	static_model.animation_frame= message.animation_frame;
 }
 
 void MapState::ProcessMessage( const Messages::EntityBirth& message )

@@ -53,11 +53,25 @@ private:
 
 	typedef std::vector<DynamicWall> DynamicWalls;
 
+	struct StaticModel
+	{
+		unsigned int animation_frame= 0u;
+		bool animation_is_acive= true;
+		bool destroyed= false;
+
+		m_Vec3 pos;
+		float angle;
+	};
+
+	typedef std::vector<StaticModel> StaticModels;
+
 private:
 	const MapDataConstPtr map_data_;
 	DynamicWalls dynamic_walls_;
 
 	std::vector<ProcedureState> procedures_;
+
+	StaticModels static_models_;
 };
 
 } // PanzerChasm

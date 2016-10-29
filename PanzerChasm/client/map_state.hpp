@@ -37,6 +37,7 @@ public:
 
 	void ProcessMessage( const Messages::EntityState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
+	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::EntityBirth& message );
 	void ProcessMessage( const Messages::EntityDeath& message );
 

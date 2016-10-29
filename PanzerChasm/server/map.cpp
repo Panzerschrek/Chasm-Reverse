@@ -22,6 +22,16 @@ Map::Map( const MapDataConstPtr& map_data )
 	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
+
+	static_models_.resize( map_data_->static_models.size() );
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const MapData::StaticModel& in_model= map_data_->static_models[m];
+		StaticModel& out_model= static_models_[m];
+
+		out_model.pos= m_Vec3( in_model.pos, 0.0f );
+		out_model.angle= in_model.angle;
+	}
 }
 
 Map::~Map()
@@ -224,6 +234,17 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 					}
 					wall.z= 0.0f;
 				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos=
+						m_Vec3(
+							map_model.pos + m_Vec2( dx, dy ) * absolute_action_stage,
+							0.0f );
+				}
 			}
 				break;
 
@@ -260,6 +281,14 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 					}
 					wall.z= 0.0f;
 				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.angle= map_model.angle + angle * absolute_action_stage;
+				}
 			}
 				break;
 
@@ -284,6 +313,14 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 					for( unsigned int v= 0u; v < 2u; v++ )
 						wall.vert_pos[v]= map_wall.vert_pos[v];
 					wall.z= height * absolute_action_stage;
+				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos= m_Vec3( map_model.pos, height );
 				}
 			}
 				break;
@@ -315,6 +352,28 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		wall_message.z= short( wall.z * 256.0f );
 
 		messages_sender.SendUnreliableMessage( wall_message );
+	}
+
+	Messages::StaticModelState model_message;
+	model_message.message_id= MessageId::StaticModelState;
+
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+
+		model_message.static_model_index= m;
+		model_message.animation_frame= model.animation_frame;
+		model_message.animation_playing= model.animation_is_acive;
+		model_message.model_id= map_data_->static_models[m].model_id;
+		if( model.destroyed )
+			model_message.model_id++;
+
+		for( unsigned int j= 0u; j < 3u; j++ )
+			model_message.xyz[j]= short( model.pos.ToArr()[j] * 256.0f );
+
+		model_message.angle= static_cast<unsigned short>( 65536.0f * model.angle / Constants::two_pi );
+
+		messages_sender.SendUnreliableMessage( model_message );
 	}
 }
 
