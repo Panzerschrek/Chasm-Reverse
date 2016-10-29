@@ -238,6 +238,11 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 			if( map_wall.texture_id >= c_first_model )
 			{
+				// Presumably, this is mask of difficulty.
+				// bit 0 - easy, 1 - normal, 2 - hard, 3 - deathmatch
+				const unsigned int difficulty_levels_mask= map_wall.vert_coord[1][0] & 7u;
+				PC_UNUSED( difficulty_levels_mask );
+
 				map_data.static_models.emplace_back();
 				MapData::StaticModel& model= map_data.static_models.back();
 				model.pos.x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
