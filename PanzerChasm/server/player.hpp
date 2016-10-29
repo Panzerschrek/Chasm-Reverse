@@ -3,6 +3,7 @@
 #include <vec.hpp>
 
 #include "../messages.hpp"
+#include "../time.hpp"
 
 namespace PanzerChasm
 {
@@ -17,7 +18,7 @@ public:
 	void SetPosition( const m_Vec3& pos );
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
-	void Move( float time_delta_s );
+	void Move( Time time_delta );
 
 	void GiveRedKey();
 	void GiveGreenKey();

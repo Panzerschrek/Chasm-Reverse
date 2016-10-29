@@ -10,6 +10,7 @@ public:
 	static Time CurrentTime();
 
 	static Time FromSeconds( double seconds );
+	static Time FromSeconds( int seconds );
 	static Time FromSeconds( int64_t seconds );
 
 public:

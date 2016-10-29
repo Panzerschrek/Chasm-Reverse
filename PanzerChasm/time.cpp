@@ -28,6 +28,11 @@ Time Time::FromSeconds( double seconds )
 				static_cast<double>(c_units_in_second) ) ) );
 }
 
+Time Time::FromSeconds( int seconds )
+{
+	return FromSeconds( int64_t( seconds ) );
+}
+
 Time Time::FromSeconds( int64_t seconds )
 {
 	return Time( seconds * c_units_in_second );

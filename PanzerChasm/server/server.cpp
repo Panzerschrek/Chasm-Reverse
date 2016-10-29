@@ -17,6 +17,7 @@ Server::Server(
 	, connections_listener_(connections_listener)
 	, startup_time_( Time::CurrentTime() )
 	, last_tick_( Time::CurrentTime() )
+	, last_tick_duration_( Time::FromSeconds(0) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -57,20 +58,18 @@ void Server::Loop()
 	Time dt= current_time - last_tick_;
 	dt= std::min( dt, Time::FromSeconds( 0.060 ) );
 	dt= std::max( dt, Time::FromSeconds( 0.002 ) );
-	last_tick_duration_s_= dt.ToSeconds();
+	last_tick_duration_= dt;
 
 	last_tick_= current_time;
 
 	// Do server logic
 
-	player_.Move( last_tick_duration_s_ );
+	player_.Move( last_tick_duration_ );
 
 	if( map_ != nullptr )
 	{
-		const Map::TimePoint absolute_time= ( current_time - startup_time_ ).ToSeconds();
-
-		map_->ProcessPlayerPosition( absolute_time, player_, connection_->messages_sender );
-		map_->Tick( absolute_time, last_tick_duration_s_ );
+		map_->ProcessPlayerPosition( current_time, player_, connection_->messages_sender );
+		map_->Tick( current_time );
 	}
 
 	// Send messages

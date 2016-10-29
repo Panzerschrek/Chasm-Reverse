@@ -10,7 +10,7 @@ MovementController::MovementController(
 	, forward_pressed_(false), backward_pressed_(false), left_pressed_(false), right_pressed_(false)
 	, up_pressed_(false), down_pressed_(false)
 	, rotate_up_pressed_(false), rotate_down_pressed_(false), rotate_left_pressed_(false), rotate_right_pressed_(false)
-	, prev_calc_tick_(std::chrono::steady_clock::now())
+	, prev_calc_tick_( Time::CurrentTime() )
 {}
 
 MovementController::~MovementController()
@@ -18,11 +18,9 @@ MovementController::~MovementController()
 
 void MovementController::Tick()
 {
-	const auto new_tick= std::chrono::steady_clock::now();
+	const Time new_tick= Time::CurrentTime();
 
-	const float dt_s=
-		static_cast<float>( std::chrono::duration_cast<std::chrono::milliseconds>(new_tick - prev_calc_tick_).count() ) *
-		0.001f;
+	const float dt_s= ( new_tick - prev_calc_tick_ ).ToSeconds();
 
 	prev_calc_tick_= new_tick;
 

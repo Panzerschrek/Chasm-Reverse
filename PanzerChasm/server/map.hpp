@@ -2,6 +2,7 @@
 
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
+#include "../time.hpp"
 #include "player.hpp"
 
 namespace PanzerChasm
@@ -11,14 +12,11 @@ namespace PanzerChasm
 class Map final
 {
 public:
-	typedef float TimePoint;
-	typedef decltype(TimePoint() - TimePoint()) TimeInterval;
-
 	explicit Map( const MapDataConstPtr& map_data );
 	~Map();
 
-	void ProcessPlayerPosition( TimePoint current_time, Player& player, MessagesSender& messages_sender );
-	void Tick( TimePoint current_time, TimeInterval frame_delta );
+	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
+	void Tick( Time current_time );
 
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;
 
@@ -40,9 +38,9 @@ private:
 		MovementState movement_state= MovementState::None;
 		unsigned int movement_loop_iteration= 0u;
 		float movement_stage= 0.0f; // stage of current movement state [0; 1]
-		TimePoint last_state_change_time= 0;
+		Time last_state_change_time= Time::FromSeconds(0);
 
-		TimePoint last_change_time= 0;
+		Time last_change_time= Time::FromSeconds(0);
 	};
 
 	struct DynamicWall

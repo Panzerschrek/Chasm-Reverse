@@ -49,7 +49,7 @@ private:
 
 	const Time startup_time_;
 	Time last_tick_;
-	float last_tick_duration_s_;
+	Time last_tick_duration_;
 
 	Player player_;
 };

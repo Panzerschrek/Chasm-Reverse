@@ -38,7 +38,7 @@ Map::~Map()
 {}
 
 void Map::ProcessPlayerPosition(
-	const TimePoint current_time,
+	const Time current_time,
 	Player& player,
 	MessagesSender& messages_sender )
 {
@@ -133,7 +133,7 @@ void Map::ProcessPlayerPosition(
 	}
 }
 
-void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
+void Map::Tick( const Time current_time )
 {
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -141,8 +141,8 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
 
-		const float stage_delta= frame_delta * procedure.speed / 10.0f;
-		const float new_stage= procedure_state.movement_stage + stage_delta;
+		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
+		const float new_stage= time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f;
 
 		switch( procedure_state.movement_state )
 		{
@@ -162,10 +162,10 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 		case ProcedureState::MovementState::BackWait:
 		{
-			const TimeInterval wait_time= current_time - procedure_state.last_state_change_time;
+			const Time wait_time= current_time - procedure_state.last_state_change_time;
 			if(
 				procedure.back_wait_s > 0.0f &&
-				wait_time >= procedure.back_wait_s )
+				wait_time.ToSeconds() >= procedure.back_wait_s )
 			{
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 				procedure_state.movement_stage= 0.0f;
