@@ -25,6 +25,14 @@ const r_OGLState g_walls_gl_state(
 
 const r_OGLState g_floors_gl_state= g_walls_gl_state;
 
+const r_OGLState g_models_gl_state(
+	false, true, true, false,
+	g_gl_state_blend_func );
+
+const r_OGLState g_transparent_models_gl_state(
+	true, true, true, false,
+	g_gl_state_blend_func );
+
 } // namespace
 
 struct FloorVertex
@@ -176,6 +184,51 @@ void MapDrawer::Draw(
 			floors_geometry_info[z].first_vertex_number,
 			floors_geometry_info[z].vertex_count );
 	}
+
+	// Draw static models
+	const auto draw_models=
+	[&]( const bool transparent )
+	{
+		for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+		{
+			if( static_model.model_id >= models_geometry_.size() )
+				continue;
+
+			const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
+
+			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+			const unsigned int first_vertex=
+				model_geometry.first_vertex_index +
+				static_model.animation_frame * model_geometry.vertex_count;
+
+			m_Mat4 rotate_mat, shift_mat;
+			rotate_mat.RotateZ( static_model.angle );
+			shift_mat.Translate( static_model.pos );
+
+			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				first_vertex );
+		}
+	};
+
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_models_gl_state );
+	draw_models( false );
+
+	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
+	draw_models( true );
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )

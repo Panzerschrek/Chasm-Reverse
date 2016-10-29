@@ -23,6 +23,18 @@ MapState::MapState( const MapDataConstPtr& map )
 		out_wall.xy[1][1]= short( in_wall.vert_pos[1].y * g_walls_coord_scale );
 		out_wall.z= 0;
 	}
+
+	static_models_.resize( map_data_->static_models.size() );
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const MapData::StaticModel& in_model= map_data_->static_models[m];
+		StaticModel& out_model= static_models_[m];
+
+		out_model.pos= m_Vec3( in_model.pos, 0.0f );
+		out_model.angle= in_model.angle;
+		out_model.model_id= in_model.model_id;
+		out_model.animation_frame= 0u;
+	}
 }
 
 MapState::~MapState()
@@ -31,6 +43,11 @@ MapState::~MapState()
 const MapState::DynamicWalls& MapState::GetDynamicWalls() const
 {
 	return dynamic_walls_;
+}
+
+const MapState::StaticModels& MapState::GetStaticModels() const
+{
+	return static_models_;
 }
 
 void MapState::ProcessMessage( const Messages::EntityState& message )
