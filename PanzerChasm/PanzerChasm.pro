@@ -60,7 +60,7 @@ HEADERS+= \
 	messages_extractor.hpp \
 	messages_extractor.inl \
 	messages_sender.hpp \
-	mode.hpp \
+	model.hpp \
 	rendering_context.hpp \
 	server/map.hpp \
 	server/player.hpp \
@@ -95,5 +95,3 @@ HEADERS+= \
 	../../panzer_ogl_lib/glsl_program.hpp \
 	../../panzer_ogl_lib/matrix.hpp \
 	../../panzer_ogl_lib/bbox.hpp \
-
-
