@@ -12,9 +12,7 @@ Host::Host()
 {
 	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
 
-	game_resources_= std::make_shared<GameResources>();
-	game_resources_->vfs= vfs_;
-	LoadPalette( *vfs_, game_resources_->palette );
+	game_resources_= LoadGameResources( vfs_ );
 
 	system_window_.reset( new SystemWindow() );
 

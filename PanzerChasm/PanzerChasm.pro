@@ -20,6 +20,7 @@ SOURCES+= \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
 	connection_info.cpp \
+	game_resources.cpp \
 	host.cpp \
 	images.cpp \
 	log.cpp \

@@ -33,7 +33,7 @@ private:
 	bool quit_requested_= false;
 
 	VfsPtr vfs_;
-	GameResourcesPtr game_resources_;
+	GameResourcesConstPtr game_resources_;
 
 	std::unique_ptr<SystemWindow> system_window_;
 	SystemEvents events_;
