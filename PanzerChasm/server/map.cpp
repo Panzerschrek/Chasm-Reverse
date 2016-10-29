@@ -9,6 +9,8 @@ namespace PanzerChasm
 
 static const float g_commands_coords_scale= 1.0f / 256.0f;
 
+static const float g_animations_frames_per_second= 20.0f;
+
 Map::Map( const MapDataConstPtr& map_data )
 	: map_data_(map_data)
 {
@@ -23,14 +25,22 @@ Map::Map( const MapDataConstPtr& map_data )
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
 
+	const Time current_time= Time::CurrentTime();
+
 	static_models_.resize( map_data_->static_models.size() );
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
 		const MapData::StaticModel& in_model= map_data_->static_models[m];
 		StaticModel& out_model= static_models_[m];
 
+		out_model.model_id= in_model.model_id;
+
 		out_model.pos= m_Vec3( in_model.pos, 0.0f );
 		out_model.angle= in_model.angle;
+
+		out_model.animation_state= StaticModel::AnimationState::Animation;
+		out_model.animation_start_time= current_time;
+		out_model.animation_start_frame= 0u;
 	}
 }
 
@@ -333,6 +343,22 @@ void Map::Tick( const Time current_time )
 
 	} // for procedures
 
+	// Process static models
+	for( StaticModel& model : static_models_ )
+	{
+		if( model.animation_state == StaticModel::AnimationState::Animation )
+		{
+			const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
+			const float animation_frame= time_delta_s * g_animations_frames_per_second;
+
+			const unsigned int animation_frame_count= map_data_->models[ model.model_id ].frame_count;
+
+			model.current_animation_frame=
+				static_cast<unsigned int>( std::round(animation_frame) ) % animation_frame_count;
+		}
+		else
+			model.current_animation_frame= model.animation_start_frame;
+	} // for static models
 }
 
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
@@ -362,9 +388,9 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		const StaticModel& model= static_models_[m];
 
 		model_message.static_model_index= m;
-		model_message.animation_frame= model.animation_frame;
-		model_message.animation_playing= model.animation_is_acive;
-		model_message.model_id= map_data_->static_models[m].model_id;
+		model_message.animation_frame= model.current_animation_frame;
+		model_message.animation_playing= model.animation_state == StaticModel::AnimationState::Animation;
+		model_message.model_id= model.model_id;
 		if( model.destroyed )
 			model_message.model_id++;
 

@@ -53,12 +53,23 @@ private:
 
 	struct StaticModel
 	{
-		unsigned int animation_frame= 0u;
-		bool animation_is_acive= true;
-		bool destroyed= false;
-
 		m_Vec3 pos;
 		float angle;
+
+		unsigned char model_id;
+		bool destroyed= false;
+
+		enum class AnimationState
+		{
+			Animation,
+			SingleFrame,
+		};
+
+		AnimationState animation_state;
+		Time animation_start_time= Time::FromSeconds(0);
+		unsigned int animation_start_frame;
+
+		unsigned int current_animation_frame;
 	};
 
 	typedef std::vector<StaticModel> StaticModels;
