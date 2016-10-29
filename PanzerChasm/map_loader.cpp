@@ -195,6 +195,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );
 
+	LoadModels( *result );
+
 	// Cache result and return it
 	last_loaded_map_number_= map_number;
 	last_loaded_map_= result;
@@ -237,7 +239,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 			if( map_wall.texture_id >= c_first_model )
 			{
 				map_data.static_models.emplace_back();
-				MapData::Model& model= map_data.static_models.back();
+				MapData::StaticModel& model= map_data.static_models.back();
 				model.pos.x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
@@ -670,6 +672,28 @@ void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out
 			}
 		} // for commands
 	} // for procedures
+}
+
+void MapLoader::LoadModels( MapData& map_data )
+{
+	map_data.models.resize( map_data.models_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+
+	for( unsigned int m= 0u; m < map_data.models.size(); m++ )
+	{
+		const MapData::ModelDescription& model_description= map_data.models_description[m];
+
+		vfs_->ReadFile( model_description.file_name, file_content );
+
+		if( model_description.animation_file_name[0u] != '\0' )
+			vfs_->ReadFile( model_description.animation_file_name, animation_file_content );
+		else
+			animation_file_content.clear();
+
+		LoadModel_o3( file_content, animation_file_content, map_data.models[m] );
+	} // for models
 }
 
 } // namespace PanzerChasm

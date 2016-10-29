@@ -30,6 +30,7 @@ SOURCES+= \
 	menu_drawer.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
+	model.cpp \
 	server/map.cpp \
 	server/player.cpp \
 	server/server.cpp \
@@ -59,6 +60,7 @@ HEADERS+= \
 	messages_extractor.hpp \
 	messages_extractor.inl \
 	messages_sender.hpp \
+	mode.hpp \
 	rendering_context.hpp \
 	server/map.hpp \
 	server/player.hpp \
