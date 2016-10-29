@@ -354,19 +354,18 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 
 		std::istringstream line_stream{ std::string( line ) };
 
-		double num;
-		line_stream >> num; // GoRad
-		line_stream >> num; // Shad
-		line_stream >> num; // BObj
-		line_stream >> num; // BMPz
-		line_stream >> num; // AC
-		line_stream >> num; // Blw
-		line_stream >> num; // BLmt
-		line_stream >> num; // SFX
-		line_stream >> num; // BSfx
-
 		map_data.models_description.emplace_back();
 		MapData::ModelDescription& model_description= map_data.models_description.back();
+
+		line_stream >> model_description.radius; // GoRad
+		line_stream >> model_description.cast_shadow; // Shad
+		line_stream >> model_description.bobj; // BObj
+		line_stream >> model_description.bmpz; // BMPz
+		line_stream >> model_description.ac; // AC
+		line_stream >> model_description.blw; // Blw
+		line_stream >> model_description.blmt; // BLmt
+		line_stream >> model_description.ambient_sfx_number; // SFX
+		line_stream >> model_description.break_sfx_number; // BSfx
 
 		line_stream >> model_description.file_name; // FileName
 

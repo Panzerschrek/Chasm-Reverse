@@ -60,6 +60,28 @@ public:
 	{
 		char file_name[ c_max_file_name_size ];
 		char animation_file_name[ c_max_file_name_size ]; // May be empty
+
+		// Radius for collisions.
+		// 0 - object is passable.
+		float radius;
+
+		bool cast_shadow;
+		int bobj; // unknown
+		int bmpz; // unknown
+
+		// Something, like game obejct id.
+		// For keys models - 141, 142, 143.
+		// For switches - 255
+		int ac;
+
+		int blw; // unknown
+
+		// "Break limit", maybe. Zero for non-breakable objects.
+		// When object breaks, it changes model to next in list.
+		int blmt;
+
+		unsigned int ambient_sfx_number;
+		unsigned int break_sfx_number;
 	};
 
 	struct IndexElement
