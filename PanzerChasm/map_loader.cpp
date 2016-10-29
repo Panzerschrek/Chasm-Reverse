@@ -454,12 +454,22 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 			if( !line_stream.fail() && message_number != 0 )
 				LoadMessage( message_number, stream, map_data );
 		}
-		else if( std::strcmp( thing_type, "#proc" ) == 0 )
+		else if( std::strncmp( thing_type, "#proc", std::strlen("#proc" ) ) == 0 )
 		{
-			unsigned int procedure_number= 0;
-			line_stream >> procedure_number;
-			if( !line_stream.fail() && procedure_number != 0 )
-				LoadProcedure( procedure_number, stream, map_data );
+			// catch something, like #proc42
+			if( std::strlen( thing_type ) > std::strlen( "#proc" ) )
+			{
+				const unsigned int procedure_number= std::atoi( thing_type + std::strlen( "#proc" ) );
+				if( procedure_number != 0u && procedure_number < 1000 )
+					LoadProcedure( procedure_number, stream, map_data );
+			}
+			else
+			{
+				unsigned int procedure_number= 0;
+				line_stream >> procedure_number;
+				if( !line_stream.fail() && procedure_number != 0 )
+					LoadProcedure( procedure_number, stream, map_data );
+			}
 		}
 		else if( std::strcmp( thing_type, "#links" ) == 0 )
 			LoadLinks( stream, map_data );
@@ -629,9 +639,11 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 
 		std::istringstream line_stream{ std::string( line ) };
 
-		char link_type[32];
+		char link_type[512];
 		line_stream >> link_type;
 		if( line_stream.fail() )
+			continue;
+		if( link_type[0] == ';' )
 			continue;
 		if( std::strcmp( link_type, "#end" ) == 0 )
 			break;
