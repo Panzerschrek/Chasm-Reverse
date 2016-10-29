@@ -8,11 +8,6 @@
 namespace PanzerChasm
 {
 
-static std::chrono::milliseconds GetTime()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
-}
-
 Server::Server(
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
@@ -20,8 +15,8 @@ Server::Server(
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
-	, startup_time_( GetTime() )
-	, last_tick_( GetTime() )
+	, startup_time_( Time::CurrentTime() )
+	, last_tick_( Time::CurrentTime() )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -58,11 +53,11 @@ void Server::Loop()
 	if( connection_ != nullptr )
 		connection_->messages_extractor.ProcessMessages( *this );
 
-	const std::chrono::milliseconds current_time= GetTime();
-	unsigned int dt_ms= ( current_time - last_tick_ ).count();
-	if( dt_ms < 2u ) dt_ms= 2u;
-	else if( dt_ms >= 60u ) dt_ms= 60u;
-	last_tick_duration_s_= float(dt_ms) / 1000.0f;
+	const Time current_time= Time::CurrentTime();
+	Time dt= current_time - last_tick_;
+	dt= std::min( dt, Time::FromSeconds( 0.060 ) );
+	dt= std::max( dt, Time::FromSeconds( 0.002 ) );
+	last_tick_duration_s_= dt.ToSeconds();
 
 	last_tick_= current_time;
 
@@ -72,8 +67,7 @@ void Server::Loop()
 
 	if( map_ != nullptr )
 	{
-		const Map::TimePoint absolute_time=
-			std::chrono::duration_cast<std::chrono::milliseconds>((current_time - startup_time_)).count() * 0.001f;
+		const Map::TimePoint absolute_time= ( current_time - startup_time_ ).ToSeconds();
 
 		map_->ProcessPlayerPosition( absolute_time, player_, connection_->messages_sender );
 		map_->Tick( absolute_time, last_tick_duration_s_ );

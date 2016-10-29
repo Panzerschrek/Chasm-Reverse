@@ -35,6 +35,7 @@ SOURCES+= \
 	server/player.cpp \
 	server/server.cpp \
 	system_window.cpp \
+	time.cpp \
 	text_draw.cpp \
 	vfs.cpp \
 
@@ -69,6 +70,7 @@ HEADERS+= \
 	system_event.hpp \
 	system_window.hpp \
 	text_draw.hpp \
+	time.hpp \
 	vfs.hpp \
 
 SOURCES+= \
