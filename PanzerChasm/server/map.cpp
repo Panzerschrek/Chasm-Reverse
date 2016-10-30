@@ -11,7 +11,9 @@ static const float g_commands_coords_scale= 1.0f / 256.0f;
 
 static const float g_animations_frames_per_second= 20.0f;
 
-Map::Map( const MapDataConstPtr& map_data )
+Map::Map(
+	const MapDataConstPtr& map_data,
+	const Time map_start_time )
 	: map_data_(map_data)
 {
 	PC_ASSERT( map_data_ );
@@ -25,8 +27,6 @@ Map::Map( const MapDataConstPtr& map_data )
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
 
-	const Time current_time= Time::CurrentTime();
-
 	static_models_.resize( map_data_->static_models.size() );
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
@@ -39,7 +39,7 @@ Map::Map( const MapDataConstPtr& map_data )
 		out_model.angle= in_model.angle;
 
 		out_model.animation_state= StaticModel::AnimationState::Animation;
-		out_model.animation_start_time= current_time;
+		out_model.animation_start_time= map_start_time;
 		out_model.animation_start_frame= 0u;
 	}
 }

@@ -12,7 +12,7 @@ namespace PanzerChasm
 class Map final
 {
 public:
-	explicit Map( const MapDataConstPtr& map_data );
+	Map( const MapDataConstPtr& map_data, Time map_start_time );
 	~Map();
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
