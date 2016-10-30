@@ -55,6 +55,93 @@ struct WallVertex
 
 SIZE_ASSERT( WallVertex, 16u );
 
+struct ModelsTexturesPlacement
+{
+	struct ModelTexturePlacement
+	{
+		unsigned int y;
+		unsigned int layer;
+	};
+
+	static constexpr unsigned int c_max_textures= 128u;
+
+	ModelTexturePlacement textures_placement[ c_max_textures ];
+	unsigned int layer_count;
+};
+
+/* Models textures has fixed width (64) and variative height.
+ * We place all models textures in array texture.
+ * We can not just place single model texture in single layer, because we left useless a lot of texture space.
+ * Instead, we place as many as possible textures in each layer of texture array.
+ *
+ * In this function we try solve "bin packing problem", using "best-fit" algorithm.
+ */
+static void CalculateModelsTexturesPlacement(
+	const std::vector<Model>& models,
+	const unsigned int texture_height,
+	ModelsTexturesPlacement& out_placement )
+{
+	PC_ASSERT( models.size() <= ModelsTexturesPlacement::c_max_textures );
+
+	unsigned int textures_placed= 0u;
+	bool texture_placed[ ModelsTexturesPlacement::c_max_textures ];
+	for( bool& placed : texture_placed )
+		placed= false;
+
+	const unsigned int c_border= 16u;
+
+	unsigned int current_y= c_border;
+	unsigned int current_layer= 0u;
+	const unsigned int no_texture= models.size();
+
+	while( textures_placed < models.size() )
+	{
+		const unsigned int place_left= texture_height - current_y;
+
+		unsigned int best_texture_number= no_texture;
+		unsigned int best_texture_delta= texture_height;
+		for( unsigned int i= 0u; i < models.size(); i++ )
+		{
+			if( texture_placed[i] )
+				continue;
+
+			int delta= int(place_left) - int( models[i].texture_size[1] );
+			if( delta >= 0 && delta < int(best_texture_delta) )
+			{
+				best_texture_delta= delta;
+				best_texture_number= i;
+			}
+		}
+
+		// Best texture not found - use first unplaced.
+		if( best_texture_number == no_texture )
+		{
+			for( unsigned int i= 0u; i < models.size(); i++ )
+				if( !texture_placed[i] )
+				{
+					best_texture_number= i;
+					break;
+				}
+		}
+
+		const unsigned int best_texture_height= models[ best_texture_number ].texture_size[1];
+		if( current_y + best_texture_height > texture_height )
+		{
+			current_y= c_border;
+			current_layer++;
+		}
+
+		out_placement.textures_placement[ best_texture_number ].y= current_y;
+		out_placement.textures_placement[ best_texture_number ].layer= current_layer;
+
+		current_y+= best_texture_height + c_border;
+		texture_placed[ best_texture_number ]= true;
+		textures_placed++;
+	}
+
+	out_placement.layer_count= current_layer + 1u;
+}
+
 MapDrawer::MapDrawer(
 	GameResourcesConstPtr game_resources,
 	const RenderingContext& rendering_context )
@@ -637,10 +724,12 @@ void MapDrawer::LoadModels(
 	const unsigned int model_count= models.size();
 	out_geometry.resize( model_count );
 
-	// TODO - use atlas instead textures array
-	const unsigned int c_max_texture_size[2]= { 64u, 1024u };
-	const unsigned int c_texels_in_layer= c_max_texture_size[0u] * c_max_texture_size[1u];
-	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * model_count, 0u );
+	const unsigned int c_texture_size[2]= { 64u, 2048u };
+	ModelsTexturesPlacement textures_placement;
+	CalculateModelsTexturesPlacement( models, c_texture_size[1], textures_placement );
+
+	const unsigned int c_texels_in_layer= c_texture_size[0u] * c_texture_size[1u];
+	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * textures_placement.layer_count, 0u );
 
 	std::vector<unsigned  short> indeces;
 	std::vector<Model::Vertex> vertices;
@@ -651,44 +740,27 @@ void MapDrawer::LoadModels(
 		ModelGeometry& model_geometry= out_geometry[m];
 
 		unsigned int model_texture_height= model.texture_size[1];
-		if( model.texture_size[1u] > c_max_texture_size[1u] )
+		if( model.texture_size[1u] > c_texture_size[1u] )
 		{
 			Log::Warning( "Model texture height is too big: ", model.texture_size[1u] );
-			model_texture_height= c_max_texture_size[1u];
+			model_texture_height= c_texture_size[1u];
 		}
 
 		// Copy texture into atlas.
-		unsigned char* const texture_dst= textures_data_rgba.data() + 4u * c_texels_in_layer * m;
+		unsigned char* const texture_dst=
+			textures_data_rgba.data() +
+			4u * textures_placement.textures_placement[m].layer * c_texels_in_layer +
+			4u * textures_placement.textures_placement[m].y * c_texture_size[0];
 		for( unsigned int y= 0u; y < model_texture_height; y++ )
 		for( unsigned int x= 0u; x < model.texture_size[0u]; x++ )
 		{
-			const unsigned int i= ( x + y * c_max_texture_size[0u] ) << 2u;
+			const unsigned int i= ( x + y * c_texture_size[0u] ) << 2u;
 			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
 			for( unsigned int j= 0u; j < 3u; j++ )
 				texture_dst[ i + j ]= palette[ color_index * 3u + j ];
 		}
 
-		// Fill free texture space
-		for(
-			unsigned int y= model_texture_height;
-			y < ( ( c_max_texture_size[1u] + model_texture_height ) >> 1u );
-			y++ )
-		{
-			std::memcpy(
-				texture_dst + 4u * c_max_texture_size[0u] * y,
-				texture_dst + 4u * c_max_texture_size[0u] * ( model.texture_size[1u] - 1u ),
-				4u * c_max_texture_size[0u] );
-		}
-		for(
-			unsigned int y= ( c_max_texture_size[1u] + model_texture_height )>> 1u;
-			y < c_max_texture_size[1u];
-			y++ )
-		{
-			std::memcpy(
-				texture_dst + 4u * c_max_texture_size[0u] * y,
-				texture_dst,
-				4u * c_max_texture_size[0u] );
-		}
+		// TODO - fill free texture space
 
 		// Copy vertices, transform textures coordinates, set texture layer.
 		const unsigned int first_vertex_index= vertices.size();
@@ -697,15 +769,18 @@ void MapDrawer::LoadModels(
 
 		const float tex_coord_scaler[2u]=
 		{
-			float(model.texture_size[0u]) / float(c_max_texture_size[0u]),
-			float(model.texture_size[1u]) / float(c_max_texture_size[1u]),
+			float(model.texture_size[0u]) / float(c_texture_size[0u]),
+			float(model.texture_size[1u]) / float(c_texture_size[1u]),
 		};
 		for( unsigned int v= 0u; v < model.vertices.size(); v++ )
 		{
 			vertex[v]= model.vertices[v];
-			vertex[v].texture_id= m;
+			vertex[v].texture_id= textures_placement.textures_placement[m].layer;
 			for( unsigned int j= 0u; j < 2u; j++ )
 				vertex[v].tex_coord[j]*= tex_coord_scaler[j];
+
+			vertex[v].tex_coord[1]+=
+				float(textures_placement.textures_placement[m].y) / float(c_texture_size[1]);
 		}
 
 		// Copy indeces.
@@ -740,7 +815,7 @@ void MapDrawer::LoadModels(
 	glBindTexture( GL_TEXTURE_2D_ARRAY, out_textures_array );
 	glTexImage3D(
 		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
-		c_max_texture_size[0u], c_max_texture_size[1u], model_count,
+		c_texture_size[0u], c_texture_size[1u], textures_placement.layer_count,
 		0, GL_RGBA, GL_UNSIGNED_BYTE, textures_data_rgba.data() );
 
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
