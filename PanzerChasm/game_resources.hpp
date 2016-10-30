@@ -1,6 +1,7 @@
 #pragma once
 
 #include "images.hpp"
+#include "model.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -43,6 +44,8 @@ public:
 
 	std::vector<ItemDescription> items_description;
 	std::vector<MonsterDescription> monsters_description;
+
+	std::vector<Model> items_models;
 };
 
 typedef std::shared_ptr<GameResources> GameResourcesPtr;

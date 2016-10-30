@@ -1,6 +1,7 @@
 #include <cstring>
 #include <sstream>
 
+#include "assert.hpp"
 #include "log.hpp"
 
 #include "game_resources.hpp"
@@ -98,8 +99,34 @@ static void LoadMonstersDescription(
 	}
 }
 
+static void LoadItemsModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.items_models.resize( game_resources.items_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+
+	for( unsigned int i= 0u; i < game_resources.items_models.size(); i++ )
+	{
+		const GameResources::ItemDescription& item_description= game_resources.items_description[i];
+
+		vfs.ReadFile( item_description.model_file_name, file_content );
+
+		if( item_description.animation_file_name[0u] != '\0' )
+			vfs.ReadFile( item_description.animation_file_name, animation_file_content );
+		else
+			animation_file_content.clear();
+
+		LoadModel_o3( file_content, animation_file_content, game_resources.items_models[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
+	PC_ASSERT( vfs != nullptr );
+
 	const GameResourcesPtr result= std::make_shared<GameResources>();
 
 	result->vfs= vfs;
@@ -113,6 +140,8 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 
 	LoadItemsDescription( inf_file, *result );
 	LoadMonstersDescription( inf_file, *result );
+
+	LoadItemsModels( *vfs, *result );
 
 	return result;
 }
