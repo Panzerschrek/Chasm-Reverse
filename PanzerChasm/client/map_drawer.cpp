@@ -198,6 +198,26 @@ void MapDrawer::Draw(
 			floors_geometry_info[z].vertex_count );
 	}
 
+	const auto get_model_matrix=
+	[&]( const m_Vec3& pos, const float angle, m_Mat4& out_mat )
+	{
+		m_Mat4 rotate_mat, shift_mat;
+		rotate_mat.RotateZ( angle );
+		shift_mat.Translate( pos );
+
+		out_mat= rotate_mat * shift_mat * view_matrix;
+	};
+
+	const auto get_lightmap_matrix=
+	[&]( const m_Vec3& pos, const float angle, m_Mat3& out_mat )
+	{
+		m_Mat3 rotate_mat, shift_mat, scale_mat;
+		rotate_mat.RotateZ( angle );
+		shift_mat.Translate( pos.xy() );
+		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+		out_mat= rotate_mat * shift_mat * scale_mat;
+	};
+
 	// Draw static models
 	const auto draw_models=
 	[&]( const bool transparent )
@@ -215,11 +235,13 @@ void MapDrawer::Draw(
 				model_geometry.first_vertex_index +
 				static_model.animation_frame * model_geometry.vertex_count;
 
-			m_Mat4 rotate_mat, shift_mat;
-			rotate_mat.RotateZ( static_model.angle );
-			shift_mat.Translate( static_model.pos );
+			m_Mat4 matrix;
+			get_model_matrix( static_model.pos, static_model.angle, matrix );
+			models_shader_.Uniform( "view_matrix", matrix );
 
-			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+			m_Mat3 lightmap_matrix;
+			get_lightmap_matrix( static_model.pos, static_model.angle, lightmap_matrix );
+			models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 
 			glDrawElementsBaseVertex(
 				GL_TRIANGLES,
@@ -247,11 +269,13 @@ void MapDrawer::Draw(
 				model_geometry.first_vertex_index +
 				item.animation_frame * model_geometry.vertex_count;
 
-			m_Mat4 rotate_mat, shift_mat;
-			rotate_mat.RotateZ( item.angle );
-			shift_mat.Translate( item.pos );
+			m_Mat4 matrix;
+			get_model_matrix( item.pos, item.angle, matrix );
+			models_shader_.Uniform( "view_matrix", matrix );
 
-			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+			m_Mat3 lightmap_matrix;
+			get_lightmap_matrix( item.pos, item.angle, lightmap_matrix );
+			models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 
 			glDrawElementsBaseVertex(
 				GL_TRIANGLES,
@@ -267,7 +291,9 @@ void MapDrawer::Draw(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	lightmap_.Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
 
 	r_OGLStateManager::UpdateState( g_models_gl_state );
 	draw_models( false );
@@ -277,7 +303,9 @@ void MapDrawer::Draw(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	lightmap_.Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
 
 	r_OGLStateManager::UpdateState( g_models_gl_state );
 	draw_items( false );
@@ -290,7 +318,9 @@ void MapDrawer::Draw(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	lightmap_.Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	draw_models( true );
@@ -300,7 +330,9 @@ void MapDrawer::Draw(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	lightmap_.Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	draw_items( true );
