@@ -283,8 +283,8 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		wall.vert_pos[1].x= float(map_wall.vert_coord[1][0]) * g_map_coords_scale;
 		wall.vert_pos[1].y= float(map_wall.vert_coord[1][1]) * g_map_coords_scale;
 
-		wall.vert_tex_coord[0]= 0.0f;
-		wall.vert_tex_coord[1]= float(map_wall.wall_size) / 128.0f;
+		wall.vert_tex_coord[0]= float(map_wall.wall_size) / 128.0f;
+		wall.vert_tex_coord[1]= 0.0f;
 
 		wall.texture_id= map_wall.texture_id;
 	} // for xy
