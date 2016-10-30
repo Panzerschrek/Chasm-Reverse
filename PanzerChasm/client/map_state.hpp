@@ -28,12 +28,24 @@ public:
 
 	typedef std::vector<StaticModel> StaticModels;
 
+	struct Item
+	{
+		m_Vec3 pos;
+		float angle;
+		unsigned char item_id;
+		bool picked_up;
+		unsigned int animation_frame;
+	};
+
+	typedef std::vector<Item> Items;
+
 public:
 	explicit MapState( const MapDataConstPtr& map );
 	~MapState();
 
 	const DynamicWalls& GetDynamicWalls() const;
 	const StaticModels& GetStaticModels() const;
+	const Items& GetItems() const;
 
 	void ProcessMessage( const Messages::EntityState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
@@ -46,6 +58,7 @@ private:
 
 	DynamicWalls dynamic_walls_;
 	StaticModels static_models_;
+	Items items_;
 };
 
 } // namespace PanzerChasm

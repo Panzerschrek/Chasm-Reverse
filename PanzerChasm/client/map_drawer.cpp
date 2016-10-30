@@ -67,6 +67,14 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &floor_textures_array_id_ );
 	glGenTextures( 1, &wall_textures_array_id_ );
 	glGenTextures( 1, &models_textures_array_id_ );
+	glGenTextures( 1, &items_textures_array_id_ );
+
+	// Items
+	LoadModels(
+		game_resources_->items_models,
+		items_geometry_,
+		items_geometry_data_,
+		items_textures_array_id_ );
 
 	// Shaders
 	char lightmap_scale[32];
@@ -104,6 +112,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &floor_textures_array_id_ );
 	glDeleteTextures( 1, &wall_textures_array_id_ );
 	glDeleteTextures( 1, &models_textures_array_id_ );
+	glDeleteTextures( 1, &items_textures_array_id_ );
 }
 
 void MapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -117,7 +126,11 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	LoadFloors( *map_data );
 	LoadWalls( *map_data );
 
-	LoadModels( *map_data );
+	LoadModels(
+		map_data->models,
+		models_geometry_,
+		models_geometry_data_,
+		models_textures_array_id_ );
 
 	lightmap_=
 		r_Texture(
@@ -217,6 +230,38 @@ void MapDrawer::Draw(
 		}
 	};
 
+	// Items
+	const auto draw_items=
+	[&]( const bool transparent )
+	{
+		for( const MapState::Item& item : map_state.GetItems() )
+		{
+			if( item.picked_up || item.item_id >= items_geometry_.size() )
+				continue;
+
+			const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
+
+			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+			const unsigned int first_vertex=
+				model_geometry.first_vertex_index +
+				item.animation_frame * model_geometry.vertex_count;
+
+			m_Mat4 rotate_mat, shift_mat;
+			rotate_mat.RotateZ( item.angle );
+			shift_mat.Translate( item.pos );
+
+			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				first_vertex );
+		}
+	};
+
 	models_geometry_data_.Bind();
 	models_shader_.Bind();
 
@@ -227,8 +272,38 @@ void MapDrawer::Draw(
 	r_OGLStateManager::UpdateState( g_models_gl_state );
 	draw_models( false );
 
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_models_gl_state );
+	draw_items( false );
+
+	/*
+	TRANSPARENT SECTION
+	*/
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	draw_models( true );
+
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
+	draw_items( true );
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )
@@ -513,12 +588,16 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 	setup_attribs( dynamic_walls_geometry_ );
 }
 
-void MapDrawer::LoadModels( const MapData& map_data )
+void MapDrawer::LoadModels(
+	const std::vector<Model>& models,
+	std::vector<ModelGeometry>& out_geometry,
+	r_PolygonBuffer& out_geometry_data,
+	GLuint& out_textures_array ) const
 {
 	const Palette& palette= game_resources_->palette;
 
-	const unsigned int model_count= map_data.models.size();
-	models_geometry_.resize( model_count );
+	const unsigned int model_count= models.size();
+	out_geometry.resize( model_count );
 
 	// TODO - use atlas instead textures array
 	const unsigned int c_max_texture_size[2]= { 64u, 1024u };
@@ -530,15 +609,13 @@ void MapDrawer::LoadModels( const MapData& map_data )
 
 	for( unsigned int m= 0u; m < model_count; m++ )
 	{
-		const Model& model= map_data.models[m];
-		ModelGeometry& model_geometry= models_geometry_[m];
+		const Model& model= models[m];
+		ModelGeometry& model_geometry= out_geometry[m];
 
 		unsigned int model_texture_height= model.texture_size[1];
 		if( model.texture_size[1u] > c_max_texture_size[1u] )
 		{
-			Log::Warning(
-				"Model \"" , map_data.models_description[m].file_name,
-				"\" texture height is too big: ", model.texture_size[1u] );
+			Log::Warning( "Model texture height is too big: ", model.texture_size[1u] );
 			model_texture_height= c_max_texture_size[1u];
 		}
 
@@ -622,7 +699,7 @@ void MapDrawer::LoadModels( const MapData& map_data )
 	} // for models
 
 	// Prepare texture.
-	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, out_textures_array );
 	glTexImage3D(
 		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
 		c_max_texture_size[0u], c_max_texture_size[1u], model_count,
@@ -633,27 +710,27 @@ void MapDrawer::LoadModels( const MapData& map_data )
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
 	// Prepare vertex and index buffer.
-	models_geometry_data_.VertexData(
+	out_geometry_data.VertexData(
 		vertices.data(),
 		vertices.size() * sizeof(Model::Vertex),
 		sizeof(Model::Vertex) );
 
-	models_geometry_data_.IndexData(
+	out_geometry_data.IndexData(
 		indeces.data(),
 		indeces.size() * sizeof(unsigned short),
 		GL_UNSIGNED_SHORT,
 		GL_TRIANGLES );
 
 	Model::Vertex v;
-	models_geometry_data_.VertexAttribPointer(
+	out_geometry_data.VertexAttribPointer(
 		0, 3, GL_FLOAT, false,
 		((char*)v.pos) - ((char*)&v) );
 
-	models_geometry_data_.VertexAttribPointer(
+	out_geometry_data.VertexAttribPointer(
 		1, 3, GL_FLOAT, false,
 		((char*)v.tex_coord) - ((char*)&v) );
 
-	models_geometry_data_.VertexAttribPointerInt(
+	out_geometry_data.VertexAttribPointerInt(
 		2, 1, GL_UNSIGNED_BYTE,
 		((char*)&v.texture_id) - ((char*)&v) );
 }
