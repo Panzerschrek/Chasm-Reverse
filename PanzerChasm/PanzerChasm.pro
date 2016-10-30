@@ -64,6 +64,7 @@ HEADERS+= \
 	messages_sender.hpp \
 	model.hpp \
 	rendering_context.hpp \
+	server/a_code.hpp \
 	server/map.hpp \
 	server/player.hpp \
 	server/server.hpp \
