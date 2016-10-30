@@ -7,8 +7,15 @@ namespace PanzerChasm
 
 static const float g_walls_coord_scale= 256.0f;
 
-MapState::MapState( const MapDataConstPtr& map )
+static const float g_animations_frames_per_second= 20.0f;
+
+MapState::MapState(
+	const MapDataConstPtr& map,
+	const GameResourcesConstPtr& game_resources,
+	const Time map_start_time )
 	: map_data_(map)
+	, game_resources_(game_resources)
+	, map_start_time_(map_start_time)
 {
 	PC_ASSERT( map_data_ != nullptr );
 
@@ -68,6 +75,18 @@ const MapState::StaticModels& MapState::GetStaticModels() const
 const MapState::Items& MapState::GetItems() const
 {
 	return items_;
+}
+
+void MapState::Tick( Time current_time )
+{
+	const float time_since_map_start_s= ( current_time - map_start_time_ ).ToSeconds();
+	for( Item& item : items_ )
+	{
+		const unsigned int animation_frame=
+			static_cast<unsigned int>( std::round( g_animations_frames_per_second * time_since_map_start_s ) );
+
+		item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
+	}
 }
 
 void MapState::ProcessMessage( const Messages::EntityState& message )

@@ -69,6 +69,10 @@ void Client::Loop()
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
 	camera_controller_.Tick();
+	if( map_state_ != nullptr )
+	{
+		map_state_->Tick( Time::CurrentTime() );
+	}
 
 	if( connection_info_ != nullptr )
 	{
@@ -140,7 +144,7 @@ void Client::operator()( const Messages::MapChange& message )
 	}
 
 	map_drawer_.SetMap( map_data );
-	map_state_.reset( new MapState( map_data ) );
+	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 
 	current_map_data_= map_data;
 }

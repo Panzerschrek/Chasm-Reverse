@@ -1,6 +1,8 @@
 #pragma once
+#include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../messages.hpp"
+#include "../time.hpp"
 
 namespace PanzerChasm
 {
@@ -40,12 +42,17 @@ public:
 	typedef std::vector<Item> Items;
 
 public:
-	explicit MapState( const MapDataConstPtr& map );
+	MapState(
+		const MapDataConstPtr& map,
+		const GameResourcesConstPtr& game_resources,
+		Time map_start_time );
 	~MapState();
 
 	const DynamicWalls& GetDynamicWalls() const;
 	const StaticModels& GetStaticModels() const;
 	const Items& GetItems() const;
+
+	void Tick( Time current_time );
 
 	void ProcessMessage( const Messages::EntityState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
@@ -55,6 +62,8 @@ public:
 
 private:
 	const MapDataConstPtr map_data_;
+	const GameResourcesConstPtr game_resources_;
+	const Time map_start_time_;
 
 	DynamicWalls dynamic_walls_;
 	StaticModels static_models_;
