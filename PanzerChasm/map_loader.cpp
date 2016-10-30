@@ -214,7 +214,7 @@ void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_dat
 	for( unsigned int x= 0u; x < MapData::c_lightmap_size - 1u; x++ )
 	{
 		map_data.lightmap[ x + 1u + y * MapData::c_lightmap_size ]=
-			255u - ( ( in_data[ x + y * MapData::c_lightmap_size ] - 3u ) * 6u );
+			255u - in_data[ x + y * MapData::c_lightmap_size ] * 6u;
 	}
 }
 
