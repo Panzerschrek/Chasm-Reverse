@@ -35,12 +35,29 @@ private:
 		unsigned int vertex_count;
 	};
 
+	struct ModelGeometry
+	{
+		unsigned int frame_count;
+		unsigned int vertex_count;
+		unsigned int first_vertex_index;
+		unsigned int first_index;
+		unsigned int index_count;
+		unsigned int first_transparent_index;
+		unsigned int transparent_index_count;
+	};
+
 private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
 
 	void LoadFloors( const MapData& map_data );
 	void LoadWalls( const MapData& map_data );
+
+	void LoadModels(
+		const std::vector<Model>& models,
+		std::vector<ModelGeometry>& out_geometry,
+		r_PolygonBuffer& out_geometry_data,
+		GLuint& out_textures_array ) const;
 
 	void UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls );
 
@@ -54,6 +71,8 @@ private:
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
+	GLuint models_textures_array_id_= ~0;
+	GLuint items_textures_array_id_= ~0;
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
@@ -65,6 +84,14 @@ private:
 
 	r_PolygonBuffer dynamic_walls_geometry_;
 	std::vector<WallVertex> dynamc_walls_vertices_;
+
+	r_GLSLProgram models_shader_;
+
+	std::vector<ModelGeometry> models_geometry_;
+	r_PolygonBuffer models_geometry_data_;
+
+	std::vector<ModelGeometry> items_geometry_;
+	r_PolygonBuffer items_geometry_data_;
 };
 
 } // PanzerChasm

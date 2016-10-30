@@ -70,6 +70,9 @@ void Client::Loop()
 
 	camera_controller_.Tick();
 
+	if( map_state_ != nullptr )
+		map_state_->Tick( Time::CurrentTime() );
+
 	if( connection_info_ != nullptr )
 	{
 		float move_direction, move_acceleration;
@@ -123,6 +126,12 @@ void Client::operator()( const Messages::PlayerPosition& message )
 		player_position_.ToArr()[j]= float(message.xyz[j]) / 256.0f;
 }
 
+void Client::operator()( const Messages::StaticModelState& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 void Client::operator()( const Messages::MapChange& message )
 {
 	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
@@ -134,7 +143,7 @@ void Client::operator()( const Messages::MapChange& message )
 	}
 
 	map_drawer_.SetMap( map_data );
-	map_state_.reset( new MapState( map_data ) );
+	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 
 	current_map_data_= map_data;
 }

@@ -34,6 +34,7 @@ public: // Messages handlers
 	void operator()( const Messages::EntityState& message );
 	void operator()( const Messages::WallPosition& message );
 	void operator()( const Messages::PlayerPosition& message );
+	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::MapChange& message );
 	void operator()( const Messages::EntityBirth& message );
 	void operator()( const Messages::EntityDeath& message );

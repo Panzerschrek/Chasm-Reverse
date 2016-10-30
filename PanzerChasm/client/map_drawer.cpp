@@ -25,6 +25,14 @@ const r_OGLState g_walls_gl_state(
 
 const r_OGLState g_floors_gl_state= g_walls_gl_state;
 
+const r_OGLState g_models_gl_state(
+	false, true, true, false,
+	g_gl_state_blend_func );
+
+const r_OGLState g_transparent_models_gl_state(
+	true, true, true, false,
+	g_gl_state_blend_func );
+
 } // namespace
 
 struct FloorVertex
@@ -58,6 +66,15 @@ MapDrawer::MapDrawer(
 	// Textures
 	glGenTextures( 1, &floor_textures_array_id_ );
 	glGenTextures( 1, &wall_textures_array_id_ );
+	glGenTextures( 1, &models_textures_array_id_ );
+	glGenTextures( 1, &items_textures_array_id_ );
+
+	// Items
+	LoadModels(
+		game_resources_->items_models,
+		items_geometry_,
+		items_geometry_data_,
+		items_textures_array_id_ );
 
 	// Shaders
 	char lightmap_scale[32];
@@ -80,12 +97,22 @@ MapDrawer::MapDrawer(
 	walls_shader_.SetAttribLocation( "tex_id", 2u );
 	walls_shader_.SetAttribLocation( "normal", 3u );
 	walls_shader_.Create();
+
+	models_shader_.ShaderSource(
+		rLoadShader( "models_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "models_v.glsl", rendering_context.glsl_version ) );
+	models_shader_.SetAttribLocation( "pos", 0u );
+	models_shader_.SetAttribLocation( "tex_coord", 1u );
+	models_shader_.SetAttribLocation( "tex_id", 2u );
+	models_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
 {
 	glDeleteTextures( 1, &floor_textures_array_id_ );
 	glDeleteTextures( 1, &wall_textures_array_id_ );
+	glDeleteTextures( 1, &models_textures_array_id_ );
+	glDeleteTextures( 1, &items_textures_array_id_ );
 }
 
 void MapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -98,6 +125,12 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	LoadWallsTextures( *map_data );
 	LoadFloors( *map_data );
 	LoadWalls( *map_data );
+
+	LoadModels(
+		map_data->models,
+		models_geometry_,
+		models_geometry_data_,
+		models_textures_array_id_ );
 
 	lightmap_=
 		r_Texture(
@@ -164,6 +197,113 @@ void MapDrawer::Draw(
 			floors_geometry_info[z].first_vertex_number,
 			floors_geometry_info[z].vertex_count );
 	}
+
+	// Draw static models
+	const auto draw_models=
+	[&]( const bool transparent )
+	{
+		for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+		{
+			if( static_model.model_id >= models_geometry_.size() )
+				continue;
+
+			const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
+
+			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+			const unsigned int first_vertex=
+				model_geometry.first_vertex_index +
+				static_model.animation_frame * model_geometry.vertex_count;
+
+			m_Mat4 rotate_mat, shift_mat;
+			rotate_mat.RotateZ( static_model.angle );
+			shift_mat.Translate( static_model.pos );
+
+			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				first_vertex );
+		}
+	};
+
+	// Items
+	const auto draw_items=
+	[&]( const bool transparent )
+	{
+		for( const MapState::Item& item : map_state.GetItems() )
+		{
+			if( item.picked_up || item.item_id >= items_geometry_.size() )
+				continue;
+
+			const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
+
+			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+			const unsigned int first_vertex=
+				model_geometry.first_vertex_index +
+				item.animation_frame * model_geometry.vertex_count;
+
+			m_Mat4 rotate_mat, shift_mat;
+			rotate_mat.RotateZ( item.angle );
+			shift_mat.Translate( item.pos );
+
+			models_shader_.Uniform( "view_matrix", rotate_mat * shift_mat * view_matrix );
+
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				first_vertex );
+		}
+	};
+
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_models_gl_state );
+	draw_models( false );
+
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_models_gl_state );
+	draw_items( false );
+
+	/*
+	TRANSPARENT SECTION
+	*/
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
+	draw_models( true );
+
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+
+	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
+	draw_items( true );
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )
@@ -446,6 +586,153 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 		GL_TRIANGLES );
 
 	setup_attribs( dynamic_walls_geometry_ );
+}
+
+void MapDrawer::LoadModels(
+	const std::vector<Model>& models,
+	std::vector<ModelGeometry>& out_geometry,
+	r_PolygonBuffer& out_geometry_data,
+	GLuint& out_textures_array ) const
+{
+	const Palette& palette= game_resources_->palette;
+
+	const unsigned int model_count= models.size();
+	out_geometry.resize( model_count );
+
+	// TODO - use atlas instead textures array
+	const unsigned int c_max_texture_size[2]= { 64u, 1024u };
+	const unsigned int c_texels_in_layer= c_max_texture_size[0u] * c_max_texture_size[1u];
+	std::vector<unsigned char> textures_data_rgba( 4u * c_texels_in_layer * model_count, 0u );
+
+	std::vector<unsigned  short> indeces;
+	std::vector<Model::Vertex> vertices;
+
+	for( unsigned int m= 0u; m < model_count; m++ )
+	{
+		const Model& model= models[m];
+		ModelGeometry& model_geometry= out_geometry[m];
+
+		unsigned int model_texture_height= model.texture_size[1];
+		if( model.texture_size[1u] > c_max_texture_size[1u] )
+		{
+			Log::Warning( "Model texture height is too big: ", model.texture_size[1u] );
+			model_texture_height= c_max_texture_size[1u];
+		}
+
+		// Copy texture into atlas.
+		unsigned char* const texture_dst= textures_data_rgba.data() + 4u * c_texels_in_layer * m;
+		for( unsigned int y= 0u; y < model_texture_height; y++ )
+		for( unsigned int x= 0u; x < model.texture_size[0u]; x++ )
+		{
+			const unsigned int i= ( x + y * c_max_texture_size[0u] ) << 2u;
+			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
+			for( unsigned int j= 0u; j < 3u; j++ )
+				texture_dst[ i + j ]= palette[ color_index * 3u + j ];
+		}
+
+		// Fill free texture space
+		for(
+			unsigned int y= model_texture_height;
+			y < ( ( c_max_texture_size[1u] + model_texture_height ) >> 1u );
+			y++ )
+		{
+			std::memcpy(
+				texture_dst + 4u * c_max_texture_size[0u] * y,
+				texture_dst + 4u * c_max_texture_size[0u] * ( model.texture_size[1u] - 1u ),
+				4u * c_max_texture_size[0u] );
+		}
+		for(
+			unsigned int y= ( c_max_texture_size[1u] + model_texture_height )>> 1u;
+			y < c_max_texture_size[1u];
+			y++ )
+		{
+			std::memcpy(
+				texture_dst + 4u * c_max_texture_size[0u] * y,
+				texture_dst,
+				4u * c_max_texture_size[0u] );
+		}
+
+		// Copy vertices, transform textures coordinates, set texture layer.
+		const unsigned int first_vertex_index= vertices.size();
+		vertices.resize( vertices.size() + model.vertices.size() );
+		Model::Vertex* const vertex= vertices.data() + first_vertex_index;
+
+		const float tex_coord_scaler[2u]=
+		{
+			float(model.texture_size[0u]) / float(c_max_texture_size[0u]),
+			float(model.texture_size[1u]) / float(c_max_texture_size[1u]),
+		};
+		for( unsigned int v= 0u; v < model.vertices.size(); v++ )
+		{
+			vertex[v]= model.vertices[v];
+			vertex[v].texture_id= m;
+			for( unsigned int j= 0u; j < 2u; j++ )
+				vertex[v].tex_coord[j]*= tex_coord_scaler[j];
+		}
+
+		// Copy indeces.
+		const unsigned int first_index= indeces.size();
+		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
+		unsigned short* const ind= indeces.data() + first_index;
+
+		std::memcpy(
+			ind,
+			model.regular_triangles_indeces.data(),
+			model.regular_triangles_indeces.size() * sizeof(unsigned short) );
+
+		std::memcpy(
+			ind + model.regular_triangles_indeces.size(),
+			model.transparent_triangles_indeces.data(),
+			model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
+
+		// Setup geometry info.
+		model_geometry.frame_count= model.frame_count;
+		model_geometry.vertex_count= model.vertices.size() / model.frame_count;
+		model_geometry.first_vertex_index= first_vertex_index;
+
+		model_geometry.first_index= first_index;
+		model_geometry.index_count= model.regular_triangles_indeces.size();
+
+		model_geometry.first_transparent_index= first_index + model.regular_triangles_indeces.size();
+		model_geometry.transparent_index_count= model.transparent_triangles_indeces.size();
+
+	} // for models
+
+	// Prepare texture.
+	glBindTexture( GL_TEXTURE_2D_ARRAY, out_textures_array );
+	glTexImage3D(
+		GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+		c_max_texture_size[0u], c_max_texture_size[1u], model_count,
+		0, GL_RGBA, GL_UNSIGNED_BYTE, textures_data_rgba.data() );
+
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+
+	// Prepare vertex and index buffer.
+	out_geometry_data.VertexData(
+		vertices.data(),
+		vertices.size() * sizeof(Model::Vertex),
+		sizeof(Model::Vertex) );
+
+	out_geometry_data.IndexData(
+		indeces.data(),
+		indeces.size() * sizeof(unsigned short),
+		GL_UNSIGNED_SHORT,
+		GL_TRIANGLES );
+
+	Model::Vertex v;
+	out_geometry_data.VertexAttribPointer(
+		0, 3, GL_FLOAT, false,
+		((char*)v.pos) - ((char*)&v) );
+
+	out_geometry_data.VertexAttribPointer(
+		1, 3, GL_FLOAT, false,
+		((char*)v.tex_coord) - ((char*)&v) );
+
+	out_geometry_data.VertexAttribPointerInt(
+		2, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.texture_id) - ((char*)&v) );
 }
 
 void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls )

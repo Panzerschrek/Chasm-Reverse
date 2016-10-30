@@ -13,6 +13,7 @@ enum class MessageId : unsigned char
 	EntityState, // State of mosters, items, other players.
 	WallPosition,
 	PlayerPosition, // position of player, which recieve this message.
+	StaticModelState,
 
 	// Reliable server to client
 	MapChange,
@@ -59,6 +60,20 @@ struct WallPosition : public MessageBase
 struct PlayerPosition : public MessageBase
 {
 	short xyz[3];
+};
+
+struct StaticModelState : public MessageBase
+{
+	unsigned short static_model_index;
+	short xyz[2];
+	unsigned short angle;
+	unsigned short animation_frame;
+
+	// If true, client must play looped animation starts from frame.
+	// If false - only one model frame drawn.
+	bool animation_playing;
+
+	unsigned char model_id;
 };
 
 struct MapChange : public MessageBase

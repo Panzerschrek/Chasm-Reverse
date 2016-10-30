@@ -30,12 +30,12 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	movement_direction_= move_message.angle / 65536.0f * Constants::two_pi;;
 }
 
-void Player::Move( float time_delta_s )
+void Player::Move( const Time time_delta )
 {
 	const float c_max_speed= 5.0f;
 	const float speed= c_max_speed * mevement_acceleration_;
 
-	const float delta= time_delta_s * speed;
+	const float delta= time_delta.ToSeconds() * speed;
 
 	pos_.x+= delta * std::cos( movement_direction_ );
 	pos_.y+= delta * std::sin( movement_direction_ );

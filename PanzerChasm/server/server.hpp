@@ -1,9 +1,9 @@
 #pragma once
-#include <chrono>
 
 #include "../connection_info.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "../time.hpp"
 #include "i_connections_listener.hpp"
 #include "map.hpp"
 #include "player.hpp"
@@ -47,9 +47,9 @@ private:
 
 	std::unique_ptr<ConnectionInfo> connection_;
 
-	const std::chrono::milliseconds startup_time_;
-	std::chrono::milliseconds last_tick_;
-	float last_tick_duration_s_;
+	const Time startup_time_;
+	Time last_tick_;
+	Time last_tick_duration_;
 
 	Player player_;
 };

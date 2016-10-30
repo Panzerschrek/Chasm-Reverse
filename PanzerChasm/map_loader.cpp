@@ -195,6 +195,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );
 
+	LoadModels( *result );
+
 	// Cache result and return it
 	last_loaded_map_number_= map_number;
 	last_loaded_map_= result;
@@ -236,8 +238,13 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 			if( map_wall.texture_id >= c_first_model )
 			{
+				// Presumably, this is mask of difficulty.
+				// bit 0 - easy, 1 - normal, 2 - hard, 3 - deathmatch
+				const unsigned int difficulty_levels_mask= map_wall.vert_coord[1][0] & 7u;
+				PC_UNUSED( difficulty_levels_mask );
+
 				map_data.static_models.emplace_back();
-				MapData::Model& model= map_data.static_models.back();
+				MapData::StaticModel& model= map_data.static_models.back();
 				model.pos.x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
@@ -354,19 +361,18 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 
 		std::istringstream line_stream{ std::string( line ) };
 
-		double num;
-		line_stream >> num; // GoRad
-		line_stream >> num; // Shad
-		line_stream >> num; // BObj
-		line_stream >> num; // BMPz
-		line_stream >> num; // AC
-		line_stream >> num; // Blw
-		line_stream >> num; // BLmt
-		line_stream >> num; // SFX
-		line_stream >> num; // BSfx
-
 		map_data.models_description.emplace_back();
 		MapData::ModelDescription& model_description= map_data.models_description.back();
+
+		line_stream >> model_description.radius; // GoRad
+		line_stream >> model_description.cast_shadow; // Shad
+		line_stream >> model_description.bobj; // BObj
+		line_stream >> model_description.bmpz; // BMPz
+		line_stream >> model_description.ac; // AC
+		line_stream >> model_description.blw; // Blw
+		line_stream >> model_description.blmt; // BLmt
+		line_stream >> model_description.ambient_sfx_number; // SFX
+		line_stream >> model_description.break_sfx_number; // BSfx
 
 		line_stream >> model_description.file_name; // FileName
 
@@ -453,12 +459,22 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 			if( !line_stream.fail() && message_number != 0 )
 				LoadMessage( message_number, stream, map_data );
 		}
-		else if( std::strcmp( thing_type, "#proc" ) == 0 )
+		else if( std::strncmp( thing_type, "#proc", std::strlen("#proc" ) ) == 0 )
 		{
-			unsigned int procedure_number= 0;
-			line_stream >> procedure_number;
-			if( !line_stream.fail() && procedure_number != 0 )
-				LoadProcedure( procedure_number, stream, map_data );
+			// catch something, like #proc42
+			if( std::strlen( thing_type ) > std::strlen( "#proc" ) )
+			{
+				const unsigned int procedure_number= std::atoi( thing_type + std::strlen( "#proc" ) );
+				if( procedure_number != 0u && procedure_number < 1000 )
+					LoadProcedure( procedure_number, stream, map_data );
+			}
+			else
+			{
+				unsigned int procedure_number= 0;
+				line_stream >> procedure_number;
+				if( !line_stream.fail() && procedure_number != 0 )
+					LoadProcedure( procedure_number, stream, map_data );
+			}
 		}
 		else if( std::strcmp( thing_type, "#links" ) == 0 )
 			LoadLinks( stream, map_data );
@@ -628,9 +644,11 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 
 		std::istringstream line_stream{ std::string( line ) };
 
-		char link_type[32];
+		char link_type[512];
 		line_stream >> link_type;
 		if( line_stream.fail() )
+			continue;
+		if( link_type[0] == ';' )
 			continue;
 		if( std::strcmp( link_type, "#end" ) == 0 )
 			break;
@@ -671,6 +689,28 @@ void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out
 			}
 		} // for commands
 	} // for procedures
+}
+
+void MapLoader::LoadModels( MapData& map_data )
+{
+	map_data.models.resize( map_data.models_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+
+	for( unsigned int m= 0u; m < map_data.models.size(); m++ )
+	{
+		const MapData::ModelDescription& model_description= map_data.models_description[m];
+
+		vfs_->ReadFile( model_description.file_name, file_content );
+
+		if( model_description.animation_file_name[0u] != '\0' )
+			vfs_->ReadFile( model_description.animation_file_name, animation_file_content );
+		else
+			animation_file_content.clear();
+
+		LoadModel_o3( file_content, animation_file_content, map_data.models[m] );
+	} // for models
 }
 
 } // namespace PanzerChasm

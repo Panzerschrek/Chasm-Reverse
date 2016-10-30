@@ -20,6 +20,7 @@ SOURCES+= \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
 	connection_info.cpp \
+	game_resources.cpp \
 	host.cpp \
 	images.cpp \
 	log.cpp \
@@ -30,10 +31,12 @@ SOURCES+= \
 	menu_drawer.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
+	model.cpp \
 	server/map.cpp \
 	server/player.cpp \
 	server/server.cpp \
 	system_window.cpp \
+	time.cpp \
 	text_draw.cpp \
 	vfs.cpp \
 
@@ -59,7 +62,9 @@ HEADERS+= \
 	messages_extractor.hpp \
 	messages_extractor.inl \
 	messages_sender.hpp \
+	model.hpp \
 	rendering_context.hpp \
+	server/a_code.hpp \
 	server/map.hpp \
 	server/player.hpp \
 	server/server.hpp \
@@ -67,6 +72,7 @@ HEADERS+= \
 	system_event.hpp \
 	system_window.hpp \
 	text_draw.hpp \
+	time.hpp \
 	vfs.hpp \
 
 SOURCES+= \
@@ -93,5 +99,3 @@ HEADERS+= \
 	../../panzer_ogl_lib/glsl_program.hpp \
 	../../panzer_ogl_lib/matrix.hpp \
 	../../panzer_ogl_lib/bbox.hpp \
-
-

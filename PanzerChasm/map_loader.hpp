@@ -5,6 +5,7 @@
 #include <vec.hpp>
 
 #include "assert.hpp"
+#include "model.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -35,7 +36,7 @@ public:
 		unsigned char texture_id;
 	};
 
-	struct Model
+	struct StaticModel
 	{
 		m_Vec2 pos;
 		float angle;
@@ -60,6 +61,28 @@ public:
 	{
 		char file_name[ c_max_file_name_size ];
 		char animation_file_name[ c_max_file_name_size ]; // May be empty
+
+		// Radius for collisions.
+		// 0 - object is passable.
+		float radius;
+
+		bool cast_shadow;
+		int bobj; // unknown
+		int bmpz; // unknown
+
+		// Something, like game obejct id.
+		// For keys models - 141, 142, 143.
+		// For switches - 255
+		int ac;
+
+		int blw; // unknown
+
+		// "Break limit", maybe. Zero for non-breakable objects.
+		// When object breaks, it changes model to next in list.
+		int blmt;
+
+		unsigned int ambient_sfx_number;
+		unsigned int break_sfx_number;
 	};
 
 	struct IndexElement
@@ -169,11 +192,12 @@ public:
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
-	std::vector<Model> static_models;
+	std::vector<StaticModel> static_models;
 	std::vector<Item> items;
 	std::vector<Monster> monsters;
 
 	std::vector<ModelDescription> models_description;
+	std::vector<Model> models;
 
 	std::vector<Message> messages;
 	std::vector<Procedure> procedures;
@@ -227,6 +251,8 @@ private:
 	void LoadLinks( std::istringstream& stream, MapData& map_data );
 
 	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
+
+	void LoadModels( MapData& map_data );
 
 private:
 	const VfsPtr vfs_;

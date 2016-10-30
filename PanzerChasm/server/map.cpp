@@ -9,7 +9,11 @@ namespace PanzerChasm
 
 static const float g_commands_coords_scale= 1.0f / 256.0f;
 
-Map::Map( const MapDataConstPtr& map_data )
+static const float g_animations_frames_per_second= 20.0f;
+
+Map::Map(
+	const MapDataConstPtr& map_data,
+	const Time map_start_time )
 	: map_data_(map_data)
 {
 	PC_ASSERT( map_data_ );
@@ -22,13 +26,29 @@ Map::Map( const MapDataConstPtr& map_data )
 	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
+
+	static_models_.resize( map_data_->static_models.size() );
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const MapData::StaticModel& in_model= map_data_->static_models[m];
+		StaticModel& out_model= static_models_[m];
+
+		out_model.model_id= in_model.model_id;
+
+		out_model.pos= m_Vec3( in_model.pos, 0.0f );
+		out_model.angle= in_model.angle;
+
+		out_model.animation_state= StaticModel::AnimationState::Animation;
+		out_model.animation_start_time= map_start_time;
+		out_model.animation_start_frame= 0u;
+	}
 }
 
 Map::~Map()
 {}
 
 void Map::ProcessPlayerPosition(
-	const TimePoint current_time,
+	const Time current_time,
 	Player& player,
 	MessagesSender& messages_sender )
 {
@@ -123,7 +143,7 @@ void Map::ProcessPlayerPosition(
 	}
 }
 
-void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
+void Map::Tick( const Time current_time )
 {
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -131,8 +151,8 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
 
-		const float stage_delta= frame_delta * procedure.speed / 10.0f;
-		const float new_stage= procedure_state.movement_stage + stage_delta;
+		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
+		const float new_stage= time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f;
 
 		switch( procedure_state.movement_state )
 		{
@@ -152,10 +172,10 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 		case ProcedureState::MovementState::BackWait:
 		{
-			const TimeInterval wait_time= current_time - procedure_state.last_state_change_time;
+			const Time wait_time= current_time - procedure_state.last_state_change_time;
 			if(
 				procedure.back_wait_s > 0.0f &&
-				wait_time >= procedure.back_wait_s )
+				wait_time.ToSeconds() >= procedure.back_wait_s )
 			{
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 				procedure_state.movement_stage= 0.0f;
@@ -224,6 +244,17 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 					}
 					wall.z= 0.0f;
 				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos=
+						m_Vec3(
+							map_model.pos + m_Vec2( dx, dy ) * absolute_action_stage,
+							0.0f );
+				}
 			}
 				break;
 
@@ -260,6 +291,14 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 					}
 					wall.z= 0.0f;
 				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.angle= map_model.angle + angle * absolute_action_stage;
+				}
 			}
 				break;
 
@@ -285,6 +324,14 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 						wall.vert_pos[v]= map_wall.vert_pos[v];
 					wall.z= height * absolute_action_stage;
 				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos= m_Vec3( map_model.pos, height );
+				}
 			}
 				break;
 
@@ -296,6 +343,22 @@ void Map::Tick( const TimePoint current_time, const TimeInterval frame_delta )
 
 	} // for procedures
 
+	// Process static models
+	for( StaticModel& model : static_models_ )
+	{
+		if( model.animation_state == StaticModel::AnimationState::Animation )
+		{
+			const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
+			const float animation_frame= time_delta_s * g_animations_frames_per_second;
+
+			const unsigned int animation_frame_count= map_data_->models[ model.model_id ].frame_count;
+
+			model.current_animation_frame=
+				static_cast<unsigned int>( std::round(animation_frame) ) % animation_frame_count;
+		}
+		else
+			model.current_animation_frame= model.animation_start_frame;
+	} // for static models
 }
 
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
@@ -315,6 +378,28 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		wall_message.z= short( wall.z * 256.0f );
 
 		messages_sender.SendUnreliableMessage( wall_message );
+	}
+
+	Messages::StaticModelState model_message;
+	model_message.message_id= MessageId::StaticModelState;
+
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+
+		model_message.static_model_index= m;
+		model_message.animation_frame= model.current_animation_frame;
+		model_message.animation_playing= model.animation_state == StaticModel::AnimationState::Animation;
+		model_message.model_id= model.model_id;
+		if( model.destroyed )
+			model_message.model_id++;
+
+		for( unsigned int j= 0u; j < 3u; j++ )
+			model_message.xyz[j]= short( model.pos.ToArr()[j] * 256.0f );
+
+		model_message.angle= static_cast<unsigned short>( 65536.0f * model.angle / Constants::two_pi );
+
+		messages_sender.SendUnreliableMessage( model_message );
 	}
 }
 

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <chrono>
-
 #include <vec.hpp>
 #include <matrix.hpp>
 
 #include "math_utils.hpp"
+#include "time.hpp"
 
 namespace PanzerChasm
 {
@@ -63,7 +62,7 @@ private:
 	bool up_pressed_, down_pressed_;
 	bool rotate_up_pressed_, rotate_down_pressed_, rotate_left_pressed_, rotate_right_pressed_;
 
-	std::chrono::steady_clock::time_point prev_calc_tick_;
+	Time prev_calc_tick_;
 };
 
 } // namespace ChasmReverse
