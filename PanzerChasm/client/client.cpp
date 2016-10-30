@@ -69,10 +69,9 @@ void Client::Loop()
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
 	camera_controller_.Tick();
+
 	if( map_state_ != nullptr )
-	{
 		map_state_->Tick( Time::CurrentTime() );
-	}
 
 	if( connection_info_ != nullptr )
 	{
