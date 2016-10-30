@@ -191,6 +191,7 @@ MapDrawer::MapDrawer(
 	models_shader_.SetAttribLocation( "pos", 0u );
 	models_shader_.SetAttribLocation( "tex_coord", 1u );
 	models_shader_.SetAttribLocation( "tex_id", 2u );
+	models_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	models_shader_.Create();
 }
 
@@ -758,6 +759,7 @@ void MapDrawer::LoadModels(
 			const unsigned char color_index= model.texture_data[ x + y * model.texture_size[0u] ];
 			for( unsigned int j= 0u; j < 3u; j++ )
 				texture_dst[ i + j ]= palette[ color_index * 3u + j ];
+			texture_dst[ i + 3u ]= color_index == 0u ? 0u : 255u;
 		}
 
 		// TODO - fill free texture space
@@ -846,6 +848,10 @@ void MapDrawer::LoadModels(
 	out_geometry_data.VertexAttribPointerInt(
 		2, 1, GL_UNSIGNED_BYTE,
 		((char*)&v.texture_id) - ((char*)&v) );
+
+	out_geometry_data.VertexAttribPointer(
+		3, 1, GL_UNSIGNED_BYTE, true,
+		((char*)&v.alpha_test_mask) - ((char*)&v) );
 }
 
 void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls )

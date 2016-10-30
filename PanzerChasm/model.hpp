@@ -13,6 +13,7 @@ struct Submodel
 		float pos[3];
 		float tex_coord[2];
 		unsigned char texture_id;
+		unsigned char alpha_test_mask; // Zero for regular polygons, 255 - for alpha-tested
 	};
 
 	typedef std::vector<Vertex> Vertices;

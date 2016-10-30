@@ -21,6 +21,7 @@ struct Polygon_o3
 		enum : unsigned int
 		{
 			Twosided= 0x01u,
+			AlphaTested= 0x02u,
 			Translucent= (0x04u | 0x08u),
 		};
 	};
@@ -125,6 +126,8 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
 		const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
+		const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+
 		const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
 		unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
 		if( polygon_is_twosided ) polygon_index_count*= 2u;
@@ -145,6 +148,8 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 
 				for( unsigned int c= 0u; c < 3u; c++ )
 					vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
+
+				vertex.alpha_test_mask= alpha_test_mask;
 			}
 		}
 
@@ -249,6 +254,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
 			const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
+			const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+
 			const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
 			unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
 			if( polygon_is_twosided ) polygon_index_count*= 2u;
@@ -269,6 +276,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 					for( unsigned int c= 0u; c < 3u; c++ )
 						vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
+
+					vertex.alpha_test_mask= alpha_test_mask;
 				}
 			}
 
