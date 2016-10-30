@@ -503,15 +503,19 @@ void MapDrawer::LoadFloors( const MapData& map_data )
 
 void MapDrawer::LoadWalls( const MapData& map_data )
 {
-	std::vector<WallVertex> walls_vertices( map_data.static_walls.size() * 4u );
-	std::vector<unsigned short> walls_indeces( map_data.static_walls.size() * 6u );
+	std::vector<WallVertex> walls_vertices;
+	std::vector<unsigned short> walls_indeces;
 
-	for( unsigned int w= 0u; w < map_data.static_walls.size(); w++ )
+	walls_vertices.reserve( map_data.static_walls.size() * 4u );
+	walls_indeces.reserve( map_data.static_walls.size() * 6u );
+
+	for( const MapData::Wall& wall : map_data.static_walls )
 	{
-		const MapData::Wall& wall= map_data.static_walls[w];
-		// TODO - discard walls without textures.
+		if( map_data.walls_textures[ wall.texture_id ][0] == '\0' )
+			continue; // Wall has no texture - do not draw it.
 
-		const unsigned int first_vertex_index= w * 4u;
+		const unsigned int first_vertex_index= walls_vertices.size();
+		walls_vertices.resize( walls_vertices.size() + 4u );
 		WallVertex* const v= walls_vertices.data() + first_vertex_index;
 
 		v[0].xyz[0]= v[2].xyz[0]= static_cast<unsigned short>( wall.vert_pos[0].x * g_walls_coords_scale );
@@ -541,7 +545,9 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 			v[j].normal[1]= normal[1];
 		}
 
-		unsigned short* const ind= walls_indeces.data() + w * 6u;
+		const unsigned int first_index= walls_indeces.size();
+		walls_indeces.resize( walls_indeces.size() + 6u );
+		unsigned short* const ind= walls_indeces.data() + first_index;
 		ind[0]= first_vertex_index + 0u;
 		ind[1]= first_vertex_index + 1u;
 		ind[2]= first_vertex_index + 3u;
