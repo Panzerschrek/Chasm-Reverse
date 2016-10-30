@@ -351,10 +351,15 @@ void Map::Tick( const Time current_time )
 			const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
 			const float animation_frame= time_delta_s * g_animations_frames_per_second;
 
-			const unsigned int animation_frame_count= map_data_->models[ model.model_id ].frame_count;
+			if( model.model_id < map_data_->models.size() )
+			{
+				const unsigned int animation_frame_count= map_data_->models[ model.model_id ].frame_count;
 
-			model.current_animation_frame=
-				static_cast<unsigned int>( std::round(animation_frame) ) % animation_frame_count;
+				model.current_animation_frame=
+					static_cast<unsigned int>( std::round(animation_frame) ) % animation_frame_count;
+			}
+			else
+				model.current_animation_frame= 0u;
 		}
 		else
 			model.current_animation_frame= model.animation_start_frame;

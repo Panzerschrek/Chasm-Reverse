@@ -85,7 +85,10 @@ void MapState::Tick( Time current_time )
 		const unsigned int animation_frame=
 			static_cast<unsigned int>( std::round( g_animations_frames_per_second * time_since_map_start_s ) );
 
-		item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
+		if( item.item_id < game_resources_->items_models.size() )
+			item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
+		else
+			item.animation_frame= 0;
 	}
 }
 
