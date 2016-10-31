@@ -56,6 +56,7 @@ SIZE_ASSERT( MapMonster, 8 );
 namespace
 {
 
+// Case-unsensitive strings equality-comparision
 static bool StringEquals( const char* const s0, const char* const s1 )
 {
 	unsigned int i= 0;
@@ -69,7 +70,28 @@ static bool StringEquals( const char* const s0, const char* const s1 )
 	return std::tolower( s0[i] ) == std::tolower( s1[i] );
 }
 
-decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
+// Case-unsensitive substring search
+static const char* GetSubstring( const char* const search_where, const char* const search_what )
+{
+	const char* str= search_where;
+	while( *str != '\0' )
+	{
+		unsigned int i= 0u;
+
+		while( str[i] != '\0' && search_what[i] != '\0' &&
+				std::tolower( str[i] ) == std::tolower( search_what [i] ) )
+			i++;
+
+		if( search_what [i] == '\0' )
+			return str;
+
+		str++;
+	}
+
+	return nullptr;
+}
+
+static decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
 {
 	if( StringEquals( str, "link" ) )
 		return MapData::Link::Link_;
@@ -342,12 +364,12 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 
 void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data )
 {
-	const char* start= std::strstr( reinterpret_cast<const char*>( resource_file.data() ), "#newobjects" );
+	const char* start= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#newobjects" );
 
 	while( *start != '\n' ) start++;
 	start++;
 
-	const char* const end= std::strstr( start, "#end" );
+	const char* const end= GetSubstring( start, "#end" );
 
 	std::istringstream stream( std::string( start, end ) );
 
@@ -386,9 +408,9 @@ void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, M
 	for( char* const file_name : map_data.walls_textures )
 		file_name[0]= '\0';
 
-	const char* start= std::strstr( reinterpret_cast<const char*>( resource_file.data() ), "#GFX" );
+	const char* start= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#GFX" );
 	start+= std::strlen( "#GFX" );
-	const char* const end= std::strstr( start, "#end" );
+	const char* const end= GetSubstring( start, "#end" );
 
 	std::istringstream stream( std::string( start, end ) );
 
@@ -452,7 +474,7 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 
 		if( line_stream.fail() || thing_type[0] != '#' )
 			continue;
-		else if( std::strcmp( thing_type, "#mess" ) == 0 )
+		else if( StringEquals( thing_type, "#mess" ) )
 		{
 			unsigned int message_number= 0;
 			line_stream >> message_number;
@@ -476,9 +498,9 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 					LoadProcedure( procedure_number, stream, map_data );
 			}
 		}
-		else if( std::strcmp( thing_type, "#links" ) == 0 )
+		else if( StringEquals( thing_type, "#links" ) )
 			LoadLinks( stream, map_data );
-		else if( std::strcmp( thing_type, "#stopani" ) == 0 )
+		else if( StringEquals( thing_type, "#stopani" ) )
 		{ /* TODO */ }
 
 	} // for file
@@ -507,10 +529,10 @@ void MapLoader::LoadMessage(
 
 		char thing[64];
 		line_stream >> thing;
-		if( std::strcmp( thing, "#end" ) == 0 )
+		if( StringEquals( thing, "#end" ) )
 			break;
 
-		else if( std::strcmp( thing, "Delay" ) == 0 )
+		else if( StringEquals( thing, "Delay" )  )
 			line_stream >> message.delay_s;
 
 		else if( std::strncmp( thing, "Text", std::strlen("Text") ) == 0 )
@@ -558,7 +580,7 @@ void MapLoader::LoadProcedure(
 
 		if( line_stream.fail() )
 			continue;
-		if( std::strcmp( thing, "#end" ) == 0 )
+		if( StringEquals( thing, "#end" ) )
 			break;
 		if( thing[0] == ';' )
 			continue;
@@ -650,7 +672,7 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 			continue;
 		if( link_type[0] == ';' )
 			continue;
-		if( std::strcmp( link_type, "#end" ) == 0 )
+		if( StringEquals( link_type, "#end" ) )
 			break;
 
 		unsigned short x, y, proc_id;
