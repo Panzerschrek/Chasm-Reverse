@@ -46,7 +46,7 @@ struct MapMonster
 	unsigned short position[2];
 	unsigned short id;
 	unsigned char angle; // bits 0-3 is angle. Other bits - unknown.
-	unsigned char unknown;
+	unsigned char difficulty_flags;
 };
 
 SIZE_ASSERT( MapMonster, 8 );
@@ -359,7 +359,12 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 		monster.angle=
 			float( map_monsters[m].angle & 7u) / 8.0f * Constants::two_pi +
 			1.5f * Constants::pi;
+
+		monster.difficulty_flags= map_monsters[m].difficulty_flags;
 	}
+
+	const unsigned int after_monsters_offset= monsters_offset + monster_count * sizeof(MapMonster);
+	Log::Info( "Map bytes left: ", map_file.size() - after_monsters_offset, " Offset: ", after_monsters_offset );
 }
 
 void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data )

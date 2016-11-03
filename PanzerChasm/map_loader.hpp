@@ -55,6 +55,8 @@ public:
 		m_Vec2 pos;
 		float angle;
 		unsigned char monster_id;
+
+		unsigned int difficulty_flags; // For player - numebr of spawn
 	};
 
 	struct ModelDescription

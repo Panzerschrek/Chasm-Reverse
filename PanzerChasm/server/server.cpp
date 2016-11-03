@@ -43,7 +43,7 @@ void Server::Loop()
 		if( current_map_data_ != nullptr )
 			for( const MapData::Monster& monster : current_map_data_->monsters )
 			{
-				if( monster.monster_id == 0u )
+				if( monster.monster_id == 0u && monster.difficulty_flags == 0 )
 				{
 					player_.SetPosition( m_Vec3( monster.pos, 0.0f ) );
 					break;
