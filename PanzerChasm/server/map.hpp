@@ -75,6 +75,9 @@ private:
 	typedef std::vector<StaticModel> StaticModels;
 
 private:
+	void CollidePlayer( Player& player );
+
+private:
 	const MapDataConstPtr map_data_;
 	DynamicWalls dynamic_walls_;
 

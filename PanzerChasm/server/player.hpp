@@ -20,6 +20,8 @@ public:
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
 
+	void ResetNewPositionFlag();
+
 	void GiveRedKey();
 	void GiveGreenKey();
 	void GiveBlueKey();

@@ -53,26 +53,7 @@ void Map::ProcessPlayerPosition(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	{
-		m_Vec2 pos= player.Position().xy();
-
-		for( const MapData::Wall& wall : map_data_->static_walls )
-		{
-			if( wall.vert_pos[0] == wall.vert_pos[1] )
-				continue;
-
-			if( map_data_->walls_textures[ wall.texture_id ][0] == '\0' )
-				continue;
-
-			m_Vec2 new_pos;
-			if( CollideCircleWithLineSegment(
-					wall.vert_pos[0], wall.vert_pos[1],
-					pos, 0.45f,
-					new_pos ) )
-				pos= new_pos;
-		}
-		player.SetPosition( m_Vec3( pos, player.Position().z ) );
-	}
+	CollidePlayer( player );
 
 	const unsigned int x= player.MapPositionX();
 	const unsigned int y= player.MapPositionY();
@@ -163,6 +144,8 @@ void Map::ProcessPlayerPosition(
 			messages_sender.SendUnreliableMessage( text_message );
 		}
 	}
+
+	player.ResetNewPositionFlag();
 }
 
 void Map::Tick( const Time current_time )
@@ -428,6 +411,51 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 		messages_sender.SendUnreliableMessage( model_message );
 	}
+}
+
+void Map::CollidePlayer( Player& player )
+{
+	m_Vec2 pos= player.Position().xy();
+
+	// TODO - read from config
+	const float c_player_radius= 0.4f;
+
+	for( const MapData::Wall& wall : map_data_->static_walls )
+	{
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		if( map_data_->walls_textures[ wall.texture_id ][0] == '\0' )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, c_player_radius,
+				new_pos ) )
+			pos= new_pos;
+	}
+
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		const DynamicWall& wall= dynamic_walls_[w];
+		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
+
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		if( map_data_->walls_textures[ map_wall.texture_id ][0] == '\0' )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, c_player_radius,
+				new_pos ) )
+			pos= new_pos;
+	}
+
+	player.SetPosition( m_Vec3( pos, player.Position().z ) );
 }
 
 } // PanzerChasm

@@ -42,6 +42,11 @@ void Player::Move( const Time time_delta )
 	UpdateMapPosition();
 }
 
+void Player::ResetNewPositionFlag()
+{
+	map_position_is_new_= false;
+}
+
 void Player::GiveRedKey()
 {
 	have_red_key_= true;
@@ -114,8 +119,6 @@ void Player::UpdateMapPosition()
 
 		map_position_is_new_= true;
 	}
-	else
-		map_position_is_new_= false;
 }
 
 } // namespace PanzerChasm
