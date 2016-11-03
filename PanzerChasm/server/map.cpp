@@ -1,6 +1,7 @@
 #include <matrix.hpp>
 
 #include "../math_utils.hpp"
+#include "collisions.hpp"
 
 #include "map.hpp"
 
@@ -52,6 +53,27 @@ void Map::ProcessPlayerPosition(
 	Player& player,
 	MessagesSender& messages_sender )
 {
+	{
+		m_Vec2 pos= player.Position().xy();
+
+		for( const MapData::Wall& wall : map_data_->static_walls )
+		{
+			if( wall.vert_pos[0] == wall.vert_pos[1] )
+				continue;
+
+			if( map_data_->walls_textures[ wall.texture_id ][0] == '\0' )
+				continue;
+
+			m_Vec2 new_pos;
+			if( CollideCircleWithLineSegment(
+					wall.vert_pos[0], wall.vert_pos[1],
+					pos, 0.45f,
+					new_pos ) )
+				pos= new_pos;
+		}
+		player.SetPosition( m_Vec3( pos, player.Position().z ) );
+	}
+
 	const unsigned int x= player.MapPositionX();
 	const unsigned int y= player.MapPositionY();
 	if( x >= MapData::c_map_size ||
