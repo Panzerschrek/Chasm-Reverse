@@ -16,6 +16,7 @@ MapState::MapState(
 	: map_data_(map)
 	, game_resources_(game_resources)
 	, map_start_time_(map_start_time)
+	, last_tick_time_(map_start_time)
 {
 	PC_ASSERT( map_data_ != nullptr );
 
@@ -77,8 +78,15 @@ const MapState::Items& MapState::GetItems() const
 	return items_;
 }
 
-void MapState::Tick( Time current_time )
+const MapState::SpriteEffects& MapState::GetSpriteEffects() const
 {
+	return sprite_effects_;
+}
+
+void MapState::Tick( const Time current_time )
+{
+	last_tick_time_= current_time;
+
 	const float time_since_map_start_s= ( current_time - map_start_time_ ).ToSeconds();
 	for( Item& item : items_ )
 	{
@@ -89,6 +97,26 @@ void MapState::Tick( Time current_time )
 			item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
 		else
 			item.animation_frame= 0;
+	}
+
+	for( unsigned int i= 0u; i < sprite_effects_.size(); )
+	{
+		SpriteEffect& effect= sprite_effects_[i];
+
+		const float time_delta_s= ( current_time - effect.start_time ).ToSeconds();
+
+		effect.frame= time_delta_s * g_animations_frames_per_second;
+
+		if( effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
+		{
+			if( i < sprite_effects_.size() -1u )
+			{
+				sprite_effects_[i]= sprite_effects_.back();
+				sprite_effects_.pop_back();
+			}
+		}
+		else
+			i++;
 	}
 }
 
@@ -126,6 +154,23 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 	static_model.pos.z= float(message.xyz[2]) / 256.0f;
 
 	static_model.animation_frame= message.animation_frame;
+}
+
+void MapState::ProcessMessage( const Messages::SpriteEffectBirth& message )
+{
+	if( message.effect_id >= game_resources_->sprites_effects_description.size() )
+		return;
+
+	sprite_effects_.emplace_back();
+	SpriteEffect& effect= sprite_effects_.back();
+
+	effect.effect_id= message.effect_id;
+	effect.frame= 0.0f;
+
+	for( unsigned int j= 0u; j < 3u; j++ )
+		effect.pos.ToArr()[j]= float(message.xyz[j]) / 256.0f;
+
+	effect.start_time= last_tick_time_;
 }
 
 void MapState::ProcessMessage( const Messages::EntityBirth& message )

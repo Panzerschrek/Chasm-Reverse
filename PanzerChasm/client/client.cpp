@@ -134,6 +134,12 @@ void Client::operator()( const Messages::StaticModelState& message )
 		map_state_->ProcessMessage( message );
 }
 
+void Client::operator()( const Messages::SpriteEffectBirth& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 void Client::operator()( const Messages::MapChange& message )
 {
 	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
