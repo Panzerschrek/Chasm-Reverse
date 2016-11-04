@@ -110,10 +110,9 @@ void MapState::Tick( const Time current_time )
 		if( effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
 		{
 			if( i < sprite_effects_.size() -1u )
-			{
 				sprite_effects_[i]= sprite_effects_.back();
-				sprite_effects_.pop_back();
-			}
+
+			sprite_effects_.pop_back();
 		}
 		else
 			i++;

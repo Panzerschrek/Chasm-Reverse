@@ -60,6 +60,22 @@ void Client::ProcessEvents( const SystemEvents& events )
 			else if( event.event.key.key_code == KeyCode::Right )
 				event.event.key.pressed ? camera_controller_.RotateRightPressed() : camera_controller_.RotateRightReleased();
 		}
+		else if( event.type == SystemEvent::Type::MouseKey &&
+				event.event.mouse_key.pressed )
+		{
+			if( connection_info_ != nullptr )
+			{
+				Messages::PlayerShot message;
+				message.message_id= MessageId::PlayerShot;
+
+				message.view_dir_angle_x=
+					static_cast<unsigned short>( float(camera_controller_.GetViewAngleX()) / Constants::two_pi * 65536.0f );
+				message.view_dir_angle_z=
+					static_cast<unsigned short>( float(camera_controller_.GetViewAngleZ()) / Constants::two_pi * 65536.0f );
+
+				connection_info_->messages_sender.SendUnreliableMessage( message );
+			}
+		}
 	} // for events
 }
 

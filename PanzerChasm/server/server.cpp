@@ -107,6 +107,20 @@ void Server::operator()( const Messages::PlayerMove& message )
 	player_.UpdateMovement( message );
 }
 
+void Server::operator()( const Messages::PlayerShot& message )
+{
+	// TODO - clear this
+
+	Messages::SpriteEffectBirth sprite_message;
+	sprite_message.message_id= MessageId::SpriteEffectBirth;
+
+	sprite_message.effect_id= 0u;
+	for( unsigned int j= 0u; j < 3u; j++ )
+		sprite_message.xyz[j]= static_cast<short>( player_.Position().ToArr()[j] * 256.0f );
+
+	connection_->messages_sender.SendUnreliableMessage( sprite_message );
+}
+
 void Server::UpdateTimes()
 {
 	const Time current_time= Time::CurrentTime();

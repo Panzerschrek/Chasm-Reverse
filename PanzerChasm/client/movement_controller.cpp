@@ -94,6 +94,16 @@ m_Vec3 MovementController::GetCamDir() const
 	return m_Vec3( 0.0f, 0.0f, 1.0f ) * rot_x * rot_y;
 }
 
+float MovementController::GetViewAngleX() const
+{
+	return angle_.x;
+}
+
+float MovementController::GetViewAngleZ() const
+{
+	return angle_.z;
+}
+
 bool MovementController::JumpPressed() const
 {
 	return up_pressed_;
