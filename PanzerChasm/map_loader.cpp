@@ -249,6 +249,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 	{
 		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
 		MapData::IndexElement& index_element= map_data.map_index[ x + y * MapData::c_map_size ];
+		const MapData::Link& link= map_data.links[ x + y * MapData::c_map_size ];
 
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( y + x * MapData::c_map_size ) );
@@ -274,6 +275,11 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 				index_element.type= MapData::IndexElement::StaticModel;
 				index_element.index= map_data.static_models.size() - 1u;
+
+				if( link.type == MapData::Link::None || link.type == MapData::Link::Floor )
+					model.proc_id= 0u;
+				else
+					model.proc_id= link.proc_id;
 			}
 			else if( map_wall.texture_id >= c_first_item )
 			{
@@ -309,6 +315,11 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		wall.vert_tex_coord[1]= 0.0f;
 
 		wall.texture_id= map_wall.texture_id;
+
+		if( link.type == MapData::Link::None || link.type == MapData::Link::Floor )
+			wall.proc_id= 0u;
+		else
+			wall.proc_id= link.proc_id;
 	} // for xy
 }
 

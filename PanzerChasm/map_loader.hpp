@@ -34,6 +34,7 @@ public:
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
 		unsigned char texture_id;
+		unsigned char proc_id; // zero, if no associated proc
 	};
 
 	struct StaticModel
@@ -41,6 +42,7 @@ public:
 		m_Vec2 pos;
 		float angle;
 		unsigned char model_id;
+		unsigned char proc_id; // zero, if no associated proc
 	};
 
 	struct Item
