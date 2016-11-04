@@ -76,7 +76,6 @@ private:
 
 private:
 	void TryActivateProcedure( unsigned int procedure_number, const Time current_time, Player& player, MessagesSender& messages_sender );
-	void CollidePlayer( const Time current_time, Player& player, MessagesSender& messages_sender );
 
 private:
 	const MapDataConstPtr map_data_;

@@ -74,4 +74,54 @@ bool CollideCircleWithLineSegment(
 	return false;
 }
 
+bool CircleIntersectsWithSquare(
+	const m_Vec2& cirecle_center,
+	float circle_radius,
+	unsigned int square_x, unsigned int square_y )
+{
+	const float c_square_inner_radius= 0.5f;
+	const float c_square_outer_radius= 0.5f * std::sqrt( 2.0f );
+
+	const m_Vec2 square_start{ float(square_x), float(square_y) };
+	const m_Vec2 square_center= square_start + m_Vec2( 0.5f, 0.5f );
+
+	const m_Vec2 vec_from_square_center_to_circle_center= cirecle_center - square_center;
+	const float square_distance_to_circle= vec_from_square_center_to_circle_center.SquareLength();
+
+	const float reject_distance= c_square_outer_radius + circle_radius;
+	if( square_distance_to_circle > reject_distance * reject_distance )
+		return false;
+
+	const float accept_distance= c_square_inner_radius + circle_radius;
+	if( square_distance_to_circle < accept_distance * accept_distance )
+		return true;
+
+	m_Vec2 tmp;
+	if( CollideCircleWithLineSegment(
+			square_start, square_start + m_Vec2( 1.0f, 0.0f ),
+			cirecle_center, circle_radius,
+			tmp ) )
+		return true;
+
+	if( CollideCircleWithLineSegment(
+			square_start + m_Vec2( 1.0f, 0.0f ), square_start + m_Vec2( 1.0f, 1.0f ),
+			cirecle_center, circle_radius,
+			tmp ) )
+		return true;
+
+	if( CollideCircleWithLineSegment(
+			square_start + m_Vec2( 1.0f, 1.0f ), square_start + m_Vec2( 0.0f, 1.0f ),
+			cirecle_center, circle_radius,
+			tmp ) )
+		return true;
+
+	if( CollideCircleWithLineSegment(
+			square_start + m_Vec2( 0.0f, 1.0f ), square_start,
+			cirecle_center, circle_radius,
+			tmp ) )
+		return true;
+
+	return false;
+}
+
 } // namespace PanzerChasm

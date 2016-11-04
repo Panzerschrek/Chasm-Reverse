@@ -53,22 +53,120 @@ void Map::ProcessPlayerPosition(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	CollidePlayer( current_time, player, messages_sender );
+	// TODO - read from config
+	const float c_player_radius= 0.4f;
+	const float c_player_height= 1.0f;
 
-	const unsigned int x= player.MapPositionX();
-	const unsigned int y= player.MapPositionY();
-	if( x >= MapData::c_map_size ||
-		y >= MapData::c_map_size )
+	const unsigned int player_x= player.MapPositionX();
+	const unsigned int player_y= player.MapPositionY();
+	if( player_x >= MapData::c_map_size ||
+		player_y >= MapData::c_map_size )
 		return;
 
-	const MapData::Link& link= map_data_->links[ x + y * MapData::c_map_size ];
-
-	// TODO - process other links types
-	if( link.type == MapData::Link::Floor )
+	// Process floors
+	for( int x= std::max( 0, int(player_x) - 2); x < std::min( int(MapData::c_map_size), int(player_x) + 2 ); x++ )
+	for( int y= std::max( 0, int(player_y) - 2); y < std::min( int(MapData::c_map_size), int(player_y) + 2 ); y++ )
 	{
-		TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+		// TODO - select correct player radius for floor collisions.
+		if( !CircleIntersectsWithSquare(
+				player.Position().xy(), c_player_radius * 0.5f, x, y ) )
+			continue;
+
+		const MapData::Link& link= map_data_->links[ x + y * MapData::c_map_size ];
+
+		// TODO - process other links types
+		if( link.type == MapData::Link::Floor )
+		{
+			TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+		}
 	}
 
+	// Collide
+	m_Vec2 pos= player.Position().xy();
+
+	const float z_bottom= player.Position().z;
+	const float z_top= z_bottom + c_player_height;
+
+	// Static walls
+	for( const MapData::Wall& wall : map_data_->static_walls )
+	{
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+		if( tex.file_name[0] == '\0' )
+			continue;
+
+		if( tex.gso[0] || tex.gso[2] )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, c_player_radius,
+				new_pos ) )
+		{
+			pos= new_pos;
+			if( wall.link.type == MapData::Link::Link_ )
+				TryActivateProcedure( wall.link.proc_id, current_time, player, messages_sender );
+		}
+	}
+
+	// Dynamic walls
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		const DynamicWall& wall= dynamic_walls_[w];
+		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
+
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		if( map_data_->walls_textures[ map_wall.texture_id ].file_name[0] == '\0' )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, c_player_radius,
+				new_pos ) )
+			pos= new_pos;
+	}
+
+	// Models
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+		const MapData::StaticModel& map_model= map_data_->static_models[m];
+
+		if( map_model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+		if( model_description.radius <= 0.0f )
+			continue;
+
+		const Model& model_geometry= map_data_->models[ map_model.model_id ];
+
+		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
+			continue;
+
+		const float min_distance= c_player_radius + model_description.radius;
+
+		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
+		const float square_distance= vec_to_player_pos.SquareLength();
+
+		if( square_distance < min_distance * min_distance )
+		{
+			pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+
+			if( map_model.link.type == MapData::Link::Link_ ||
+				map_model.link.type == MapData::Link::OnOffLink )
+				TryActivateProcedure( map_model.link.proc_id, current_time, player, messages_sender );
+		}
+	}
+
+	// Set position after collisions
+	player.SetPosition( m_Vec3( pos, player.Position().z ) );
 	player.ResetNewPositionFlag();
 }
 
@@ -79,6 +177,15 @@ void Map::Tick( const Time current_time )
 	{
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
+
+		if( procedure.speed <= 0.0f )
+		{
+			// Reset procedures without speed
+			procedure_state.movement_state= ProcedureState::MovementState::None;
+			procedure_state.last_state_change_time= current_time;
+			procedure_state.movement_stage= 0.0f;
+			continue;
+		}
 
 		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
 		const float new_stage= time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f;
@@ -395,8 +502,7 @@ void Map::TryActivateProcedure(
 	} // if activated
 
 	// Activation messages.
-	if( player.MapPositionIsNew() &&
-		procedure.first_message_number != 0u &&
+	if( procedure.first_message_number != 0u &&
 		!procedure_state.first_message_printed )
 	{
 		procedure_state.first_message_printed= true;
@@ -406,8 +512,7 @@ void Map::TryActivateProcedure(
 		text_message.text_message_number= procedure.first_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
-	if( player.MapPositionIsNew() &&
-		procedure.lock_message_number != 0u &&
+	if( procedure.lock_message_number != 0u &&
 		( procedure_state.locked || !have_necessary_keys ) )
 	{
 		Messages::TextMessage text_message;
@@ -415,106 +520,13 @@ void Map::TryActivateProcedure(
 		text_message.text_message_number= procedure.lock_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
-	if( player.MapPositionIsNew() &&
-		procedure.on_message_number != 0u )
+	if( procedure.on_message_number != 0u )
 	{
 		Messages::TextMessage text_message;
 		text_message.message_id= MessageId::TextMessage;
 		text_message.text_message_number= procedure.on_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
-}
-
-void Map::CollidePlayer(
-	const Time current_time,
-	Player& player,
-	MessagesSender& messages_sender  )
-{
-	m_Vec2 pos= player.Position().xy();
-
-	// TODO - read from config
-	const float c_player_radius= 0.4f;
-	const float c_player_height= 1.0f;
-
-	const float z_bottom= player.Position().z;
-	const float z_top= z_bottom + c_player_height;
-
-	for( const MapData::Wall& wall : map_data_->static_walls )
-	{
-		if( wall.vert_pos[0] == wall.vert_pos[1] )
-			continue;
-
-		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-		if( tex.file_name[0] == '\0' )
-			continue;
-
-		if( tex.gso[0] || tex.gso[2] )
-			continue;
-
-		m_Vec2 new_pos;
-		if( CollideCircleWithLineSegment(
-				wall.vert_pos[0], wall.vert_pos[1],
-				pos, c_player_radius,
-				new_pos ) )
-		{
-			pos= new_pos;
-			if( wall.link.type == MapData::Link::Link_ )
-				TryActivateProcedure( wall.link.proc_id, current_time, player, messages_sender );
-		}
-	}
-
-	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
-	{
-		const DynamicWall& wall= dynamic_walls_[w];
-		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
-
-		if( wall.vert_pos[0] == wall.vert_pos[1] )
-			continue;
-
-		if( map_data_->walls_textures[ map_wall.texture_id ].file_name[0] == '\0' )
-			continue;
-
-		m_Vec2 new_pos;
-		if( CollideCircleWithLineSegment(
-				wall.vert_pos[0], wall.vert_pos[1],
-				pos, c_player_radius,
-				new_pos ) )
-			pos= new_pos;
-	}
-
-	for( unsigned int m= 0u; m < static_models_.size(); m++ )
-	{
-		const StaticModel& model= static_models_[m];
-		const MapData::StaticModel& map_model= map_data_->static_models[m];
-
-		if( map_model.model_id >= map_data_->models_description.size() )
-			continue;
-
-		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const Model& model_geometry= map_data_->models[ map_model.model_id ];
-
-		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
-			continue;
-
-		const float min_distance= c_player_radius + model_description.radius;
-
-		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
-		const float square_distance= vec_to_player_pos.SquareLength();
-
-		if( square_distance < min_distance * min_distance )
-		{
-			pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
-
-			if( map_model.link.type == MapData::Link::Link_ ||
-				map_model.link.type == MapData::Link::OnOffLink )
-				TryActivateProcedure( map_model.link.proc_id, current_time, player, messages_sender );
-		}
-	}
-
-	player.SetPosition( m_Vec3( pos, player.Position().z ) );
 }
 
 } // PanzerChasm
