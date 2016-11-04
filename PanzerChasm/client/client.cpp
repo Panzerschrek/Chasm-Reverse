@@ -116,7 +116,7 @@ void Client::Draw()
 		pos.z+= 0.5f * 1.75f;
 		camera_controller_.GetViewMatrix( pos, view_matrix );
 
-		map_drawer_.Draw( *map_state_, view_matrix );
+		map_drawer_.Draw( *map_state_, view_matrix, pos );
 	}
 }
 
