@@ -26,7 +26,8 @@ public:
 
 	void Draw(
 		const MapState& map_state,
-		const m_Mat4& view_matrix );
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position );
 
 private:
 	struct FloorGeometryInfo
@@ -96,6 +97,8 @@ private:
 
 	std::vector<ModelGeometry> items_geometry_;
 	r_PolygonBuffer items_geometry_data_;
+
+	r_GLSLProgram sprites_shader_;
 };
 
 } // PanzerChasm

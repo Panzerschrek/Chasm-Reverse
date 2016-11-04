@@ -1,3 +1,5 @@
+#include <matrix.hpp>
+
 #include "../assert.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
@@ -105,6 +107,31 @@ void Server::operator()( const Messages::MessageBase& message )
 void Server::operator()( const Messages::PlayerMove& message )
 {
 	player_.UpdateMovement( message );
+}
+
+void Server::operator()( const Messages::PlayerShot& message )
+{
+	// TODO - clear this
+
+	const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
+
+	m_Mat4 x_rotate, z_rotate;
+
+	x_rotate.RotateX( float(message.view_dir_angle_x) / 65536.0f * Constants::two_pi );
+	z_rotate.RotateZ( float(message.view_dir_angle_z) / 65536.0f * Constants::two_pi );
+
+	const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
+
+	const m_Vec3 sprite_pos= view_vec_rotated * 2.0f + player_.Position() + m_Vec3( 0.0f, 0.0f, 0.8f );
+
+	Messages::SpriteEffectBirth sprite_message;
+	sprite_message.message_id= MessageId::SpriteEffectBirth;
+
+	sprite_message.effect_id= 14u;
+	for( unsigned int j= 0u; j < 3u; j++ )
+		sprite_message.xyz[j]= static_cast<short>( sprite_pos.ToArr()[j] * 256.0f );
+
+	connection_->messages_sender.SendUnreliableMessage( sprite_message );
 }
 
 void Server::UpdateTimes()

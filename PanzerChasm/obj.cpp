@@ -37,7 +37,7 @@ void LoadObjSprite( const Vfs::FileContent& obj_file, ObjSprite& out_sprite )
 	out_sprite.size[0]= max_size[0];
 	out_sprite.size[1]= max_size[1];
 	out_sprite.frame_count= frame_count;
-	out_sprite.data.resize( out_sprite.size[0] * out_sprite.size[1] * out_sprite.frame_count, 0u );
+	out_sprite.data.resize( out_sprite.size[0] * out_sprite.size[1] * out_sprite.frame_count, 255u );
 
 	const unsigned char* ptr= obj_file.data() + sizeof(frame_count);
 	for( unsigned int f= 0u; f < frame_count; f++ )

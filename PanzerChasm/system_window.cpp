@@ -106,6 +106,16 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
 			break;
 
+		case SDL_MOUSEBUTTONUP:
+		case SDL_MOUSEBUTTONDOWN:
+			out_events.emplace_back();
+			out_events.back().type= SystemEvent::Type::MouseKey;
+			out_events.back().event.mouse_key.mouse_button= event.button.button;
+			out_events.back().event.mouse_key.x= event.button.x;
+			out_events.back().event.mouse_key.y= event.button.y;
+			out_events.back().event.mouse_key.pressed= event.type == SDL_MOUSEBUTTONUP ? false : true;
+			break;
+
 		// TODO - fill other events here
 
 		default:

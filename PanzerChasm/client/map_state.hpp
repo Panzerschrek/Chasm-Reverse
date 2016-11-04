@@ -41,6 +41,16 @@ public:
 
 	typedef std::vector<Item> Items;
 
+	struct SpriteEffect
+	{
+		m_Vec3 pos;
+		unsigned char effect_id;
+		Time start_time= Time::FromSeconds(0);
+		float frame;
+	};
+
+	typedef std::vector<SpriteEffect> SpriteEffects;
+
 public:
 	MapState(
 		const MapDataConstPtr& map,
@@ -51,12 +61,14 @@ public:
 	const DynamicWalls& GetDynamicWalls() const;
 	const StaticModels& GetStaticModels() const;
 	const Items& GetItems() const;
+	const SpriteEffects& GetSpriteEffects() const;
 
 	void Tick( Time current_time );
 
 	void ProcessMessage( const Messages::EntityState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
 	void ProcessMessage( const Messages::StaticModelState& message );
+	void ProcessMessage( const Messages::SpriteEffectBirth& message );
 	void ProcessMessage( const Messages::EntityBirth& message );
 	void ProcessMessage( const Messages::EntityDeath& message );
 
@@ -64,10 +76,12 @@ private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const Time map_start_time_;
+	Time last_tick_time_;
 
 	DynamicWalls dynamic_walls_;
 	StaticModels static_models_;
 	Items items_;
+	SpriteEffects sprite_effects_;
 };
 
 } // namespace PanzerChasm

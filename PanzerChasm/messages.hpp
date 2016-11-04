@@ -14,6 +14,7 @@ enum class MessageId : unsigned char
 	WallPosition,
 	PlayerPosition, // position of player, which recieve this message.
 	StaticModelState,
+	SpriteEffectBirth,
 
 	// Reliable server to client
 	MapChange,
@@ -74,6 +75,12 @@ struct StaticModelState : public MessageBase
 	bool animation_playing;
 
 	unsigned char model_id;
+};
+
+struct SpriteEffectBirth : public MessageBase
+{
+	short xyz[3];
+	unsigned char effect_id;
 };
 
 struct MapChange : public MessageBase

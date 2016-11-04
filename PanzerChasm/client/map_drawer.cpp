@@ -33,6 +33,10 @@ const r_OGLState g_transparent_models_gl_state(
 	true, true, true, false,
 	g_gl_state_blend_func );
 
+const r_OGLState g_sprites_gl_state(
+	true, false, true, false,
+	g_gl_state_blend_func );
+
 } // namespace
 
 struct FloorVertex
@@ -195,6 +199,12 @@ MapDrawer::MapDrawer(
 	models_shader_.SetAttribLocation( "tex_id", 2u );
 	models_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	models_shader_.Create();
+
+	sprites_shader_.ShaderSource(
+		rLoadShader( "sprites_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "sprites_v.glsl", rendering_context.glsl_version ) );
+	sprites_shader_.SetAttribLocation( "pos", 0u );
+	sprites_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -234,7 +244,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 void MapDrawer::Draw(
 	const MapState& map_state,
-	const m_Mat4& view_matrix )
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position )
 {
 	if( current_map_data_ == nullptr )
 		return;
@@ -428,6 +439,40 @@ void MapDrawer::Draw(
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	draw_items( true );
+
+	// Sprites
+	r_OGLStateManager::UpdateState( g_sprites_gl_state );
+
+	sprites_shader_.Bind();
+	glActiveTexture( GL_TEXTURE0 + 0 );
+
+	for( const MapState::SpriteEffect& sprite : map_state.GetSpriteEffects() )
+	{
+		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
+		const ObjSprite& sprite_picture= game_resources_->effects_sprites[ sprite.effect_id ];
+
+		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
+
+		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
+		const float angle= -std::atan2( vec_to_sprite.x, vec_to_sprite.y );
+
+		m_Mat4 rotate_mat, shift_mat, scale_mat;
+		rotate_mat.RotateZ( angle );
+		shift_mat.Translate( sprite.pos );
+
+		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
+		scale_mat.Scale(
+			m_Vec3(
+				float(sprite_picture.size[0]) * additional_scale,
+				1.0f,
+				float(sprite_picture.size[1]) * additional_scale ) );
+
+		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_mat * shift_mat * view_matrix );
+		sprites_shader_.Uniform( "tex", int(0) );
+		sprites_shader_.Uniform( "frame", sprite.frame );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
 }
 
 void MapDrawer::LoadSprites()
@@ -451,9 +496,10 @@ void MapDrawer::LoadSprites()
 
 			unsigned char* const dst= data_rgba.data() + 4u * j;
 
-			dst[0]= palette[ 3u * color_index ];
-			dst[1]= palette[ 3u * color_index + 1 ];
-			dst[2]= palette[ 3u * color_index + 2 ];
+			dst[0]= palette[ 3u * color_index + 0u ];
+			dst[1]= palette[ 3u * color_index + 1u ];
+			dst[2]= palette[ 3u * color_index + 2u ];
+			dst[3]= color_index == 255u ? 0u : 255u;
 		}
 
 		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[i] );

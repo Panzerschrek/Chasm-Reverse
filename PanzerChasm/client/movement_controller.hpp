@@ -25,6 +25,8 @@ public:
 	void GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) const;
 
 	m_Vec3 GetCamDir() const;
+	float GetViewAngleX() const;
+	float GetViewAngleZ() const;
 
 	bool JumpPressed() const;
 

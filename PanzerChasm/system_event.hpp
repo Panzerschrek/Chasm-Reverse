@@ -40,6 +40,7 @@ struct SystemEvent
 	struct MouseKeyEvent
 	{
 		unsigned int mouse_button;
+		unsigned int x, y;
 		bool pressed;
 	};
 
