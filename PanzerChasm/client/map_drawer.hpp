@@ -47,6 +47,8 @@ private:
 	};
 
 private:
+	void LoadSprites();
+
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
 
@@ -73,6 +75,8 @@ private:
 	GLuint wall_textures_array_id_= ~0;
 	GLuint models_textures_array_id_= ~0;
 	GLuint items_textures_array_id_= ~0;
+
+	std::vector<GLuint> sprites_textures_arrays_;
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;

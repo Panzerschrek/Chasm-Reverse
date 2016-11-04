@@ -156,6 +156,8 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
 
+	LoadSprites();
+
 	// Items
 	LoadModels(
 		game_resources_->items_models,
@@ -201,6 +203,8 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &wall_textures_array_id_ );
 	glDeleteTextures( 1, &models_textures_array_id_ );
 	glDeleteTextures( 1, &items_textures_array_id_ );
+
+	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
 }
 
 void MapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -424,6 +428,44 @@ void MapDrawer::Draw(
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	draw_items( true );
+}
+
+void MapDrawer::LoadSprites()
+{
+	const Palette& palette= game_resources_->palette;
+
+	std::vector<unsigned char> data_rgba;
+
+	sprites_textures_arrays_.resize( game_resources_->effects_sprites.size() );
+	glGenTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
+	for( unsigned int i= 0u; i < sprites_textures_arrays_.size(); i++ )
+	{
+		const ObjSprite& sprite= game_resources_->effects_sprites[i];
+
+		data_rgba.clear();
+		data_rgba.resize( sprite.data.size() * 4u, 0u );
+
+		for( unsigned int j= 0u; j < sprite.data.size(); j++ )
+		{
+			const unsigned char color_index= sprite.data[j];
+
+			unsigned char* const dst= data_rgba.data() + 4u * j;
+
+			dst[0]= palette[ 3u * color_index ];
+			dst[1]= palette[ 3u * color_index + 1 ];
+			dst[2]= palette[ 3u * color_index + 2 ];
+		}
+
+		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[i] );
+		glTexImage3D(
+			GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
+			sprite.size[0], sprite.size[1], sprite.frame_count,
+			0, GL_RGBA, GL_UNSIGNED_BYTE, data_rgba.data() );
+
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+		glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+	}
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )

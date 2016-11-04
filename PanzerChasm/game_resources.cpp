@@ -99,6 +99,48 @@ static void LoadMonstersDescription(
 	}
 }
 
+static void LoadSpriteEffectsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	const char* const effects_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[BLOWS]" );
+	const char* const effects_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( effects_start, effects_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int effects_count= 0u;
+	stream >> effects_count;
+	stream.getline( line, sizeof(line), '\n' );
+
+	game_resources.sprites_effects_description.resize( effects_count );
+
+	for( unsigned int i= 0u; i < effects_count; )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( line[0] == ';' )
+			continue;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		GameResources::SpriteEffectDescription& effect_description= game_resources.sprites_effects_description[i];
+
+		line_stream >> effect_description.glass;
+		line_stream >> effect_description.half_size;
+		line_stream >> effect_description.smooking;
+		line_stream >> effect_description.looped;
+		line_stream >> effect_description.gravity;
+		line_stream >> effect_description.jump;
+		line_stream >> effect_description.light_on;
+		line_stream >> effect_description.sprite_file_name;
+
+		i++;
+	}
+}
+
 static void LoadItemsModels(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -123,6 +165,21 @@ static void LoadItemsModels(
 	}
 }
 
+static void LoadEffectsSprites(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.effects_sprites.resize( game_resources.sprites_effects_description.size() );
+
+	Vfs::FileContent file_content;
+
+	for( unsigned int i= 0u; i < game_resources.effects_sprites.size(); i++ )
+	{
+		vfs.ReadFile( game_resources.sprites_effects_description[i].sprite_file_name, file_content );
+		LoadObjSprite( file_content, game_resources.effects_sprites[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
 	PC_ASSERT( vfs != nullptr );
@@ -140,8 +197,10 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 
 	LoadItemsDescription( inf_file, *result );
 	LoadMonstersDescription( inf_file, *result );
+	LoadSpriteEffectsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
+	LoadEffectsSprites( *vfs, *result );
 
 	return result;
 }

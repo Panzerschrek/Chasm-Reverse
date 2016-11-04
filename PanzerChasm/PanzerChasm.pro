@@ -32,6 +32,7 @@ SOURCES+= \
 	messages_extractor.cpp \
 	messages_sender.cpp \
 	model.cpp \
+	obj.cpp \
 	server/collisions.cpp \
 	server/map.cpp \
 	server/player.cpp \
@@ -64,6 +65,7 @@ HEADERS+= \
 	messages_extractor.inl \
 	messages_sender.hpp \
 	model.hpp \
+	obj.hpp \
 	rendering_context.hpp \
 	server/a_code.hpp \
 	server/collisions.hpp \

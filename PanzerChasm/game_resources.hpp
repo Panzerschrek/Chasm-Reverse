@@ -2,6 +2,7 @@
 
 #include "images.hpp"
 #include "model.hpp"
+#include "obj.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -38,6 +39,18 @@ public:
 		int sep_limit;
 	};
 
+	struct SpriteEffectDescription
+	{
+		char sprite_file_name[16];
+		int glass;
+		bool half_size;
+		bool smooking;
+		bool looped;
+		bool gravity;
+		bool jump;
+		bool light_on;
+	};
+
 public:
 	VfsPtr vfs;
 	Palette palette; // main game palette
@@ -46,6 +59,9 @@ public:
 	std::vector<MonsterDescription> monsters_description;
 
 	std::vector<Model> items_models;
+
+	std::vector<SpriteEffectDescription> sprites_effects_description;
+	std::vector<ObjSprite> effects_sprites;
 };
 
 typedef std::shared_ptr<GameResources> GameResourcesPtr;
