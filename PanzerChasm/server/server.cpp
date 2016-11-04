@@ -15,8 +15,8 @@ Server::Server(
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
-	, startup_time_( Time::CurrentTime() )
 	, last_tick_( Time::CurrentTime() )
+	, server_accumulated_time_( Time::FromSeconds(0) )
 	, last_tick_duration_( Time::FromSeconds(0) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -54,22 +54,15 @@ void Server::Loop()
 	if( connection_ != nullptr )
 		connection_->messages_extractor.ProcessMessages( *this );
 
-	const Time current_time= Time::CurrentTime();
-	Time dt= current_time - last_tick_;
-	dt= std::min( dt, Time::FromSeconds( 0.060 ) );
-	dt= std::max( dt, Time::FromSeconds( 0.002 ) );
-	last_tick_duration_= dt;
-
-	last_tick_= current_time;
-
 	// Do server logic
+	UpdateTimes();
 
 	player_.Move( last_tick_duration_ );
 
 	if( map_ != nullptr )
 	{
-		map_->ProcessPlayerPosition( current_time, player_, connection_->messages_sender );
-		map_->Tick( current_time );
+		map_->ProcessPlayerPosition( server_accumulated_time_, player_, connection_->messages_sender );
+		map_->Tick( server_accumulated_time_ );
 	}
 
 	// Send messages
@@ -112,6 +105,19 @@ void Server::operator()( const Messages::MessageBase& message )
 void Server::operator()( const Messages::PlayerMove& message )
 {
 	player_.UpdateMovement( message );
+}
+
+void Server::UpdateTimes()
+{
+	const Time current_time= Time::CurrentTime();
+	Time dt= current_time - last_tick_;
+	dt= std::min( dt, Time::FromSeconds( 0.060 ) );
+	dt= std::max( dt, Time::FromSeconds( 0.002 ) );
+	last_tick_duration_= dt;
+
+	last_tick_= current_time;
+
+	server_accumulated_time_+= last_tick_duration_;
 }
 
 } // namespace PanzerChasm

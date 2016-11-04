@@ -36,6 +36,9 @@ private:
 	};
 
 private:
+	void UpdateTimes();
+
+private:
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const IConnectionsListenerPtr connections_listener_;
@@ -47,8 +50,8 @@ private:
 
 	std::unique_ptr<ConnectionInfo> connection_;
 
-	const Time startup_time_;
-	Time last_tick_;
+	Time last_tick_; // Real time
+	Time server_accumulated_time_; // Not real, can be faster or slower.
 	Time last_tick_duration_;
 
 	Player player_;
