@@ -1,6 +1,7 @@
 #include <matrix.hpp>
 
 #include "../math_utils.hpp"
+#include "a_code.hpp"
 #include "collisions.hpp"
 
 #include "map.hpp"
@@ -146,6 +147,7 @@ void Map::ProcessPlayerPosition(
 			continue;
 
 		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+
 		if( model_description.radius <= 0.0f )
 			continue;
 
@@ -174,6 +176,37 @@ void Map::ProcessPlayerPosition(
 	// Set position after collisions
 	player.SetPosition( m_Vec3( pos, new_player_z ) );
 	player.ResetNewPositionFlag();
+
+	// Process "special" models.
+	// Pick-up keys.
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		StaticModel& model= static_models_[m];
+		const MapData::StaticModel& map_model= map_data_->static_models[m];
+
+		if( model.pos.z < 0.0f ||
+			map_model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+
+		const ACode a_code= static_cast<ACode>( model_description.ac );
+		if( a_code >= ACode::RedKey && a_code <= ACode::BlueKey )
+		{
+			const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
+			const float square_distance= vec_to_player_pos.SquareLength();
+			if( square_distance <= c_player_radius * c_player_radius )
+			{
+				model.pos.z= -2.0f; // HACK. TODO - hide models
+				if( a_code == ACode::RedKey )
+					player.GiveRedKey();
+				if( a_code == ACode::GreenKey )
+					player.GiveGreenKey();
+				if( a_code == ACode::BlueKey )
+					player.GiveBlueKey();
+			}
+		}
+	}
 }
 
 void Map::Tick( const Time current_time )

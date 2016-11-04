@@ -65,7 +65,7 @@ struct PlayerPosition : public MessageBase
 struct StaticModelState : public MessageBase
 {
 	unsigned short static_model_index;
-	short xyz[2];
+	short xyz[3];
 	unsigned short angle;
 	unsigned short animation_frame;
 
