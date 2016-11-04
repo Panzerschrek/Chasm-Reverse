@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "assert.hpp"
+#include "math_utils.hpp"
 
 #include "model.hpp"
 
@@ -81,6 +82,18 @@ static void ClearModel( Model& model )
 	model.submodels.clear();
 }
 
+static void CalculateModelZ( Model& model, const Vertex_o3* const vertices, const unsigned int vertex_count )
+{
+	model.z_max= Constants::min_float;
+	model.z_min= Constants::max_float;
+	for( unsigned int v= 0u; v < vertex_count; v++ )
+	{
+		const float z= float( vertices[v].xyz[2] ) * g_3o_model_coords_scale;
+		model.z_max= std::max( model.z_max, z );
+		model.z_min= std::min( model.z_min, z );
+	}
+}
+
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	ClearModel( out_model );
@@ -111,6 +124,11 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			? ( model_file.data() + 0x3200u )
 			: ( animation_file.data() + 0x02u );
 	const Vertex_o3* const vertices= reinterpret_cast<const Vertex_o3*>( in_vertices_data );
+
+	CalculateModelZ(
+		out_model,
+		reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3200u ),
+		vertex_count );
 
 	out_model.frame_count=
 		animation_file.empty()
@@ -326,6 +344,12 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			reinterpret_cast<const Polygon_o3*>( model_file.data() + 0x66u );
 
 		prepare_model( vertex_count, polygon_count, vertices, polygons, out_model );
+
+		// TODO - check this
+		CalculateModelZ(
+			out_model,
+			reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3266u ),
+			vertex_count );
 	}
 
 	unsigned int submodels_offset=

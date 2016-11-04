@@ -400,6 +400,8 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 
 		model_description.animation_file_name[0u]= '\0';
 		line_stream >> model_description.animation_file_name;
+
+		model_description.radius*= g_map_coords_scale;
 	}
 }
 

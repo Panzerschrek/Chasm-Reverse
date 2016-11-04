@@ -30,6 +30,8 @@ struct Submodel
 	Vertices vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
+
+	float z_min, z_max;
 };
 
 struct Model final : public Submodel

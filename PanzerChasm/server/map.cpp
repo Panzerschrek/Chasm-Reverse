@@ -419,6 +419,7 @@ void Map::CollidePlayer( Player& player )
 
 	// TODO - read from config
 	const float c_player_radius= 0.4f;
+	const float c_player_height= 1.0f;
 
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
@@ -453,6 +454,37 @@ void Map::CollidePlayer( Player& player )
 				pos, c_player_radius,
 				new_pos ) )
 			pos= new_pos;
+	}
+
+	const float z_bottom= player.Position().z;
+	const float z_top= z_bottom + c_player_height;
+
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+		const MapData::StaticModel& map_model= map_data_->static_models[m];
+
+		if( map_model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+		if( model_description.radius <= 0.0f )
+			continue;
+
+		const Model& model_geometry= map_data_->models[ map_model.model_id ];
+
+		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
+			continue;
+
+		const float min_distance= c_player_radius + model_description.radius;
+
+		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
+		const float square_distance= vec_to_player_pos.SquareLength();
+
+		if( square_distance < min_distance * min_distance )
+		{
+			pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+		}
 	}
 
 	player.SetPosition( m_Vec3( pos, player.Position().z ) );
