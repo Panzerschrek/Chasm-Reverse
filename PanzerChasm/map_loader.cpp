@@ -407,8 +407,11 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 
 void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data )
 {
-	for( char* const file_name : map_data.walls_textures )
-		file_name[0]= '\0';
+	for( MapData::WallTextureDescription& tex: map_data.walls_textures )
+	{
+		tex.file_name[0]= '\0';
+		tex.gso[0]= tex.gso[1]= tex.gso[2]= false;
+	}
 
 	const char* start= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#GFX" );
 	start+= std::strlen( "#GFX" );
@@ -434,7 +437,16 @@ void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, M
 		char colon[8];
 		line_stream >> colon;
 
-		line_stream >> map_data.walls_textures[ texture_number ];
+		line_stream >> map_data.walls_textures[ texture_number ].file_name;
+
+		char gso[16];
+		line_stream >> gso;
+		if( !line_stream.fail() )
+		{
+			for( unsigned int j= 0u; j < 3u; j++ )
+				if( gso[j] != '.' )
+					map_data.walls_textures[ texture_number ].gso[j]= true;
+		}
 	}
 }
 

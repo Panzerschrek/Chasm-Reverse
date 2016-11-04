@@ -57,6 +57,16 @@ public:
 		unsigned char monster_id;
 	};
 
+	struct WallTextureDescription
+	{
+		char file_name[ c_max_file_name_size ]; // iz empty - wall does not exists
+
+		// 0 - bottom is blocker
+		// 1 - maybe, transaprency flag
+		// 2 - top is blocker
+		bool gso[3];
+	};
+
 	struct ModelDescription
 	{
 		char file_name[ c_max_file_name_size ];
@@ -209,7 +219,7 @@ public:
 
 	Link links[ c_map_size * c_map_size ];
 
-	char walls_textures[ c_max_walls_textures ][ c_max_file_name_size ];
+	WallTextureDescription walls_textures[ c_max_walls_textures ];
 
 	unsigned char floor_textures[ c_map_size * c_map_size ];
 	unsigned char ceiling_textures[ c_map_size * c_map_size ];

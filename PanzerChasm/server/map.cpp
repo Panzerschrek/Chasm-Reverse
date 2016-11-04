@@ -421,12 +421,19 @@ void Map::CollidePlayer( Player& player )
 	const float c_player_radius= 0.4f;
 	const float c_player_height= 1.0f;
 
+	const float z_bottom= player.Position().z;
+	const float z_top= z_bottom + c_player_height;
+
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
 			continue;
 
-		if( map_data_->walls_textures[ wall.texture_id ][0] == '\0' )
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+		if( tex.file_name[0] == '\0' )
+			continue;
+
+		if( tex.gso[0] || tex.gso[2] )
 			continue;
 
 		m_Vec2 new_pos;
@@ -445,7 +452,7 @@ void Map::CollidePlayer( Player& player )
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
 			continue;
 
-		if( map_data_->walls_textures[ map_wall.texture_id ][0] == '\0' )
+		if( map_data_->walls_textures[ map_wall.texture_id ].file_name[0] == '\0' )
 			continue;
 
 		m_Vec2 new_pos;
@@ -455,9 +462,6 @@ void Map::CollidePlayer( Player& player )
 				new_pos ) )
 			pos= new_pos;
 	}
-
-	const float z_bottom= player.Position().z;
-	const float z_top= z_bottom + c_player_height;
 
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
