@@ -49,6 +49,14 @@ Map::Map(
 Map::~Map()
 {}
 
+void Map::Shoot( const m_Vec3& from, const m_Vec3& normalized_direction )
+{
+	shots_.emplace_back();
+	Shot& shot= shots_.back();
+	shot.from= from;
+	shot.normalized_direction= normalized_direction;
+}
+
 void Map::ProcessPlayerPosition(
 	const Time current_time,
 	Player& player,
@@ -439,6 +447,44 @@ void Map::Tick( const Time current_time )
 		else
 			model.current_animation_frame= model.animation_start_frame;
 	} // for static models
+
+	// Sprite effects
+	sprite_effects_.clear();
+
+	// Process shots
+	for( const Shot& shot : shots_ )
+	{
+		float nearest_shot_point_square_distance= Constants::max_float;
+		m_Vec3 nearest_shot_pos;
+
+		for( const MapData::Wall& wall : map_data_->static_walls )
+		{
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					0.0f, 2.0f,
+					shot.from, shot.normalized_direction,
+					candidate_pos ) )
+			{
+				const float square_distance= ( candidate_pos - shot.from ).SquareLength();
+				if( square_distance < nearest_shot_point_square_distance )
+				{
+					nearest_shot_pos= candidate_pos;
+					nearest_shot_point_square_distance= square_distance;
+				}
+			}
+		}
+
+		if( nearest_shot_point_square_distance < Constants::max_float )
+		{
+			sprite_effects_.emplace_back();
+			SpriteEffect& effect= sprite_effects_.back();
+
+			effect.pos= nearest_shot_pos;
+			effect.effect_id= 0u;
+		}
+	}
+	shots_.clear();
 }
 
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
@@ -480,6 +526,18 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		model_message.angle= static_cast<unsigned short>( 65536.0f * model.angle / Constants::two_pi );
 
 		messages_sender.SendUnreliableMessage( model_message );
+	}
+
+	Messages::SpriteEffectBirth sprite_message;
+	sprite_message.message_id= MessageId::SpriteEffectBirth;
+
+	for( const SpriteEffect& effect : sprite_effects_ )
+	{
+		sprite_message.effect_id= effect.effect_id;
+		for( unsigned int j= 0u; j < 3u; j++ )
+			sprite_message.xyz[j]= static_cast<short>( effect.pos.ToArr()[j] * 256.0f );
+
+		messages_sender.SendUnreliableMessage( sprite_message );
 	}
 }
 

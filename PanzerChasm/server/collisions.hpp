@@ -18,4 +18,11 @@ bool CircleIntersectsWithSquare(
 	float circle_radius,
 	unsigned int square_x, unsigned int square_y );
 
+bool RayIntersectWall(
+	const m_Vec2& v0, const m_Vec2& v1,
+	float z_bottom, float z_top,
+	const m_Vec3& ray_start_point,
+	const m_Vec3& ray_direction_normalized,
+	m_Vec3& out_pos );
+
 } // namespace PanzerChasm

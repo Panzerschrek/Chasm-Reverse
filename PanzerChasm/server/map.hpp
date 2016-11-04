@@ -15,6 +15,8 @@ public:
 	Map( const MapDataConstPtr& map_data, Time map_start_time );
 	~Map();
 
+	void Shoot( const m_Vec3& from, const m_Vec3& normalized_direction );
+
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time );
 
@@ -74,6 +76,22 @@ private:
 
 	typedef std::vector<StaticModel> StaticModels;
 
+	struct Shot
+	{
+		m_Vec3 from;
+		m_Vec3 normalized_direction;
+	};
+
+	typedef std::vector<Shot> Shots;
+
+	struct SpriteEffect
+	{
+		m_Vec3 pos;
+		unsigned char effect_id;
+	};
+
+	typedef std::vector<SpriteEffect> SpriteEffects;
+
 private:
 	void TryActivateProcedure( unsigned int procedure_number, const Time current_time, Player& player, MessagesSender& messages_sender );
 
@@ -84,6 +102,9 @@ private:
 	std::vector<ProcedureState> procedures_;
 
 	StaticModels static_models_;
+
+	Shots shots_;
+	SpriteEffects sprite_effects_;
 };
 
 } // PanzerChasm
