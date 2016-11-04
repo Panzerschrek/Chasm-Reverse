@@ -582,6 +582,9 @@ void MapLoader::LoadProcedure(
 		map_data.procedures.resize( procedure_number + 1u );
 	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
 
+	procedure.sfx_pos[0]= procedure.sfx_pos[1]= 255;
+	procedure.link_switch_pos[0]= procedure.link_switch_pos[1]= 255;
+
 	bool has_action= false;
 
 	while( !stream.eof() )
@@ -632,13 +635,17 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.sfx_id;
 		else if( StringEquals( thing, "SfxPosxy" ) )
 		{
-			line_stream >> procedure.sfx_pos[0];
-			line_stream >> procedure.sfx_pos[1];
+			int x, y;
+			line_stream >> x; line_stream >> y;
+			procedure.sfx_pos[0]= x;
+			procedure.sfx_pos[1]= y;
 		}
 		else if( StringEquals( thing, "LinkSwitchAt" ) )
 		{
-			line_stream >> procedure.link_switch_pos[0];
-			line_stream >> procedure.link_switch_pos[1];
+			int x, y;
+			line_stream >> x; line_stream >> y;
+			procedure.link_switch_pos[0]= x;
+			procedure.link_switch_pos[1]= y;
 		}
 		else if( StringEquals( thing, "RedKey" ) )
 			procedure.red_key_required= true;
