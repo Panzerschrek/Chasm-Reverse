@@ -29,20 +29,36 @@ public:
 	static constexpr unsigned int c_max_file_name_size= 16u;
 
 public:
+	struct Link
+	{
+		enum : unsigned char
+		{
+			None,
+			Link_,
+			Floor,
+			Shoot,
+			Return,
+			Unlock,
+			Destroy,
+			OnOffLink,
+		} type= None;
+		unsigned char proc_id= 0u;
+	};
+
 	struct Wall
 	{
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
+		Link link;
 		unsigned char texture_id;
-		unsigned char proc_id; // zero, if no associated proc
 	};
 
 	struct StaticModel
 	{
 		m_Vec2 pos;
 		float angle;
+		Link link;
 		unsigned char model_id;
-		unsigned char proc_id; // zero, if no associated proc
 	};
 
 	struct Item
@@ -183,22 +199,6 @@ public:
 			std::string data;
 		};
 		std::vector<Text> texts;
-	};
-
-	struct Link
-	{
-		enum : unsigned char
-		{
-			None,
-			Link_,
-			Floor,
-			Shoot,
-			Return,
-			Unlock,
-			Destroy,
-			OnOffLink,
-		} type= None;
-		unsigned char proc_id= 0u;
 	};
 
 public:

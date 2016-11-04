@@ -276,10 +276,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 				index_element.type= MapData::IndexElement::StaticModel;
 				index_element.index= map_data.static_models.size() - 1u;
 
-				if( link.type == MapData::Link::None || link.type == MapData::Link::Floor )
-					model.proc_id= 0u;
-				else
-					model.proc_id= link.proc_id;
+				model.link= link;
 			}
 			else if( map_wall.texture_id >= c_first_item )
 			{
@@ -316,10 +313,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 		wall.texture_id= map_wall.texture_id;
 
-		if( link.type == MapData::Link::None || link.type == MapData::Link::Floor )
-			wall.proc_id= 0u;
-		else
-			wall.proc_id= link.proc_id;
+		wall.link= link;
 	} // for xy
 }
 

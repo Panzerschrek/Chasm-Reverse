@@ -53,7 +53,7 @@ void Map::ProcessPlayerPosition(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	CollidePlayer( player );
+	CollidePlayer( current_time, player, messages_sender );
 
 	const unsigned int x= player.MapPositionX();
 	const unsigned int y= player.MapPositionY();
@@ -66,83 +66,7 @@ void Map::ProcessPlayerPosition(
 	// TODO - process other links types
 	if( link.type == MapData::Link::Floor )
 	{
-		PC_ASSERT( link.proc_id < procedures_.size() );
-
-		const MapData::Procedure& procedure= map_data_->procedures[ link.proc_id ];
-		ProcedureState& procedure_state= procedures_[ link.proc_id ];
-
-		const bool have_necessary_keys=
-			( !procedure.  red_key_required || player.HaveRedKey() ) &&
-			( !procedure.green_key_required || player.HaveGreenKey() ) &&
-			( !procedure. blue_key_required || player.HaveBlueKey() );
-
-		if(
-			have_necessary_keys &&
-			!procedure_state.locked &&
-			procedure_state.movement_state == ProcedureState::MovementState::None )
-		{
-			procedure_state.movement_stage= 0.0f;
-			procedure_state.movement_state= ProcedureState::MovementState::Movement;
-			procedure_state.last_state_change_time= current_time;
-
-			// Do immediate commands
-			for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
-			{
-				using Command= MapData::Procedure::ActionCommandId;
-				if( command.id == Command::Lock )
-				{
-					const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-					PC_ASSERT( proc_number < procedures_.size() );
-
-					procedures_[ proc_number ].locked= true;
-				}
-				else if( command.id == Command::Unlock )
-				{
-					const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-					PC_ASSERT( proc_number < procedures_.size() );
-
-					procedures_[ proc_number ].locked= false;
-				}
-				// TODO - know, how animation commands works
-				else if( command.id == Command::PlayAnimation )
-				{}
-				else if( command.id == Command::StopAnimation )
-				{}
-				// TODO - process other commands
-				else
-				{}
-			}
-		} // if activated
-
-		// Activation messages.
-		if( player.MapPositionIsNew() &&
-			procedure.first_message_number != 0u &&
-			!procedure_state.first_message_printed )
-		{
-			procedure_state.first_message_printed= true;
-
-			Messages::TextMessage text_message;
-			text_message.message_id= MessageId::TextMessage;
-			text_message.text_message_number= procedure.first_message_number;
-			messages_sender.SendUnreliableMessage( text_message );
-		}
-		if( player.MapPositionIsNew() &&
-			procedure.lock_message_number != 0u &&
-			( procedure_state.locked || !have_necessary_keys ) )
-		{
-			Messages::TextMessage text_message;
-			text_message.message_id= MessageId::TextMessage;
-			text_message.text_message_number= procedure.lock_message_number;
-			messages_sender.SendUnreliableMessage( text_message );
-		}
-		if( player.MapPositionIsNew() &&
-			procedure.on_message_number != 0u )
-		{
-			Messages::TextMessage text_message;
-			text_message.message_id= MessageId::TextMessage;
-			text_message.text_message_number= procedure.on_message_number;
-			messages_sender.SendUnreliableMessage( text_message );
-		}
+		TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
 	}
 
 	player.ResetNewPositionFlag();
@@ -413,7 +337,98 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	}
 }
 
-void Map::CollidePlayer( Player& player )
+void Map::TryActivateProcedure(
+	unsigned int procedure_number,
+	const Time current_time,
+	Player& player,
+	MessagesSender& messages_sender )
+{
+	if( procedure_number == 0u )
+		return;
+
+	PC_ASSERT( procedure_number < procedures_.size() );
+
+	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
+	ProcedureState& procedure_state= procedures_[ procedure_number ];
+
+	const bool have_necessary_keys=
+		( !procedure.  red_key_required || player.HaveRedKey() ) &&
+		( !procedure.green_key_required || player.HaveGreenKey() ) &&
+		( !procedure. blue_key_required || player.HaveBlueKey() );
+
+	if(
+		have_necessary_keys &&
+		!procedure_state.locked &&
+		procedure_state.movement_state == ProcedureState::MovementState::None )
+	{
+		procedure_state.movement_stage= 0.0f;
+		procedure_state.movement_state= ProcedureState::MovementState::Movement;
+		procedure_state.last_state_change_time= current_time;
+
+		// Do immediate commands
+		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		{
+			using Command= MapData::Procedure::ActionCommandId;
+			if( command.id == Command::Lock )
+			{
+				const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+				PC_ASSERT( proc_number < procedures_.size() );
+
+				procedures_[ proc_number ].locked= true;
+			}
+			else if( command.id == Command::Unlock )
+			{
+				const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+				PC_ASSERT( proc_number < procedures_.size() );
+
+				procedures_[ proc_number ].locked= false;
+			}
+			// TODO - know, how animation commands works
+			else if( command.id == Command::PlayAnimation )
+			{}
+			else if( command.id == Command::StopAnimation )
+			{}
+			// TODO - process other commands
+			else
+			{}
+		}
+	} // if activated
+
+	// Activation messages.
+	if( player.MapPositionIsNew() &&
+		procedure.first_message_number != 0u &&
+		!procedure_state.first_message_printed )
+	{
+		procedure_state.first_message_printed= true;
+
+		Messages::TextMessage text_message;
+		text_message.message_id= MessageId::TextMessage;
+		text_message.text_message_number= procedure.first_message_number;
+		messages_sender.SendUnreliableMessage( text_message );
+	}
+	if( player.MapPositionIsNew() &&
+		procedure.lock_message_number != 0u &&
+		( procedure_state.locked || !have_necessary_keys ) )
+	{
+		Messages::TextMessage text_message;
+		text_message.message_id= MessageId::TextMessage;
+		text_message.text_message_number= procedure.lock_message_number;
+		messages_sender.SendUnreliableMessage( text_message );
+	}
+	if( player.MapPositionIsNew() &&
+		procedure.on_message_number != 0u )
+	{
+		Messages::TextMessage text_message;
+		text_message.message_id= MessageId::TextMessage;
+		text_message.text_message_number= procedure.on_message_number;
+		messages_sender.SendUnreliableMessage( text_message );
+	}
+}
+
+void Map::CollidePlayer(
+	const Time current_time,
+	Player& player,
+	MessagesSender& messages_sender  )
 {
 	m_Vec2 pos= player.Position().xy();
 
@@ -441,7 +456,11 @@ void Map::CollidePlayer( Player& player )
 				wall.vert_pos[0], wall.vert_pos[1],
 				pos, c_player_radius,
 				new_pos ) )
+		{
 			pos= new_pos;
+			if( wall.link.type == MapData::Link::Link_ )
+				TryActivateProcedure( wall.link.proc_id, current_time, player, messages_sender );
+		}
 	}
 
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
@@ -488,6 +507,10 @@ void Map::CollidePlayer( Player& player )
 		if( square_distance < min_distance * min_distance )
 		{
 			pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+
+			if( map_model.link.type == MapData::Link::Link_ ||
+				map_model.link.type == MapData::Link::OnOffLink )
+				TryActivateProcedure( map_model.link.proc_id, current_time, player, messages_sender );
 		}
 	}
 
