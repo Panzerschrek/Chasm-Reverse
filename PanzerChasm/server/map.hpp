@@ -75,6 +75,9 @@ private:
 	typedef std::vector<StaticModel> StaticModels;
 
 private:
+	void TryActivateProcedure( unsigned int procedure_number, const Time current_time, Player& player, MessagesSender& messages_sender );
+
+private:
 	const MapDataConstPtr map_data_;
 	DynamicWalls dynamic_walls_;
 

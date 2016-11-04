@@ -65,7 +65,7 @@ struct PlayerPosition : public MessageBase
 struct StaticModelState : public MessageBase
 {
 	unsigned short static_model_index;
-	short xyz[2];
+	short xyz[3];
 	unsigned short angle;
 	unsigned short animation_frame;
 
@@ -101,6 +101,7 @@ struct PlayerMove : public MessageBase
 {
 	unsigned short angle;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
+	bool jump_pressed;
 };
 
 struct PlayerShot : public MessageBase

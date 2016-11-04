@@ -123,7 +123,7 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 
 	static_model.pos.x= float(message.xyz[0]) / 256.0f;
 	static_model.pos.y= float(message.xyz[1]) / 256.0f;
-	static_model.pos.z= 0.0f;
+	static_model.pos.z= float(message.xyz[2]) / 256.0f;
 
 	static_model.animation_frame= message.animation_frame;
 }

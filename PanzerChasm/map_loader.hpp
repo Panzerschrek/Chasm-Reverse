@@ -29,10 +29,27 @@ public:
 	static constexpr unsigned int c_max_file_name_size= 16u;
 
 public:
+	struct Link
+	{
+		enum : unsigned char
+		{
+			None,
+			Link_,
+			Floor,
+			Shoot,
+			Return,
+			Unlock,
+			Destroy,
+			OnOffLink,
+		} type= None;
+		unsigned char proc_id= 0u;
+	};
+
 	struct Wall
 	{
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
+		Link link;
 		unsigned char texture_id;
 	};
 
@@ -40,6 +57,7 @@ public:
 	{
 		m_Vec2 pos;
 		float angle;
+		Link link;
 		unsigned char model_id;
 	};
 
@@ -57,6 +75,16 @@ public:
 		unsigned char monster_id;
 
 		unsigned int difficulty_flags; // For player - numebr of spawn
+	};
+
+	struct WallTextureDescription
+	{
+		char file_name[ c_max_file_name_size ]; // iz empty - wall does not exists
+
+		// 0 - bottom is blocker
+		// 1 - maybe, transaprency flag
+		// 2 - top is blocker
+		bool gso[3];
 	};
 
 	struct ModelDescription
@@ -175,22 +203,6 @@ public:
 		std::vector<Text> texts;
 	};
 
-	struct Link
-	{
-		enum : unsigned char
-		{
-			None,
-			Link_,
-			Floor,
-			Shoot,
-			Return,
-			Unlock,
-			Destroy,
-			OnOffLink,
-		} type= None;
-		unsigned char proc_id= 0u;
-	};
-
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
@@ -211,7 +223,7 @@ public:
 
 	Link links[ c_map_size * c_map_size ];
 
-	char walls_textures[ c_max_walls_textures ][ c_max_file_name_size ];
+	WallTextureDescription walls_textures[ c_max_walls_textures ];
 
 	unsigned char floor_textures[ c_map_size * c_map_size ];
 	unsigned char ceiling_textures[ c_map_size * c_map_size ];

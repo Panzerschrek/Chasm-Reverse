@@ -74,7 +74,7 @@ void MovementController::GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) con
 	translate.Translate( -pos );
 	rot_x.RotateX( -angle_.x );
 	rot_z.RotateZ( -angle_.z );
-	perspective.PerspectiveProjection( aspect_, fov_, 0.25f, 128.0f );
+	perspective.PerspectiveProjection( aspect_, fov_, 0.125f, 128.0f );
 
 	basis_change.Identity();
 	basis_change[5]= 0.0f;
@@ -92,6 +92,11 @@ m_Vec3 MovementController::GetCamDir() const
 	rot_y.RotateY( angle_.y );
 
 	return m_Vec3( 0.0f, 0.0f, 1.0f ) * rot_x * rot_y;
+}
+
+bool MovementController::JumpPressed() const
+{
+	return up_pressed_;
 }
 
 void MovementController::RotateX( int delta )

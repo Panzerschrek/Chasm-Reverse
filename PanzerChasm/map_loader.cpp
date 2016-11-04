@@ -249,6 +249,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 	{
 		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
 		MapData::IndexElement& index_element= map_data.map_index[ x + y * MapData::c_map_size ];
+		const MapData::Link& link= map_data.links[ x + y * MapData::c_map_size ];
 
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( y + x * MapData::c_map_size ) );
@@ -274,6 +275,8 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 				index_element.type= MapData::IndexElement::StaticModel;
 				index_element.index= map_data.static_models.size() - 1u;
+
+				model.link= link;
 			}
 			else if( map_wall.texture_id >= c_first_item )
 			{
@@ -309,6 +312,8 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		wall.vert_tex_coord[1]= 0.0f;
 
 		wall.texture_id= map_wall.texture_id;
+
+		wall.link= link;
 	} // for xy
 }
 
@@ -405,13 +410,18 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 
 		model_description.animation_file_name[0u]= '\0';
 		line_stream >> model_description.animation_file_name;
+
+		model_description.radius*= g_map_coords_scale;
 	}
 }
 
 void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data )
 {
-	for( char* const file_name : map_data.walls_textures )
-		file_name[0]= '\0';
+	for( MapData::WallTextureDescription& tex: map_data.walls_textures )
+	{
+		tex.file_name[0]= '\0';
+		tex.gso[0]= tex.gso[1]= tex.gso[2]= false;
+	}
 
 	const char* start= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#GFX" );
 	start+= std::strlen( "#GFX" );
@@ -437,7 +447,16 @@ void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, M
 		char colon[8];
 		line_stream >> colon;
 
-		line_stream >> map_data.walls_textures[ texture_number ];
+		line_stream >> map_data.walls_textures[ texture_number ].file_name;
+
+		char gso[16];
+		line_stream >> gso;
+		if( !line_stream.fail() )
+		{
+			for( unsigned int j= 0u; j < 3u; j++ )
+				if( gso[j] != '.' )
+					map_data.walls_textures[ texture_number ].gso[j]= true;
+		}
 	}
 }
 
@@ -568,6 +587,9 @@ void MapLoader::LoadProcedure(
 		map_data.procedures.resize( procedure_number + 1u );
 	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
 
+	procedure.sfx_pos[0]= procedure.sfx_pos[1]= 255;
+	procedure.link_switch_pos[0]= procedure.link_switch_pos[1]= 255;
+
 	bool has_action= false;
 
 	while( !stream.eof() )
@@ -618,13 +640,17 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.sfx_id;
 		else if( StringEquals( thing, "SfxPosxy" ) )
 		{
-			line_stream >> procedure.sfx_pos[0];
-			line_stream >> procedure.sfx_pos[1];
+			int x, y;
+			line_stream >> x; line_stream >> y;
+			procedure.sfx_pos[0]= x;
+			procedure.sfx_pos[1]= y;
 		}
 		else if( StringEquals( thing, "LinkSwitchAt" ) )
 		{
-			line_stream >> procedure.link_switch_pos[0];
-			line_stream >> procedure.link_switch_pos[1];
+			int x, y;
+			line_stream >> x; line_stream >> y;
+			procedure.link_switch_pos[0]= x;
+			procedure.link_switch_pos[1]= y;
 		}
 		else if( StringEquals( thing, "RedKey" ) )
 			procedure.red_key_required= true;
