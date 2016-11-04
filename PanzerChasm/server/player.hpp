@@ -50,6 +50,7 @@ private:
 
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
+	bool jump_pessed= false;
 };
 
 } // namespace PanzerChasm

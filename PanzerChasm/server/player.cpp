@@ -27,7 +27,8 @@ void Player::SetPosition( const m_Vec3& pos )
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
-	movement_direction_= move_message.angle / 65536.0f * Constants::two_pi;;
+	movement_direction_= move_message.angle / 65536.0f * Constants::two_pi;
+	jump_pessed= move_message.jump_pressed;
 }
 
 void Player::Move( const Time time_delta )
@@ -39,6 +40,12 @@ void Player::Move( const Time time_delta )
 
 	pos_.x+= delta * std::cos( movement_direction_ );
 	pos_.y+= delta * std::sin( movement_direction_ );
+
+	if( jump_pessed )
+		pos_.z+= +1.5f * time_delta.ToSeconds();
+	else
+		pos_.z+= -0.5f * time_delta.ToSeconds();
+
 	UpdateMapPosition();
 }
 

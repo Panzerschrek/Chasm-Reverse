@@ -82,6 +82,7 @@ void Client::Loop()
 		message.message_id= MessageId::PlayerMove;
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.angle= static_cast<unsigned short>( move_direction * 65536.0f / Constants::two_pi );
+		message.jump_pressed= camera_controller_.JumpPressed();
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();
@@ -95,8 +96,9 @@ void Client::Draw()
 	if( map_state_ != nullptr )
 	{
 		m_Mat4 view_matrix;
-		player_position_.z= 0.5f * 1.75f;
-		camera_controller_.GetViewMatrix( player_position_, view_matrix );
+		m_Vec3 pos= player_position_;
+		pos.z+= 0.5f * 1.75f;
+		camera_controller_.GetViewMatrix( pos, view_matrix );
 
 		map_drawer_.Draw( *map_state_, view_matrix );
 	}

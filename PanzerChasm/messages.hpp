@@ -101,6 +101,7 @@ struct PlayerMove : public MessageBase
 {
 	unsigned short angle;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
+	bool jump_pressed;
 };
 
 struct PlayerShot : public MessageBase

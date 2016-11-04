@@ -94,6 +94,11 @@ m_Vec3 MovementController::GetCamDir() const
 	return m_Vec3( 0.0f, 0.0f, 1.0f ) * rot_x * rot_y;
 }
 
+bool MovementController::JumpPressed() const
+{
+	return up_pressed_;
+}
+
 void MovementController::RotateX( int delta )
 {
 	angle_.x+= float(delta) * 0.01f;

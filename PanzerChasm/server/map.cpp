@@ -56,6 +56,7 @@ void Map::ProcessPlayerPosition(
 	// TODO - read from config
 	const float c_player_radius= 0.4f;
 	const float c_player_height= 1.0f;
+	const float c_wall_height= 2.0f;
 
 	const unsigned int player_x= player.MapPositionX();
 	const unsigned int player_y= player.MapPositionY();
@@ -124,6 +125,9 @@ void Map::ProcessPlayerPosition(
 		if( map_data_->walls_textures[ map_wall.texture_id ].file_name[0] == '\0' )
 			continue;
 
+		if( z_top < wall.z || z_bottom > wall.z + c_wall_height )
+			continue;
+
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
@@ -165,8 +169,10 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
+	const float new_player_z= std::max( 0.0f, player.Position().z );
+
 	// Set position after collisions
-	player.SetPosition( m_Vec3( pos, player.Position().z ) );
+	player.SetPosition( m_Vec3( pos, new_player_z ) );
 	player.ResetNewPositionFlag();
 }
 

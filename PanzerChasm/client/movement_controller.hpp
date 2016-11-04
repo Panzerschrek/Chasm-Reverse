@@ -26,6 +26,8 @@ public:
 
 	m_Vec3 GetCamDir() const;
 
+	bool JumpPressed() const;
+
 	void RotateX( int delta );
 	void RotateY( int delta );
 
