@@ -245,6 +245,27 @@ static void LoadEffectsSprites(
 	}
 }
 
+static void LoadWeaponsModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.weapons_models.resize( game_resources.weapons_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content[2u];
+
+	for( unsigned int i= 0u; i < game_resources.weapons_models.size(); i++ )
+	{
+		const GameResources::WeaponDescription& weapon_description= game_resources.weapons_description[i];
+
+		vfs.ReadFile( weapon_description.model_file_name, file_content );
+		vfs.ReadFile( weapon_description.animation_file_name, animation_file_content[0] );
+		vfs.ReadFile( weapon_description.reloading_animation_file_name, animation_file_content[1] );
+
+		LoadModel_o3( file_content, animation_file_content, 2u, game_resources.weapons_models[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
 	PC_ASSERT( vfs != nullptr );
@@ -267,6 +288,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 
 	LoadItemsModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
+	LoadWeaponsModels( *vfs, *result );
 
 	return result;
 }

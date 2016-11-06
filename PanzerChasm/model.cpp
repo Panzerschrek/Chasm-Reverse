@@ -217,6 +217,54 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 	anim.frame_count= out_model.frame_count;
 }
 
+void LoadModel_o3(
+	const Vfs::FileContent& model_file,
+	const Vfs::FileContent* const animation_files, const unsigned int animation_files_count,
+	Model& out_model )
+{
+	constexpr unsigned int c_max_animations= 32;
+
+	PC_ASSERT( animation_files != nullptr );
+	PC_ASSERT( animation_files_count >= 1u );
+	PC_ASSERT( animation_files_count < c_max_animations );
+
+	Model::Animation animations[ c_max_animations ];
+
+	unsigned int frame_count= 0u;
+	unsigned short vertex_count= 0u;
+
+	for( unsigned int i= 0; i < animation_files_count; i++ )
+	{
+		PC_ASSERT( !animation_files[i].empty() );
+
+		std::memcpy( &vertex_count, animation_files[i].data(), sizeof(unsigned short) );
+
+		animations[i].id= i;
+		animations[i].first_frame= frame_count;
+		animations[i].frame_count= ( animation_files[i].size() - 2u ) / vertex_count;
+
+		frame_count+= animations[i].frame_count;
+	}
+
+	// Produce big animation file
+	Vfs::FileContent combined_animations( sizeof(unsigned short) + vertex_count * frame_count * sizeof(Vertex_o3) );
+
+	std::memcpy( combined_animations.data(), &frame_count, sizeof(unsigned short) );
+	unsigned char* ptr= combined_animations.data() + sizeof(unsigned short);
+
+	for( unsigned int i= 0; i < animation_files_count; i++ )
+	{
+		const unsigned int animation_data_size= animation_files[i].size() - sizeof(unsigned short);
+		std::memcpy( ptr, animation_files[i].data() + sizeof(unsigned short), animation_data_size );
+		ptr+= animation_data_size;
+	}
+
+	LoadModel_o3( model_file, combined_animations, out_model );
+
+	out_model.animations.resize( animation_files_count );
+	std::memcpy( out_model.animations.data(), animations, sizeof(Model::Animation) * animation_files_count );
+}
+
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 {
 	ClearModel( out_model );
