@@ -1,7 +1,8 @@
-#include "assert.hpp"
-#include "log.hpp"
-#include "math_utils.hpp"
-#include "messages_extractor.inl"
+#include "../assert.hpp"
+#include "../game_constants.hpp"
+#include "../log.hpp"
+#include "../math_utils.hpp"
+#include "../messages_extractor.inl"
 
 #include "client.hpp"
 
@@ -114,7 +115,7 @@ void Client::Draw()
 	{
 		m_Mat4 view_matrix;
 		m_Vec3 pos= player_position_;
-		pos.z+= 0.5f * 1.75f;
+		pos.z+= GameConstants::player_eyes_level;
 		camera_controller_.GetViewMatrix( pos, view_matrix );
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );

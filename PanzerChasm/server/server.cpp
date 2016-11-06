@@ -1,6 +1,7 @@
 #include <matrix.hpp>
 
 #include "../assert.hpp"
+#include "../game_constants.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
@@ -122,7 +123,7 @@ void Server::operator()( const Messages::PlayerShot& message )
 
 	const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
 
-	map_->Shoot( player_.Position() + m_Vec3( 0.0f, 0.0f, 1.0f ), view_vec_rotated );
+	map_->Shoot( player_.Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ), view_vec_rotated );
 }
 
 void Server::UpdateTimes()

@@ -51,6 +51,7 @@ HEADERS+= \
 	client/map_state.hpp \
 	client/movement_controller.hpp \
 	connection_info.hpp \
+	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \
 	host_commands.hpp \
