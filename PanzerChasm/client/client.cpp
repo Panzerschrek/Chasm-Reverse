@@ -20,6 +20,7 @@ Client::Client(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( game_resources, rendering_context )
+	, hud_drawer_( game_resources, rendering_context )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -117,6 +118,7 @@ void Client::Draw()
 		camera_controller_.GetViewMatrix( pos, view_matrix );
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
+		hud_drawer_.DrawCrosshair(2u);
 	}
 }
 

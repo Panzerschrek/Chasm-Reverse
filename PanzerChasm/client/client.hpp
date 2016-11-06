@@ -6,6 +6,7 @@
 #include "../map_loader.hpp"
 #include "../rendering_context.hpp"
 #include "../system_event.hpp"
+#include "hud_drawer.hpp"
 #include "map_drawer.hpp"
 #include "map_state.hpp"
 #include "movement_controller.hpp"
@@ -54,6 +55,10 @@ private:
 	MapDrawer map_drawer_;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
+
+	HudDrawer hud_drawer_;
+
+
 };
 
 } // PanzerChasm
