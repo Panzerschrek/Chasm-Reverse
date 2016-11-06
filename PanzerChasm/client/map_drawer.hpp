@@ -81,7 +81,7 @@ private:
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
-	// 0 - ceiling, 1 - floor
+	// 0 - floor, 1 - ceiling
 	FloorGeometryInfo floors_geometry_info[2];
 
 	r_GLSLProgram walls_shader_;

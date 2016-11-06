@@ -321,20 +321,20 @@ void MapLoader::LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData
 {
 	const unsigned int c_offset= 0x23001u;
 
-	for( unsigned int floor_or_ceiling= 0u; floor_or_ceiling < 2u; floor_or_ceiling++ )
+	for( int floor_or_ceiling= 1u; floor_or_ceiling >= 0; floor_or_ceiling-- )
 	{
 		const unsigned char* const in_data=
-			map_file.data() + c_offset + MapData::c_map_size * MapData::c_map_size * floor_or_ceiling;
+			map_file.data() + c_offset + MapData::c_map_size * MapData::c_map_size * static_cast<unsigned int>(1 - floor_or_ceiling);
 
 		unsigned char* const out_data=
-			floor_or_ceiling == 0u
+			floor_or_ceiling == 0
 				? map_data.floor_textures
 				: map_data.ceiling_textures;
 
 		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
 		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 		{
-			const unsigned char texture_number= in_data[ y * MapData::c_map_size + x ];
+			const unsigned char texture_number= in_data[ x * MapData::c_map_size + y ];
 			out_data[ x + y * MapData::c_map_size ]= texture_number;
 		}
 	}

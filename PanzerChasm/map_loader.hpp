@@ -26,6 +26,9 @@ public:
 	static constexpr unsigned int c_max_walls_textures= 128u;
 	static constexpr unsigned int c_floors_textures_count= 64u;
 
+	static constexpr unsigned char c_empty_floor_texture_id= 63u;
+	static constexpr unsigned char c_sky_floor_texture_id= 62u;
+
 	static constexpr unsigned int c_max_file_name_size= 16u;
 
 public:

@@ -293,7 +293,7 @@ void MapDrawer::Draw(
 
 	for( unsigned int z= 0u; z < 2u; z++ )
 	{
-		floors_shader_.Uniform( "pos_z", float( 1u - z ) * 2.0f );
+		floors_shader_.Uniform( "pos_z", float(z) * 2.0f );
 
 		glDrawArrays(
 			GL_TRIANGLES,
@@ -640,8 +640,9 @@ void MapDrawer::LoadFloors( const MapData& map_data )
 		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
 		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 		{
-			const unsigned char texture_number= in_data[ x * MapData::c_map_size + y ] & 63u;
-			if( texture_number == 63u )
+			const unsigned char texture_number= in_data[ x + y * MapData::c_map_size ];
+
+			if( texture_number == MapData::c_empty_floor_texture_id )
 				continue;
 
 			floors_vertices.resize( floors_vertices.size() + 6u );
