@@ -166,4 +166,24 @@ bool RayIntersectWall(
 	return true;
 }
 
+bool RayIntersectXYPlane(
+	const float plane_z,
+	const m_Vec3& ray_start_point,
+	const m_Vec3& ray_direction_normalized,
+	m_Vec3& out_pos )
+{
+	if( ray_direction_normalized.z == 0.0f )
+		return false;
+
+	const float signed_distance_to_plane= plane_z - ray_start_point.z;
+	const float distance_to_intersection_point= signed_distance_to_plane / ray_direction_normalized.z;
+
+	const m_Vec3 vec_to_intersection_point= ray_direction_normalized * distance_to_intersection_point;
+	if( vec_to_intersection_point * ray_direction_normalized <= 0.0f )
+		return false;
+
+	out_pos= ray_start_point + vec_to_intersection_point;
+	return true;
+}
+
 } // namespace PanzerChasm

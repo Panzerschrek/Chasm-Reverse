@@ -457,8 +457,22 @@ void Map::Tick( const Time current_time )
 		float nearest_shot_point_square_distance= Constants::max_float;
 		m_Vec3 nearest_shot_pos;
 
+		const auto process_candidate_shot_pos=
+		[&]( const m_Vec3& candidate_pos )
+		{
+			const float square_distance= ( candidate_pos - shot.from ).SquareLength();
+			if( square_distance < nearest_shot_point_square_distance )
+			{
+				nearest_shot_pos= candidate_pos;
+				nearest_shot_point_square_distance= square_distance;
+			}
+		};
+
 		for( const MapData::Wall& wall : map_data_->static_walls )
 		{
+			if( map_data_->walls_textures[ wall.texture_id ].file_name[0] == '\0' )
+				continue;
+
 			m_Vec3 candidate_pos;
 			if( RayIntersectWall(
 					wall.vert_pos[0], wall.vert_pos[1],
@@ -466,12 +480,51 @@ void Map::Tick( const Time current_time )
 					shot.from, shot.normalized_direction,
 					candidate_pos ) )
 			{
-				const float square_distance= ( candidate_pos - shot.from ).SquareLength();
-				if( square_distance < nearest_shot_point_square_distance )
-				{
-					nearest_shot_pos= candidate_pos;
-					nearest_shot_point_square_distance= square_distance;
-				}
+				process_candidate_shot_pos( candidate_pos );
+			}
+		}
+
+		for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+		{
+			if( map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ].file_name[0] == '\0' )
+				continue;
+
+			const DynamicWall& wall= dynamic_walls_[w];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					wall.z, wall.z + 2.0f,
+					shot.from, shot.normalized_direction,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos );
+			}
+		}
+
+		for( unsigned int z= 0u; z <= 2u; z+= 2u )
+		{
+			m_Vec3 candidate_pos;
+			if( RayIntersectXYPlane(
+					float(z),
+					shot.from, shot.normalized_direction,
+					candidate_pos ) )
+			{
+				const int x= static_cast<int>( std::floor(candidate_pos.x) );
+				const int y= static_cast<int>( std::floor(candidate_pos.y) );
+				if( x < 0 || x >= int(MapData::c_map_size) ||
+					y < 0 || y >= int(MapData::c_map_size) )
+					continue;
+
+				const int coord= x + y * int(MapData::c_map_size);
+				const unsigned char texture_id=
+					( z == 0 ? map_data_->floor_textures : map_data_->ceiling_textures )[ coord ];
+
+				if( texture_id == MapData::c_empty_floor_texture_id ||
+					texture_id == MapData::c_sky_floor_texture_id )
+					continue;
+
+				process_candidate_shot_pos( candidate_pos );
 			}
 		}
 
@@ -481,7 +534,7 @@ void Map::Tick( const Time current_time )
 			SpriteEffect& effect= sprite_effects_.back();
 
 			effect.pos= nearest_shot_pos;
-			effect.effect_id= 0u;
+			effect.effect_id= 8u;
 		}
 	}
 	shots_.clear();

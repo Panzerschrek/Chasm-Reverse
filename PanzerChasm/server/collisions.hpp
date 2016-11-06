@@ -25,4 +25,10 @@ bool RayIntersectWall(
 	const m_Vec3& ray_direction_normalized,
 	m_Vec3& out_pos );
 
+bool RayIntersectXYPlane(
+	float plane_z,
+	const m_Vec3& ray_start_point,
+	const m_Vec3& ray_direction_normalized,
+	m_Vec3& out_pos );
+
 } // namespace PanzerChasm
