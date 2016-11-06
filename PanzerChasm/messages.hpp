@@ -1,9 +1,9 @@
 #pragma once
 
+#include <vec.hpp>
+
 namespace PanzerChasm
 {
-
-typedef unsigned short EntityId;
 
 enum class MessageId : unsigned char
 {
@@ -35,6 +35,10 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
+typedef unsigned short EntityId;
+typedef short CoordType;
+typedef unsigned short AngleType;
+
 #pragma pack(push, 1)
 
 struct MessageBase
@@ -45,8 +49,8 @@ struct MessageBase
 struct EntityState : public MessageBase
 {
 	EntityId id;
-	short xyz[3];
-	unsigned short angle;
+	CoordType xyz[3];
+	AngleType angle;
 	unsigned short animation_frame[2];
 	unsigned char animation_frames_mix;
 };
@@ -54,20 +58,20 @@ struct EntityState : public MessageBase
 struct WallPosition : public MessageBase
 {
 	unsigned short wall_index;
-	short vertices_xy[2][2];
+	CoordType vertices_xy[2][2];
 	short z;
 };
 
 struct PlayerPosition : public MessageBase
 {
-	short xyz[3];
+	CoordType xyz[3];
 };
 
 struct StaticModelState : public MessageBase
 {
 	unsigned short static_model_index;
-	short xyz[3];
-	unsigned short angle;
+	CoordType xyz[3];
+	AngleType angle;
 	unsigned short animation_frame;
 
 	// If true, client must play looped animation starts from frame.
@@ -79,7 +83,7 @@ struct StaticModelState : public MessageBase
 
 struct SpriteEffectBirth : public MessageBase
 {
-	short xyz[3];
+	CoordType xyz[3];
 	unsigned char effect_id;
 };
 
@@ -106,19 +110,31 @@ struct TextMessage : public MessageBase
 
 struct PlayerMove : public MessageBase
 {
-	unsigned short angle;
+	AngleType angle;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
 	bool jump_pressed;
 };
 
 struct PlayerShot : public MessageBase
 {
-	unsigned short view_dir_angle_x;
-	unsigned short view_dir_angle_z;
+	AngleType view_dir_angle_x;
+	AngleType view_dir_angle_z;
 };
 
 #pragma pack(pop)
 
 } // namespace Messages
+
+Messages::CoordType CoordToMessageCoord( float x );
+float MessageCoordToCoord( Messages::CoordType x );
+
+void PositionToMessagePosition( const m_Vec2& pos, Messages::CoordType* out_pos );
+void PositionToMessagePosition( const m_Vec3& pos, Messages::CoordType* out_pos );
+
+void MessagePositionToPosition( const Messages::CoordType* pos, m_Vec2& out_pos );
+void MessagePositionToPosition( const Messages::CoordType* pos, m_Vec3& out_pos );
+
+Messages::AngleType AngleToMessageAngle( float angle );
+float MessageAngleToAngle( Messages::AngleType angle );
 
 } // namespace PanzerChasm

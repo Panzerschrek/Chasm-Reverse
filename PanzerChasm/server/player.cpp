@@ -27,7 +27,7 @@ void Player::SetPosition( const m_Vec3& pos )
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
-	movement_direction_= move_message.angle / 65536.0f * Constants::two_pi;
+	movement_direction_= MessageAngleToAngle( move_message.angle );
 	jump_pessed= move_message.jump_pressed;
 }
 

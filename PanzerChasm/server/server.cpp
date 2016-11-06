@@ -118,8 +118,8 @@ void Server::operator()( const Messages::PlayerShot& message )
 
 	m_Mat4 x_rotate, z_rotate;
 
-	x_rotate.RotateX( float(message.view_dir_angle_x) / 65536.0f * Constants::two_pi );
-	z_rotate.RotateZ( float(message.view_dir_angle_z) / 65536.0f * Constants::two_pi );
+	x_rotate.RotateX( MessageAngleToAngle( message.view_dir_angle_x ) );
+	z_rotate.RotateZ( MessageAngleToAngle( message.view_dir_angle_z ) );
 
 	const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
 

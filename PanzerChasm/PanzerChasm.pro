@@ -30,6 +30,7 @@ SOURCES+= \
 	map_loader.cpp \
 	menu.cpp \
 	menu_drawer.cpp \
+	messages.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
 	model.cpp \

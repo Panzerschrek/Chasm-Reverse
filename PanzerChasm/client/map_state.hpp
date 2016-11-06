@@ -13,9 +13,8 @@ class MapState final
 public:
 	struct DynamicWall
 	{
-		// coordinates - 8.8 format
-		short xy[2][2];
-		short z; // wall bottom z
+		m_Vec2 vert_pos[2];
+		float z; // wall bottom z
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;

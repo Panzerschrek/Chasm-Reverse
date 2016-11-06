@@ -549,12 +549,9 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		wall_message.wall_index= &wall - dynamic_walls_.data();
 
-		wall_message.vertices_xy[0][0]= short( wall.vert_pos[0].x * 256.0f );
-		wall_message.vertices_xy[0][1]= short( wall.vert_pos[0].y * 256.0f );
-		wall_message.vertices_xy[1][0]= short( wall.vert_pos[1].x * 256.0f );
-		wall_message.vertices_xy[1][1]= short( wall.vert_pos[1].y * 256.0f );
-
-		wall_message.z= short( wall.z * 256.0f );
+		PositionToMessagePosition( wall.vert_pos[0], wall_message.vertices_xy[0] );
+		PositionToMessagePosition( wall.vert_pos[1], wall_message.vertices_xy[1] );
+		wall_message.z= CoordToMessageCoord( wall.z );
 
 		messages_sender.SendUnreliableMessage( wall_message );
 	}
@@ -573,10 +570,8 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		if( model.destroyed )
 			model_message.model_id++;
 
-		for( unsigned int j= 0u; j < 3u; j++ )
-			model_message.xyz[j]= short( model.pos.ToArr()[j] * 256.0f );
-
-		model_message.angle= static_cast<unsigned short>( 65536.0f * model.angle / Constants::two_pi );
+		PositionToMessagePosition( model.pos, model_message.xyz );
+		model_message.angle= AngleToMessageAngle( model.angle );
 
 		messages_sender.SendUnreliableMessage( model_message );
 	}
@@ -587,8 +582,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	for( const SpriteEffect& effect : sprite_effects_ )
 	{
 		sprite_message.effect_id= effect.effect_id;
-		for( unsigned int j= 0u; j < 3u; j++ )
-			sprite_message.xyz[j]= static_cast<short>( effect.pos.ToArr()[j] * 256.0f );
+		PositionToMessagePosition( effect.pos, sprite_message.xyz );
 
 		messages_sender.SendUnreliableMessage( sprite_message );
 	}

@@ -5,8 +5,6 @@
 namespace PanzerChasm
 {
 
-static const float g_walls_coord_scale= 256.0f;
-
 static const float g_animations_frames_per_second= 20.0f;
 
 MapState::MapState(
@@ -27,11 +25,9 @@ MapState::MapState(
 		const MapData::Wall& in_wall= map_data_->dynamic_walls[w];
 		DynamicWall& out_wall= dynamic_walls_[w];
 
-		out_wall.xy[0][0]= short( in_wall.vert_pos[0].x * g_walls_coord_scale );
-		out_wall.xy[0][1]= short( in_wall.vert_pos[0].y * g_walls_coord_scale );
-		out_wall.xy[1][0]= short( in_wall.vert_pos[1].x * g_walls_coord_scale );
-		out_wall.xy[1][1]= short( in_wall.vert_pos[1].y * g_walls_coord_scale );
-		out_wall.z= 0;
+		out_wall.vert_pos[0]= in_wall.vert_pos[0];
+		out_wall.vert_pos[1]= in_wall.vert_pos[1];
+		out_wall.z= 0.0f;
 	}
 
 	static_models_.resize( map_data_->static_models.size() );
@@ -132,11 +128,9 @@ void MapState::ProcessMessage( const Messages::WallPosition& message )
 
 	DynamicWall& wall= dynamic_walls_[ message.wall_index ];
 
-	wall.xy[0][0]= message.vertices_xy[0][0];
-	wall.xy[0][1]= message.vertices_xy[0][1];
-	wall.xy[1][0]= message.vertices_xy[1][0];
-	wall.xy[1][1]= message.vertices_xy[1][1];
-	wall.z= message.z;
+	MessagePositionToPosition( message.vertices_xy[0], wall.vert_pos[0] );
+	MessagePositionToPosition( message.vertices_xy[1], wall.vert_pos[1] );
+	wall.z= MessageCoordToCoord( message.z );
 }
 
 void MapState::ProcessMessage( const Messages::StaticModelState& message )
@@ -146,11 +140,8 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 
 	StaticModel& static_model= static_models_[ message.static_model_index ];
 
-	static_model.angle= float(message.angle) / 65536.0f * Constants::two_pi;
-
-	static_model.pos.x= float(message.xyz[0]) / 256.0f;
-	static_model.pos.y= float(message.xyz[1]) / 256.0f;
-	static_model.pos.z= float(message.xyz[2]) / 256.0f;
+	static_model.angle= MessageAngleToAngle( message.angle );
+	MessagePositionToPosition( message.xyz, static_model.pos );
 
 	static_model.animation_frame= message.animation_frame;
 }
@@ -166,8 +157,7 @@ void MapState::ProcessMessage( const Messages::SpriteEffectBirth& message )
 	effect.effect_id= message.effect_id;
 	effect.frame= 0.0f;
 
-	for( unsigned int j= 0u; j < 3u; j++ )
-		effect.pos.ToArr()[j]= float(message.xyz[j]) / 256.0f;
+	MessagePositionToPosition( message.xyz, effect.pos );
 
 	effect.start_time= last_tick_time_;
 }

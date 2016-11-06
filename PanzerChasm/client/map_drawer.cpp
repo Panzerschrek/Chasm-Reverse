@@ -955,13 +955,13 @@ void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls 
 
 		WallVertex* const v= dynamc_walls_vertices_.data() + w * 4u;
 
-		v[0].xyz[0]= v[2].xyz[0]= wall.xy[0][0];
-		v[0].xyz[1]= v[2].xyz[1]= wall.xy[0][1];
-		v[1].xyz[0]= v[3].xyz[0]= wall.xy[1][0];
-		v[1].xyz[1]= v[3].xyz[1]= wall.xy[1][1];
+		v[0].xyz[0]= v[2].xyz[0]= short( wall.vert_pos[0].x * 256.0f );
+		v[0].xyz[1]= v[2].xyz[1]= short( wall.vert_pos[0].y * 256.0f );
+		v[1].xyz[0]= v[3].xyz[0]= short( wall.vert_pos[1].x * 256.0f );
+		v[1].xyz[1]= v[3].xyz[1]= short( wall.vert_pos[1].y * 256.0f );
 
-		v[0].xyz[2]= v[1].xyz[2]= wall.z;
-		v[2].xyz[2]= v[3].xyz[2]= wall.z + (2u << 8u);
+		v[0].xyz[2]= v[1].xyz[2]= short( wall.z * 256.0f );
+		v[2].xyz[2]= v[3].xyz[2]=v[0].xyz[2] + (2u << 8u);
 
 		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
 

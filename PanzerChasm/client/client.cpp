@@ -143,8 +143,7 @@ void Client::operator()( const Messages::WallPosition& message )
 
 void Client::operator()( const Messages::PlayerPosition& message )
 {
-	for( unsigned int j= 0u; j < 3u; j++ )
-		player_position_.ToArr()[j]= float(message.xyz[j]) / 256.0f;
+	MessagePositionToPosition( message.xyz, player_position_ );
 }
 
 void Client::operator()( const Messages::StaticModelState& message )
