@@ -141,6 +141,71 @@ static void LoadSpriteEffectsDescription(
 	}
 }
 
+static void LoadWeaponsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	const char* const weapons_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[WEAPONS]" );
+	const char* const weapons_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( weapons_start, weapons_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int weapon_count= 0u;
+	stream >> weapon_count;
+	stream.getline( line, sizeof(line), '\n' );
+
+	game_resources.weapons_description.resize( weapon_count );
+
+	for( unsigned int i= 0u; i < weapon_count; i++ )
+	{
+		GameResources::WeaponDescription& weapon_description= game_resources.weapons_description[i];
+
+		for( unsigned int j= 0u; j < 3u; j++ )
+		{
+			stream.getline( line, sizeof(line), '\n' );
+
+			const char* param_start= line;
+			while( std::isspace( *param_start ) ) param_start++;
+
+			const char* param_end= param_start;
+			while( std::isalpha( *param_end ) ) param_end++;
+
+			const char* value_start= param_end;
+			while( std::isspace( *value_start ) ) value_start++;
+			value_start++;
+			while( std::isspace( *value_start ) ) value_start++;
+
+			const char* value_end= value_start;
+			while( !std::isspace( *value_end ) ) value_end++;
+
+			const unsigned int param_length= param_end - param_start;
+			const unsigned int value_length= value_end - value_start;
+
+			if( std::strncmp( param_start, "MODEL", param_length ) == 0 )
+				std::strncpy( weapon_description.model_file_name, value_start, value_length );
+			else if( std::strncmp( param_start, "STAT", param_length ) == 0 )
+				std::strncpy( weapon_description.animation_file_name, value_start, value_length );
+			else if( std::strncmp( param_start, "SHOOT", param_length ) == 0 )
+				std::strncpy( weapon_description.reloading_animation_file_name, value_start, value_length );
+		}
+
+		stream.getline( line, sizeof(line), '\n' );
+		std::istringstream line_stream{ std::string( line ) };
+
+		line_stream >> weapon_description.r_type;
+		line_stream >> weapon_description.reloading_time;
+		line_stream >> weapon_description.y_sh;
+		line_stream >> weapon_description.r_z0;
+		line_stream >> weapon_description.d_am;
+		line_stream >> weapon_description.limit;
+		line_stream >> weapon_description.r_count;
+	}
+}
+
 static void LoadItemsModels(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -198,6 +263,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadItemsDescription( inf_file, *result );
 	LoadMonstersDescription( inf_file, *result );
 	LoadSpriteEffectsDescription( inf_file, *result );
+	LoadWeaponsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
