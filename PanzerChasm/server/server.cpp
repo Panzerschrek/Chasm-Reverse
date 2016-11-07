@@ -48,7 +48,7 @@ void Server::Loop()
 			{
 				if( monster.monster_id == 0u && monster.difficulty_flags == 0 )
 				{
-					player_.SetPosition( m_Vec3( monster.pos, 0.0f ) );
+					player_.SetPosition( m_Vec3( monster.pos, 4.0f ) );
 					break;
 				}
 			}

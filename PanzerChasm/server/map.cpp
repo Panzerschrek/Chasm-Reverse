@@ -590,6 +590,14 @@ void Map::Tick( const Time current_time )
 				ProcedureProcessDestroy( map_model.link.proc_id, current_time );
 			}
 		}
+		else if( hited_object_type == ObjectType::StaticWall || hited_object_type == ObjectType::DynamicWall )
+		{
+			const MapData::Wall& wall=
+				( hited_object_type == ObjectType::StaticWall ? map_data_->static_walls : map_data_->dynamic_walls )[ hited_object_index ];
+
+			if( wall.link.type == MapData::Link::Shoot )
+				ProcedureProcessShoot( wall.link.proc_id, current_time );
+		}
 	}
 	shots_.clear();
 }
@@ -741,6 +749,11 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 	// Autol-unlock locked procedures
 	procedure_state.locked= false;
 
+	ActivateProcedure( procedure_number, current_time );
+}
+
+void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
+{
 	ActivateProcedure( procedure_number, current_time );
 }
 
