@@ -502,6 +502,29 @@ void Map::Tick( const Time current_time )
 			}
 		}
 
+		for( const StaticModel& model : static_models_ )
+		{
+			if( model.model_id >= map_data_->models_description.size() )
+				continue;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				continue;
+
+			const Model& model_data= map_data_->models[ model.model_id ];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectCylinder(
+					model.pos.xy(), model_description.radius,
+					model_data.z_min + model.pos.z,
+					model_data.z_max + model.pos.z,
+					shot.from, shot.normalized_direction,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos );
+			}
+		}
+
 		for( unsigned int z= 0u; z <= 2u; z+= 2u )
 		{
 			m_Vec3 candidate_pos;

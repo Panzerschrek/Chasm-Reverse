@@ -1,4 +1,5 @@
 #include "../assert.hpp"
+#include "../math_utils.hpp"
 
 #include "collisions.hpp"
 
@@ -184,6 +185,89 @@ bool RayIntersectXYPlane(
 
 	out_pos= ray_start_point + vec_to_intersection_point;
 	return true;
+}
+
+bool RayIntersectCylinder(
+	const m_Vec2& cylinder_center, const float cylinder_radius,
+	const float cylinder_bottom, const float cylinder_top,
+	const m_Vec3& ray_start_point,
+	const m_Vec3& ray_direction_normalized,
+	m_Vec3& out_pos )
+
+{
+	float min_square_distance_to_candidate= Constants::max_float;
+
+	const float square_cylinder_radius= cylinder_radius * cylinder_radius;
+
+	const m_Vec2 ray_direction_xy= ray_direction_normalized.xy();
+	const float ray_direction_xy_square_length= ray_direction_xy.SquareLength();
+
+	if( ray_direction_xy_square_length != 0.0f )
+	{
+		// 2D plase start
+		const float ray_direction_xy_length= std::sqrt( ray_direction_xy_square_length );
+		const m_Vec2 ray_direction_xy_normalized= ray_direction_xy / ray_direction_xy_length;
+
+		const m_Vec2 vec_to_cylinder_center= cylinder_center - ray_start_point.xy();
+		const float vec_to_cylinder_center_projected_to_ray_length= vec_to_cylinder_center * ray_direction_xy_normalized;
+		const m_Vec2 vec_to_cylinder_center_projected_to_ray=
+			vec_to_cylinder_center_projected_to_ray_length * ray_direction_xy_normalized;
+
+		const m_Vec2 vec_from_cylinder_center_to_ray_line= vec_to_cylinder_center - vec_to_cylinder_center_projected_to_ray;
+		const float square_distance_from_cylinder_center_to_line= vec_from_cylinder_center_to_ray_line.SquareLength();
+
+		const float square_distance_between_intersection_point_and_projection_point=
+			square_cylinder_radius - square_distance_from_cylinder_center_to_line;
+		if( square_distance_between_intersection_point_and_projection_point <= 0.0f )
+			return false;
+
+		const float distance_between_intersection_point_and_projection_point=
+			std::sqrt( square_distance_between_intersection_point_and_projection_point );
+
+		const float signed_distanse_to_intersection_point= vec_to_cylinder_center_projected_to_ray_length - distance_between_intersection_point_and_projection_point;
+		if( signed_distanse_to_intersection_point < 0.0f )
+			return false;
+
+		// 2D phase end
+		const float distanse_to_intersection_point_3d= signed_distanse_to_intersection_point / ray_direction_xy_length;
+
+		const m_Vec3 intersection_point=
+			ray_start_point +
+			ray_direction_normalized * distanse_to_intersection_point_3d;
+
+		if( intersection_point.z >= cylinder_bottom &&
+			intersection_point.z <= cylinder_top )
+		{
+			min_square_distance_to_candidate= distanse_to_intersection_point_3d * distanse_to_intersection_point_3d;
+			out_pos= intersection_point;
+		}
+	}
+
+	// Check cylinder sides
+	for( unsigned int i= 0u; i < 2u; i++ )
+	{
+		m_Vec3 candidate_pos;
+		if( RayIntersectXYPlane(
+				i == 0u ? cylinder_top : cylinder_bottom,
+				ray_start_point,
+				ray_direction_normalized,
+				candidate_pos ) )
+		{
+			const m_Vec2 vec_from_cylinder_center_to_candidate= candidate_pos.xy() - cylinder_center;
+			if( vec_from_cylinder_center_to_candidate.SquareLength() > square_cylinder_radius )
+				continue;
+
+			const m_Vec3 vec_to_candidate= candidate_pos - ray_start_point;
+			const float square_distance= vec_to_candidate.SquareLength();
+			if( square_distance < min_square_distance_to_candidate )
+			{
+				min_square_distance_to_candidate= square_distance;
+				out_pos= candidate_pos;
+			}
+		}
+	}
+
+	return min_square_distance_to_candidate < Constants::max_float;
 }
 
 } // namespace PanzerChasm

@@ -31,4 +31,11 @@ bool RayIntersectXYPlane(
 	const m_Vec3& ray_direction_normalized,
 	m_Vec3& out_pos );
 
+bool RayIntersectCylinder(
+	const m_Vec2& cylinder_center, float cylinder_radius,
+	float cylinder_bottom, float cylinder_top,
+	const m_Vec3& ray_start_point,
+	const m_Vec3& ray_direction_normalized,
+	m_Vec3& out_pos );
+
 } // namespace PanzerChasm
