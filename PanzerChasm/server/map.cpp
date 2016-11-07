@@ -582,7 +582,13 @@ void Map::Tick( const Time current_time )
 			if( model_description.break_limit <= 0 )
 				continue;
 
-			model.model_id++;
+			model.model_id++; // now, this model has other new model type
+
+			const MapData::StaticModel& map_model= map_data_->static_models[ hited_object_index ];
+			if( map_model.link.type == MapData::Link::Destroy )
+			{
+				ProcedureProcessDestroy( map_model.link.proc_id, current_time );
+			}
 		}
 	}
 	shots_.clear();
@@ -634,6 +640,45 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	}
 }
 
+void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
+{
+	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
+	ProcedureState& procedure_state= procedures_[ procedure_number ];
+
+	procedure_state.movement_stage= 0.0f;
+	procedure_state.movement_state= ProcedureState::MovementState::Movement;
+	procedure_state.last_state_change_time= current_time;
+
+	// Do immediate commands
+	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+	{
+
+		using Command= MapData::Procedure::ActionCommandId;
+		if( command.id == Command::Lock )
+		{
+			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+			PC_ASSERT( proc_number < procedures_.size() );
+
+			procedures_[ proc_number ].locked= true;
+		}
+		else if( command.id == Command::Unlock )
+		{
+			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+			PC_ASSERT( proc_number < procedures_.size() );
+
+			procedures_[ proc_number ].locked= false;
+		}
+		// TODO - know, how animation commands works
+		else if( command.id == Command::PlayAnimation )
+		{}
+		else if( command.id == Command::StopAnimation )
+		{}
+		// TODO - process other commands
+		else
+		{}
+	}
+}
+
 void Map::TryActivateProcedure(
 	unsigned int procedure_number,
 	const Time current_time,
@@ -658,37 +703,7 @@ void Map::TryActivateProcedure(
 		!procedure_state.locked &&
 		procedure_state.movement_state == ProcedureState::MovementState::None )
 	{
-		procedure_state.movement_stage= 0.0f;
-		procedure_state.movement_state= ProcedureState::MovementState::Movement;
-		procedure_state.last_state_change_time= current_time;
-
-		// Do immediate commands
-		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
-		{
-			using Command= MapData::Procedure::ActionCommandId;
-			if( command.id == Command::Lock )
-			{
-				const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-				PC_ASSERT( proc_number < procedures_.size() );
-
-				procedures_[ proc_number ].locked= true;
-			}
-			else if( command.id == Command::Unlock )
-			{
-				const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-				PC_ASSERT( proc_number < procedures_.size() );
-
-				procedures_[ proc_number ].locked= false;
-			}
-			// TODO - know, how animation commands works
-			else if( command.id == Command::PlayAnimation )
-			{}
-			else if( command.id == Command::StopAnimation )
-			{}
-			// TODO - process other commands
-			else
-			{}
-		}
+		ActivateProcedure( procedure_number, current_time );
 	} // if activated
 
 	// Activation messages.
@@ -717,6 +732,16 @@ void Map::TryActivateProcedure(
 		text_message.text_message_number= procedure.on_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
+}
+
+void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Time current_time )
+{
+	ProcedureState& procedure_state= procedures_[ procedure_number ];
+
+	// Autol-unlock locked procedures
+	procedure_state.locked= false;
+
+	ActivateProcedure( procedure_number, current_time );
 }
 
 } // PanzerChasm

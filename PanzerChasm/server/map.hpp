@@ -92,7 +92,9 @@ private:
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
 private:
-	void TryActivateProcedure( unsigned int procedure_number, const Time current_time, Player& player, MessagesSender& messages_sender );
+	void ActivateProcedure( unsigned int procedure_number, Time current_time );
+	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
+	void ProcedureProcessDestroy( unsigned int procedure_number, Time current_time );
 
 private:
 	const MapDataConstPtr map_data_;
