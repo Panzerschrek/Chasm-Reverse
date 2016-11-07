@@ -142,6 +142,7 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 
 	static_model.angle= MessageAngleToAngle( message.angle );
 	MessagePositionToPosition( message.xyz, static_model.pos );
+	static_model.model_id= message.model_id;
 
 	static_model.animation_frame= message.animation_frame;
 }

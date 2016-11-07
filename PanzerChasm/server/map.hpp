@@ -59,7 +59,6 @@ private:
 		float angle;
 
 		unsigned char model_id;
-		bool destroyed= false;
 
 		enum class AnimationState
 		{

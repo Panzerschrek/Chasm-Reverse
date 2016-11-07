@@ -149,17 +149,16 @@ void Map::ProcessPlayerPosition(
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
 		const StaticModel& model= static_models_[m];
-		const MapData::StaticModel& map_model= map_data_->static_models[m];
-
-		if( map_model.model_id >= map_data_->models_description.size() )
+		if( model.model_id >= map_data_->models_description.size() )
 			continue;
 
-		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 
 		if( model_description.radius <= 0.0f )
 			continue;
 
-		const Model& model_geometry= map_data_->models[ map_model.model_id ];
+		const MapData::StaticModel& map_model= map_data_->static_models[m];
+		const Model& model_geometry= map_data_->models[ model.model_id ];
 
 		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
 			continue;
@@ -454,17 +453,27 @@ void Map::Tick( const Time current_time )
 	// Process shots
 	for( const Shot& shot : shots_ )
 	{
+		enum class ObjectType
+		{
+			None, StaticWall, DynamicWall, Model, Floor,
+		};
+
 		float nearest_shot_point_square_distance= Constants::max_float;
 		m_Vec3 nearest_shot_pos;
+		ObjectType hited_object_type= ObjectType::None;
+		unsigned int hited_object_index= ~0u;
 
 		const auto process_candidate_shot_pos=
-		[&]( const m_Vec3& candidate_pos )
+		[&]( const m_Vec3& candidate_pos, const ObjectType object_type, const unsigned object_index )
 		{
 			const float square_distance= ( candidate_pos - shot.from ).SquareLength();
 			if( square_distance < nearest_shot_point_square_distance )
 			{
 				nearest_shot_pos= candidate_pos;
 				nearest_shot_point_square_distance= square_distance;
+
+				hited_object_type= object_type;
+				hited_object_index= object_index;
 			}
 		};
 
@@ -480,7 +489,7 @@ void Map::Tick( const Time current_time )
 					shot.from, shot.normalized_direction,
 					candidate_pos ) )
 			{
-				process_candidate_shot_pos( candidate_pos );
+				process_candidate_shot_pos( candidate_pos, ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
 			}
 		}
 
@@ -498,7 +507,7 @@ void Map::Tick( const Time current_time )
 					shot.from, shot.normalized_direction,
 					candidate_pos ) )
 			{
-				process_candidate_shot_pos( candidate_pos );
+				process_candidate_shot_pos( candidate_pos, ObjectType::DynamicWall, w );
 			}
 		}
 
@@ -521,7 +530,7 @@ void Map::Tick( const Time current_time )
 					shot.from, shot.normalized_direction,
 					candidate_pos ) )
 			{
-				process_candidate_shot_pos( candidate_pos );
+				process_candidate_shot_pos( candidate_pos, ObjectType::Model, &model - static_models_.data() );
 			}
 		}
 
@@ -547,17 +556,33 @@ void Map::Tick( const Time current_time )
 					texture_id == MapData::c_sky_floor_texture_id )
 					continue;
 
-				process_candidate_shot_pos( candidate_pos );
+				process_candidate_shot_pos( candidate_pos, ObjectType::Floor, z >> 1u );
 			}
 		}
 
-		if( nearest_shot_point_square_distance < Constants::max_float )
+		if( hited_object_type != ObjectType::None )
 		{
 			sprite_effects_.emplace_back();
 			SpriteEffect& effect= sprite_effects_.back();
 
 			effect.pos= nearest_shot_pos;
 			effect.effect_id= 8u;
+		}
+
+		// Try break breakable models.
+		// TODO - process break event, check break limit.
+		if( hited_object_type == ObjectType::Model )
+		{
+			StaticModel& model= static_models_[ hited_object_index ];
+
+			if( model.model_id >= map_data_->models_description.size() )
+				continue;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.break_limit <= 0 )
+				continue;
+
+			model.model_id++;
 		}
 	}
 	shots_.clear();
@@ -590,8 +615,6 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		model_message.animation_frame= model.current_animation_frame;
 		model_message.animation_playing= model.animation_state == StaticModel::AnimationState::Animation;
 		model_message.model_id= model.model_id;
-		if( model.destroyed )
-			model_message.model_id++;
 
 		PositionToMessagePosition( model.pos, model_message.xyz );
 		model_message.angle= AngleToMessageAngle( model.angle );

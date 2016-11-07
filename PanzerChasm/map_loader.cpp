@@ -399,7 +399,7 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 		line_stream >> model_description.bmpz; // BMPz
 		line_stream >> model_description.ac; // AC
 		line_stream >> model_description.blw; // Blw
-		line_stream >> model_description.blmt; // BLmt
+		line_stream >> model_description.break_limit; // BLmt
 		line_stream >> model_description.ambient_sfx_number; // SFX
 		line_stream >> model_description.break_sfx_number; // BSfx
 

@@ -112,7 +112,7 @@ public:
 
 		// "Break limit", maybe. Zero for non-breakable objects.
 		// When object breaks, it changes model to next in list.
-		int blmt;
+		int break_limit;
 
 		unsigned int ambient_sfx_number;
 		unsigned int break_sfx_number;
