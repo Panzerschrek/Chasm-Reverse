@@ -228,7 +228,6 @@ void Map::Tick( const Time current_time )
 			procedure_state.movement_state= ProcedureState::MovementState::None;
 			procedure_state.last_state_change_time= current_time;
 			procedure_state.movement_stage= 0.0f;
-			continue;
 		}
 
 		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
