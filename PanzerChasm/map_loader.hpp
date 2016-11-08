@@ -84,9 +84,9 @@ public:
 	{
 		char file_name[ c_max_file_name_size ]; // iz empty - wall does not exists
 
-		// 0 - bottom is blocker
-		// 1 - maybe, transaprency flag
-		// 2 - top is blocker
+		// 0 - true, if pass player
+		// 1 - true, if pass shots
+		// 2 - twosided flag?
 		bool gso[3];
 	};
 

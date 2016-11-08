@@ -104,10 +104,7 @@ void Map::ProcessPlayerPosition(
 			continue;
 
 		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-		if( tex.file_name[0] == '\0' )
-			continue;
-
-		if( tex.gso[0] || tex.gso[2] )
+		if( tex.file_name[0] == '\0' || tex.gso[0] )
 			continue;
 
 		m_Vec2 new_pos;
@@ -131,7 +128,8 @@ void Map::ProcessPlayerPosition(
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
 			continue;
 
-		if( map_data_->walls_textures[ map_wall.texture_id ].file_name[0] == '\0' )
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ map_wall.texture_id ];
+		if( tex.file_name[0] == '\0' || tex.gso[0] )
 			continue;
 
 		if( z_top < wall.z || z_bottom > wall.z + c_wall_height )
@@ -479,7 +477,8 @@ void Map::Tick( const Time current_time )
 
 		for( const MapData::Wall& wall : map_data_->static_walls )
 		{
-			if( map_data_->walls_textures[ wall.texture_id ].file_name[0] == '\0' )
+			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+			if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
 				continue;
 
 			m_Vec3 candidate_pos;
@@ -495,7 +494,9 @@ void Map::Tick( const Time current_time )
 
 		for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
 		{
-			if( map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ].file_name[0] == '\0' )
+			const MapData::WallTextureDescription& wall_texture=
+				map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ];
+			if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
 				continue;
 
 			const DynamicWall& wall= dynamic_walls_[w];
