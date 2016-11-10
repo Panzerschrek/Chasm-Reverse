@@ -13,6 +13,22 @@ static const float g_commands_coords_scale= 1.0f / 256.0f;
 
 static const float g_animations_frames_per_second= 20.0f;
 
+
+template<class Func>
+void Map::ProcessElementLinks(
+	const MapData::IndexElement::Type element_type,
+	const unsigned int index,
+	const Func& func )
+{
+	for( const MapData::Link& link : map_data_->links )
+	{
+		const MapData::IndexElement& index_element= map_data_->map_index[ link.x + link.y * MapData::c_map_size ];
+
+		if( index_element.type == element_type && index_element.index == index )
+			func( link );
+	}
+}
+
 Map::Map(
 	const MapDataConstPtr& map_data,
 	const Time map_start_time )
@@ -63,7 +79,7 @@ void Map::ProcessPlayerPosition(
 	MessagesSender& messages_sender )
 {
 	// TODO - read from config
-	const float c_player_radius= 0.4f;
+	const float c_player_radius= 100.0f / 256.0f;
 	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 
@@ -79,16 +95,12 @@ void Map::ProcessPlayerPosition(
 	{
 		// TODO - select correct player radius for floor collisions.
 		if( !CircleIntersectsWithSquare(
-				player.Position().xy(), c_player_radius * 0.5f, x, y ) )
+				player.Position().xy(), c_player_radius, x, y ) )
 			continue;
 
-		const MapData::Link& link= map_data_->links[ x + y * MapData::c_map_size ];
-
-		// TODO - process other links types
-		if( link.type == MapData::Link::Floor )
-		{
-			TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
-		}
+		const unsigned char proc_id= map_data_->floors_links_proc[ x + y * MapData::c_map_size ];
+		if( proc_id != 0u )
+			TryActivateProcedure( proc_id, current_time, player, messages_sender );
 	}
 
 	// Collide
@@ -114,8 +126,15 @@ void Map::ProcessPlayerPosition(
 				new_pos ) )
 		{
 			pos= new_pos;
-			if( wall.link.type == MapData::Link::Link_ )
-				TryActivateProcedure( wall.link.proc_id, current_time, player, messages_sender );
+
+			ProcessElementLinks(
+				MapData::IndexElement::StaticWall,
+				&wall - map_data_->static_walls.data(),
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Link_ )
+						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+				} );
 		}
 	}
 
@@ -140,7 +159,18 @@ void Map::ProcessPlayerPosition(
 				wall.vert_pos[0], wall.vert_pos[1],
 				pos, c_player_radius,
 				new_pos ) )
+		{
 			pos= new_pos;
+
+			ProcessElementLinks(
+				MapData::IndexElement::DynamicWall,
+				w,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Link_ )
+						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+				} );
+		}
 	}
 
 	// Models
@@ -152,10 +182,6 @@ void Map::ProcessPlayerPosition(
 
 		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const MapData::StaticModel& map_model= map_data_->static_models[m];
 		const Model& model_geometry= map_data_->models[ model.model_id ];
 
 		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
@@ -168,11 +194,19 @@ void Map::ProcessPlayerPosition(
 
 		if( square_distance < min_distance * min_distance )
 		{
-			pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+			// Change player position if model have nonzero radius
+			if( model_description.radius > 0.0f )
+				pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
 
-			if( map_model.link.type == MapData::Link::Link_ ||
-				map_model.link.type == MapData::Link::OnOffLink )
-				TryActivateProcedure( map_model.link.proc_id, current_time, player, messages_sender );
+			// Links must work for zero radius
+			ProcessElementLinks(
+				MapData::IndexElement::StaticModel,
+				m,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Link_ )
+						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+				} );
 		}
 	}
 
@@ -222,16 +256,12 @@ void Map::Tick( const Time current_time )
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
 
-		if( procedure.speed <= 0.0f )
-		{
-			// Reset procedures without speed
-			procedure_state.movement_state= ProcedureState::MovementState::None;
-			procedure_state.last_state_change_time= current_time;
-			procedure_state.movement_stage= 0.0f;
-		}
 
 		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
-		const float new_stage= time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f;
+		const float new_stage=
+			procedure.speed > 0.0f
+				? ( time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f )
+				: 1.0f;
 
 		switch( procedure_state.movement_state )
 		{
@@ -584,19 +614,28 @@ void Map::Tick( const Time current_time )
 
 			model.model_id++; // now, this model has other new model type
 
-			const MapData::StaticModel& map_model= map_data_->static_models[ hited_object_index ];
-			if( map_model.link.type == MapData::Link::Destroy )
-			{
-				ProcedureProcessDestroy( map_model.link.proc_id, current_time );
-			}
+			ProcessElementLinks(
+				MapData::IndexElement::StaticModel,
+				hited_object_index,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Destroy )
+						ProcedureProcessDestroy( link.proc_id, current_time );
+				} );
+
 		}
 		else if( hited_object_type == ObjectType::StaticWall || hited_object_type == ObjectType::DynamicWall )
 		{
-			const MapData::Wall& wall=
-				( hited_object_type == ObjectType::StaticWall ? map_data_->static_walls : map_data_->dynamic_walls )[ hited_object_index ];
-
-			if( wall.link.type == MapData::Link::Shoot )
-				ProcedureProcessShoot( wall.link.proc_id, current_time );
+			ProcessElementLinks(
+				hited_object_type == ObjectType::StaticWall
+					? MapData::IndexElement::StaticWall
+					: MapData::IndexElement::DynamicWall,
+				hited_object_index,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Shoot )
+						ProcedureProcessShoot( link.proc_id, current_time );
+				} );
 		}
 	}
 	shots_.clear();

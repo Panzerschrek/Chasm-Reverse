@@ -32,27 +32,10 @@ public:
 	static constexpr unsigned int c_max_file_name_size= 16u;
 
 public:
-	struct Link
-	{
-		enum : unsigned char
-		{
-			None,
-			Link_,
-			Floor,
-			Shoot,
-			Return,
-			Unlock,
-			Destroy,
-			OnOffLink,
-		} type= None;
-		unsigned char proc_id= 0u;
-	};
-
 	struct Wall
 	{
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
-		Link link;
 		unsigned char texture_id;
 	};
 
@@ -60,7 +43,6 @@ public:
 	{
 		m_Vec2 pos;
 		float angle;
-		Link link;
 		unsigned char model_id;
 	};
 
@@ -206,6 +188,23 @@ public:
 		std::vector<Text> texts;
 	};
 
+	struct Link
+	{
+		enum : unsigned char
+		{
+			None,
+			Link_,
+			Floor,
+			Shoot,
+			Return,
+			Unlock,
+			Destroy,
+			OnOffLink,
+		} type= None;
+		unsigned char proc_id= 0u;
+		unsigned char x, y;
+	};
+
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
@@ -218,13 +217,14 @@ public:
 
 	std::vector<Message> messages;
 	std::vector<Procedure> procedures;
+	std::vector<Link> links;
 
 	// All map tables cells are accesible via table[ x + y * size ].
 
 	// [x; y] to element index in container (walls, items, etc.)
 	IndexElement map_index[ c_map_size * c_map_size ];
 
-	Link links[ c_map_size * c_map_size ];
+	unsigned char floors_links_proc[ c_map_size * c_map_size ];
 
 	WallTextureDescription walls_textures[ c_max_walls_textures ];
 

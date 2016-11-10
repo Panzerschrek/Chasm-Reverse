@@ -97,6 +97,12 @@ private:
 	void ProcedureProcessDestroy( unsigned int procedure_number, Time current_time );
 	void ProcedureProcessShoot( unsigned int procedure_number, Time current_time );
 
+	template<class Func>
+	void ProcessElementLinks(
+		MapData::IndexElement::Type element_type,
+		unsigned int index,
+		const Func& func );
+
 private:
 	const MapDataConstPtr map_data_;
 	DynamicWalls dynamic_walls_;
