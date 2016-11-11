@@ -80,6 +80,7 @@ void Map::ProcessPlayerPosition(
 {
 	// TODO - read from config
 	const float c_player_radius= 100.0f / 256.0f;
+	const float c_z_pull_distance= 1.0f / 16.0f;
 	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 
@@ -108,6 +109,7 @@ void Map::ProcessPlayerPosition(
 
 	const float z_bottom= player.Position().z;
 	const float z_top= z_bottom + c_player_height;
+	float new_z= z_bottom;
 
 	// Static walls
 	for( const MapData::Wall& wall : map_data_->static_walls )
@@ -184,7 +186,9 @@ void Map::ProcessPlayerPosition(
 
 		const Model& model_geometry= map_data_->models[ model.model_id ];
 
-		if( z_top < model_geometry.z_min || z_bottom > model_geometry.z_max )
+		const float model_z_min= model_geometry.z_min + model.pos.z;
+		const float model_z_max= model_geometry.z_max + model.pos.z;
+		if( z_top < model_z_min || z_bottom > model_z_max )
 			continue;
 
 		const float min_distance= c_player_radius + model_description.radius;
@@ -196,7 +200,16 @@ void Map::ProcessPlayerPosition(
 		{
 			// Change player position if model have nonzero radius
 			if( model_description.radius > 0.0f )
-				pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+			{
+				// Pull up or down player.
+				if( model_geometry.z_max - z_bottom <= c_z_pull_distance )
+					new_z= std::max( new_z, model_z_max );
+				else if( z_top - model_geometry.z_min <= c_z_pull_distance )
+					new_z= std::min( new_z, model_z_min - c_player_height );
+				// Push player sideways.
+				else
+					pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+			}
 
 			// Links must work for zero radius
 			ProcessElementLinks(
@@ -210,10 +223,10 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	const float new_player_z= std::max( 0.0f, player.Position().z );
+	new_z= std::max( new_z, 0.0f );
 
 	// Set position after collisions
-	player.SetPosition( m_Vec3( pos, new_player_z ) );
+	player.SetPosition( m_Vec3( pos, new_z ) );
 	player.ResetNewPositionFlag();
 
 	// Process "special" models.

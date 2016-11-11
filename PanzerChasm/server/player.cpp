@@ -44,7 +44,7 @@ void Player::Move( const Time time_delta )
 	if( jump_pessed )
 		pos_.z+= +1.5f * time_delta.ToSeconds();
 	else
-		pos_.z+= -0.5f * time_delta.ToSeconds();
+		pos_.z+= -1.5f * time_delta.ToSeconds();
 
 	UpdateMapPosition();
 }
