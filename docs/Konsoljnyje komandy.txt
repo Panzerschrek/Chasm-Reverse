@@ -1,0 +1,26 @@
+﻿Komandy originaljnoj igry:
+
+FULLMAP - Vklücitj/vyklücitj risovanije vsej karty.
+GO # - Zapustitj vybrannyj urovenj.
+NEW - Nacatj novuhu igru.
+NEXT - Zapustitj sledujuscij urovenj.
+CDPLAY
+CDSTOP
+PLAY - Zapustitj demo.
+STOP - Ostanovitj demo.
+RECORD - Nacatj zapisj demo.
+WEAPON - Datj vsö oružije.
+CHOJIN - Vklücitj/vyklücitj režim boga.
+AMMO - Datj patronov.
+ARMOR - Datj broni.
+KILL - Ubitj vseh monstrov na urovne.
+REANIMATE ?
+INVISIBLE - Datj nevidimostj.
+RESPAWN - Ustanovitj vremä vozroždnija.
+REVERSE - perevernutj pravyj i levyj zvukovuje kanaly.
+DEPTH # - Regulirovatj glubinu tumana.
+SHADOWS # - Regulirivatj kolicestvo tenej.
+CLIST - Vyvesti spisok igrokov.
+KILLP # - Ubitj igroka. Argument - nomer ili imä.
+NICK # - smenitj Imä ogroka/vyvesti jego.
+QUIT - Vyjti iz igry.
