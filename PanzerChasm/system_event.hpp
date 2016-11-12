@@ -23,6 +23,7 @@ struct SystemEvent
 			Escape,
 			Enter,
 			Space,
+			Backspace,
 
 			Up,
 			Down,

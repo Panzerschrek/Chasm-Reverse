@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "client/client.hpp"
+#include "commands_processor.hpp"
 #include "game_resources.hpp"
 #include "host_commands.hpp"
 #include "loopback_buffer.hpp"
@@ -31,6 +32,8 @@ private:
 	// Put members here in reverse deinitialization order.
 
 	bool quit_requested_= false;
+
+	CommandsProcessor commands_processor_;
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
