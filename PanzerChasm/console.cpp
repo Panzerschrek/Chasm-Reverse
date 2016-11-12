@@ -32,8 +32,9 @@ static char KeyCodeToChar( const SystemEvent::KeyEvent::KeyCode code )
 	return '\0';
 }
 
-Console::Console( CommandsProcessor& commands_processor )
+Console::Console( CommandsProcessor& commands_processor, const DrawersPtr& drawers )
 	: commands_processor_(commands_processor)
+	, drawers_(drawers)
 {
 	input_line_[0]= '\0';
 
@@ -90,6 +91,14 @@ void Console::ProcessEvents( const SystemEvents& events )
 			}
 		}
 	} // for events
+}
+
+void Console::Draw()
+{
+	drawers_->text.Print(
+		0, 0,
+		input_line_, 1,
+		TextDraw::FontColor::Golden, TextDraw::Alignment::Left );
 }
 
 void Console::LogCallback( std::string str )

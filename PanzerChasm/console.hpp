@@ -3,6 +3,7 @@
 #include <string>
 
 #include "commands_processor.hpp"
+#include "drawers.hpp"
 #include "system_event.hpp"
 
 namespace PanzerChasm
@@ -11,10 +12,11 @@ namespace PanzerChasm
 class Console final
 {
 public:
-	Console( CommandsProcessor& commands_processor );
+	Console( CommandsProcessor& commands_processor, const DrawersPtr& drawers );
 	~Console();
 
 	void ProcessEvents( const SystemEvents& events );
+	void Draw();
 
 private:
 	void LogCallback( std::string str );
@@ -24,6 +26,7 @@ private:
 	static constexpr unsigned int c_max_lines= 64u;
 
 	CommandsProcessor& commands_processor_;
+	const DrawersPtr drawers_;
 
 	std::list<std::string> lines_;
 

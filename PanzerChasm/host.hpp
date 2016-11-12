@@ -3,6 +3,7 @@
 
 #include "client/client.hpp"
 #include "commands_processor.hpp"
+#include "console.hpp"
 #include "game_resources.hpp"
 #include "host_commands.hpp"
 #include "loopback_buffer.hpp"
@@ -42,6 +43,7 @@ private:
 	SystemEvents events_;
 
 	std::unique_ptr<Menu> menu_;
+	std::unique_ptr<Console> console_;
 
 	MapLoaderPtr map_loader_;
 

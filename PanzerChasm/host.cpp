@@ -39,6 +39,8 @@ Host::Host()
 			*this,
 			drawers ) );
 
+	console_.reset( new Console( commands_processor_, drawers ) );
+
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
@@ -62,11 +64,12 @@ Host::~Host()
 bool Host::Loop()
 {
 	// Events processing
-
 	if( system_window_ != nullptr )
+	{
+		events_.clear();
 		system_window_->GetInput( events_ );
+	}
 
-	// TODO - send events to their destination
 	for( const SystemEvent& event : events_ )
 	{
 		if( event.type == SystemEvent::Type::Quit )
@@ -79,8 +82,10 @@ bool Host::Loop()
 	if( client_ != nullptr )
 		client_->ProcessEvents( events_ );
 
-	events_.clear();
+	if( console_ != nullptr )
+		console_->ProcessEvents( events_ );
 
+	// Loop operations
 	if( local_server_ != nullptr )
 		local_server_->Loop();
 
@@ -99,7 +104,11 @@ bool Host::Loop()
 
 		if( menu_ != nullptr )
 			menu_->Draw();
-			system_window_->SwapBuffers();
+
+		if( console_ != nullptr )
+			console_->Draw();
+
+		system_window_->SwapBuffers();
 	}
 
 	return !quit_requested_;
