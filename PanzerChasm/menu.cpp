@@ -1,3 +1,5 @@
+#include "assert.hpp"
+
 #include "menu.hpp"
 
 namespace PanzerChasm
@@ -206,12 +208,12 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 
 Menu::Menu(
 	HostCommands& host_commands,
-	const RenderingContext& rendering_context,
-	const GameResourcesConstPtr& game_resources )
-	: text_draw_( rendering_context, *game_resources )
-	, menu_drawer_( rendering_context, *game_resources )
+	const DrawersPtr& drawers )
+	: drawers_(drawers)
 	, root_menu_( new MainMenu( host_commands ) )
 {
+	PC_ASSERT( drawers_ != nullptr );
+
 	current_menu_= root_menu_.get();
 }
 
@@ -251,7 +253,7 @@ void Menu::ProcessEvents( const SystemEvents& events )
 void Menu::Draw()
 {
 	if( current_menu_ )
-		current_menu_->Draw( menu_drawer_, text_draw_ );
+		current_menu_->Draw( drawers_->menu, drawers_->text );
 }
 
 } // namespace PanzerChasm

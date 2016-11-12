@@ -22,6 +22,7 @@ SOURCES+= \
 	client/movement_controller.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
+	drawers.cpp \
 	console.cpp \
 	game_resources.cpp \
 	host.cpp \
@@ -57,6 +58,7 @@ HEADERS+= \
 	commands_processor.hpp \
 	connection_info.hpp \
 	console.hpp \
+	drawers.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \

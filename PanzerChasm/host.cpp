@@ -32,11 +32,12 @@ Host::Host()
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
 	rendering_context.viewport_size= system_window_->GetViewportSize();
 
+	const DrawersPtr drawers= std::make_shared<Drawers>( rendering_context, *game_resources_ );
+
 	menu_.reset(
 		new Menu(
 			*this,
-			rendering_context,
-			game_resources_ ) );
+			drawers ) );
 
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
