@@ -36,13 +36,6 @@ void Server::Loop()
 	{
 		connection_.reset( new ConnectionInfo( std::move( connection ) ) );
 
-		Messages::MapChange map_change_msg;
-		map_change_msg.message_id= MessageId::MapChange;
-		map_change_msg.map_number= current_map_number_;
-
-		connection_->messages_sender.SendReliableMessage( map_change_msg );
-		connection_->messages_sender.Flush();
-
 		if( current_map_data_ != nullptr )
 			for( const MapData::Monster& monster : current_map_data_->monsters )
 			{
@@ -52,6 +45,17 @@ void Server::Loop()
 					break;
 				}
 			}
+
+		Messages::MapChange map_change_msg;
+		map_change_msg.message_id= MessageId::MapChange;
+		map_change_msg.map_number= current_map_number_;
+
+		connection_->messages_sender.SendReliableMessage( map_change_msg );
+
+		if( map_ != nullptr )
+			map_->SendMessagesForNewlyConnectedPlayer( connection_->messages_sender );
+
+		connection_->messages_sender.Flush();
 	}
 
 	if( connection_ != nullptr )

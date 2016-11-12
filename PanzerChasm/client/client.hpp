@@ -32,14 +32,14 @@ public:
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
-	void operator()( const Messages::EntityState& message );
+	void operator()( const Messages::MonsterState& message );
 	void operator()( const Messages::WallPosition& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::SpriteEffectBirth& message );
 	void operator()( const Messages::MapChange& message );
-	void operator()( const Messages::EntityBirth& message );
-	void operator()( const Messages::EntityDeath& message );
+	void operator()( const Messages::MonsterBirth& message );
+	void operator()( const Messages::MonsterDeath& message );
 	void operator()( const Messages::TextMessage& message );
 
 private:

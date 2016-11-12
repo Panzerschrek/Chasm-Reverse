@@ -47,6 +47,12 @@ private:
 		unsigned int transparent_index_count;
 	};
 
+	struct MonsterModel
+	{
+		ModelGeometry geometry_description;
+		r_Texture texture;
+	};
+
 private:
 	void LoadSprites();
 
@@ -62,7 +68,14 @@ private:
 		r_PolygonBuffer& out_geometry_data,
 		GLuint& out_textures_array ) const;
 
+	void LoadMonstersModels();
+
 	void UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls );
+
+	static void PrepareModelsPolygonBuffer(
+		std::vector<Model::Vertex>& vertices,
+		std::vector<unsigned short>& indeces,
+		r_PolygonBuffer& buffer );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -99,6 +112,10 @@ private:
 	r_PolygonBuffer items_geometry_data_;
 
 	r_GLSLProgram sprites_shader_;
+
+	r_GLSLProgram monsters_shader_;
+	std::vector<MonsterModel> monsters_models_;
+	r_PolygonBuffer monsters_geometry_data_;
 };
 
 } // PanzerChasm

@@ -1,8 +1,10 @@
 #pragma once
+#include <unordered_map>
 
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
 #include "../time.hpp"
+#include "monster.hpp"
 #include "player.hpp"
 
 namespace PanzerChasm
@@ -20,6 +22,7 @@ public:
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time );
 
+	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;
 
 private:
@@ -91,6 +94,8 @@ private:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
+	typedef std::unordered_map< Messages::EntityId, MonsterPtr > MonstersContainer;
+
 private:
 	void ActivateProcedure( unsigned int procedure_number, Time current_time );
 	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
@@ -103,6 +108,8 @@ private:
 		unsigned int index,
 		const Func& func );
 
+	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
+
 private:
 	const MapDataConstPtr map_data_;
 	DynamicWalls dynamic_walls_;
@@ -113,6 +120,9 @@ private:
 
 	Shots shots_;
 	SpriteEffects sprite_effects_;
+
+	MonstersContainer monsters_;
+	Messages::EntityId next_monter_id_= 1u;
 };
 
 } // PanzerChasm

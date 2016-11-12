@@ -1,4 +1,6 @@
 #pragma once
+#include <unordered_map>
+
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../messages.hpp"
@@ -50,6 +52,17 @@ public:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
+	struct Monster
+	{
+		m_Vec3 pos;
+		float angle;
+		unsigned char monster_id;
+		unsigned int animation;
+		unsigned int animation_frame;
+	};
+
+	typedef std::unordered_map< Messages::EntityId, Monster> MonstersContainer;
+
 public:
 	MapState(
 		const MapDataConstPtr& map,
@@ -61,15 +74,16 @@ public:
 	const StaticModels& GetStaticModels() const;
 	const Items& GetItems() const;
 	const SpriteEffects& GetSpriteEffects() const;
+	const MonstersContainer& GetMonsters() const;
 
 	void Tick( Time current_time );
 
-	void ProcessMessage( const Messages::EntityState& message );
+	void ProcessMessage( const Messages::MonsterState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
 	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
-	void ProcessMessage( const Messages::EntityBirth& message );
-	void ProcessMessage( const Messages::EntityDeath& message );
+	void ProcessMessage( const Messages::MonsterBirth& message );
+	void ProcessMessage( const Messages::MonsterDeath& message );
 
 private:
 	const MapDataConstPtr map_data_;
@@ -81,6 +95,7 @@ private:
 	StaticModels static_models_;
 	Items items_;
 	SpriteEffects sprite_effects_;
+	MonstersContainer monsters_;
 };
 
 } // namespace PanzerChasm

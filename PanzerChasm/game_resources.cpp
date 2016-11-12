@@ -230,6 +230,22 @@ static void LoadItemsModels(
 	}
 }
 
+static void LoadMonstersModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.monsters_models.resize( game_resources.monsters_description.size() );
+
+	Vfs::FileContent file_content;
+
+	for( unsigned int i= 0u; i < game_resources.monsters_models.size(); i++ )
+	{
+		const GameResources::MonsterDescription& monster_description= game_resources.monsters_description[i];
+		vfs.ReadFile( monster_description.model_file_name, file_content );
+		LoadModel_car( file_content, game_resources.monsters_models[i] );
+	}
+}
+
 static void LoadEffectsSprites(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -287,6 +303,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadWeaponsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
+	LoadMonstersModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
 	LoadWeaponsModels( *vfs, *result );
 

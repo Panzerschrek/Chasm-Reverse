@@ -67,8 +67,8 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					break;
 
 				// Unreliable
-				case MessageId::EntityState:
-					messages_handler( *reinterpret_cast<const Messages::EntityState*>( msg_ptr ) );
+				case MessageId::MonsterState:
+					messages_handler( *reinterpret_cast<const Messages::MonsterState*>( msg_ptr ) );
 					break;
 
 				case MessageId::WallPosition:
@@ -92,12 +92,12 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					messages_handler( *reinterpret_cast<const Messages::MapChange*>( msg_ptr ) );
 
 					break;
-				case MessageId::EntityBirth:
-					messages_handler( *reinterpret_cast<const Messages::EntityBirth*>( msg_ptr ) );
+				case MessageId::MonsterBirth:
+					messages_handler( *reinterpret_cast<const Messages::MonsterBirth*>( msg_ptr ) );
 					break;
 
-				case MessageId::EntityDeath:
-					messages_handler( *reinterpret_cast<const Messages::EntityDeath*>( msg_ptr ) );
+				case MessageId::MonsterDeath:
+					messages_handler( *reinterpret_cast<const Messages::MonsterDeath*>( msg_ptr ) );
 					break;
 
 				case MessageId::TextMessage:

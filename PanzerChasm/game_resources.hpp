@@ -72,9 +72,10 @@ public:
 	Palette palette; // main game palette
 
 	std::vector<ItemDescription> items_description;
-	std::vector<MonsterDescription> monsters_description;
-
 	std::vector<Model> items_models;
+
+	std::vector<MonsterDescription> monsters_description;
+	std::vector<Model> monsters_models;
 
 	std::vector<SpriteEffectDescription> sprites_effects_description;
 	std::vector<ObjSprite> effects_sprites;

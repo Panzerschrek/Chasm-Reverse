@@ -10,7 +10,7 @@ enum class MessageId : unsigned char
 	Unknown= 0u,
 
 	// Unreliable server to client
-	EntityState, // State of mosters, items, other players.
+	MonsterState,
 	WallPosition,
 	PlayerPosition, // position of player, which recieve this message.
 	StaticModelState,
@@ -18,8 +18,8 @@ enum class MessageId : unsigned char
 
 	// Reliable server to client
 	MapChange,
-	EntityBirth,
-	EntityDeath,
+	MonsterBirth,
+	MonsterDeath,
 	TextMessage,
 
 	// Unrealiable client to server
@@ -46,13 +46,14 @@ struct MessageBase
 	MessageId message_id;
 };
 
-struct EntityState : public MessageBase
+struct MonsterState : public MessageBase
 {
-	EntityId id;
+	EntityId monster_id;
 	CoordType xyz[3];
 	AngleType angle;
-	unsigned short animation_frame[2];
-	unsigned char animation_frames_mix;
+	unsigned char monster_type;
+	unsigned short animation;
+	unsigned short animation_frame;
 };
 
 struct WallPosition : public MessageBase
@@ -92,15 +93,15 @@ struct MapChange : public MessageBase
 	unsigned int map_number;
 };
 
-struct EntityBirth : public MessageBase
+struct MonsterBirth : public MessageBase
 {
-	EntityId id;
-	EntityState initial_state;
+	EntityId monster_id;
+	MonsterState initial_state;
 };
 
-struct EntityDeath : public MessageBase
+struct MonsterDeath : public MessageBase
 {
-	EntityId id;
+	EntityId monster_id;
 };
 
 struct TextMessage : public MessageBase

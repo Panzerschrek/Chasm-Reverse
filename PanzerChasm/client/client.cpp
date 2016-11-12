@@ -129,7 +129,7 @@ void Client::operator()( const Messages::MessageBase& message )
 	Log::Warning( "Unknown message for server: ", int(message.message_id) );
 }
 
-void Client::operator()( const Messages::EntityState& message )
+void Client::operator()( const Messages::MonsterState& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
@@ -174,13 +174,13 @@ void Client::operator()( const Messages::MapChange& message )
 	current_map_data_= map_data;
 }
 
-void Client::operator()( const Messages::EntityBirth& message )
+void Client::operator()( const Messages::MonsterBirth& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
 }
 
-void Client::operator()( const Messages::EntityDeath& message )
+void Client::operator()( const Messages::MonsterDeath& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );

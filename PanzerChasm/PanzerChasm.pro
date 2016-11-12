@@ -37,6 +37,7 @@ SOURCES+= \
 	obj.cpp \
 	server/collisions.cpp \
 	server/map.cpp \
+	server/monster.cpp \
 	server/player.cpp \
 	server/server.cpp \
 	system_window.cpp \
@@ -74,6 +75,7 @@ HEADERS+= \
 	server/a_code.hpp \
 	server/collisions.hpp \
 	server/map.hpp \
+	server/monster.hpp \
 	server/player.hpp \
 	server/server.hpp \
 	size.hpp \

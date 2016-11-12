@@ -60,6 +60,14 @@ Map::Map(
 		out_model.animation_start_time= map_start_time;
 		out_model.animation_start_frame= 0u;
 	}
+
+	// Spawn monsters
+	for( const MapData::Monster& map_monster : map_data_->monsters )
+	{
+		// TODO - check difficulty flags
+		monsters_[ next_monter_id_ ]= MonsterPtr( new Monster( map_monster ) );
+		next_monter_id_++;
+	}
 }
 
 Map::~Map()
@@ -654,6 +662,22 @@ void Map::Tick( const Time current_time )
 	shots_.clear();
 }
 
+void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const
+{
+	// Send monsters
+	for( const MonstersContainer::value_type& monster_entry : monsters_ )
+	{
+		Messages::MonsterBirth message;
+		message.message_id= MessageId::MonsterBirth;
+
+		PrepareMonsterStateMessage( *monster_entry.second, message.initial_state );
+		message.initial_state.monster_id= monster_entry.first;
+		message.monster_id= monster_entry.first;
+
+		messages_sender.SendReliableMessage( message );
+	}
+}
+
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 {
 	Messages::WallPosition wall_message;
@@ -807,6 +831,17 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
 {
 	ActivateProcedure( procedure_number, current_time );
+}
+
+void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )
+{
+	message.message_id= MessageId::MonsterState;
+
+	PositionToMessagePosition( monster.Position(), message.xyz );
+	message.angle= AngleToMessageAngle( monster.Angle() );
+	message.monster_type= monster.MonsterId();
+	message.animation= 0u;
+	message.animation_frame= 0u;
 }
 
 } // PanzerChasm

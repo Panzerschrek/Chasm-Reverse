@@ -79,6 +79,11 @@ const MapState::SpriteEffects& MapState::GetSpriteEffects() const
 	return sprite_effects_;
 }
 
+const MapState::MonstersContainer& MapState::GetMonsters() const
+{
+	return monsters_;
+}
+
 void MapState::Tick( const Time current_time )
 {
 	last_tick_time_= current_time;
@@ -115,10 +120,19 @@ void MapState::Tick( const Time current_time )
 	}
 }
 
-void MapState::ProcessMessage( const Messages::EntityState& message )
+void MapState::ProcessMessage( const Messages::MonsterState& message )
 {
-	// TODO
-	PC_UNUSED(message);
+	const auto it= monsters_.find( message.monster_id );
+	if( it == monsters_.end() )
+		return;
+
+	Monster& monster= it->second;
+
+	MessagePositionToPosition( message.xyz, monster.pos );
+	monster.angle= MessageAngleToAngle( message.angle );
+	monster.monster_id= message.monster_type;
+	monster.animation= message.animation;
+	monster.animation_frame= message.animation_frame;
 }
 
 void MapState::ProcessMessage( const Messages::WallPosition& message )
@@ -163,16 +177,18 @@ void MapState::ProcessMessage( const Messages::SpriteEffectBirth& message )
 	effect.start_time= last_tick_time_;
 }
 
-void MapState::ProcessMessage( const Messages::EntityBirth& message )
+void MapState::ProcessMessage( const Messages::MonsterBirth& message )
 {
-	// TODO
-	PC_UNUSED(message);
+	auto it= monsters_.find( message.monster_id );
+	if( it == monsters_.end() )
+		it= monsters_.emplace( message.monster_id, Monster() ).first;
+
+	ProcessMessage( message.initial_state );
 }
 
-void MapState::ProcessMessage( const Messages::EntityDeath& message )
+void MapState::ProcessMessage( const Messages::MonsterDeath& message )
 {
-	// TODO
-	PC_UNUSED(message);
+	monsters_.erase( message.monster_id );
 }
 
 } // namespace PanzerChasm
