@@ -36,10 +36,14 @@ Console::Console( CommandsProcessor& commands_processor )
 	: commands_processor_(commands_processor)
 {
 	input_line_[0]= '\0';
+
+	Log::SetLogCallback( std::bind( &Console::LogCallback, this, std::placeholders::_1 ) );
 }
 
 Console::~Console()
-{}
+{
+	Log::SetLogCallback( nullptr );
+}
 
 void Console::ProcessEvents( const SystemEvents& events )
 {
@@ -86,6 +90,14 @@ void Console::ProcessEvents( const SystemEvents& events )
 			}
 		}
 	} // for events
+}
+
+void Console::LogCallback( std::string str )
+{
+	lines_.emplace_back( std::move(str) );
+
+	if( lines_.size() == c_max_lines )
+		lines_.pop_front();
 }
 
 } // namespace PanzerChasm

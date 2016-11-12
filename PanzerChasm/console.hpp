@@ -17,7 +17,11 @@ public:
 	void ProcessEvents( const SystemEvents& events );
 
 private:
+	void LogCallback( std::string str );
+
+private:
 	static constexpr unsigned int c_max_input_line_length= 64u;
+	static constexpr unsigned int c_max_lines= 64u;
 
 	CommandsProcessor& commands_processor_;
 
