@@ -13,6 +13,12 @@ static const float g_commands_coords_scale= 1.0f / 256.0f;
 
 static const float g_animations_frames_per_second= 20.0f;
 
+template<class Wall>
+static m_Vec3 GetNormalForWall( const Wall& wall )
+{
+	m_Vec3 n( wall.vert_pos[0].y - wall.vert_pos[1].y, wall.vert_pos[1].x - wall.vert_pos[0].x, 0.0f );
+	return n / n.xy().Length();
+}
 
 template<class Func>
 void Map::ProcessElementLinks(
@@ -87,8 +93,8 @@ void Map::ProcessPlayerPosition(
 	MessagesSender& messages_sender )
 {
 	// TODO - read from config
-	const float c_player_radius= 100.0f / 256.0f;
-	const float c_z_pull_distance= 1.0f / 16.0f;
+	const float c_player_radius= 70.0f / 256.0f;
+	const float c_z_pull_distance= 1.0f / 12.0f;
 	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 
@@ -115,6 +121,8 @@ void Map::ProcessPlayerPosition(
 	// Collide
 	m_Vec2 pos= player.Position().xy();
 
+	player.SetOnFloor( false );
+
 	const float z_bottom= player.Position().z;
 	const float z_top= z_bottom + c_player_height;
 	float new_z= z_bottom;
@@ -136,6 +144,7 @@ void Map::ProcessPlayerPosition(
 				new_pos ) )
 		{
 			pos= new_pos;
+			player.ClampSpeed( GetNormalForWall( wall ) );
 
 			ProcessElementLinks(
 				MapData::IndexElement::StaticWall,
@@ -171,6 +180,7 @@ void Map::ProcessPlayerPosition(
 				new_pos ) )
 		{
 			pos= new_pos;
+			player.ClampSpeed( GetNormalForWall( wall ) );
 
 			ProcessElementLinks(
 				MapData::IndexElement::DynamicWall,
@@ -211,12 +221,22 @@ void Map::ProcessPlayerPosition(
 			{
 				// Pull up or down player.
 				if( model_geometry.z_max - z_bottom <= c_z_pull_distance )
+				{
 					new_z= std::max( new_z, model_z_max );
+					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, +1.0f ) );
+					player.SetOnFloor( true );
+				}
 				else if( z_top - model_geometry.z_min <= c_z_pull_distance )
+				{
 					new_z= std::min( new_z, model_z_min - c_player_height );
+					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, -1.0f ) );
+				}
 				// Push player sideways.
 				else
+				{
 					pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
+					player.ClampSpeed( m_Vec3( vec_to_player_pos / vec_to_player_pos.Length(), 0.0f ) );
+				}
 			}
 
 			// Links must work for zero radius
@@ -231,6 +251,11 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
+	if( new_z <= 0.0f )
+	{
+		player.SetOnFloor( true );
+		player.ClampSpeed( m_Vec3( 0.0f, 0.0f, 1.0f ) );
+	}
 	new_z= std::max( new_z, 0.0f );
 
 	// Set position after collisions

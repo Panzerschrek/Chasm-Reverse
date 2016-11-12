@@ -10,6 +10,8 @@ static const unsigned char g_no_map_position= 255u;
 
 Player::Player()
 	: pos_( 0.0f, 0.0f, 0.0f )
+	, speed_( 0.0f, 0.0f, 0.0f )
+	, on_floor_(false)
 	, map_position_{ g_no_map_position, g_no_map_position }
 {
 	UpdateMapPosition();
@@ -24,27 +26,76 @@ void Player::SetPosition( const m_Vec3& pos )
 	UpdateMapPosition();
 }
 
+void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
+{
+	const float projection= clamp_surface_normal * speed_;
+	if( projection < 0.0f )
+		speed_-= clamp_surface_normal * projection;
+}
+
+void Player::SetOnFloor( bool on_floor )
+{
+	on_floor_= on_floor;
+}
+
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
 	movement_direction_= MessageAngleToAngle( move_message.angle );
-	jump_pessed= move_message.jump_pressed;
+	jump_pessed_= move_message.jump_pressed;
 }
 
 void Player::Move( const Time time_delta )
 {
+	const float time_delta_s= time_delta.ToSeconds();
+
+	// TODO - calibrate this
 	const float c_max_speed= 5.0f;
-	const float speed= c_max_speed * mevement_acceleration_;
+	const float c_acceleration= 40.0f;
+	const float c_deceleration= 20.0f;
+	const float c_jump_speed_delta= 3.3f;
+	const float c_vertical_acceleration= -9.8f;
+	const float c_max_vertical_speed= 5.0f;
 
-	const float delta= time_delta.ToSeconds() * speed;
+	const float speed_delta= time_delta_s * mevement_acceleration_ * c_acceleration;
+	const float deceleration_speed_delta= time_delta_s * c_deceleration;
 
-	pos_.x+= delta * std::cos( movement_direction_ );
-	pos_.y+= delta * std::sin( movement_direction_ );
+	// Accelerate
+	speed_.x+= std::cos( movement_direction_ ) * speed_delta;
+	speed_.y+= std::sin( movement_direction_ ) * speed_delta;
 
-	if( jump_pessed )
-		pos_.z+= +1.5f * time_delta.ToSeconds();
+	// Decelerate
+	const float new_speed_length= speed_.xy().Length();
+	if( new_speed_length >= deceleration_speed_delta )
+	{
+		const float k= ( new_speed_length - deceleration_speed_delta ) / new_speed_length;
+		speed_.x*= k;
+		speed_.y*= k;
+	}
 	else
-		pos_.z+= -1.5f * time_delta.ToSeconds();
+		speed_.x= speed_.y= 0.0f;
+
+	// Clamp speed
+	const float new_speed_square_length= speed_.xy().SquareLength();
+	if( new_speed_square_length > c_max_speed * c_max_speed )
+	{
+		const float k= c_max_speed / std::sqrt( new_speed_square_length );
+		speed_.x*= k;
+		speed_.y*= k;
+	}
+
+	// Fall down
+	speed_.z+= c_vertical_acceleration * time_delta_s;
+
+	// Jump
+	if( jump_pessed_ && on_floor_ )
+		speed_.z+= c_jump_speed_delta;
+
+	// Clamp vertical speed
+	if( std::abs( speed_.z ) > c_max_vertical_speed )
+		speed_.z*= c_max_vertical_speed / std::abs( speed_.z );
+
+	pos_+= speed_ * time_delta_s;
 
 	UpdateMapPosition();
 }

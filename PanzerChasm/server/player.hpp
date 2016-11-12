@@ -16,6 +16,8 @@ public:
 	~Player();
 
 	void SetPosition( const m_Vec3& pos );
+	void ClampSpeed( const m_Vec3& clamp_surface_normal );
+	void SetOnFloor( bool on_floor );
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
@@ -40,6 +42,8 @@ private:
 
 private:
 	m_Vec3 pos_;
+	m_Vec3 speed_;
+	bool on_floor_;
 
 	bool have_red_key_= false;
 	bool have_green_key_= false;
@@ -50,7 +54,7 @@ private:
 
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
-	bool jump_pessed= false;
+	bool jump_pessed_= false;
 };
 
 } // namespace PanzerChasm
