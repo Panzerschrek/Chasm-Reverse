@@ -6,15 +6,11 @@
 namespace PanzerChasm
 {
 
-static const unsigned char g_no_map_position= 255u;
-
 Player::Player()
 	: pos_( 0.0f, 0.0f, 0.0f )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
-	, map_position_{ g_no_map_position, g_no_map_position }
 {
-	UpdateMapPosition();
 }
 
 Player::~Player()
@@ -23,7 +19,6 @@ Player::~Player()
 void Player::SetPosition( const m_Vec3& pos )
 {
 	pos_= pos;
-	UpdateMapPosition();
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
@@ -36,6 +31,28 @@ void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
 void Player::SetOnFloor( bool on_floor )
 {
 	on_floor_= on_floor;
+}
+
+bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
+{
+	PC_ASSERT( proc_number != 0u );
+
+	if( proc_number == last_activated_procedure_ )
+	{
+		// Activate again only after delay.
+		if( current_time - last_activated_procedure_activation_time_ <= Time::FromSeconds(2) )
+			return false;
+	}
+
+	last_activated_procedure_= proc_number;
+	last_activated_procedure_activation_time_= current_time;
+	return true;
+}
+
+void Player::ResetActivatedProcedure()
+{
+	last_activated_procedure_= 0u;
+	last_activated_procedure_activation_time_= Time::FromSeconds(0);
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
@@ -96,13 +113,6 @@ void Player::Move( const Time time_delta )
 		speed_.z*= c_max_vertical_speed / std::abs( speed_.z );
 
 	pos_+= speed_ * time_delta_s;
-
-	UpdateMapPosition();
-}
-
-void Player::ResetNewPositionFlag()
-{
-	map_position_is_new_= false;
 }
 
 void Player::GiveRedKey()
@@ -138,45 +148,6 @@ bool Player::HaveBlueKey() const
 m_Vec3 Player::Position() const
 {
 	return pos_;
-}
-
-unsigned char Player::MapPositionX() const
-{
-	return map_position_[0];
-}
-
-unsigned char Player::MapPositionY() const
-{
-	return map_position_[1];
-}
-
-bool Player::MapPositionIsNew() const
-{
-	return map_position_is_new_;
-}
-
-void Player::UpdateMapPosition()
-{
-	const int new_map_x= static_cast<int>( pos_.x );
-	const int new_map_y= static_cast<int>( pos_.y );
-
-	if( new_map_x != map_position_[0] ||
-		new_map_y != map_position_[1] )
-	{
-		if( new_map_x < 0 || new_map_x >= int(MapData::c_map_size) ||
-			new_map_y < 0 || new_map_y >= int(MapData::c_map_size) )
-		{
-			// Position outside map
-			map_position_[0]= map_position_[1]= g_no_map_position;
-		}
-		else
-		{
-			map_position_[0]= new_map_x;
-			map_position_[1]= new_map_y;
-		}
-
-		map_position_is_new_= true;
-	}
 }
 
 } // namespace PanzerChasm

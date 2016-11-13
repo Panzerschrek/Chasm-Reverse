@@ -19,10 +19,11 @@ public:
 	void ClampSpeed( const m_Vec3& clamp_surface_normal );
 	void SetOnFloor( bool on_floor );
 
+	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
+	void ResetActivatedProcedure();
+
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
-
-	void ResetNewPositionFlag();
 
 	void GiveRedKey();
 	void GiveGreenKey();
@@ -33,12 +34,6 @@ public:
 	bool HaveBlueKey() const;
 
 	m_Vec3 Position() const;
-	unsigned char MapPositionX() const;
-	unsigned char MapPositionY() const;
-	bool MapPositionIsNew() const;
-
-private:
-	void UpdateMapPosition();
 
 private:
 	m_Vec3 pos_;
@@ -49,12 +44,12 @@ private:
 	bool have_green_key_= false;
 	bool have_blue_key_= false;
 
-	unsigned char map_position_[2];
-	bool map_position_is_new_= true;
-
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
 	bool jump_pessed_= false;
+
+	unsigned int last_activated_procedure_= 0u; // zero is dummy
+	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
 };
 
 } // namespace PanzerChasm

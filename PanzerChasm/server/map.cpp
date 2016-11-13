@@ -97,6 +97,8 @@ void Map::SpawnPlayer( Player& player )
 		player.SetPosition( m_Vec3( spawn_with_min_number->pos, 4.0f ) );
 	else
 		player.SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
+
+	player.ResetActivatedProcedure();
 }
 
 void Map::Shoot( const m_Vec3& from, const m_Vec3& normalized_direction )
@@ -118,10 +120,11 @@ void Map::ProcessPlayerPosition(
 	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 
-	const unsigned int player_x= player.MapPositionX();
-	const unsigned int player_y= player.MapPositionY();
-	if( player_x >= MapData::c_map_size ||
-		player_y >= MapData::c_map_size )
+	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
+	const int player_y= static_cast<int>( std::floor( player.Position().y ) );
+	if( player_x < 0 || player_y < 0 ||
+		player_x >= int(MapData::c_map_size) ||
+		player_y >= int(MapData::c_map_size) )
 		return;
 
 	// Process floors
@@ -280,7 +283,6 @@ void Map::ProcessPlayerPosition(
 
 	// Set position after collisions
 	player.SetPosition( m_Vec3( pos, new_z ) );
-	player.ResetNewPositionFlag();
 
 	// Process "special" models.
 	// Pick-up keys.
@@ -815,6 +817,9 @@ void Map::TryActivateProcedure(
 	MessagesSender& messages_sender )
 {
 	if( procedure_number == 0u )
+		return;
+
+	if( !player.TryActivateProcedure( procedure_number, current_time ) )
 		return;
 
 	PC_ASSERT( procedure_number < procedures_.size() );
