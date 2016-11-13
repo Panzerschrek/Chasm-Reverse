@@ -94,7 +94,7 @@ void Server::ChangeMap( const unsigned int map_number )
 
 	current_map_number_= map_number;
 	current_map_data_= map_data;
-	map_.reset( new Map( map_data, last_tick_ ) );
+	map_.reset( new Map( map_data, game_resources_, last_tick_ ) );
 
 	state_= State::PlayingMap;
 

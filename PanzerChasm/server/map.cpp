@@ -1,5 +1,6 @@
 #include <matrix.hpp>
 
+#include "../game_constants.hpp"
 #include "../math_utils.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
@@ -10,8 +11,6 @@ namespace PanzerChasm
 {
 
 static const float g_commands_coords_scale= 1.0f / 256.0f;
-
-static const float g_animations_frames_per_second= 20.0f;
 
 template<class Wall>
 static m_Vec3 GetNormalForWall( const Wall& wall )
@@ -37,10 +36,13 @@ void Map::ProcessElementLinks(
 
 Map::Map(
 	const MapDataConstPtr& map_data,
+	const GameResourcesConstPtr& game_resources,
 	const Time map_start_time )
 	: map_data_(map_data)
+	, game_resources_(game_resources)
 {
-	PC_ASSERT( map_data_ );
+	PC_ASSERT( map_data_ != nullptr );
+	PC_ASSERT( game_resources_ != nullptr );
 
 	procedures_.resize( map_data_->procedures.size() );
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -71,7 +73,7 @@ Map::Map(
 	for( const MapData::Monster& map_monster : map_data_->monsters )
 	{
 		// TODO - check difficulty flags
-		monsters_[ next_monter_id_ ]= MonsterPtr( new Monster( map_monster ) );
+		monsters_[ next_monter_id_ ]= MonsterPtr( new Monster( map_monster, game_resources_, map_start_time ) );
 		next_monter_id_++;
 	}
 }
@@ -526,7 +528,7 @@ void Map::Tick( const Time current_time )
 		if( model.animation_state == StaticModel::AnimationState::Animation )
 		{
 			const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
-			const float animation_frame= time_delta_s * g_animations_frames_per_second;
+			const float animation_frame= time_delta_s * GameConstants::animations_frames_per_second;
 
 			if( model.model_id < map_data_->models.size() )
 			{
@@ -707,6 +709,12 @@ void Map::Tick( const Time current_time )
 		}
 	}
 	shots_.clear();
+
+	// Process monsters
+	for( MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		monster_value.second->Tick( current_time );
+	}
 }
 
 void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const
@@ -768,6 +776,16 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		PositionToMessagePosition( effect.pos, sprite_message.xyz );
 
 		messages_sender.SendUnreliableMessage( sprite_message );
+	}
+
+	for( const MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		Messages::MonsterState monster_message;
+
+		PrepareMonsterStateMessage( *monster_value.second, monster_message );
+		monster_message.monster_id= monster_value.first;
+
+		messages_sender.SendUnreliableMessage( monster_message );
 	}
 }
 
@@ -890,8 +908,8 @@ void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterS
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );
 	message.monster_type= monster.MonsterId();
-	message.animation= 0u;
-	message.animation_frame= 0u;
+	message.animation= monster.CurrentAnimation();
+	message.animation_frame= monster.CurrentAnimationFrame();
 }
 
 } // PanzerChasm

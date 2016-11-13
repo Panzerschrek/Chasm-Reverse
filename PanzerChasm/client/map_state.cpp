@@ -1,11 +1,10 @@
+#include "../game_constants.hpp"
 #include "../math_utils.hpp"
 
 #include "map_state.hpp"
 
 namespace PanzerChasm
 {
-
-static const float g_animations_frames_per_second= 20.0f;
 
 MapState::MapState(
 	const MapDataConstPtr& map,
@@ -92,7 +91,7 @@ void MapState::Tick( const Time current_time )
 	for( Item& item : items_ )
 	{
 		const unsigned int animation_frame=
-			static_cast<unsigned int>( std::round( g_animations_frames_per_second * time_since_map_start_s ) );
+			static_cast<unsigned int>( std::round( GameConstants::animations_frames_per_second * time_since_map_start_s ) );
 
 		if( item.item_id < game_resources_->items_models.size() )
 			item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
@@ -106,7 +105,7 @@ void MapState::Tick( const Time current_time )
 
 		const float time_delta_s= ( current_time - effect.start_time ).ToSeconds();
 
-		effect.frame= time_delta_s * g_animations_frames_per_second;
+		effect.frame= time_delta_s * GameConstants::animations_frames_per_second;
 
 		if( effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
 		{

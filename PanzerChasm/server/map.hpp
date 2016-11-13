@@ -14,7 +14,10 @@ namespace PanzerChasm
 class Map final
 {
 public:
-	Map( const MapDataConstPtr& map_data, Time map_start_time );
+	Map(
+		const MapDataConstPtr& map_data,
+		const GameResourcesConstPtr& game_resources,
+		Time map_start_time );
 	~Map();
 
 	void SpawnPlayer( Player& player );
@@ -114,6 +117,8 @@ private:
 
 private:
 	const MapDataConstPtr map_data_;
+	const GameResourcesConstPtr game_resources_;
+
 	DynamicWalls dynamic_walls_;
 
 	std::vector<ProcedureState> procedures_;

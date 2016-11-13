@@ -455,13 +455,16 @@ void MapDrawer::Draw(
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
 
+		const Model& model= game_resources_->monsters_models[ monster.monster_id ];
+		const unsigned int frame= model.animations[ monster.animation ].first_frame + monster.animation_frame;
+
 		const bool transparent= false;
 		const ModelGeometry& model_geometry= monster_model.geometry_description;
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
 		const unsigned int first_vertex=
 			model_geometry.first_vertex_index +
-			monster.animation_frame * model_geometry.vertex_count;
+			frame * model_geometry.vertex_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
