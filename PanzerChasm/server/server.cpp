@@ -108,6 +108,9 @@ void Server::ChangeMap( const unsigned int map_number )
 
 		connection_->messages_sender.SendReliableMessage( message );
 		connection_->messages_sender.Flush();
+
+		map_->SendMessagesForNewlyConnectedPlayer( connection_->messages_sender );
+		connection_->messages_sender.Flush();
 	}
 }
 
