@@ -21,6 +21,7 @@ public:
 		const DrawersPtr& drawers );
 	~Menu();
 
+	bool IsActive() const;
 	void ProcessEvents( const SystemEvents& events );
 	void Draw();
 

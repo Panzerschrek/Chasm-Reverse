@@ -221,6 +221,11 @@ Menu::~Menu()
 {
 }
 
+bool Menu::IsActive() const
+{
+	return current_menu_ != nullptr;
+}
+
 void Menu::ProcessEvents( const SystemEvents& events )
 {
 	for( const SystemEvent& event : events )

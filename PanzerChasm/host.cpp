@@ -10,8 +10,10 @@ namespace PanzerChasm
 
 Host::Host()
 {
+	Log::Info( "Createng VFS" );
 	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
 
+	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
 
 	system_window_.reset( new SystemWindow() );
@@ -34,21 +36,27 @@ Host::Host()
 
 	const DrawersPtr drawers= std::make_shared<Drawers>( rendering_context, *game_resources_ );
 
+	Log::Info( "Initialize console" );
+	console_.reset( new Console( commands_processor_, drawers ) );
+
+	Log::Info( "Create menu" );
 	menu_.reset(
 		new Menu(
 			*this,
 			drawers ) );
 
-	console_.reset( new Console( commands_processor_, drawers ) );
-
-
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
+
+	Log::Info( "Create loopback buffer" );
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
+
+	Log::Info( "Create local server" );
 	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
 
 	loopback_buffer_->RequestConnect();
 	local_server_->ChangeMap( 1 );
 
+	Log::Info( "Create client" );
 	client_.reset(
 		new Client(
 			game_resources_,
@@ -74,16 +82,25 @@ bool Host::Loop()
 	{
 		if( event.type == SystemEvent::Type::Quit )
 			quit_requested_= true;
+
+		if( event.type == SystemEvent::Type::Key &&
+			event.event.key.pressed &&
+			event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::BackQuote &&
+			console_ != nullptr )
+			console_->Toggle();
 	}
 
-	if( menu_ != nullptr )
+	const bool input_goes_to_console= console_ != nullptr && console_->IsActive();
+	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
+
+	if( input_goes_to_console )
+		console_->ProcessEvents( events_ );
+
+	if( menu_ != nullptr && !input_goes_to_console )
 		menu_->ProcessEvents( events_ );
 
-	if( client_ != nullptr )
+	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu )
 		client_->ProcessEvents( events_ );
-
-	if( console_ != nullptr )
-		console_->ProcessEvents( events_ );
 
 	// Loop operations
 	if( local_server_ != nullptr )

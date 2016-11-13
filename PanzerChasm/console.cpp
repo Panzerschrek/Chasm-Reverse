@@ -35,6 +35,7 @@ static char KeyCodeToChar( const SystemEvent::KeyEvent::KeyCode code )
 Console::Console( CommandsProcessor& commands_processor, const DrawersPtr& drawers )
 	: commands_processor_(commands_processor)
 	, drawers_(drawers)
+	, last_draw_time_(Time::CurrentTime())
 {
 	input_line_[0]= '\0';
 
@@ -44,6 +45,16 @@ Console::Console( CommandsProcessor& commands_processor, const DrawersPtr& drawe
 Console::~Console()
 {
 	Log::SetLogCallback( nullptr );
+}
+
+void Console::Toggle()
+{
+	current_speed_= current_speed_ > 0.0f ? -1.0f : 1.0f;
+}
+
+bool Console::IsActive() const
+{
+	return current_speed_ > 0.0f;
 }
 
 void Console::ProcessEvents( const SystemEvents& events )
@@ -63,6 +74,10 @@ void Console::ProcessEvents( const SystemEvents& events )
 
 			input_cursor_pos_= 0u;
 			input_line_[ input_cursor_pos_ ]= '\0';
+		}
+		else if( key_code == KeyCode::Escape )
+		{
+			Toggle();
 		}
 		else if( key_code == KeyCode::Backspace )
 		{
@@ -95,10 +110,41 @@ void Console::ProcessEvents( const SystemEvents& events )
 
 void Console::Draw()
 {
+	const Time current_time= Time::CurrentTime();
+	const float time_delta_s= ( current_time - last_draw_time_ ).ToSeconds();
+	last_draw_time_= current_time;
+
+	position_+= current_speed_ * time_delta_s;
+	position_= std::min( 1.0f, std::max( 0.0f, position_ ) );
+
+	const int letter_height= int( drawers_->text.GetLineHeight() );
+
+	const int input_line_y= static_cast<int>(
+		position_ * float( drawers_->menu.GetViewportSize().Height() / 2u ) -
+		float( letter_height ) );
+
+	const bool draw_cursor= ( int( current_time.ToSeconds() * 3.0f ) & 1u ) != 0u;
+
+	char line_with_cursor[ c_max_input_line_length + 2u ];
+	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? "%s_" : "%s", input_line_ );
+
 	drawers_->text.Print(
-		0, 0,
-		input_line_, 1,
+		0, input_line_y,
+		line_with_cursor, 1,
 		TextDraw::FontColor::Golden, TextDraw::Alignment::Left );
+
+	int i= 1u;
+	for( auto it= lines_.rbegin(); it != lines_.rend(); ++it, i++ )
+	{
+		const int y= input_line_y - i * letter_height;
+		if( y < -letter_height )
+			break;
+
+		drawers_->text.Print(
+			0, y,
+			it->c_str(), 1,
+			TextDraw::FontColor::White, TextDraw::Alignment::Left );
+	}
 }
 
 void Console::LogCallback( std::string str )
