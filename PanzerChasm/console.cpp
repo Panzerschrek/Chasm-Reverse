@@ -57,10 +57,12 @@ void Console::ProcessEvents( const SystemEvents& events )
 		const KeyCode key_code= event.event.key.key_code;
 		if( key_code == KeyCode::Enter )
 		{
+			lines_position_= 0u;
+			Log::Info( input_line_ );
+
 			if( input_cursor_pos_ > 0u )
 			{
 				WriteHistory();
-				Log::Info( input_line_ );
 				commands_processor_.ProcessCommand( input_line_ );
 			}
 
@@ -104,6 +106,16 @@ void Console::ProcessEvents( const SystemEvents& events )
 				input_cursor_pos_= 0;
 			}
 		}
+		else if( key_code == KeyCode::PageUp )
+		{
+			lines_position_+= 3u;
+			lines_position_= std::min( lines_position_, lines_.size() );
+		}
+		else if( key_code == KeyCode::PageDown )
+		{
+			if( lines_position_ > 3u ) lines_position_-= 3u;
+			else lines_position_= 0u;
+		}
 
 	} // for events
 }
@@ -125,7 +137,7 @@ void Console::Draw()
 	const int letter_height= int( drawers_->text.GetLineHeight() );
 
 	const unsigned int c_x_offset= 5u;
-	const int input_line_y= static_cast<int>(
+	int y= static_cast<int>(
 		position_ * float( drawers_->menu.GetViewportSize().Height() / 2u ) -
 		float( letter_height ) ) - 4u;
 
@@ -135,14 +147,27 @@ void Console::Draw()
 	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? "%s_" : "%s", input_line_ );
 
 	drawers_->text.Print(
-		c_x_offset, input_line_y,
+		c_x_offset, y,
 		line_with_cursor, 1,
 		TextDraw::FontColor::Golden, TextDraw::Alignment::Left );
+	y-= letter_height + 2u;
 
-	int i= 1u;
-	for( auto it= lines_.rbegin(); it != lines_.rend(); ++it, i++ )
+	if( lines_position_ > 0u )
 	{
-		const int y= input_line_y - i * letter_height - 2u;
+		const char* const str=
+		"  ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^  ";
+
+		drawers_->text.Print(
+			c_x_offset, y,
+			str, 1,
+			TextDraw::FontColor::White, TextDraw::Alignment::Left );
+		y-= letter_height;
+	}
+
+	auto it= lines_.rbegin();
+	it= std::next( it, std::min( lines_position_, lines_.size() ) );
+	for( ; it != lines_.rend(); ++it )
+	{
 		if( y < -letter_height )
 			break;
 
@@ -150,6 +175,7 @@ void Console::Draw()
 			c_x_offset, y,
 			it->c_str(), 1,
 			TextDraw::FontColor::White, TextDraw::Alignment::Left );
+		y-= letter_height;
 	}
 }
 
@@ -159,6 +185,8 @@ void Console::LogCallback( std::string str )
 
 	if( lines_.size() == c_max_lines )
 		lines_.pop_front();
+
+	lines_position_= 0u;
 }
 
 void Console::WriteHistory()

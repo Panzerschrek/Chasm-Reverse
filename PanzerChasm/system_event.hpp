@@ -26,6 +26,9 @@ struct SystemEvent
 			Space,
 			Backspace,
 
+			PageUp,
+			PageDown,
+
 			Up,
 			Down,
 			Left,

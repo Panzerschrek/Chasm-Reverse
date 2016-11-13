@@ -19,6 +19,9 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
 	case SDLK_BACKSPACE: return KeyCode::Backspace;
 	case SDLK_BACKQUOTE: return KeyCode::BackQuote;
 
+	case SDLK_PAGEUP: return KeyCode::PageUp;
+	case SDLK_PAGEDOWN: return KeyCode::PageDown;
+
 	case SDLK_RIGHT: return KeyCode::Right;
 	case SDLK_LEFT: return KeyCode::Left;
 	case SDLK_DOWN: return KeyCode::Down;

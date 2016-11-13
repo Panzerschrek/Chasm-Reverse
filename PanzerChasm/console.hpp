@@ -41,6 +41,7 @@ private:
 	Time last_draw_time_;
 
 	std::list<std::string> lines_;
+	unsigned int lines_position_= 0u;
 
 	// TODO - Maybe use raw array or std::array, instead std::string.
 	std::string history_[ c_max_history ];
