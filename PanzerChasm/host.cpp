@@ -18,7 +18,6 @@ Host::Host()
 		commands_processor_.RegisterCommands( host_commands_ );
 	}
 
-
 	Log::Info( "Createng VFS" );
 	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
 
