@@ -1,3 +1,6 @@
+#include <cstring>
+
+#include "assert.hpp"
 #include "log.hpp"
 
 #include "console.hpp"
@@ -54,8 +57,12 @@ void Console::ProcessEvents( const SystemEvents& events )
 		const KeyCode key_code= event.event.key.key_code;
 		if( key_code == KeyCode::Enter )
 		{
-			Log::Info( input_line_ );
-			commands_processor_.ProcessCommand( input_line_ );
+			if( input_cursor_pos_ > 0u )
+			{
+				WriteHistory();
+				Log::Info( input_line_ );
+				commands_processor_.ProcessCommand( input_line_ );
+			}
 
 			input_cursor_pos_= 0u;
 			input_line_[ input_cursor_pos_ ]= '\0';
@@ -72,10 +79,31 @@ void Console::ProcessEvents( const SystemEvents& events )
 				input_line_[ input_cursor_pos_ ]= '\0';
 			}
 		}
-		else if(
-			key_code == KeyCode::Up || key_code == KeyCode::Down ||
-			key_code == KeyCode::Left || key_code == KeyCode::Right )
-		{}
+		else if( key_code == KeyCode::Up )
+		{
+			if( history_size_ > 0u )
+			{
+				if( current_history_line_ < history_size_ && current_history_line_ < c_max_history )
+					current_history_line_++;
+				CopyLineFromHistory();
+			}
+		}
+		else if( key_code == KeyCode::Down )
+		{
+			if( current_history_line_ > 0u )
+			{
+				current_history_line_--;
+
+				if( current_history_line_ > 0u && history_size_ > 0u )
+					CopyLineFromHistory();
+			}
+			if( current_history_line_ == 0u )
+			{
+				// Reset current line
+				input_line_[0]= '\0';
+				input_cursor_pos_= 0;
+			}
+		}
 
 	} // for events
 }
@@ -131,6 +159,26 @@ void Console::LogCallback( std::string str )
 
 	if( lines_.size() == c_max_lines )
 		lines_.pop_front();
+}
+
+void Console::WriteHistory()
+{
+	history_[ next_history_line_index_ ]= input_line_;
+	next_history_line_index_= ( next_history_line_index_ + 1u ) % c_max_history;
+	history_size_++;
+	current_history_line_= 0u;
+}
+
+void Console::CopyLineFromHistory()
+{
+	PC_ASSERT( history_size_ > 0u );
+
+	std::strncpy(
+		input_line_,
+		history_[ ( history_size_ - current_history_line_ ) % c_max_history ].c_str(),
+		sizeof(input_line_) );
+
+	input_cursor_pos_= std::strlen( input_line_ );
 }
 
 } // namespace PanzerChasm
