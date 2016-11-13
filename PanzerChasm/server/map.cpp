@@ -114,7 +114,7 @@ void Map::ProcessPlayerPosition(
 {
 	// TODO - read from config
 	const float c_player_radius= 70.0f / 256.0f;
-	const float c_z_pull_distance= 1.0f / 12.0f;
+	const float c_z_pull_distance= 1.0f / 4.0f;
 	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 

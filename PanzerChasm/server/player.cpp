@@ -88,7 +88,7 @@ void Player::Move( const Time time_delta )
 	speed_.z+= c_vertical_acceleration * time_delta_s;
 
 	// Jump
-	if( jump_pessed_ && on_floor_ )
+	if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
 		speed_.z+= c_jump_speed_delta;
 
 	// Clamp vertical speed
