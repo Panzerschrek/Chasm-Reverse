@@ -2,6 +2,8 @@
 #include <memory>
 
 #include "client/client.hpp"
+#include "commands_processor.hpp"
+#include "console.hpp"
 #include "game_resources.hpp"
 #include "host_commands.hpp"
 #include "loopback_buffer.hpp"
@@ -28,9 +30,16 @@ public: // HostCommands
 	virtual void Quit() override;
 
 private:
+	void NewGame();
+	void RunLevel( const CommandsArguments& args );
+
+private:
 	// Put members here in reverse deinitialization order.
 
 	bool quit_requested_= false;
+
+	CommandsProcessor commands_processor_;
+	CommandsMapConstPtr host_commands_;
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
@@ -39,6 +48,7 @@ private:
 	SystemEvents events_;
 
 	std::unique_ptr<Menu> menu_;
+	std::unique_ptr<Console> console_;
 
 	MapLoaderPtr map_loader_;
 

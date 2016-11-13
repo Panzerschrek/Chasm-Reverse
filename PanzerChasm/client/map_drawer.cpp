@@ -234,6 +234,9 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 {
 	PC_ASSERT( map_data != nullptr );
 
+	if( map_data == current_map_data_ )
+		return;
+
 	current_map_data_= map_data;
 
 	LoadFloorsTextures( *map_data );

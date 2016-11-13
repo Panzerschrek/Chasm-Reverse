@@ -36,15 +36,8 @@ void Server::Loop()
 	{
 		connection_.reset( new ConnectionInfo( std::move( connection ) ) );
 
-		if( current_map_data_ != nullptr )
-			for( const MapData::Monster& monster : current_map_data_->monsters )
-			{
-				if( monster.monster_id == 0u && monster.difficulty_flags == 0 )
-				{
-					player_.SetPosition( m_Vec3( monster.pos, 4.0f ) );
-					break;
-				}
-			}
+		if( map_ != nullptr )
+			map_->SpawnPlayer( player_ );
 
 		Messages::MapChange map_change_msg;
 		map_change_msg.message_id= MessageId::MapChange;
@@ -94,13 +87,28 @@ void Server::ChangeMap( const unsigned int map_number )
 	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
 
 	if( map_data == nullptr )
+	{
+		Log::Warning( "Can not load map ", map_number );
 		return;
+	}
 
 	current_map_number_= map_number;
 	current_map_data_= map_data;
 	map_.reset( new Map( map_data, last_tick_ ) );
 
 	state_= State::PlayingMap;
+
+	map_->SpawnPlayer( player_ );
+
+	if( connection_ != nullptr )
+	{
+		Messages::MapChange message;
+		message.message_id= MessageId::MapChange;
+		message.map_number= current_map_number_;
+
+		connection_->messages_sender.SendReliableMessage( message );
+		connection_->messages_sender.Flush();
+	}
 }
 
 void Server::operator()( const Messages::MessageBase& message )

@@ -20,7 +20,10 @@ SOURCES+= \
 	client/map_drawer.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
+	commands_processor.cpp \
 	connection_info.cpp \
+	drawers.cpp \
+	console.cpp \
 	game_resources.cpp \
 	host.cpp \
 	images.cpp \
@@ -52,7 +55,10 @@ HEADERS+= \
 	client/map_drawer.hpp \
 	client/map_state.hpp \
 	client/movement_controller.hpp \
+	commands_processor.hpp \
 	connection_info.hpp \
+	console.hpp \
+	drawers.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \

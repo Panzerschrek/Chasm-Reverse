@@ -168,6 +168,9 @@ MapLoader::~MapLoader()
 
 MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 {
+	if( map_number >= 100 )
+		return nullptr;
+
 	if( map_number == last_loaded_map_number_ && last_loaded_map_ != nullptr )
 		return last_loaded_map_;
 

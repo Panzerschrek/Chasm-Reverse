@@ -49,6 +49,8 @@ public:
 		const PictureColor* rows_colors,
 		unsigned int scale );
 
+	void DrawConsoleBackground( float console_pos );
+
 private:
 	struct Vertex
 	{
@@ -67,6 +69,8 @@ private:
 
 	r_Texture framing_texture_;
 	short framing_tex_coords_[4][2];
+
+	r_Texture console_background_texture_;
 
 	r_PolygonBuffer polygon_buffer_;
 

@@ -1,3 +1,5 @@
+#include "assert.hpp"
+
 #include "images.hpp"
 
 namespace PanzerChasm
@@ -65,6 +67,118 @@ void LoadPalette(
 	// Convert from 6-bit to 8-bit.
 	for( unsigned int i= 0u; i < 768u; i++ )
 		out_palette[i]= palette_file[i] << 2u;
+}
+
+void CreateConsoleBackground(
+	const Size2& size,
+	const Vfs& vfs,
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba )
+{
+	const Vfs::FileContent texture_file= vfs.ReadFile( "CONSOLE.CEL" );
+	const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( texture_file.data() );
+	const unsigned char* const texture_data= texture_file.data() + sizeof(CelTextureHeader);
+
+	out_data_rgba.resize( size.Width() * size.Height() * 4u, 0u );
+
+	const auto fill_rect=
+	[&](
+		unsigned int src_x, unsigned int src_y,
+		unsigned int dst_x, unsigned int dst_y,
+		unsigned int width,unsigned int height )
+	{
+		PC_ASSERT( src_x + width  <= header.size[0] );
+		PC_ASSERT( src_y + height <= header.size[1] );
+		PC_ASSERT( dst_x + width  <= size.Width () );
+		PC_ASSERT( dst_y + height <= size.Height() );
+
+		for( unsigned int y= 0u; y < height; y++ )
+		for( unsigned int x= 0u; x < width ; x++ )
+		{
+			const unsigned char color_index= texture_data[ src_x + x + ( src_y + y ) * header.size[0] ];
+			unsigned char* const dst= out_data_rgba.data() + 4u * ( dst_x + x + ( dst_y + y ) * size.Width() );
+			for( unsigned int j= 0u; j < 3u; j++ )
+				dst[j]= palette[ color_index * 3u + j ];
+			dst[3]= 255u;
+		}
+	};
+
+	const unsigned int c_left_border= 4u;
+	const unsigned int c_right_border= 5u;
+	const unsigned int c_upper_border= 4u;
+	const unsigned int c_bottom_border= 16u;
+
+	const unsigned int c_src_texture_x_start= 94u;
+
+	const unsigned int main_field_width = header.size[0] - ( 94u + c_left_border ) - c_right_border;
+	const unsigned int main_field_height= header.size[1] - c_upper_border - c_bottom_border;
+
+	// Lower left corner
+	fill_rect(
+		c_src_texture_x_start, header.size[1] - c_bottom_border,
+		0u, size.Height() - c_bottom_border,
+		c_left_border, c_bottom_border );
+
+	// Lower right corner
+	fill_rect(
+		header.size[0] - c_right_border, header.size[1] - c_bottom_border,
+		size.Width() - c_right_border, size.Height() - c_bottom_border,
+		c_right_border, c_bottom_border );
+
+	// Upper left corner
+	fill_rect(
+		c_src_texture_x_start, 0u,
+		0u, 0u,
+		c_left_border, c_upper_border );
+
+	// Upper right corner
+	fill_rect(
+		header.size[0] - c_right_border, 0u,
+		size.Width() - c_right_border, 0u,
+		c_right_border, c_upper_border );
+
+	// Up and down borders
+	for( unsigned int x= c_left_border; x < size.Width() - c_right_border; x+= main_field_width )
+	{
+		const unsigned int width= std::min( main_field_width, size.Width() - c_right_border - x );
+		fill_rect(
+			c_src_texture_x_start + c_left_border, header.size[1] - c_bottom_border,
+			x, size.Height() - c_bottom_border,
+			width, c_bottom_border );
+
+		fill_rect(
+			c_src_texture_x_start + c_left_border, 0u,
+			x, 0u,
+			width, c_upper_border );
+	}
+
+	// Left and right borders
+	for( unsigned int y= c_upper_border; y < size.Height() - c_bottom_border; y+= main_field_height )
+	{
+		const unsigned int height= std::min( main_field_height, size.Height () - c_bottom_border - y );
+		fill_rect(
+			c_src_texture_x_start, c_upper_border,
+			0u, y,
+			c_left_border, height );
+
+		fill_rect(
+			header.size[0] - c_right_border, c_upper_border,
+			size.Width() - c_right_border, y,
+			c_right_border, height );
+	}
+
+	// Main field
+	for( unsigned int y= c_upper_border; y < size.Height() - c_bottom_border; y+= main_field_height )
+	for( unsigned int x= c_left_border ; x < size.Width () - c_right_border ; x+= main_field_width  )
+	{
+		const unsigned int width = std::min( main_field_width , size.Width () - c_right_border  - x );
+		const unsigned int height= std::min( main_field_height, size.Height() - c_bottom_border - y );
+
+		fill_rect(
+			c_src_texture_x_start + c_left_border, c_upper_border,
+			x, y,
+			width, height );
+	}
 }
 
 } // namespace PanzerChasm
