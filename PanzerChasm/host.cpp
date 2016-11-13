@@ -12,7 +12,10 @@ Host::Host()
 {
 	{ // Register host commands
 		CommandsMapPtr commands= std::make_shared<CommandsMap>();
+
 		commands->emplace( "quit", std::bind( &Host::Quit, this ) );
+		commands->emplace( "new", std::bind( &Host::NewGame, this ) );
+		commands->emplace( "go", std::bind( &Host::RunLevel, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
 		commands_processor_.RegisterCommands( host_commands_ );
@@ -142,6 +145,27 @@ bool Host::Loop()
 void Host::Quit()
 {
 	quit_requested_= true;
+}
+
+void Host::NewGame()
+{
+	if( local_server_ != nullptr )
+	{
+		local_server_->ChangeMap(1);
+	}
+}
+
+void Host::RunLevel( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Info( "Expected map number" );
+		return;
+	}
+
+	unsigned int map_number= std::atoi( args.front().c_str() );
+	if( local_server_ != nullptr )
+		local_server_->ChangeMap( map_number );
 }
 
 } // namespace PanzerChasm

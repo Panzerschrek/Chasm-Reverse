@@ -22,9 +22,6 @@ void CommandsProcessor::ProcessCommand( const char* const command_string )
 	if( command_parsed.first.empty() )
 		return;
 
-	for( const auto& arg : command_parsed.second )
-		Log::Info( arg );
-
 	for( unsigned int m= 0u; m < commands_maps_.size(); )
 	{
 		const CommandsMapConstPtr commads_map= commands_maps_[m].lock();

@@ -30,6 +30,10 @@ public: // HostCommands
 	virtual void Quit() override;
 
 private:
+	void NewGame();
+	void RunLevel( const CommandsArguments& args );
+
+private:
 	// Put members here in reverse deinitialization order.
 
 	bool quit_requested_= false;

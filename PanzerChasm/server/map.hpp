@@ -17,6 +17,8 @@ public:
 	Map( const MapDataConstPtr& map_data, Time map_start_time );
 	~Map();
 
+	void SpawnPlayer( Player& player );
+
 	void Shoot( const m_Vec3& from, const m_Vec3& normalized_direction );
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
