@@ -21,7 +21,7 @@ Host::Host()
 		commands_processor_.RegisterCommands( host_commands_ );
 	}
 
-	Log::Info( "Createng VFS" );
+	Log::Info( "Read game archive" );
 	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
 
 	Log::Info( "Loading game resources" );
@@ -50,7 +50,7 @@ Host::Host()
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, drawers ) );
 
-	Log::Info( "Create menu" );
+	Log::Info( "Initialize menu" );
 	menu_.reset(
 		new Menu(
 			*this,
