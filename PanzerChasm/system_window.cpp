@@ -35,6 +35,25 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
 	return KeyCode::Unknown;
 }
 
+static SystemEvent::KeyEvent::ModifiersMask TranslateKeyModifiers( const Uint16 modifiers )
+{
+	SystemEvent::KeyEvent::ModifiersMask result= 0u;
+
+	if( ( modifiers & ( KMOD_LSHIFT | KMOD_LSHIFT ) ) != 0u )
+		result|= SystemEvent::KeyEvent::Modifiers::Shift;
+
+	if( ( modifiers & ( KMOD_LCTRL | KMOD_RCTRL ) ) != 0u )
+		result|= SystemEvent::KeyEvent::Modifiers::Control;
+
+	if( ( modifiers & ( KMOD_RALT | KMOD_LALT ) ) != 0u )
+		result|= SystemEvent::KeyEvent::Modifiers::Alt;
+
+	if( ( modifiers &  KMOD_CAPS ) != 0u )
+		result|= SystemEvent::KeyEvent::Modifiers::Caps;
+
+	return result;
+}
+
 SystemWindow::SystemWindow()
 {
 	// TODO -read from settings here
@@ -106,6 +125,7 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().type= SystemEvent::Type::Key;
 			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.sym );
 			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
+			out_events.back().event.key.modifiers= TranslateKeyModifiers( event.key.keysym.mod );
 			break;
 
 		case SDL_MOUSEBUTTONUP:
@@ -116,6 +136,17 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().event.mouse_key.x= event.button.x;
 			out_events.back().event.mouse_key.y= event.button.y;
 			out_events.back().event.mouse_key.pressed= event.type == SDL_MOUSEBUTTONUP ? false : true;
+			break;
+
+		case SDL_TEXTINPUT:
+			// Accept only visible ASCII
+			if( event.text.text[0] >= 32 )
+			// && event.text.text[0] < 128 )
+			{
+				out_events.emplace_back();
+				out_events.back().type= SystemEvent::Type::CharInput;
+				out_events.back().event.char_input.ch= event.text.text[0];
+			}
 			break;
 
 		// TODO - fill other events here

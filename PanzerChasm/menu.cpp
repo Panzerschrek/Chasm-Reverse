@@ -244,6 +244,7 @@ void Menu::ProcessEvents( const SystemEvents& events )
 			}
 			break;
 
+		case SystemEvent::Type::CharInput: break;
 		case SystemEvent::Type::MouseKey: break;
 		case SystemEvent::Type::MouseMove: break;
 		case SystemEvent::Type::Wheel: break;

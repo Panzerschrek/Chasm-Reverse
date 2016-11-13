@@ -9,6 +9,7 @@ struct SystemEvent
 	enum class Type
 	{
 		Key,
+		CharInput,
 		MouseKey,
 		MouseMove,
 		Wheel,
@@ -35,8 +36,23 @@ struct SystemEvent
 			K0, K1, K2, K3, K4, K5, K6, K7, K8, K9,
 		};
 
+		enum Modifiers : unsigned int
+		{
+			Shift= 0x01u,
+			Control= 0x02u,
+			Alt= 0x04u,
+			Caps= 0x08u,
+		};
+		typedef unsigned int ModifiersMask;
+
 		KeyCode key_code;
+		ModifiersMask modifiers;
 		bool pressed;
+	};
+
+	struct CharInputEvent
+	{
+		char ch;
 	};
 
 	struct MouseKeyEvent
@@ -66,6 +82,7 @@ struct SystemEvent
 		MouseKeyEvent mouse_key;
 		MouseMoveEvent mosue_move;
 		QuitEvent quit;
+		CharInputEvent char_input;
 	} event;
 };
 
