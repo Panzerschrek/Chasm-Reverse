@@ -209,6 +209,19 @@ MenuDrawer::MenuDrawer(
 		framing_texture_.BuildMips();
 		framing_texture_.SetWrapMode( r_Texture::WrapMode::Clamp );
 	}
+	{ // Console background
+		std::vector<unsigned char> texture_data_rgba;
+		CreateConsoleBackground(
+			viewport_size_, *game_resources.vfs, game_resources.palette, texture_data_rgba );
+
+		console_background_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				viewport_size_.Width(), viewport_size_.Height(),
+				texture_data_rgba.data() );
+
+		console_background_texture_.BuildMips();
+	}
 
 	// Polygon buffer
 	std::vector<unsigned short> indeces( 6u * g_max_quads );
@@ -426,6 +439,56 @@ void MenuDrawer::DrawMenuPicture(
 			1.0f / float(picture.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawer::DrawConsoleBackground( float console_pos )
+{
+	Vertex vertices[ 4u ];
+
+	const int y= static_cast<int>( float(viewport_size_.Height() ) * ( 1.0f - 0.5f * console_pos ) );
+	const int tc_top= y;
+
+	vertices[0].xy[0]= 0;
+	vertices[0].xy[1]= y;
+	vertices[0].tex_coord[0]= 0;
+	vertices[0].tex_coord[1]= console_background_texture_.Height();
+
+	vertices[1].xy[0]= viewport_size_.Width();
+	vertices[1].xy[1]= y;
+	vertices[1].tex_coord[0]= console_background_texture_.Width();
+	vertices[1].tex_coord[1]= console_background_texture_.Height();
+
+	vertices[2].xy[0]= viewport_size_.Width();
+	vertices[2].xy[1]= viewport_size_.Height();
+	vertices[2].tex_coord[0]= console_background_texture_.Width();
+	vertices[2].tex_coord[1]= tc_top;
+
+	vertices[3].xy[0]= 0;
+	vertices[3].xy[1]= viewport_size_.Height();
+	vertices[3].tex_coord[0]= 0;
+	vertices[3].tex_coord[1]= tc_top;
+
+	polygon_buffer_.VertexSubData( vertices, sizeof(vertices), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
+	menu_picture_shader_.Bind();
+
+	console_background_texture_.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(console_background_texture_.Width ()),
+			1.0f / float(console_background_texture_.Height()) ) );
+
+	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
 } // namespace PanzerChasm

@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 
+#include "size.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -41,5 +42,11 @@ void ColorShift(
 void LoadPalette(
 	const Vfs& vfs,
 	Palette& out_palette );
+
+void CreateConsoleBackground(
+	const Size2& size,
+	const Vfs& vfs,
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba );
 
 } // namespace PanzerChasm
