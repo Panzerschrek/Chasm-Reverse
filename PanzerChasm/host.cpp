@@ -10,6 +10,15 @@ namespace PanzerChasm
 
 Host::Host()
 {
+	{ // Register host commands
+		CommandsMapPtr commands= std::make_shared<CommandsMap>();
+		commands->emplace( "quit", std::bind( &Host::Quit, this ) );
+
+		host_commands_= std::move( commands );
+		commands_processor_.RegisterCommands( host_commands_ );
+	}
+
+
 	Log::Info( "Createng VFS" );
 	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
 

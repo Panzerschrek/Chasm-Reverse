@@ -35,6 +35,7 @@ private:
 	bool quit_requested_= false;
 
 	CommandsProcessor commands_processor_;
+	CommandsMapConstPtr host_commands_;
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
