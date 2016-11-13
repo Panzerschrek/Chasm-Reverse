@@ -49,11 +49,14 @@ static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture 
 
 HudDrawer::HudDrawer(
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContext& rendering_context,
+	const DrawersPtr& drawers )
 	: game_resources_(game_resources)
 	, viewport_size_( rendering_context.viewport_size )
+	, drawers_(drawers)
 {
 	PC_ASSERT( game_resources_ != nullptr );
+	PC_ASSERT( drawers_ != nullptr );
 
 	// Textures
 	GenCrosshairTexture( game_resources->palette, crosshair_texture_ );
@@ -99,6 +102,12 @@ HudDrawer::HudDrawer(
 
 HudDrawer::~HudDrawer()
 {}
+
+void HudDrawer::AddMessage( const MapData::Message& message, const Time current_time )
+{
+	current_message_= message;
+	current_message_time_= current_time;
+}
 
 void HudDrawer::DrawCrosshair( const unsigned int scale )
 {
@@ -151,6 +160,38 @@ void HudDrawer::DrawCrosshair( const unsigned int scale )
 			1.0f / float(crosshair_texture_.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void HudDrawer::DrawCurrentMessage( const unsigned int scale, const Time current_time )
+{
+	if( current_message_time_.ToSeconds() == 0.0f )
+		return;
+
+	const float time_left= ( current_time - current_message_time_ ).ToSeconds();
+	if( time_left > current_message_.delay_s )
+		return;
+
+	for( const  MapData::Message::Text& text : current_message_.texts )
+	{
+		int x;
+		TextDraw::Alignment alignemnt;
+		if( text.x == -1 )
+		{
+			x= drawers_->menu.GetViewportSize().Width() / 2u;
+			alignemnt= TextDraw::Alignment::Center;
+		}
+		else
+		{
+			x= text.x * scale;
+			alignemnt= TextDraw::Alignment::Left;
+		}
+
+		drawers_->text.Print(
+			x, text.y * scale,
+			text.data.c_str(),
+			scale,
+			TextDraw::FontColor::YellowGreen, alignemnt );
+	}
 }
 
 } // namespace PanzerChasm

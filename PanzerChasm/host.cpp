@@ -73,7 +73,8 @@ Host::Host()
 			game_resources_,
 			map_loader_,
 			loopback_buffer_,
-			rendering_context ) );
+			rendering_context,
+			drawers ) );
 }
 
 Host::~Host()

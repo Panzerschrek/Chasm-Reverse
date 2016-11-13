@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../connection_info.hpp"
+#include "../drawers.hpp"
 #include "../game_resources.hpp"
 #include "../loopback_buffer.hpp"
 #include "../map_loader.hpp"
@@ -21,7 +22,8 @@ public:
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
 		const LoopbackBufferPtr& loopback_buffer,
-		const RenderingContext& rendering_context );
+		const RenderingContext& rendering_context,
+		const DrawersPtr& drawers );
 
 	~Client();
 
@@ -49,6 +51,9 @@ private:
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 
+	// Client uses real time.
+	Time current_tick_time_;
+
 	m_Vec3 player_position_;
 	MovementController camera_controller_;
 
@@ -57,8 +62,6 @@ private:
 	std::unique_ptr<MapState> map_state_;
 
 	HudDrawer hud_drawer_;
-
-
 };
 
 } // PanzerChasm

@@ -13,15 +13,17 @@ Client::Client(
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
 	const LoopbackBufferPtr& loopback_buffer,
-	const RenderingContext& rendering_context )
+	const RenderingContext& rendering_context,
+	const DrawersPtr& drawers )
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, loopback_buffer_(loopback_buffer)
+	, current_tick_time_( Time::CurrentTime() )
 	, camera_controller_(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( game_resources, rendering_context )
-	, hud_drawer_( game_resources, rendering_context )
+	, hud_drawer_( game_resources, rendering_context, drawers )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -83,13 +85,15 @@ void Client::ProcessEvents( const SystemEvents& events )
 
 void Client::Loop()
 {
+	current_tick_time_= Time::CurrentTime();
+
 	if( connection_info_ != nullptr )
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
 	camera_controller_.Tick();
 
 	if( map_state_ != nullptr )
-		map_state_->Tick( Time::CurrentTime() );
+		map_state_->Tick( current_tick_time_ );
 
 	if( connection_info_ != nullptr )
 	{
@@ -120,6 +124,7 @@ void Client::Draw()
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
 		hud_drawer_.DrawCrosshair(2u);
+		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
 	}
 }
 
@@ -192,9 +197,7 @@ void Client::operator()( const Messages::TextMessage& message )
 	{
 		if( message.text_message_number < current_map_data_->messages.size() )
 		{
-			const MapData::Message& text_message= current_map_data_->messages[ message.text_message_number ];
-			for( const  MapData::Message::Text& text : text_message.texts )
-				Log::Info( text.data );
+			hud_drawer_.AddMessage( current_map_data_->messages[ message.text_message_number ], current_tick_time_ );
 		}
 	}
 }
