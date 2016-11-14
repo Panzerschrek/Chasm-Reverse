@@ -71,22 +71,22 @@ public:
 	{
 		// If there is no model - shot is like "bullet":
 		// gravity ignored, speed is infinite, no blast damage.
-		char model_file_name[16];
-		char animation_file_name[16];
+		char model_file_name[20];
+		char animation_file_name[20];
 
-		int BW; // blow effect. 1 - sparcles, 2 - blast, 4 - MD blast
-		int gravity_forse; // gravity. 0 - fly straight.
+		int blow_effect; // 1 - sparcles, 2 - blast, 4 - Mega-Destroyer blast.
+		int gravity_force; // gravity. 0 - fly straight.
 		int Ard; // Attack radius ( explosion damage distance )
 		int CRd; // Unknown - always 42
-		int Pwr; // power
+		int power;
 
-		int Rfl;
-		int FBright; // Fullbright ?
-		int Light; // Shot emit light
-		int Auto;
-		int Auto2;
-		int Fast; // Speed is greater, if nonzero
-		int Smoke; // Trail sprite effect type
+		bool Rfl;
+		bool fullbright;
+		bool Light; // Shot emit light
+		bool Auto;
+		bool Auto2;
+		bool Fast; // Speed is greater, if nonzero
+		int smoke_trail_effect_id; // Trail sprite effect type
 	};
 
 public:
@@ -104,6 +104,9 @@ public:
 
 	std::vector<WeaponDescription> weapons_description;
 	std::vector<Model> weapons_models;
+
+	std::vector<RocketDescription> rockets_description;
+	std::vector<Model> rockets_models;
 };
 
 typedef std::shared_ptr<GameResources> GameResourcesPtr;
