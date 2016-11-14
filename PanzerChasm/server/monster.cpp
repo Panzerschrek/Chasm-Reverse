@@ -16,6 +16,8 @@ Monster::Monster(
 	, current_animation_start_time_(spawn_time)
 {
 	PC_ASSERT( game_resources_ != nullptr );
+
+	current_animation_= GetAnimation( AnimationId::Idle );
 }
 
 Monster::~Monster()
@@ -60,6 +62,21 @@ void Monster::Tick( const Time current_time )
 
 	current_animation_frame_=
 		static_cast<unsigned int>( std::round(frame) ) % model.animations[ current_animation_ ].frame_count;
+}
+
+unsigned int Monster::GetAnimation( const AnimationId id ) const
+{
+	PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );
+	const Model& model= game_resources_->monsters_models[ monster_id_ ];
+
+	for( const Model::Animation& animation : model.animations )
+	{
+		if( animation.id == static_cast<unsigned int>(id) )
+			return &animation - model.animations.data();
+	}
+
+	// TODO - what do, if ne not found animation?
+	return 0u;
 }
 
 } // namespace PanzerChasm

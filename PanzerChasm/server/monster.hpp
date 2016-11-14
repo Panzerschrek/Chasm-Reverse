@@ -37,6 +37,27 @@ private:
 		WaitAfterAttack,
 	};
 
+	// TODO - check this. Some numbers may be incorrect.
+	enum class AnimationId : unsigned int
+	{
+		Run= 0u,
+		Idle= 2u,
+		RemoteAttack0= 4u,
+		RemoteAttack1= 5u,
+		MeleeAtack0= 6u,
+		MeleeAtack1= 7u,
+		MeleeAtack2= 8u,
+		Pain0=  9u,
+		Pain1= 10u,
+		RightHandLost= 11u,
+		LeftHandLost= 12u,
+		Death0= 13u,
+		Death1= 14u,
+	};
+
+private:
+	unsigned int GetAnimation( AnimationId id ) const;
+
 private:
 	const unsigned char monster_id_;
 	const GameResourcesConstPtr game_resources_;
