@@ -111,6 +111,9 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 	std::memcpy( &polygon_count , model_file.data() + 0x4802u, sizeof(unsigned short ) );
 	std::memcpy( &texture_height, model_file.data() + 0x4804u, sizeof(unsigned short ) );
 
+	const unsigned int v_offset_shift= texture_height & ~1023u;
+	texture_height&= 1023u;
+
 	// Texture
 	out_model.texture_size[0]= g_3o_model_texture_width;
 	out_model.texture_size[1]= texture_height;
@@ -120,6 +123,9 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		out_model.texture_data.data(),
 		model_file.data() + 0x4806u,
 		out_model.texture_data.size() );
+
+
+	PC_ASSERT( model_file.size() == out_model.texture_data.size() + 0x4806u );
 
 	// Geometry
 	const Polygon_o3* const polygons= reinterpret_cast<const Polygon_o3*>( model_file.data() + 0x00u );
@@ -159,6 +165,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		tmp_vertices.resize( tmp_vertices.size() + polygon_vertex_count * out_model.frame_count );
 		Model::Vertex* v= tmp_vertices.data() + first_vertex_index * out_model.frame_count;
 
+		const unsigned int v_offset= polygon.v_offset + v_offset_shift;
 		for( unsigned int j= 0u; j < polygon_vertex_count; j++ )
 		{
 			for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
@@ -167,7 +174,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 				const Vertex_o3& in_vertex= vertices[ polygon.vertices_indeces[j] + frame * vertex_count ];
 
 				vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
-				vertex.tex_coord[1]= float( polygon.uv[j][1] + polygon.v_offset ) / float( out_model.texture_size[1] );
+				vertex.tex_coord[1]= float( polygon.uv[j][1] + v_offset ) / float( out_model.texture_size[1] );
 
 				for( unsigned int c= 0u; c < 3u; c++ )
 					vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
