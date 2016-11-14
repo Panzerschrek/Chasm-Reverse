@@ -34,8 +34,8 @@ public:
 		float w_radius, a_radius;
 		int speed, r;
 		int life;
-		int kick;
-		int rock;
+		int kick; // Kick damage.
+		int rock; // Rocket numer. -1 - no remote attack, maybe
 		int sep_limit;
 	};
 
@@ -65,6 +65,28 @@ public:
 		int limit; // ammo limit
 		int start; // initial ammo count
 		int r_count; // projectiles count ( 1 for rifle, many for shotgun )
+	};
+
+	struct RocketDescription
+	{
+		// If there is no model - shot is like "bullet":
+		// gravity ignored, speed is infinite, no blast damage.
+		char model_file_name[16];
+		char animation_file_name[16];
+
+		int BW; // blow effect. 1 - sparcles, 2 - blast, 4 - MD blast
+		int gravity_forse; // gravity. 0 - fly straight.
+		int Ard; // Attack radius ( explosion damage distance )
+		int CRd; // Unknown - always 42
+		int Pwr; // power
+
+		int Rfl;
+		int FBright; // Fullbright ?
+		int Light; // Shot emit light
+		int Auto;
+		int Auto2;
+		int Fast; // Speed is greater, if nonzero
+		int Smoke; // Trail sprite effect type
 	};
 
 public:
