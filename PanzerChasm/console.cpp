@@ -110,7 +110,7 @@ void Console::ProcessEvents( const SystemEvents& events )
 		else if( key_code == KeyCode::PageUp )
 		{
 			lines_position_+= 3u;
-			lines_position_= std::min( lines_position_, lines_.size() );
+			lines_position_= std::min( lines_position_, static_cast<unsigned int>(lines_.size()) );
 		}
 		else if( key_code == KeyCode::PageDown )
 		{
@@ -166,7 +166,7 @@ void Console::Draw()
 	}
 
 	auto it= lines_.rbegin();
-	it= std::next( it, std::min( lines_position_, lines_.size() ) );
+	it= std::next( it, std::min( lines_position_, static_cast<unsigned int>(lines_.size()) ) );
 	for( ; it != lines_.rend(); ++it )
 	{
 		if( y < -letter_height )
