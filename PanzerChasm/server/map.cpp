@@ -34,6 +34,18 @@ void Map::ProcessElementLinks(
 	}
 }
 
+Map::Rocket::Rocket(
+	const unsigned int in_rocket_id,
+	const m_Vec3& in_start_point,
+	const m_Vec3& in_normalized_direction,
+	const Time in_start_time )
+	: rocket_id( in_rocket_id )
+	, start_point( in_start_point )
+	, normalized_direction( in_normalized_direction )
+	, start_time( in_start_time )
+	, previous_position( in_start_point )
+{}
+
 Map::Map(
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
@@ -103,12 +115,13 @@ void Map::SpawnPlayer( Player& player )
 	player.ResetActivatedProcedure();
 }
 
-void Map::Shoot( const m_Vec3& from, const m_Vec3& normalized_direction )
+void Map::Shoot(
+	const unsigned int rocket_id,
+	const m_Vec3& from,
+	const m_Vec3& normalized_direction,
+	const Time current_time )
 {
-	shots_.emplace_back();
-	Shot& shot= shots_.back();
-	shot.from= from;
-	shot.normalized_direction= normalized_direction;
+	rockets_.emplace_back( rocket_id, from, normalized_direction, current_time );
 }
 
 void Map::ProcessPlayerPosition(
@@ -548,7 +561,7 @@ void Map::Tick( const Time current_time )
 	sprite_effects_.clear();
 
 	// Process shots
-	for( const Shot& shot : shots_ )
+	for( const Rocket& shot : rockets_ )
 	{
 		enum class ObjectType
 		{
@@ -563,7 +576,7 @@ void Map::Tick( const Time current_time )
 		const auto process_candidate_shot_pos=
 		[&]( const m_Vec3& candidate_pos, const ObjectType object_type, const unsigned object_index )
 		{
-			const float square_distance= ( candidate_pos - shot.from ).SquareLength();
+			const float square_distance= ( candidate_pos - shot.start_point ).SquareLength();
 			if( square_distance < nearest_shot_point_square_distance )
 			{
 				nearest_shot_pos= candidate_pos;
@@ -584,7 +597,7 @@ void Map::Tick( const Time current_time )
 			if( RayIntersectWall(
 					wall.vert_pos[0], wall.vert_pos[1],
 					0.0f, 2.0f,
-					shot.from, shot.normalized_direction,
+					shot.start_point, shot.normalized_direction,
 					candidate_pos ) )
 			{
 				process_candidate_shot_pos( candidate_pos, ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
@@ -604,7 +617,7 @@ void Map::Tick( const Time current_time )
 			if( RayIntersectWall(
 					wall.vert_pos[0], wall.vert_pos[1],
 					wall.z, wall.z + 2.0f,
-					shot.from, shot.normalized_direction,
+					shot.start_point, shot.normalized_direction,
 					candidate_pos ) )
 			{
 				process_candidate_shot_pos( candidate_pos, ObjectType::DynamicWall, w );
@@ -627,7 +640,7 @@ void Map::Tick( const Time current_time )
 					model.pos.xy(), model_description.radius,
 					model_data.z_min + model.pos.z,
 					model_data.z_max + model.pos.z,
-					shot.from, shot.normalized_direction,
+					shot.start_point, shot.normalized_direction,
 					candidate_pos ) )
 			{
 				process_candidate_shot_pos( candidate_pos, ObjectType::Model, &model - static_models_.data() );
@@ -639,7 +652,7 @@ void Map::Tick( const Time current_time )
 			m_Vec3 candidate_pos;
 			if( RayIntersectXYPlane(
 					float(z),
-					shot.from, shot.normalized_direction,
+					shot.start_point, shot.normalized_direction,
 					candidate_pos ) )
 			{
 				const int x= static_cast<int>( std::floor(candidate_pos.x) );
@@ -708,7 +721,7 @@ void Map::Tick( const Time current_time )
 				} );
 		}
 	}
-	shots_.clear();
+	rockets_.clear();
 
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )

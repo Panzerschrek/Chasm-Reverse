@@ -22,7 +22,11 @@ public:
 
 	void SpawnPlayer( Player& player );
 
-	void Shoot( const m_Vec3& from, const m_Vec3& normalized_direction );
+	void Shoot(
+		unsigned int rocket_id,
+		const m_Vec3& from,
+		const m_Vec3& normalized_direction,
+		Time current_time );
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time );
@@ -83,13 +87,24 @@ private:
 
 	typedef std::vector<StaticModel> StaticModels;
 
-	struct Shot
+	struct Rocket
 	{
-		m_Vec3 from;
+		Rocket(
+			unsigned int in_rocket_id,
+			const m_Vec3& in_start_point,
+			const m_Vec3& in_normalized_direction,
+			const Time start_time );
+
+		// Start parameters
+		unsigned int rocket_id;
+		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
+		Time start_time;
+
+		m_Vec3 previous_position;
 	};
 
-	typedef std::vector<Shot> Shots;
+	typedef std::vector<Rocket> Rockets;
 
 	struct SpriteEffect
 	{
@@ -125,7 +140,7 @@ private:
 
 	StaticModels static_models_;
 
-	Shots shots_;
+	Rockets rockets_;
 	SpriteEffects sprite_effects_;
 
 	MonstersContainer monsters_;
