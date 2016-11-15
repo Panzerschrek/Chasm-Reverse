@@ -95,6 +95,8 @@ private:
 			const m_Vec3& in_normalized_direction,
 			const Time start_time );
 
+		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
+
 		// Start parameters
 		unsigned int rocket_id;
 		m_Vec3 start_point;
@@ -105,6 +107,18 @@ private:
 	};
 
 	typedef std::vector<Rocket> Rockets;
+
+	struct HitResult
+	{
+		enum class ObjectType
+		{
+			None, StaticWall, DynamicWall, Model, Floor,
+		};
+
+		ObjectType object_type= ObjectType::None;
+		unsigned int object_index;
+		m_Vec3 pos;
+	};
 
 	struct SpriteEffect
 	{
@@ -127,6 +141,8 @@ private:
 		MapData::IndexElement::Type element_type,
 		unsigned int index,
 		const Func& func );
+
+	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
 
 	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
 
