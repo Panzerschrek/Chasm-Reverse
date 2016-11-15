@@ -567,9 +567,31 @@ void Map::Tick( const Time current_time )
 	sprite_effects_.clear();
 
 	// Process shots
-	for( const Rocket& shot : rockets_ )
+	for( unsigned int r= 0u; r < rockets_.size(); )
 	{
-		const HitResult hit_result= ProcessShot( shot.start_point, shot.normalized_direction );
+		Rocket& rocket= rockets_[r];
+		const bool has_infinite_speed= rocket.HasInfiniteSpeed( *game_resources_ );
+
+		HitResult hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
+
+		if( !has_infinite_speed )
+		{
+			const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
+			const m_Vec3 new_pos=
+			rocket.start_point +
+			rocket.normalized_direction * ( time_delta_s * GameConstants::rockets_speed );
+
+			if( hit_result.object_type != HitResult::ObjectType::None )
+			{
+				const float hit_pos_vecs_dot=
+					( new_pos - hit_result.pos ) * ( rocket.previous_position - hit_result.pos );
+
+				if( hit_pos_vecs_dot > 0.0f )
+					hit_result.object_type= HitResult::ObjectType::None; // Really, not hited
+			}
+
+			rocket.previous_position= new_pos;
+		}
 
 		if( hit_result.object_type != HitResult::ObjectType::None )
 		{
@@ -620,8 +642,18 @@ void Map::Tick( const Time current_time )
 						ProcedureProcessShoot( link.proc_id, current_time );
 				} );
 		}
+
+		// Try remove rocket
+		if( hit_result.object_type != HitResult::ObjectType::None ||
+			has_infinite_speed )
+		{
+			if( r != rockets_.size() - 1u )
+				rockets_[r]= rockets_.back();
+			rockets_.pop_back();
+		}
+		else
+			r++;
 	}
-	rockets_.clear();
 
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )

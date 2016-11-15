@@ -245,6 +245,9 @@ static void LoadRocketsDescription(
 			line_stream >> eq;
 			line_stream >> param_value;
 
+			if( param_value[0] == ';' )
+				continue;
+
 			if( std::strcmp( param_name, "3d_MODEL" ) == 0u )
 				std::strcpy( rocket_description.model_file_name, param_value );
 			else if( std::strcmp( param_name, "ANIMATION" ) == 0u )
