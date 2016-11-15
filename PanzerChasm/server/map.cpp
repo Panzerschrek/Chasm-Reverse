@@ -572,14 +572,24 @@ void Map::Tick( const Time current_time )
 		Rocket& rocket= rockets_[r];
 		const bool has_infinite_speed= rocket.HasInfiniteSpeed( *game_resources_ );
 
-		HitResult hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
+		HitResult hit_result;
 
-		if( !has_infinite_speed )
+		if( has_infinite_speed )
+			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
+		else
 		{
+			const float gravity_force= float( game_resources_->rockets_description[ rocket.rocket_id ].gravity_force );
 			const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
+
 			const m_Vec3 new_pos=
 			rocket.start_point +
-			rocket.normalized_direction * ( time_delta_s * GameConstants::rockets_speed );
+			rocket.normalized_direction * ( time_delta_s * GameConstants::rockets_speed ) +
+			m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
+
+			m_Vec3 dir= new_pos - rocket.previous_position;
+			dir.Normalize();
+
+			hit_result= ProcessShot( rocket.previous_position, dir );
 
 			if( hit_result.object_type != HitResult::ObjectType::None )
 			{
