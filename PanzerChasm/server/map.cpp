@@ -580,7 +580,9 @@ void Map::Tick( const Time current_time )
 			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
 		else
 		{
-			const float gravity_force= float( game_resources_->rockets_description[ rocket.rocket_id ].gravity_force );
+			const float c_gravity_scale= 1.5f; // TODO - calibrate. Do it together with rockets speed.
+			const float gravity_force=
+				c_gravity_scale * float( game_resources_->rockets_description[ rocket.rocket_id ].gravity_force );
 
 			const m_Vec3 new_pos=
 			rocket.start_point +
@@ -679,7 +681,7 @@ void Map::Tick( const Time current_time )
 
 		// Try remove rocket
 		if( hit_result.object_type != HitResult::ObjectType::None || // kill hited
-			time_delta_s > 10.0f || // kill old rockets
+			time_delta_s > 16.0f || // kill old rockets
 			has_infinite_speed ) // kill bullets
 		{
 			if( r != rockets_.size() - 1u )
