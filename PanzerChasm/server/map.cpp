@@ -571,6 +571,7 @@ void Map::Tick( const Time current_time )
 	{
 		Rocket& rocket= rockets_[r];
 		const bool has_infinite_speed= rocket.HasInfiniteSpeed( *game_resources_ );
+		const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
 
 		HitResult hit_result;
 
@@ -579,7 +580,6 @@ void Map::Tick( const Time current_time )
 		else
 		{
 			const float gravity_force= float( game_resources_->rockets_description[ rocket.rocket_id ].gravity_force );
-			const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
 
 			const m_Vec3 new_pos=
 			rocket.start_point +
@@ -654,8 +654,9 @@ void Map::Tick( const Time current_time )
 		}
 
 		// Try remove rocket
-		if( hit_result.object_type != HitResult::ObjectType::None ||
-			has_infinite_speed )
+		if( hit_result.object_type != HitResult::ObjectType::None || // kill hited
+			time_delta_s > 10.0f || // kill old rockets
+			has_infinite_speed ) // kill bullets
 		{
 			if( r != rockets_.size() - 1u )
 				rockets_[r]= rockets_.back();
