@@ -104,6 +104,7 @@ private:
 		Time start_time;
 
 		m_Vec3 previous_position;
+		float track_length;
 	};
 
 	typedef std::vector<Rocket> Rockets;

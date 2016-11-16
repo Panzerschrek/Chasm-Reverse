@@ -29,6 +29,7 @@ Map::Rocket::Rocket(
 	, normalized_direction( in_normalized_direction )
 	, start_time( in_start_time )
 	, previous_position( in_start_point )
+	, track_length( 0.0f )
 {}
 
 bool Map::Rocket::HasInfiniteSpeed( const GameResources& game_resources ) const
@@ -600,6 +601,29 @@ void Map::Tick( const Time current_time )
 					hit_result.object_type= HitResult::ObjectType::None; // Really, not hited
 			}
 
+			// Emit smoke trail
+			const unsigned int sprite_effect_id=
+				game_resources_->rockets_description[ rocket.rocket_id ].smoke_trail_effect_id;
+			if( sprite_effect_id != 0u )
+			{
+				const float c_particels_per_unit= 2.0f; // TODO - calibrate
+				const float length_delta= ( new_pos - rocket.previous_position ).Length() * c_particels_per_unit;
+				const float new_track_length= rocket.track_length + length_delta;
+				for( unsigned int i= static_cast<unsigned int>( rocket.track_length ) + 1u;
+					i <= static_cast<unsigned int>( new_track_length ); i++ )
+				{
+					const float part= ( float(i) - rocket.track_length ) / length_delta;
+
+					sprite_effects_.emplace_back();
+					SpriteEffect& effect= sprite_effects_.back();
+
+					effect.pos= ( 1.0f - part ) * rocket.previous_position + part * new_pos;
+					effect.effect_id= sprite_effect_id;
+				}
+
+				rocket.track_length= new_track_length;
+			}
+
 			rocket.previous_position= new_pos;
 		}
 
@@ -664,7 +688,7 @@ void Map::Tick( const Time current_time )
 		}
 		else
 			r++;
-	}
+	} // for rockets
 
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
