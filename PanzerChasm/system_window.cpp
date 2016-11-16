@@ -7,31 +7,33 @@
 namespace PanzerChasm
 {
 
-static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Keycode key_code )
+static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code )
 {
 	using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
-	switch( key_code )
+	switch( scan_code )
 	{
-	case SDLK_ESCAPE: return KeyCode::Escape;
-	case SDLK_RETURN: return KeyCode::Enter;
-	case SDLK_SPACE: return KeyCode::Space;
-	case SDLK_BACKSPACE: return KeyCode::Backspace;
-	case SDLK_BACKQUOTE: return KeyCode::BackQuote;
+	case SDL_SCANCODE_ESCAPE: return KeyCode::Escape;
+	case SDL_SCANCODE_RETURN: return KeyCode::Enter;
+	case SDL_SCANCODE_SPACE: return KeyCode::Space;
+	case SDL_SCANCODE_BACKSPACE: return KeyCode::Backspace;
+	case SDL_SCANCODE_GRAVE: return KeyCode::BackQuote;
 
-	case SDLK_PAGEUP: return KeyCode::PageUp;
-	case SDLK_PAGEDOWN: return KeyCode::PageDown;
+	case SDL_SCANCODE_PAGEUP: return KeyCode::PageUp;
+	case SDL_SCANCODE_PAGEDOWN: return KeyCode::PageDown;
 
-	case SDLK_RIGHT: return KeyCode::Right;
-	case SDLK_LEFT: return KeyCode::Left;
-	case SDLK_DOWN: return KeyCode::Down;
-	case SDLK_UP: return KeyCode::Up;
+	case SDL_SCANCODE_RIGHT: return KeyCode::Right;
+	case SDL_SCANCODE_LEFT: return KeyCode::Left;
+	case SDL_SCANCODE_DOWN: return KeyCode::Down;
+	case SDL_SCANCODE_UP: return KeyCode::Up;
 
 	default:
-		if( key_code >= SDLK_a && key_code <= SDLK_z )
-			return KeyCode( int(KeyCode::A) + (key_code - SDLK_a) );
-		if( key_code >= SDLK_0 && key_code <= SDLK_9 )
-			return KeyCode( int(KeyCode::K0) + (key_code - SDLK_0) );
+		if( scan_code >= SDL_SCANCODE_A && scan_code <= SDL_SCANCODE_Z )
+			return KeyCode( int(KeyCode::A) + (scan_code - SDL_SCANCODE_A) );
+		if( scan_code >= SDL_SCANCODE_1 && scan_code <= SDL_SCANCODE_9 )
+			return KeyCode( int(KeyCode::K1) + (scan_code - SDL_SCANCODE_1) );
+		if( scan_code == SDL_SCANCODE_0 )
+			return KeyCode::K0;
 
 	};
 
@@ -126,7 +128,7 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 		case SDL_KEYDOWN:
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::Key;
-			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.sym );
+			out_events.back().event.key.key_code= TranslateKey( event.key.keysym.scancode );
 			out_events.back().event.key.pressed= event.type == SDL_KEYUP ? false : true;
 			out_events.back().event.key.modifiers= TranslateKeyModifiers( event.key.keysym.mod );
 			break;
