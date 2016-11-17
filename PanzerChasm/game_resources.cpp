@@ -351,6 +351,29 @@ static void LoadWeaponsModels(
 	}
 }
 
+static void LoadRocketsModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.rockets_models.resize( game_resources.rockets_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+
+	for( unsigned int i= 0u; i < game_resources.rockets_models.size(); i++ )
+	{
+		const GameResources::RocketDescription& rocket_description= game_resources.rockets_description[i];
+
+		if( rocket_description.model_file_name[0] == '\0' )
+			continue;
+
+		vfs.ReadFile( rocket_description.model_file_name, file_content );
+		vfs.ReadFile( rocket_description.animation_file_name, animation_file_content );
+
+		LoadModel_o3( file_content, animation_file_content, game_resources.rockets_models[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
 	PC_ASSERT( vfs != nullptr );
@@ -376,6 +399,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadMonstersModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
 	LoadWeaponsModels( *vfs, *result );
+	LoadRocketsModels( *vfs, *result );
 
 	return result;
 }

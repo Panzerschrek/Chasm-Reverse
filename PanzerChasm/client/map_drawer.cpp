@@ -128,6 +128,7 @@ static void CalculateModelsTexturesPlacement(
 				}
 		}
 
+		// TODO - what do, if texture height iz zero?
 		const unsigned int best_texture_height= models[ best_texture_number ].texture_size[1];
 		if( current_y + best_texture_height > texture_height )
 		{
@@ -159,6 +160,7 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &wall_textures_array_id_ );
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
+	glGenTextures( 1, &rockets_textures_array_id_ );
 
 	LoadSprites();
 
@@ -171,6 +173,13 @@ MapDrawer::MapDrawer(
 
 	// Monsters
 	LoadMonstersModels();
+
+	// Rockets
+	LoadModels(
+		game_resources_->rockets_models,
+		rockets_geometry_,
+		rockets_geometry_data_,
+		rockets_textures_array_id_ );
 
 	// Shaders
 	char lightmap_scale[32];
@@ -226,6 +235,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &wall_textures_array_id_ );
 	glDeleteTextures( 1, &models_textures_array_id_ );
 	glDeleteTextures( 1, &items_textures_array_id_ );
+	glDeleteTextures( 1, &rockets_textures_array_id_ );
 
 	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
 }
@@ -952,7 +962,7 @@ void MapDrawer::LoadModels(
 
 		// Setup geometry info.
 		model_geometry.frame_count= model.frame_count;
-		model_geometry.vertex_count= model.vertices.size() / model.frame_count;
+		model_geometry.vertex_count= model.frame_count == 0u ? 0u : ( model.vertices.size() / model.frame_count );
 		model_geometry.first_vertex_index= first_vertex_index;
 
 		model_geometry.first_index= first_index;
