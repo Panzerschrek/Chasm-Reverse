@@ -4,6 +4,7 @@
 
 #include "../assert.hpp"
 #include "../log.hpp"
+#include "../math_utils.hpp"
 
 #include "map_drawer.hpp"
 
@@ -502,14 +503,12 @@ void MapDrawer::Draw(
 		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
 
 		m_Mat4 matrix;
-		get_model_matrix( rocket.pos, rocket.angle[0], matrix );
+		get_model_matrix( rocket.pos, rocket.angle[0] - Constants::half_pi, matrix );
 		monsters_shader_.Uniform( "view_matrix", matrix );
 
 		m_Mat3 lightmap_matrix;
-		get_lightmap_matrix( rocket.pos, rocket.angle[0], lightmap_matrix );
+		get_lightmap_matrix( rocket.pos, rocket.angle[0] - Constants::half_pi, lightmap_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
-
-		const unsigned int frame= 0u;
 
 		const bool transparent= false;
 
@@ -517,7 +516,7 @@ void MapDrawer::Draw(
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
 		const unsigned int first_vertex=
 			model_geometry.first_vertex_index +
-			frame * model_geometry.vertex_count;
+			rocket.frame * model_geometry.vertex_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,

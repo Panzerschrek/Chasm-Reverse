@@ -70,6 +70,8 @@ public:
 		float angle[2];
 		unsigned char rocket_id;
 		Time start_time= Time::FromSeconds(0);
+
+		unsigned int frame;
 	};
 
 	typedef std::unordered_map< Messages::EntityId, Rocket > RocketsContainer;

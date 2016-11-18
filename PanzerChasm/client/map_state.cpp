@@ -122,6 +122,22 @@ void MapState::Tick( const Time current_time )
 		else
 			i++;
 	}
+
+	for( RocketsContainer::value_type& rocket_value : rockets_ )
+	{
+		Rocket& rocket= rocket_value.second;
+
+		const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
+		const float frame= time_delta_s * GameConstants::animations_frames_per_second;
+
+		PC_ASSERT( rocket.rocket_id < game_resources_->rockets_models.size() );
+
+		unsigned int model_frame_count= game_resources_->rockets_models[ rocket.rocket_id ].frame_count;
+		if( model_frame_count != 0u )
+			rocket.frame= static_cast<unsigned int>( std::round( frame ) ) % model_frame_count;
+		else
+			rocket.frame= 0u;
+	}
 }
 
 void MapState::ProcessMessage( const Messages::MonsterState& message )
@@ -217,6 +233,9 @@ void MapState::ProcessMessage( const Messages::RocketBirth& message )
 
 	const auto inserted_it= rockets_.emplace( message.rocket_id, Rocket() ).first;
 	inserted_it->second.rocket_id= message.rocket_type;
+
+	inserted_it->second.start_time= last_tick_time_;
+	inserted_it->second.frame= 0u;
 
 	ProcessMessage( static_cast<const Messages::RocketState&>( message ) );
 }
