@@ -602,14 +602,14 @@ void Map::Tick( const Time current_time )
 			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
 		else
 		{
-			const float c_gravity_scale= 1.5f; // TODO - calibrate. Do it together with rockets speed.
-			const float gravity_force=
-				c_gravity_scale * float( game_resources_->rockets_description[ rocket.rocket_type_id ].gravity_force );
+			const GameResources::RocketDescription& rocket_description= game_resources_->rockets_description[ rocket.rocket_type_id ];
+			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
+			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 
 			const m_Vec3 new_pos=
-			rocket.start_point +
-			rocket.normalized_direction * ( time_delta_s * GameConstants::rockets_speed ) +
-			m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
+				rocket.start_point +
+				rocket.normalized_direction * ( time_delta_s * speed ) +
+				m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
 
 			m_Vec3 dir= new_pos - rocket.previous_position;
 			dir.Normalize();

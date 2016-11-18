@@ -268,7 +268,7 @@ static void LoadRocketsDescription(
 		line_stream >> rocket_description.Light; // Light
 		line_stream >> rocket_description.Auto; // Auto
 		line_stream >> rocket_description.Auto2; // Auto2
-		line_stream >> rocket_description.Fast; // Fast
+		line_stream >> rocket_description.fast; // Fast
 		line_stream >> rocket_description.smoke_trail_effect_id; // Smoke
 
 		stream.getline( line, sizeof(line), '\n' );

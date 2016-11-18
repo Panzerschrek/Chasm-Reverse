@@ -85,7 +85,7 @@ public:
 		bool Light; // Shot emit light
 		bool Auto;
 		bool Auto2;
-		bool Fast; // Speed is greater, if nonzero
+		bool fast; // Speed is greater, if nonzero
 		int smoke_trail_effect_id; // Trail sprite effect type
 	};
 
