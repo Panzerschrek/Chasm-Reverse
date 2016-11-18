@@ -148,6 +148,21 @@ static void CalculateModelsTexturesPlacement(
 	out_placement.layer_count= current_layer + 1u;
 }
 
+static void CreateFullbrightLightmapDummy( r_Texture& texture )
+{
+	constexpr unsigned int c_size= 4u;
+	unsigned char data[ c_size * c_size ];
+	std::memset( data, 255u, sizeof(data) );
+
+	texture=
+		r_Texture(
+			r_Texture::PixelFormat::R8,
+			c_size, c_size,
+			data );
+
+	texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+}
+
 MapDrawer::MapDrawer(
 	GameResourcesConstPtr game_resources,
 	const RenderingContext& rendering_context )
@@ -162,6 +177,8 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
 	glGenTextures( 1, &rockets_textures_array_id_ );
+
+	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
 	LoadSprites();
 
@@ -512,6 +529,11 @@ void MapDrawer::Draw(
 
 		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+
+		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
+			fullbright_lightmap_dummy_.Bind(1);
+		else
+			lightmap_.Bind(1);
 
 		const bool transparent= false;
 

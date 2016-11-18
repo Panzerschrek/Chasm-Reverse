@@ -84,6 +84,7 @@ private:
 	MapDataConstPtr current_map_data_;
 
 	r_Texture lightmap_;
+	r_Texture fullbright_lightmap_dummy_;
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
