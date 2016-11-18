@@ -73,6 +73,7 @@ private:
 		float angle;
 
 		unsigned char model_id;
+		int health;
 
 		enum class AnimationState
 		{

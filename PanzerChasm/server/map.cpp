@@ -82,6 +82,11 @@ Map::Map(
 
 		out_model.model_id= in_model.model_id;
 
+		if( in_model.model_id <  map_data_->models_description.size() )
+			out_model.health= map_data_->models_description[ in_model.model_id ].break_limit;
+		else
+			out_model.health= 0;
+
 		out_model.pos= m_Vec3( in_model.pos, 0.0f );
 		out_model.angle= in_model.angle;
 
@@ -593,6 +598,8 @@ void Map::Tick( const Time current_time )
 	for( unsigned int r= 0u; r < rockets_.size(); )
 	{
 		Rocket& rocket= rockets_[r];
+		const GameResources::RocketDescription& rocket_description= game_resources_->rockets_description[ rocket.rocket_type_id ];
+
 		const bool has_infinite_speed= rocket.HasInfiniteSpeed( *game_resources_ );
 		const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
 
@@ -602,7 +609,6 @@ void Map::Tick( const Time current_time )
 			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
 		else
 		{
-			const GameResources::RocketDescription& rocket_description= game_resources_->rockets_description[ rocket.rocket_type_id ];
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
 			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 
@@ -673,17 +679,24 @@ void Map::Tick( const Time current_time )
 			if( model_description.break_limit <= 0 )
 				goto end_loop;
 
-			model.model_id++; // now, this model has other new model type
+			model.health-= int(rocket_description.power);
+			if( model.health <= 0 )
+			{
+				model.model_id++; // now, this model has other model type
+				if( model.model_id < map_data_->models_description.size() )
+					model.health= map_data_->models_description[ model.model_id ].break_limit;
+				else
+					model.health= 0;
 
-			ProcessElementLinks(
-				MapData::IndexElement::StaticModel,
-				hit_result.object_index,
-				[&]( const MapData::Link& link )
-				{
-					if( link.type == MapData::Link::Destroy )
-						ProcedureProcessDestroy( link.proc_id, current_time );
+				ProcessElementLinks(
+					MapData::IndexElement::StaticModel,
+					hit_result.object_index,
+					[&]( const MapData::Link& link )
+					{
+						if( link.type == MapData::Link::Destroy )
+							ProcedureProcessDestroy( link.proc_id, current_time );
 				} );
-
+			}
 		}
 		else if(
 			hit_result.object_type == HitResult::ObjectType::StaticWall ||
