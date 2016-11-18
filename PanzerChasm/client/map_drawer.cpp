@@ -484,6 +484,49 @@ void MapDrawer::Draw(
 			first_vertex );
 	}
 
+	// Rockets
+	rockets_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+	{
+		const MapState::Rocket& rocket= rocket_value.second;
+		PC_ASSERT( rocket.rocket_id < rockets_geometry_.size() );
+
+		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
+
+		m_Mat4 matrix;
+		get_model_matrix( rocket.pos, rocket.angle[0], matrix );
+		monsters_shader_.Uniform( "view_matrix", matrix );
+
+		m_Mat3 lightmap_matrix;
+		get_lightmap_matrix( rocket.pos, rocket.angle[0], lightmap_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		const unsigned int frame= 0u;
+
+		const bool transparent= false;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			frame * model_geometry.vertex_count;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+
 	/*
 	TRANSPARENT SECTION
 	*/

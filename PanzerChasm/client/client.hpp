@@ -43,6 +43,9 @@ public: // Messages handlers
 	void operator()( const Messages::MonsterBirth& message );
 	void operator()( const Messages::MonsterDeath& message );
 	void operator()( const Messages::TextMessage& message );
+	void operator()( const Messages::RocketState& message );
+	void operator()( const Messages::RocketBirth& message );
+	void operator()( const Messages::RocketDeath& message );
 
 private:
 	const GameResourcesConstPtr game_resources_;

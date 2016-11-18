@@ -2,6 +2,8 @@
 #include <cmath>
 #include <limits>
 
+#include <vec.hpp>
+
 namespace PanzerChasm
 {
 
@@ -21,5 +23,7 @@ const float max_float= std::numeric_limits<float>::max();
 const float min_float= -max_float;
 
 } // namespace Contants
+
+void VecToAngles( const m_Vec3& vec, float* out_angle );
 
 } // namespace PanzerChasm

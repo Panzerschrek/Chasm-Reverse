@@ -34,6 +34,8 @@ public:
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;
 
+	void ClearUpdateEvents();
+
 private:
 	struct ProcedureState
 	{
@@ -90,21 +92,25 @@ private:
 	struct Rocket
 	{
 		Rocket(
-			unsigned int in_rocket_id,
+			Messages::EntityId in_rocket_id,
+			unsigned char in_rocket_type_id,
 			const m_Vec3& in_start_point,
 			const m_Vec3& in_normalized_direction,
-			const Time start_time );
+			Time in_start_time );
 
 		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
 
 		// Start parameters
-		unsigned int rocket_id;
+		Time start_time;
 		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
-		Time start_time;
+		Messages::EntityId rocket_id;
+		unsigned char rocket_type_id;
 
 		m_Vec3 previous_position;
 		float track_length;
+
+
 	};
 
 	typedef std::vector<Rocket> Rockets;
@@ -158,10 +164,15 @@ private:
 	StaticModels static_models_;
 
 	Rockets rockets_;
+	Messages::EntityId next_rocket_id_= 1u;
+
 	SpriteEffects sprite_effects_;
 
 	MonstersContainer monsters_;
 	Messages::EntityId next_monter_id_= 1u;
+
+	std::vector<Messages::RocketBirth> rockets_birth_messages_;
+	std::vector<Messages::RocketDeath> rockets_death_messages_;
 };
 
 } // PanzerChasm

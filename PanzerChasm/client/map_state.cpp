@@ -83,6 +83,11 @@ const MapState::MonstersContainer& MapState::GetMonsters() const
 	return monsters_;
 }
 
+const MapState::RocketsContainer& MapState::GetRockets() const
+{
+	return rockets_;
+}
+
 void MapState::Tick( const Time current_time )
 {
 	last_tick_time_= current_time;
@@ -188,6 +193,37 @@ void MapState::ProcessMessage( const Messages::MonsterBirth& message )
 void MapState::ProcessMessage( const Messages::MonsterDeath& message )
 {
 	monsters_.erase( message.monster_id );
+}
+
+void MapState::ProcessMessage( const Messages::RocketState& message )
+{
+	const auto it= rockets_.find( message.rocket_id );
+	if( it == rockets_.end() )
+		return;
+
+	Rocket& rocket= it->second;
+
+	MessagePositionToPosition( message.xyz, rocket.pos );
+
+	for( unsigned int j= 0u; j < 2u; j++ )
+		rocket.angle[j]= MessageAngleToAngle( message.angle[j] );
+}
+
+void MapState::ProcessMessage( const Messages::RocketBirth& message )
+{
+	const auto it= rockets_.find( message.rocket_id );
+	if( it != rockets_.end() )
+		return;
+
+	const auto inserted_it= rockets_.emplace( message.rocket_id, Rocket() ).first;
+	inserted_it->second.rocket_id= message.rocket_type;
+
+	ProcessMessage( static_cast<const Messages::RocketState&>( message ) );
+}
+
+void MapState::ProcessMessage( const Messages::RocketDeath& message )
+{
+	rockets_.erase( message.rocket_id );
 }
 
 } // namespace PanzerChasm

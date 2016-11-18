@@ -20,22 +20,24 @@ static m_Vec3 GetNormalForWall( const Wall& wall )
 }
 
 Map::Rocket::Rocket(
-	const unsigned int in_rocket_id,
+	const Messages::EntityId in_rocket_id,
+	const unsigned char in_rocket_type_id,
 	const m_Vec3& in_start_point,
 	const m_Vec3& in_normalized_direction,
 	const Time in_start_time )
-	: rocket_id( in_rocket_id )
+	: start_time( in_start_time )
 	, start_point( in_start_point )
 	, normalized_direction( in_normalized_direction )
-	, start_time( in_start_time )
+	, rocket_id( in_rocket_id )
+	, rocket_type_id( in_rocket_type_id )
 	, previous_position( in_start_point )
 	, track_length( 0.0f )
 {}
 
 bool Map::Rocket::HasInfiniteSpeed( const GameResources& game_resources ) const
 {
-	PC_ASSERT( rocket_id < game_resources.rockets_description.size() );
-	return game_resources.rockets_description[ rocket_id ].model_file_name[0] == '\0';
+	PC_ASSERT( rocket_type_id < game_resources.rockets_description.size() );
+	return game_resources.rockets_description[ rocket_type_id ].model_file_name[0] == '\0';
 }
 
 template<class Func>
@@ -128,7 +130,27 @@ void Map::Shoot(
 	const m_Vec3& normalized_direction,
 	const Time current_time )
 {
-	rockets_.emplace_back( rocket_id, from, normalized_direction, current_time );
+	rockets_.emplace_back( next_rocket_id_, rocket_id, from, normalized_direction, current_time );
+	next_rocket_id_++;
+
+	const Rocket& rocket= rockets_.back();
+	if( !rocket.HasInfiniteSpeed( *game_resources_ ) )
+	{
+		Messages::RocketBirth message;
+		message.message_id= MessageId::RocketBirth;
+
+		message.rocket_id= rocket.rocket_id;
+		message.rocket_type= rocket.rocket_type_id;
+
+		PositionToMessagePosition( rocket.start_point, message.xyz );
+
+		float angle[2];
+		VecToAngles( rocket.normalized_direction, angle );
+		for( unsigned int j= 0u; j < 2u; j++ )
+			message.angle[j]= AngleToMessageAngle( angle[j] );
+
+		rockets_birth_messages_.emplace_back( message );
+	}
 }
 
 void Map::ProcessPlayerPosition(
@@ -582,7 +604,7 @@ void Map::Tick( const Time current_time )
 		{
 			const float c_gravity_scale= 1.5f; // TODO - calibrate. Do it together with rockets speed.
 			const float gravity_force=
-				c_gravity_scale * float( game_resources_->rockets_description[ rocket.rocket_id ].gravity_force );
+				c_gravity_scale * float( game_resources_->rockets_description[ rocket.rocket_type_id ].gravity_force );
 
 			const m_Vec3 new_pos=
 			rocket.start_point +
@@ -605,7 +627,7 @@ void Map::Tick( const Time current_time )
 
 			// Emit smoke trail
 			const unsigned int sprite_effect_id=
-				game_resources_->rockets_description[ rocket.rocket_id ].smoke_trail_effect_id;
+				game_resources_->rockets_description[ rocket.rocket_type_id ].smoke_trail_effect_id;
 			if( sprite_effect_id != 0u )
 			{
 				const float c_particels_per_unit= 2.0f; // TODO - calibrate
@@ -684,6 +706,13 @@ void Map::Tick( const Time current_time )
 			time_delta_s > 16.0f || // kill old rockets
 			has_infinite_speed ) // kill bullets
 		{
+			if( !has_infinite_speed )
+			{
+				rockets_death_messages_.emplace_back();
+				rockets_death_messages_.back().message_id= MessageId::RocketDeath;
+				rockets_death_messages_.back().rocket_id= rocket.rocket_id;
+			}
+
 			if( r != rockets_.size() - 1u )
 				rockets_[r]= rockets_.back();
 			rockets_.pop_back();
@@ -769,6 +798,37 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 		messages_sender.SendUnreliableMessage( monster_message );
 	}
+
+	for( const Messages::RocketBirth& message : rockets_birth_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::RocketDeath& message : rockets_death_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+
+	for( const Rocket& rocket : rockets_ )
+	{
+		Messages::RocketState rocket_message;
+		rocket_message.message_id= MessageId::RocketState;
+
+		rocket_message.rocket_id= rocket.rocket_id;
+		PositionToMessagePosition( rocket.previous_position, rocket_message.xyz );
+
+		float angle[2];
+		VecToAngles( rocket.normalized_direction, angle );
+		for( unsigned int j= 0u; j < 2u; j++ )
+			rocket_message.angle[j]= AngleToMessageAngle( angle[j] );
+
+		messages_sender.SendUnreliableMessage( rocket_message );
+	}
+}
+
+void Map::ClearUpdateEvents()
+{
+	rockets_birth_messages_.clear();
+	rockets_death_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
