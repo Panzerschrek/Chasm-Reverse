@@ -667,11 +667,11 @@ void Map::Tick( const Time current_time )
 			StaticModel& model= static_models_[ hit_result.object_index ];
 
 			if( model.model_id >= map_data_->models_description.size() )
-				continue;
+				goto end_loop;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.break_limit <= 0 )
-				continue;
+				goto end_loop;
 
 			model.model_id++; // now, this model has other new model type
 
@@ -701,6 +701,7 @@ void Map::Tick( const Time current_time )
 				} );
 		}
 
+	end_loop:
 		// Try remove rocket
 		if( hit_result.object_type != HitResult::ObjectType::None || // kill hited
 			time_delta_s > 16.0f || // kill old rockets
