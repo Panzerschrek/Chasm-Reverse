@@ -67,7 +67,7 @@ public:
 	{
 		m_Vec3 start_pos;
 		m_Vec3 pos;
-		float angle[2];
+		float angle[2]; // 0 - z, 1 - x
 		unsigned char rocket_id;
 		Time start_time= Time::FromSeconds(0);
 

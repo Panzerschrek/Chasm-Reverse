@@ -502,13 +502,16 @@ void MapDrawer::Draw(
 
 		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
 
-		m_Mat4 matrix;
-		get_model_matrix( rocket.pos, rocket.angle[0] - Constants::half_pi, matrix );
-		monsters_shader_.Uniform( "view_matrix", matrix );
+		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
+		rotate_max_x.RotateX( rocket.angle[1] );
+		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
+		shift_mat.Translate( rocket.pos );
+		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 
-		m_Mat3 lightmap_matrix;
-		get_lightmap_matrix( rocket.pos, rocket.angle[0] - Constants::half_pi, lightmap_matrix );
-		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
+
+		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
 
 		const bool transparent= false;
 
