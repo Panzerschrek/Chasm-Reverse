@@ -143,8 +143,8 @@ void Console::Draw()
 
 	const bool draw_cursor= ( int( current_time.ToSeconds() * 3.0f ) & 1u ) != 0u;
 
-	char line_with_cursor[ c_max_input_line_length + 2u ];
-	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? "%s_" : "%s", input_line_ );
+	char line_with_cursor[ c_max_input_line_length + 3u ];
+	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? ">%s_" : ">%s", input_line_ );
 
 	drawers_->text.Print(
 		c_x_offset, y,
