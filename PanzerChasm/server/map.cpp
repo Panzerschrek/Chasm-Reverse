@@ -163,10 +163,6 @@ void Map::ProcessPlayerPosition(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	// TODO - read from config
-	const float c_player_radius= 70.0f / 256.0f;
-	const float c_z_pull_distance= 1.0f / 4.0f;
-	const float c_player_height= 1.0f;
 	const float c_wall_height= 2.0f;
 
 	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
@@ -182,7 +178,7 @@ void Map::ProcessPlayerPosition(
 	{
 		// TODO - select correct player radius for floor collisions.
 		if( !CircleIntersectsWithSquare(
-				player.Position().xy(), c_player_radius, x, y ) )
+				player.Position().xy(), GameConstants::player_radius, x, y ) )
 			continue;
 
 		const unsigned char proc_id= map_data_->floors_links_proc[ x + y * MapData::c_map_size ];
@@ -196,7 +192,7 @@ void Map::ProcessPlayerPosition(
 	player.SetOnFloor( false );
 
 	const float z_bottom= player.Position().z;
-	const float z_top= z_bottom + c_player_height;
+	const float z_top= z_bottom + GameConstants::player_height;
 	float new_z= z_bottom;
 
 	// Static walls
@@ -212,7 +208,7 @@ void Map::ProcessPlayerPosition(
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, c_player_radius,
+				pos, GameConstants::player_radius,
 				new_pos ) )
 		{
 			pos= new_pos;
@@ -248,7 +244,7 @@ void Map::ProcessPlayerPosition(
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, c_player_radius,
+				pos, GameConstants::player_radius,
 				new_pos ) )
 		{
 			pos= new_pos;
@@ -281,7 +277,7 @@ void Map::ProcessPlayerPosition(
 		if( z_top < model_z_min || z_bottom > model_z_max )
 			continue;
 
-		const float min_distance= c_player_radius + model_description.radius;
+		const float min_distance= GameConstants::player_radius + model_description.radius;
 
 		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 		const float square_distance= vec_to_player_pos.SquareLength();
@@ -292,15 +288,15 @@ void Map::ProcessPlayerPosition(
 			if( model_description.radius > 0.0f )
 			{
 				// Pull up or down player.
-				if( model_geometry.z_max - z_bottom <= c_z_pull_distance )
+				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
 				{
 					new_z= std::max( new_z, model_z_max );
 					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, +1.0f ) );
 					player.SetOnFloor( true );
 				}
-				else if( z_top - model_geometry.z_min <= c_z_pull_distance )
+				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
 				{
-					new_z= std::min( new_z, model_z_min - c_player_height );
+					new_z= std::min( new_z, model_z_min - GameConstants::player_height );
 					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, -1.0f ) );
 				}
 				// Push player sideways.
@@ -351,7 +347,7 @@ void Map::ProcessPlayerPosition(
 		{
 			const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 			const float square_distance= vec_to_player_pos.SquareLength();
-			if( square_distance <= c_player_radius * c_player_radius )
+			if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
 			{
 				model.pos.z= -2.0f; // HACK. TODO - hide models
 				if( a_code == ACode::RedKey )
