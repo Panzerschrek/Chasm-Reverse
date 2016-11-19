@@ -261,7 +261,15 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 			const unsigned int c_first_item= 131u;
 			const unsigned int c_first_model= 163u;
 
-			if( map_wall.texture_id >= c_first_model )
+			if( map_wall.texture_id == 250u )
+			{
+				// Many walls have thist texture id. I don`t know, what is that. Lights, maybe?
+			}
+			else if( map_wall.texture_id >= c_first_model + 64u )
+			{
+				// Presumably, levels have no more, then 64 models.
+			}
+			else if( map_wall.texture_id >= c_first_model )
 			{
 				// Presumably, this is mask of difficulty.
 				// bit 0 - easy, 1 - normal, 2 - hard, 3 - deathmatch
