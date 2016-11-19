@@ -365,6 +365,15 @@ void Map::ProcessPlayerPosition(
 					player.GiveGreenKey();
 				if( a_code == ACode::BlueKey )
 					player.GiveBlueKey();
+
+				ProcessElementLinks(
+					MapData::IndexElement::StaticModel,
+					m,
+					[&]( const MapData::Link& link )
+					{
+						if( link.type == MapData::Link::Link_ )
+							TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+					} );
 			}
 		}
 	}
