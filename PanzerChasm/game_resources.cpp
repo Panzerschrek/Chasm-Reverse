@@ -263,7 +263,7 @@ static void LoadRocketsDescription(
 		line_stream >> rocket_description.CRd; // CRd
 		line_stream >> rocket_description.power; // Pwr
 
-		line_stream >> rocket_description.Rfl; // Rfl
+		line_stream >> rocket_description.reflect; // Rfl
 		line_stream >> rocket_description.fullbright; // FBright
 		line_stream >> rocket_description.Light; // Light
 		line_stream >> rocket_description.Auto; // Auto

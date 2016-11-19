@@ -80,11 +80,11 @@ public:
 		int CRd; // Unknown - always 42
 		int power;
 
-		bool Rfl;
+		bool reflect; // Reflect from floor/ceiling, but not from walls and models.
 		bool fullbright;
 		bool Light; // Shot emit light
-		bool Auto;
-		bool Auto2;
+		bool Auto; // Maybe, autoaim, but not working
+		bool Auto2; // Autoaim. Rocket selects as target nearest player.
 		bool fast; // Speed is greater, if nonzero
 		int smoke_trail_effect_id; // Trail sprite effect type
 	};
