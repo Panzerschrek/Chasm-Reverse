@@ -174,15 +174,17 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	if( map_number == last_loaded_map_number_ && last_loaded_map_ != nullptr )
 		return last_loaded_map_;
 
-	char map_file_name[16];
-	char resource_file_name[16];
-	char floors_file_name[16];
-	char process_file_name[16];
+	char level_path[ MapData::c_max_file_path_size ];
+	char map_file_name[ MapData::c_max_file_path_size ];
+	char resource_file_name[ MapData::c_max_file_path_size ];
+	char floors_file_name[ MapData::c_max_file_path_size ];
+	char process_file_name[ MapData::c_max_file_path_size ];
 
-	std::snprintf( map_file_name, sizeof(map_file_name), "MAP.%02u", map_number );
-	std::snprintf( resource_file_name, sizeof(resource_file_name), "RESOURCE.%02u", map_number );
-	std::snprintf( floors_file_name, sizeof(floors_file_name), "FLOORS.%02u", map_number );
-	std::snprintf( process_file_name, sizeof(process_file_name), "PROCESS.%02u", map_number );
+	std::snprintf( level_path, sizeof(level_path), "LEVEL%02u/", map_number );
+	std::snprintf( map_file_name, sizeof(map_file_name), "%sMAP.%02u", level_path, map_number );
+	std::snprintf( resource_file_name, sizeof(resource_file_name), "%sRESOURCE.%02u", level_path, map_number );
+	std::snprintf( floors_file_name, sizeof(floors_file_name), "%sFLOORS.%02u", level_path, map_number );
+	std::snprintf( process_file_name, sizeof(process_file_name), "%sPROCESS.%02u", level_path, map_number );
 
 	const Vfs::FileContent map_file_content= vfs_->ReadFile( map_file_name );
 	const Vfs::FileContent resource_file_content= vfs_->ReadFile( resource_file_name );
@@ -196,6 +198,10 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	{
 		return nullptr;
 	}
+
+	std::snprintf( textures_path_, sizeof(textures_path_), "%sGFX/", level_path );
+	std::snprintf( models_path_, sizeof(models_path_), "%s3D/", level_path );
+	std::snprintf( animations_path_, sizeof(animations_path_), "%sANI/", level_path );
 
 	MapDataPtr result= std::make_shared<MapData>();
 
@@ -215,7 +221,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 
 	// Scan resource file
 	LoadModelsDescription( resource_file_content, *result );
-	LoadWallsTexturesNames( resource_file_content, *result );
+	LoadWallsTexturesDescription( resource_file_content, *result );
 
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );
@@ -418,11 +424,11 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 	}
 }
 
-void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data )
+void MapLoader::LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data )
 {
 	for( MapData::WallTextureDescription& tex: map_data.walls_textures )
 	{
-		tex.file_name[0]= '\0';
+		tex.file_path[0]= '\0';
 		tex.gso[0]= tex.gso[1]= tex.gso[2]= false;
 	}
 
@@ -450,7 +456,18 @@ void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, M
 		char colon[8];
 		line_stream >> colon;
 
-		line_stream >> map_data.walls_textures[ texture_number ].file_name;
+		MapData::WallTextureDescription& texture_description= map_data.walls_textures[ texture_number ];
+
+		char texture_name[ MapData::c_max_file_name_size ];
+		line_stream >> texture_name;
+
+		if( texture_name[0] != '\0' )
+			std::snprintf(
+				texture_description.file_path,
+				sizeof(MapData::WallTextureDescription::file_path),
+				"%s%s", textures_path_, texture_name );
+		else
+			texture_description.file_path[0]= '\0';
 
 		char gso[16];
 		line_stream >> gso;
@@ -458,7 +475,7 @@ void MapLoader::LoadWallsTexturesNames( const Vfs::FileContent& resource_file, M
 		{
 			for( unsigned int j= 0u; j < 3u; j++ )
 				if( gso[j] != '.' )
-					map_data.walls_textures[ texture_number ].gso[j]= true;
+					texture_description.gso[j]= true;
 		}
 	}
 }
@@ -763,10 +780,16 @@ void MapLoader::LoadModels( MapData& map_data )
 	{
 		const MapData::ModelDescription& model_description= map_data.models_description[m];
 
-		vfs_->ReadFile( model_description.file_name, file_content );
+		char model_file_name[ MapData::c_max_file_path_size ];
+		char animation_file_name[ MapData::c_max_file_path_size ];
+
+		std::snprintf( model_file_name, sizeof(model_file_name), "%s%s", models_path_, model_description.file_name );
+		std::snprintf( animation_file_name, sizeof(animation_file_name), "%s%s", animations_path_, model_description.animation_file_name );
+
+		vfs_->ReadFile( model_file_name, file_content );
 
 		if( model_description.animation_file_name[0u] != '\0' )
-			vfs_->ReadFile( model_description.animation_file_name, animation_file_content );
+			vfs_->ReadFile( animation_file_name, animation_file_content );
 		else
 			animation_file_content.clear();
 

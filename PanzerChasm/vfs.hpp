@@ -12,7 +12,7 @@ class Vfs final
 public:
 	typedef std::vector<unsigned char> FileContent;
 
-	explicit Vfs( const char* archive_file_name );
+	explicit Vfs( const char* archive_file_name, const char* addon_path= nullptr );
 	~Vfs();
 
 	FileContent ReadFile( const char* file_path ) const;
@@ -30,6 +30,7 @@ private:
 
 private:
 	std::FILE* const archive_file_;
+	const std::string addon_path_;
 
 	VirtualFiles virtual_files_;
 };

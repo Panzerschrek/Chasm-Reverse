@@ -431,10 +431,10 @@ void MapDrawer::LoadWallsTextures( const MapData& map_data )
 
 	for( unsigned int t= 0u; t < MapData::c_max_walls_textures; t++ )
 	{
-		if( map_data.walls_textures[t].file_name[0] == '\0' )
+		if( map_data.walls_textures[t].file_path[0] == '\0' )
 			continue;
 
-		game_resources_->vfs->ReadFile( map_data.walls_textures[t].file_name, texture_file );
+		game_resources_->vfs->ReadFile( map_data.walls_textures[t].file_path, texture_file );
 		if( texture_file.empty() )
 			continue;
 
@@ -551,7 +551,7 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 
 	for( const MapData::Wall& wall : map_data.static_walls )
 	{
-		if( map_data.walls_textures[ wall.texture_id ].file_name[0] == '\0' )
+		if( map_data.walls_textures[ wall.texture_id ].file_path[0] == '\0' )
 			continue; // Wall has no texture - do not draw it.
 
 		const unsigned int first_vertex_index= walls_vertices.size();

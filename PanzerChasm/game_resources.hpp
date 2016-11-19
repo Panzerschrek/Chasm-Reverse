@@ -12,10 +12,13 @@ namespace PanzerChasm
 struct GameResources
 {
 public:
+	constexpr static unsigned int c_max_file_name_size= 20u;
+	constexpr static unsigned int c_max_file_path_size= 64u;
+
 	struct ItemDescription
 	{
-		char model_file_name[16];
-		char animation_file_name[16];
+		char model_file_name[ c_max_file_name_size ];
+		char animation_file_name[ c_max_file_name_size ];
 
 		float radius;
 		bool cast_shadow;
@@ -30,7 +33,7 @@ public:
 
 	struct MonsterDescription
 	{
-		char model_file_name[16];
+		char model_file_name[ c_max_file_name_size ];
 		float w_radius, a_radius;
 		int speed, r;
 		int life;
@@ -41,7 +44,7 @@ public:
 
 	struct SpriteEffectDescription
 	{
-		char sprite_file_name[16];
+		char sprite_file_name[ c_max_file_name_size ];
 		int glass;
 		bool half_size;
 		bool smooking;
@@ -53,9 +56,9 @@ public:
 
 	struct WeaponDescription
 	{
-		char model_file_name[16];
-		char animation_file_name[16];
-		char reloading_animation_file_name[16];
+		char model_file_name[ c_max_file_name_size ];
+		char animation_file_name[ c_max_file_name_size ];
+		char reloading_animation_file_name[ c_max_file_name_size ];
 
 		int r_type; // type of projectile (bullet, grenade, etc. )
 		int reloading_time;
@@ -71,8 +74,8 @@ public:
 	{
 		// If there is no model - shot is like "bullet":
 		// gravity ignored, speed is infinite, no blast damage.
-		char model_file_name[20];
-		char animation_file_name[20];
+		char model_file_name[ c_max_file_name_size ];
+		char animation_file_name[ c_max_file_name_size ];
 
 		int blow_effect; // 1 - sparcles, 2 - blast, 4 - Mega-Destroyer blast.
 		int gravity_force; // gravity. 0 - fly straight.

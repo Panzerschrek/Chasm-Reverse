@@ -30,6 +30,7 @@ public:
 	static constexpr unsigned char c_sky_floor_texture_id= 62u;
 
 	static constexpr unsigned int c_max_file_name_size= 16u;
+	static constexpr unsigned int c_max_file_path_size= 64u;
 
 public:
 	struct Wall
@@ -64,7 +65,7 @@ public:
 
 	struct WallTextureDescription
 	{
-		char file_name[ c_max_file_name_size ]; // iz empty - wall does not exists
+		char file_path[ c_max_file_path_size ]; // if empty - wall does not exists
 
 		// 0 - true, if pass player
 		// 1 - true, if pass shots
@@ -260,7 +261,7 @@ private:
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
-	void LoadWallsTexturesNames( const Vfs::FileContent& resource_file, MapData& map_data );
+	void LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 
 	void LoadFloorsTexturesData( const Vfs::FileContent& floors_file, MapData& map_data );
 
@@ -279,6 +280,10 @@ private:
 
 	unsigned int last_loaded_map_number_= 0;
 	MapDataConstPtr last_loaded_map_;
+
+	char textures_path_[ MapData::c_max_file_name_size ];
+	char models_path_[ MapData::c_max_file_name_size ];
+	char animations_path_[ MapData::c_max_file_name_size ];
 };
 
 typedef std::shared_ptr<MapLoader> MapLoaderPtr;

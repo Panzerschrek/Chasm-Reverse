@@ -288,10 +288,16 @@ static void LoadItemsModels(
 	{
 		const GameResources::ItemDescription& item_description= game_resources.items_description[i];
 
-		vfs.ReadFile( item_description.model_file_name, file_content );
+		char model_file_path[ GameResources::c_max_file_path_size ]= "MODELS/";
+		char animation_file_path[ GameResources::c_max_file_path_size ]= "ANI/";
+
+		std::strcat( model_file_path, item_description.model_file_name );
+		std::strcat( animation_file_path, item_description.animation_file_name );
+
+		vfs.ReadFile( model_file_path, file_content );
 
 		if( item_description.animation_file_name[0u] != '\0' )
-			vfs.ReadFile( item_description.animation_file_name, animation_file_content );
+			vfs.ReadFile( animation_file_path, animation_file_content );
 		else
 			animation_file_content.clear();
 
@@ -310,7 +316,11 @@ static void LoadMonstersModels(
 	for( unsigned int i= 0u; i < game_resources.monsters_models.size(); i++ )
 	{
 		const GameResources::MonsterDescription& monster_description= game_resources.monsters_description[i];
-		vfs.ReadFile( monster_description.model_file_name, file_content );
+
+		char model_file_path[ GameResources::c_max_file_path_size ]= "CARACTER/";
+		std::strcat( model_file_path, monster_description.model_file_name );
+
+		vfs.ReadFile( model_file_path, file_content );
 		LoadModel_car( file_content, game_resources.monsters_models[i] );
 	}
 }
@@ -343,9 +353,17 @@ static void LoadWeaponsModels(
 	{
 		const GameResources::WeaponDescription& weapon_description= game_resources.weapons_description[i];
 
-		vfs.ReadFile( weapon_description.model_file_name, file_content );
-		vfs.ReadFile( weapon_description.animation_file_name, animation_file_content[0] );
-		vfs.ReadFile( weapon_description.reloading_animation_file_name, animation_file_content[1] );
+		char model_file_path[ GameResources::c_max_file_path_size ]= "MODELS/";
+		char animation_file_path[ GameResources::c_max_file_path_size ]= "ANI/WEAPON/";
+		char reloading_animation_file_path[ GameResources::c_max_file_path_size ]= "ANI/WEAPON/";
+
+		std::strcat( model_file_path, weapon_description.model_file_name );
+		std::strcat( animation_file_path, weapon_description.animation_file_name );
+		std::strcat( reloading_animation_file_path, weapon_description.reloading_animation_file_name );
+
+		vfs.ReadFile( model_file_path, file_content );
+		vfs.ReadFile( animation_file_path, animation_file_content[0] );
+		vfs.ReadFile( reloading_animation_file_path, animation_file_content[1] );
 
 		LoadModel_o3( file_content, animation_file_content, 2u, game_resources.weapons_models[i] );
 	}
@@ -367,8 +385,14 @@ static void LoadRocketsModels(
 		if( rocket_description.model_file_name[0] == '\0' )
 			continue;
 
-		vfs.ReadFile( rocket_description.model_file_name, file_content );
-		vfs.ReadFile( rocket_description.animation_file_name, animation_file_content );
+		char model_file_path[ GameResources::c_max_file_path_size ]= "MODELS/";
+		char animation_file_path[ GameResources::c_max_file_path_size ]= "ANI/";
+
+		std::strcat( model_file_path, rocket_description.model_file_name );
+		std::strcat( animation_file_path, rocket_description.animation_file_name );
+
+		vfs.ReadFile( model_file_path, file_content );
+		vfs.ReadFile( animation_file_path, animation_file_content );
 
 		LoadModel_o3( file_content, animation_file_content, game_resources.rockets_models[i] );
 	}

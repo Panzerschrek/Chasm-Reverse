@@ -50,8 +50,25 @@ static const char* ExtractFileName( const char* const file_path )
 	return file_name_pos;
 }
 
-Vfs::Vfs( const char* archive_file_name )
+static std::string PrepareAddonPath( const char* const addon_path )
+{
+	if( addon_path == nullptr )
+		return "";
+
+	std::string result= addon_path;
+	if( !result.empty() )
+	{
+		if( !( result.back() == '/' || result.back() == '\\' ) )
+			result.push_back( '/' );
+	}
+	return result;
+}
+
+Vfs::Vfs(
+	const char* archive_file_name,
+	const char* const addon_path )
 	: archive_file_( std::fopen( archive_file_name, "rb" ) )
+	, addon_path_( PrepareAddonPath( addon_path ) )
 {
 	if( archive_file_ == nullptr )
 	{
@@ -104,6 +121,25 @@ Vfs::FileContent Vfs::ReadFile( const char* const file_path ) const
 
 void Vfs::ReadFile( const char* const file_path, FileContent& out_file_content ) const
 {
+	// Try read from real file system.
+	if( !addon_path_.empty() )
+	{
+		const std::string fs_file_path= addon_path_ + file_path;
+		std::FILE* const fs_file= std::fopen( fs_file_path.c_str(), "rb" );
+		if( fs_file != nullptr )
+		{
+			std::fseek( fs_file, 0, SEEK_END );
+			const unsigned int file_size= std::ftell( fs_file );
+			std::fseek( fs_file, 0, SEEK_SET );
+
+			out_file_content.resize( file_size );
+			FileRead( fs_file, out_file_content.data(), file_size );
+
+			std::fclose( fs_file );
+			return;
+		}
+	}
+
 	const char* const file_name= ExtractFileName( file_path );
 
 	// TODO - sort virtual_files_ and use binary search
