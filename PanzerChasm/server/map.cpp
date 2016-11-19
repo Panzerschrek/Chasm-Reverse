@@ -210,7 +210,7 @@ void Map::ProcessPlayerPosition(
 			continue;
 
 		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-		if( tex.file_path[0] == '\0' || tex.gso[0] )
+		if( tex.gso[0] )
 			continue;
 
 		m_Vec2 new_pos;
@@ -243,7 +243,7 @@ void Map::ProcessPlayerPosition(
 			continue;
 
 		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ map_wall.texture_id ];
-		if( tex.file_path[0] == '\0' || tex.gso[0] )
+		if( tex.gso[0] )
 			continue;
 
 		if( z_top < wall.z || z_bottom > wall.z + c_wall_height )
@@ -1034,7 +1034,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
-		if( wall_texture.file_path[0] == '\0' || wall_texture.gso[1] )
+		if( wall_texture.gso[1] )
 			continue;
 
 		m_Vec3 candidate_pos;
@@ -1053,7 +1053,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	{
 		const MapData::WallTextureDescription& wall_texture=
 			map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ];
-		if( wall_texture.file_path[0] == '\0' || wall_texture.gso[1] )
+		if( wall_texture.gso[1] )
 			continue;
 
 		const DynamicWall& wall= dynamic_walls_[w];

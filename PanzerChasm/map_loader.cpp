@@ -262,6 +262,11 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		const MapWall& map_wall=
 			*reinterpret_cast<const MapWall*>( map_file.data() + c_walls_offset + sizeof(MapWall) * ( y + x * MapData::c_map_size ) );
 
+		if( map_wall.texture_id == 0u )
+		{
+			// Trash
+			continue;
+		}
 		if( map_wall.texture_id >= 128u )
 		{
 			const unsigned int c_first_item= 131u;
