@@ -591,7 +591,6 @@ void MapLoader::LoadProcedure(
 	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
 
 	procedure.sfx_pos[0]= procedure.sfx_pos[1]= 255;
-	procedure.link_switch_pos[0]= procedure.link_switch_pos[1]= 255;
 
 	bool has_action= false;
 
@@ -652,8 +651,9 @@ void MapLoader::LoadProcedure(
 		{
 			int x, y;
 			line_stream >> x; line_stream >> y;
-			procedure.link_switch_pos[0]= x;
-			procedure.link_switch_pos[1]= y;
+			procedure.linked_switches.emplace_back();
+			procedure.linked_switches.back().x= x;
+			procedure.linked_switches.back().y= y;
 		}
 		else if( StringEquals( thing, "RedKey" ) )
 			procedure.red_key_required= true;

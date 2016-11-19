@@ -119,6 +119,11 @@ public:
 
 	struct Procedure
 	{
+		struct SwitchPos
+		{
+			unsigned char x, y;
+		};
+
 		float start_delay_s= 0.0f;
 		float back_wait_s= 0.0f; // If zero - not reversible
 		float speed= 0.0f;
@@ -133,7 +138,7 @@ public:
 		unsigned int lock_message_number= 0u;
 		unsigned int sfx_id= 0u;
 		unsigned char sfx_pos[2];
-		unsigned char link_switch_pos[2];
+		std::vector<SwitchPos> linked_switches;
 
 		bool red_key_required= false;
 		bool green_key_required= false;

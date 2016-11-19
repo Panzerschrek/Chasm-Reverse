@@ -5,7 +5,7 @@ namespace PanzerChasm
 
 // Codes for game items.
 // Based on info from files CHASM.INF and RESOURCE.XX.
-enum class ACode : unsigned int
+enum class ACode : unsigned char
 {
 	// Weapon
 	Weapon_Rifle= 2,
@@ -38,6 +38,8 @@ enum class ACode : unsigned int
 	RedKey= 141,
 	GreenKey= 142,
 	BlueKey= 143,
+
+	Switch= 255u,
 };
 
 } // PanzerChasm

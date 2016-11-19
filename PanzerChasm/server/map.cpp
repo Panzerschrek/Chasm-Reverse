@@ -82,15 +82,21 @@ Map::Map(
 
 		out_model.model_id= in_model.model_id;
 
-		if( in_model.model_id <  map_data_->models_description.size() )
-			out_model.health= map_data_->models_description[ in_model.model_id ].break_limit;
-		else
-			out_model.health= 0;
+		const MapData::ModelDescription* const model_description=
+			in_model.model_id < map_data_->models_description.size()
+				? &map_data_->models_description[ in_model.model_id ] : nullptr;
+
+		out_model.health= model_description == nullptr ? 0 : model_description->break_limit;
 
 		out_model.pos= m_Vec3( in_model.pos, 0.0f );
 		out_model.angle= in_model.angle;
 
-		out_model.animation_state= StaticModel::AnimationState::Animation;
+		if( model_description != nullptr &&
+			static_cast<ACode>(model_description->ac) == ACode::Switch )
+			out_model.animation_state= StaticModel::AnimationState::SingleFrame;
+		else
+			out_model.animation_state= StaticModel::AnimationState::Animation;
+
 		out_model.animation_start_time= map_start_time;
 		out_model.animation_start_frame= 0u;
 	}
@@ -576,10 +582,15 @@ void Map::Tick( const Time current_time )
 
 			if( model.model_id < map_data_->models.size() )
 			{
-				const unsigned int animation_frame_count= map_data_->models[ model.model_id ].frame_count;
+				const Model& model_geometry= map_data_->models[ model.model_id ];
+				const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
 
-				model.current_animation_frame=
-					static_cast<unsigned int>( std::round(animation_frame) ) % animation_frame_count;
+				if( static_cast<ACode>(description.ac) == ACode::Switch &&
+					animation_frame >= float( model_geometry.frame_count - 1u ) )
+					model.current_animation_frame= model_geometry.frame_count - 1u;
+				else
+					model.current_animation_frame=
+						static_cast<unsigned int>( std::round(animation_frame) ) % model_geometry.frame_count;
 			}
 			else
 				model.current_animation_frame= 0u;
@@ -867,10 +878,29 @@ void Map::ActivateProcedure( const unsigned int procedure_number, const Time cur
 	procedure_state.movement_state= ProcedureState::MovementState::Movement;
 	procedure_state.last_state_change_time= current_time;
 
+	for( const MapData::Procedure::SwitchPos& siwtch_pos : procedure.linked_switches )
+	{
+		if( siwtch_pos.x >= MapData::c_map_size || siwtch_pos.y >= MapData::c_map_size )
+			continue;
+
+		const MapData::IndexElement& index_element= map_data_->map_index[ siwtch_pos.x + siwtch_pos.y * MapData::c_map_size ];
+		if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( index_element.index < static_models_.size() );
+			StaticModel& model= static_models_[ index_element.index ];
+
+			if( model.animation_state == StaticModel::AnimationState::SingleFrame )
+			{
+				model.animation_state= StaticModel::AnimationState::Animation;
+				model.animation_start_time= current_time;
+				model.animation_start_frame= 0u;
+			}
+		}
+	}
+
 	// Do immediate commands
 	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
 	{
-
 		using Command= MapData::Procedure::ActionCommandId;
 		if( command.id == Command::Lock )
 		{
