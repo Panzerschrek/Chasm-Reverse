@@ -347,7 +347,8 @@ void Map::ProcessPlayerPosition(
 		{
 			const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 			const float square_distance= vec_to_player_pos.SquareLength();
-			if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
+			const float min_length= GameConstants::player_radius + model_description.radius;
+			if( square_distance <= min_length * min_length )
 			{
 				model.pos.z= -2.0f; // HACK. TODO - hide models
 				if( a_code == ACode::RedKey )
