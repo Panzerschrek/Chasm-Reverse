@@ -31,7 +31,23 @@ static bool StringEquals( const char* const s0, const char* const s1, const unsi
 		i++;
 	}
 
-	return true;
+	return i == max_length || s0[i] == s1[i];
+}
+
+static const char* ExtractFileName( const char* const file_path )
+{
+	const char* file_name_pos= file_path;
+
+	const char* str= file_path;
+	while( *str != '\0' )
+	{
+		if( *str == '/' || *str == '\\' )
+			file_name_pos= str + 1u;
+
+		str++;
+	}
+
+	return file_name_pos;
 }
 
 Vfs::Vfs( const char* archive_file_name )
@@ -79,15 +95,17 @@ Vfs::~Vfs()
 		std::fclose( archive_file_ );
 }
 
-Vfs::FileContent Vfs::ReadFile( const char* file_name ) const
+Vfs::FileContent Vfs::ReadFile( const char* const file_path ) const
 {
 	FileContent result;
-	ReadFile( file_name, result );
+	ReadFile( file_path, result );
 	return result;
 }
 
-void Vfs::ReadFile( const char* file_name, FileContent& out_file_content ) const
+void Vfs::ReadFile( const char* const file_path, FileContent& out_file_content ) const
 {
+	const char* const file_name= ExtractFileName( file_path );
+
 	// TODO - sort virtual_files_ and use binary search
 	for( const VirtualFile& file : virtual_files_ )
 	{

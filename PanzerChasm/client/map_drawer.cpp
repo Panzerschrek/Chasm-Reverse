@@ -4,6 +4,7 @@
 
 #include "../assert.hpp"
 #include "../log.hpp"
+#include "../math_utils.hpp"
 
 #include "map_drawer.hpp"
 
@@ -128,6 +129,7 @@ static void CalculateModelsTexturesPlacement(
 				}
 		}
 
+		// TODO - what do, if texture height iz zero?
 		const unsigned int best_texture_height= models[ best_texture_number ].texture_size[1];
 		if( current_y + best_texture_height > texture_height )
 		{
@@ -146,6 +148,21 @@ static void CalculateModelsTexturesPlacement(
 	out_placement.layer_count= current_layer + 1u;
 }
 
+static void CreateFullbrightLightmapDummy( r_Texture& texture )
+{
+	constexpr unsigned int c_size= 4u;
+	unsigned char data[ c_size * c_size ];
+	std::memset( data, 255u, sizeof(data) );
+
+	texture=
+		r_Texture(
+			r_Texture::PixelFormat::R8,
+			c_size, c_size,
+			data );
+
+	texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+}
+
 MapDrawer::MapDrawer(
 	GameResourcesConstPtr game_resources,
 	const RenderingContext& rendering_context )
@@ -159,6 +176,9 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &wall_textures_array_id_ );
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
+	glGenTextures( 1, &rockets_textures_array_id_ );
+
+	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
 	LoadSprites();
 
@@ -171,6 +191,13 @@ MapDrawer::MapDrawer(
 
 	// Monsters
 	LoadMonstersModels();
+
+	// Rockets
+	LoadModels(
+		game_resources_->rockets_models,
+		rockets_geometry_,
+		rockets_geometry_data_,
+		rockets_textures_array_id_ );
 
 	// Shaders
 	char lightmap_scale[32];
@@ -226,6 +253,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &wall_textures_array_id_ );
 	glDeleteTextures( 1, &models_textures_array_id_ );
 	glDeleteTextures( 1, &items_textures_array_id_ );
+	glDeleteTextures( 1, &rockets_textures_array_id_ );
 
 	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
 }
@@ -465,6 +493,55 @@ void MapDrawer::Draw(
 		const unsigned int first_vertex=
 			model_geometry.first_vertex_index +
 			frame * model_geometry.vertex_count;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+
+	// Rockets
+	rockets_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+	{
+		const MapState::Rocket& rocket= rocket_value.second;
+		PC_ASSERT( rocket.rocket_id < rockets_geometry_.size() );
+
+		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
+
+		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
+		rotate_max_x.RotateX( rocket.angle[1] );
+		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
+		shift_mat.Translate( rocket.pos );
+		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+
+		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
+
+		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+
+		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
+			fullbright_lightmap_dummy_.Bind(1);
+		else
+			lightmap_.Bind(1);
+
+		const bool transparent= false;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			rocket.frame * model_geometry.vertex_count;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -952,7 +1029,7 @@ void MapDrawer::LoadModels(
 
 		// Setup geometry info.
 		model_geometry.frame_count= model.frame_count;
-		model_geometry.vertex_count= model.vertices.size() / model.frame_count;
+		model_geometry.vertex_count= model.frame_count == 0u ? 0u : ( model.vertices.size() / model.frame_count );
 		model_geometry.first_vertex_index= first_vertex_index;
 
 		model_geometry.first_index= first_index;

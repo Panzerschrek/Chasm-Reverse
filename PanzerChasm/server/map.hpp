@@ -22,13 +22,19 @@ public:
 
 	void SpawnPlayer( Player& player );
 
-	void Shoot( const m_Vec3& from, const m_Vec3& normalized_direction );
+	void Shoot(
+		unsigned int rocket_id,
+		const m_Vec3& from,
+		const m_Vec3& normalized_direction,
+		Time current_time );
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time );
 
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;
+
+	void ClearUpdateEvents();
 
 private:
 	struct ProcedureState
@@ -67,6 +73,7 @@ private:
 		float angle;
 
 		unsigned char model_id;
+		int health;
 
 		enum class AnimationState
 		{
@@ -83,13 +90,43 @@ private:
 
 	typedef std::vector<StaticModel> StaticModels;
 
-	struct Shot
+	struct Rocket
 	{
-		m_Vec3 from;
+		Rocket(
+			Messages::EntityId in_rocket_id,
+			unsigned char in_rocket_type_id,
+			const m_Vec3& in_start_point,
+			const m_Vec3& in_normalized_direction,
+			Time in_start_time );
+
+		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
+
+		// Start parameters
+		Time start_time;
+		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
+		Messages::EntityId rocket_id;
+		unsigned char rocket_type_id;
+
+		m_Vec3 previous_position;
+		float track_length;
+
+
 	};
 
-	typedef std::vector<Shot> Shots;
+	typedef std::vector<Rocket> Rockets;
+
+	struct HitResult
+	{
+		enum class ObjectType
+		{
+			None, StaticWall, DynamicWall, Model, Floor,
+		};
+
+		ObjectType object_type= ObjectType::None;
+		unsigned int object_index;
+		m_Vec3 pos;
+	};
 
 	struct SpriteEffect
 	{
@@ -113,6 +150,8 @@ private:
 		unsigned int index,
 		const Func& func );
 
+	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
+
 	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
 
 private:
@@ -125,11 +164,16 @@ private:
 
 	StaticModels static_models_;
 
-	Shots shots_;
+	Rockets rockets_;
+	Messages::EntityId next_rocket_id_= 1u;
+
 	SpriteEffects sprite_effects_;
 
 	MonstersContainer monsters_;
 	Messages::EntityId next_monter_id_= 1u;
+
+	std::vector<Messages::RocketBirth> rockets_birth_messages_;
+	std::vector<Messages::RocketDeath> rockets_death_messages_;
 };
 
 } // PanzerChasm

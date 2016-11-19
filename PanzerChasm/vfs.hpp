@@ -15,8 +15,8 @@ public:
 	explicit Vfs( const char* archive_file_name );
 	~Vfs();
 
-	FileContent ReadFile( const char* file_name ) const;
-	void ReadFile( const char* file_name, FileContent& out_file_content ) const;
+	FileContent ReadFile( const char* file_path ) const;
+	void ReadFile( const char* file_path, FileContent& out_file_content ) const;
 
 private:
 	struct VirtualFile

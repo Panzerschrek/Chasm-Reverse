@@ -19,6 +19,27 @@ static m_Vec3 GetNormalForWall( const Wall& wall )
 	return n / n.xy().Length();
 }
 
+Map::Rocket::Rocket(
+	const Messages::EntityId in_rocket_id,
+	const unsigned char in_rocket_type_id,
+	const m_Vec3& in_start_point,
+	const m_Vec3& in_normalized_direction,
+	const Time in_start_time )
+	: start_time( in_start_time )
+	, start_point( in_start_point )
+	, normalized_direction( in_normalized_direction )
+	, rocket_id( in_rocket_id )
+	, rocket_type_id( in_rocket_type_id )
+	, previous_position( in_start_point )
+	, track_length( 0.0f )
+{}
+
+bool Map::Rocket::HasInfiniteSpeed( const GameResources& game_resources ) const
+{
+	PC_ASSERT( rocket_type_id < game_resources.rockets_description.size() );
+	return game_resources.rockets_description[ rocket_type_id ].model_file_name[0] == '\0';
+}
+
 template<class Func>
 void Map::ProcessElementLinks(
 	const MapData::IndexElement::Type element_type,
@@ -60,6 +81,11 @@ Map::Map(
 		StaticModel& out_model= static_models_[m];
 
 		out_model.model_id= in_model.model_id;
+
+		if( in_model.model_id <  map_data_->models_description.size() )
+			out_model.health= map_data_->models_description[ in_model.model_id ].break_limit;
+		else
+			out_model.health= 0;
 
 		out_model.pos= m_Vec3( in_model.pos, 0.0f );
 		out_model.angle= in_model.angle;
@@ -103,12 +129,33 @@ void Map::SpawnPlayer( Player& player )
 	player.ResetActivatedProcedure();
 }
 
-void Map::Shoot( const m_Vec3& from, const m_Vec3& normalized_direction )
+void Map::Shoot(
+	const unsigned int rocket_id,
+	const m_Vec3& from,
+	const m_Vec3& normalized_direction,
+	const Time current_time )
 {
-	shots_.emplace_back();
-	Shot& shot= shots_.back();
-	shot.from= from;
-	shot.normalized_direction= normalized_direction;
+	rockets_.emplace_back( next_rocket_id_, rocket_id, from, normalized_direction, current_time );
+	next_rocket_id_++;
+
+	const Rocket& rocket= rockets_.back();
+	if( !rocket.HasInfiniteSpeed( *game_resources_ ) )
+	{
+		Messages::RocketBirth message;
+		message.message_id= MessageId::RocketBirth;
+
+		message.rocket_id= rocket.rocket_id;
+		message.rocket_type= rocket.rocket_type_id;
+
+		PositionToMessagePosition( rocket.start_point, message.xyz );
+
+		float angle[2];
+		VecToAngles( rocket.normalized_direction, angle );
+		for( unsigned int j= 0u; j < 2u; j++ )
+			message.angle[j]= AngleToMessageAngle( angle[j] );
+
+		rockets_birth_messages_.emplace_back( message );
+	}
 }
 
 void Map::ProcessPlayerPosition(
@@ -548,167 +595,150 @@ void Map::Tick( const Time current_time )
 	sprite_effects_.clear();
 
 	// Process shots
-	for( const Shot& shot : shots_ )
+	for( unsigned int r= 0u; r < rockets_.size(); )
 	{
-		enum class ObjectType
-		{
-			None, StaticWall, DynamicWall, Model, Floor,
-		};
+		Rocket& rocket= rockets_[r];
+		const GameResources::RocketDescription& rocket_description= game_resources_->rockets_description[ rocket.rocket_type_id ];
 
-		float nearest_shot_point_square_distance= Constants::max_float;
-		m_Vec3 nearest_shot_pos;
-		ObjectType hited_object_type= ObjectType::None;
-		unsigned int hited_object_index= ~0u;
+		const bool has_infinite_speed= rocket.HasInfiniteSpeed( *game_resources_ );
+		const float time_delta_s= ( current_time - rocket.start_time ).ToSeconds();
 
-		const auto process_candidate_shot_pos=
-		[&]( const m_Vec3& candidate_pos, const ObjectType object_type, const unsigned object_index )
+		HitResult hit_result;
+
+		if( has_infinite_speed )
+			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
+		else
 		{
-			const float square_distance= ( candidate_pos - shot.from ).SquareLength();
-			if( square_distance < nearest_shot_point_square_distance )
+			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
+			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
+			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
+
+			const m_Vec3 new_pos=
+				rocket.start_point +
+				rocket.normalized_direction * ( time_delta_s * speed ) +
+				m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
+
+			m_Vec3 dir= new_pos - rocket.previous_position;
+			dir.Normalize();
+
+			hit_result= ProcessShot( rocket.previous_position, dir );
+
+			if( hit_result.object_type != HitResult::ObjectType::None )
 			{
-				nearest_shot_pos= candidate_pos;
-				nearest_shot_point_square_distance= square_distance;
+				const float hit_pos_vecs_dot=
+					( new_pos - hit_result.pos ) * ( rocket.previous_position - hit_result.pos );
 
-				hited_object_type= object_type;
-				hited_object_index= object_index;
+				if( hit_pos_vecs_dot > 0.0f )
+					hit_result.object_type= HitResult::ObjectType::None; // Really, not hited
 			}
-		};
 
-		for( const MapData::Wall& wall : map_data_->static_walls )
-		{
-			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
-			if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
-				continue;
-
-			m_Vec3 candidate_pos;
-			if( RayIntersectWall(
-					wall.vert_pos[0], wall.vert_pos[1],
-					0.0f, 2.0f,
-					shot.from, shot.normalized_direction,
-					candidate_pos ) )
+			// Emit smoke trail
+			const unsigned int sprite_effect_id=
+				game_resources_->rockets_description[ rocket.rocket_type_id ].smoke_trail_effect_id;
+			if( sprite_effect_id != 0u )
 			{
-				process_candidate_shot_pos( candidate_pos, ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
+				const float c_particels_per_unit= 2.0f; // TODO - calibrate
+				const float length_delta= ( new_pos - rocket.previous_position ).Length() * c_particels_per_unit;
+				const float new_track_length= rocket.track_length + length_delta;
+				for( unsigned int i= static_cast<unsigned int>( rocket.track_length ) + 1u;
+					i <= static_cast<unsigned int>( new_track_length ); i++ )
+				{
+					const float part= ( float(i) - rocket.track_length ) / length_delta;
+
+					sprite_effects_.emplace_back();
+					SpriteEffect& effect= sprite_effects_.back();
+
+					effect.pos= ( 1.0f - part ) * rocket.previous_position + part * new_pos;
+					effect.effect_id= sprite_effect_id;
+				}
+
+				rocket.track_length= new_track_length;
 			}
+
+			rocket.previous_position= new_pos;
 		}
 
-		for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
-		{
-			const MapData::WallTextureDescription& wall_texture=
-				map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ];
-			if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
-				continue;
-
-			const DynamicWall& wall= dynamic_walls_[w];
-
-			m_Vec3 candidate_pos;
-			if( RayIntersectWall(
-					wall.vert_pos[0], wall.vert_pos[1],
-					wall.z, wall.z + 2.0f,
-					shot.from, shot.normalized_direction,
-					candidate_pos ) )
-			{
-				process_candidate_shot_pos( candidate_pos, ObjectType::DynamicWall, w );
-			}
-		}
-
-		for( const StaticModel& model : static_models_ )
-		{
-			if( model.model_id >= map_data_->models_description.size() )
-				continue;
-
-			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-			if( model_description.radius <= 0.0f )
-				continue;
-
-			const Model& model_data= map_data_->models[ model.model_id ];
-
-			m_Vec3 candidate_pos;
-			if( RayIntersectCylinder(
-					model.pos.xy(), model_description.radius,
-					model_data.z_min + model.pos.z,
-					model_data.z_max + model.pos.z,
-					shot.from, shot.normalized_direction,
-					candidate_pos ) )
-			{
-				process_candidate_shot_pos( candidate_pos, ObjectType::Model, &model - static_models_.data() );
-			}
-		}
-
-		for( unsigned int z= 0u; z <= 2u; z+= 2u )
-		{
-			m_Vec3 candidate_pos;
-			if( RayIntersectXYPlane(
-					float(z),
-					shot.from, shot.normalized_direction,
-					candidate_pos ) )
-			{
-				const int x= static_cast<int>( std::floor(candidate_pos.x) );
-				const int y= static_cast<int>( std::floor(candidate_pos.y) );
-				if( x < 0 || x >= int(MapData::c_map_size) ||
-					y < 0 || y >= int(MapData::c_map_size) )
-					continue;
-
-				const int coord= x + y * int(MapData::c_map_size);
-				const unsigned char texture_id=
-					( z == 0 ? map_data_->floor_textures : map_data_->ceiling_textures )[ coord ];
-
-				if( texture_id == MapData::c_empty_floor_texture_id ||
-					texture_id == MapData::c_sky_floor_texture_id )
-					continue;
-
-				process_candidate_shot_pos( candidate_pos, ObjectType::Floor, z >> 1u );
-			}
-		}
-
-		if( hited_object_type != ObjectType::None )
+		if( hit_result.object_type != HitResult::ObjectType::None )
 		{
 			sprite_effects_.emplace_back();
 			SpriteEffect& effect= sprite_effects_.back();
 
-			effect.pos= nearest_shot_pos;
+			effect.pos= hit_result.pos;
 			effect.effect_id= 8u;
 		}
 
 		// Try break breakable models.
 		// TODO - process break event, check break limit.
-		if( hited_object_type == ObjectType::Model )
+		if( hit_result.object_type == HitResult::ObjectType::Model )
 		{
-			StaticModel& model= static_models_[ hited_object_index ];
+			StaticModel& model= static_models_[ hit_result.object_index ];
 
 			if( model.model_id >= map_data_->models_description.size() )
-				continue;
+				goto end_loop;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.break_limit <= 0 )
-				continue;
+				goto end_loop;
 
-			model.model_id++; // now, this model has other new model type
+			model.health-= int(rocket_description.power);
+			if( model.health <= 0 )
+			{
+				model.model_id++; // now, this model has other model type
+				if( model.model_id < map_data_->models_description.size() )
+					model.health= map_data_->models_description[ model.model_id ].break_limit;
+				else
+					model.health= 0;
 
-			ProcessElementLinks(
-				MapData::IndexElement::StaticModel,
-				hited_object_index,
-				[&]( const MapData::Link& link )
-				{
-					if( link.type == MapData::Link::Destroy )
-						ProcedureProcessDestroy( link.proc_id, current_time );
+				ProcessElementLinks(
+					MapData::IndexElement::StaticModel,
+					hit_result.object_index,
+					[&]( const MapData::Link& link )
+					{
+						if( link.type == MapData::Link::Destroy )
+							ProcedureProcessDestroy( link.proc_id, current_time );
 				} );
-
+			}
 		}
-		else if( hited_object_type == ObjectType::StaticWall || hited_object_type == ObjectType::DynamicWall )
+		else if(
+			hit_result.object_type == HitResult::ObjectType::StaticWall ||
+			hit_result.object_type == HitResult::ObjectType::DynamicWall )
 		{
 			ProcessElementLinks(
-				hited_object_type == ObjectType::StaticWall
+				hit_result.object_type == HitResult::ObjectType::StaticWall
 					? MapData::IndexElement::StaticWall
 					: MapData::IndexElement::DynamicWall,
-				hited_object_index,
+				hit_result.object_index,
 				[&]( const MapData::Link& link )
 				{
 					if( link.type == MapData::Link::Shoot )
 						ProcedureProcessShoot( link.proc_id, current_time );
 				} );
 		}
-	}
-	shots_.clear();
+		else if( hit_result.object_type == HitResult::ObjectType::Floor )
+		{
+			// TODO - support rockets reflections
+		}
+
+	end_loop:
+		// Try remove rocket
+		if( hit_result.object_type != HitResult::ObjectType::None || // kill hited
+			time_delta_s > 16.0f || // kill old rockets
+			has_infinite_speed ) // kill bullets
+		{
+			if( !has_infinite_speed )
+			{
+				rockets_death_messages_.emplace_back();
+				rockets_death_messages_.back().message_id= MessageId::RocketDeath;
+				rockets_death_messages_.back().rocket_id= rocket.rocket_id;
+			}
+
+			if( r != rockets_.size() - 1u )
+				rockets_[r]= rockets_.back();
+			rockets_.pop_back();
+		}
+		else
+			r++;
+	} // for rockets
 
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
@@ -787,6 +817,37 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 		messages_sender.SendUnreliableMessage( monster_message );
 	}
+
+	for( const Messages::RocketBirth& message : rockets_birth_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::RocketDeath& message : rockets_death_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+
+	for( const Rocket& rocket : rockets_ )
+	{
+		Messages::RocketState rocket_message;
+		rocket_message.message_id= MessageId::RocketState;
+
+		rocket_message.rocket_id= rocket.rocket_id;
+		PositionToMessagePosition( rocket.previous_position, rocket_message.xyz );
+
+		float angle[2];
+		VecToAngles( rocket.normalized_direction, angle );
+		for( unsigned int j= 0u; j < 2u; j++ )
+			rocket_message.angle[j]= AngleToMessageAngle( angle[j] );
+
+		messages_sender.SendUnreliableMessage( rocket_message );
+	}
+}
+
+void Map::ClearUpdateEvents()
+{
+	rockets_birth_messages_.clear();
+	rockets_death_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
@@ -899,6 +960,119 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
 {
 	ActivateProcedure( procedure_number, current_time );
+}
+
+Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const
+{
+	HitResult result;
+	float nearest_shot_point_square_distance= Constants::max_float;
+
+	const auto process_candidate_shot_pos=
+	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const unsigned object_index )
+	{
+		const float square_distance= ( candidate_pos - shot_start_point ).SquareLength();
+		if( square_distance < nearest_shot_point_square_distance )
+		{
+			result.pos= candidate_pos;
+			nearest_shot_point_square_distance= square_distance;
+
+			result.object_type= object_type;
+			result.object_index= object_index;
+		}
+	};
+
+	// Static walls
+	for( const MapData::Wall& wall : map_data_->static_walls )
+	{
+		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+		if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
+			continue;
+
+		m_Vec3 candidate_pos;
+		if( RayIntersectWall(
+				wall.vert_pos[0], wall.vert_pos[1],
+				0.0f, 2.0f,
+				shot_start_point, shot_direction_normalized,
+				candidate_pos ) )
+		{
+			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
+		}
+	}
+
+	// Dynamic walls
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		const MapData::WallTextureDescription& wall_texture=
+			map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ];
+		if( wall_texture.file_name[0] == '\0' || wall_texture.gso[1] )
+			continue;
+
+		const DynamicWall& wall= dynamic_walls_[w];
+
+		m_Vec3 candidate_pos;
+		if( RayIntersectWall(
+				wall.vert_pos[0], wall.vert_pos[1],
+				wall.z, wall.z + 2.0f,
+				shot_start_point, shot_direction_normalized,
+				candidate_pos ) )
+		{
+			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::DynamicWall, w );
+		}
+	}
+
+	// Models
+	for( const StaticModel& model : static_models_ )
+	{
+		if( model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+		if( model_description.radius <= 0.0f )
+			continue;
+
+		const Model& model_data= map_data_->models[ model.model_id ];
+
+		m_Vec3 candidate_pos;
+		if( RayIntersectCylinder(
+				model.pos.xy(), model_description.radius,
+				model_data.z_min + model.pos.z,
+				model_data.z_max + model.pos.z,
+				shot_start_point, shot_direction_normalized,
+				candidate_pos ) )
+		{
+			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Model, &model - static_models_.data() );
+		}
+	}
+
+	// Floors, ceilings
+	for( unsigned int z= 0u; z <= 2u; z+= 2u )
+	{
+		m_Vec3 candidate_pos;
+		if( RayIntersectXYPlane(
+				float(z),
+				shot_start_point, shot_direction_normalized,
+				candidate_pos ) )
+		{
+			const int x= static_cast<int>( std::floor(candidate_pos.x) );
+			const int y= static_cast<int>( std::floor(candidate_pos.y) );
+			if( x < 0 || x >= int(MapData::c_map_size) ||
+				y < 0 || y >= int(MapData::c_map_size) )
+				continue;
+
+			const int coord= x + y * int(MapData::c_map_size);
+			const unsigned char texture_id=
+				( z == 0 ? map_data_->floor_textures : map_data_->ceiling_textures )[ coord ];
+
+			if( texture_id == MapData::c_empty_floor_texture_id ||
+				texture_id == MapData::c_sky_floor_texture_id )
+				continue;
+
+			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Floor, z >> 1u );
+		}
+	}
+
+
+	return result;
 }
 
 void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )

@@ -15,6 +15,9 @@ enum class MessageId : unsigned char
 	PlayerPosition, // position of player, which recieve this message.
 	StaticModelState,
 	SpriteEffectBirth,
+	RocketState,
+	RocketBirth,
+	RocketDeath,
 
 	// Reliable server to client
 	MapChange,
@@ -86,6 +89,23 @@ struct SpriteEffectBirth : public MessageBase
 {
 	CoordType xyz[3];
 	unsigned char effect_id;
+};
+
+struct RocketState : public MessageBase
+{
+	EntityId rocket_id;
+	CoordType xyz[3];
+	AngleType angle[2];
+};
+
+struct RocketBirth : public RocketState
+{
+	unsigned char rocket_type;
+};
+
+struct RocketDeath : public MessageBase
+{
+	EntityId rocket_id;
 };
 
 struct MapChange : public MessageBase

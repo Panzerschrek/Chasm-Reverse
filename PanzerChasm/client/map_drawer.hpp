@@ -84,11 +84,13 @@ private:
 	MapDataConstPtr current_map_data_;
 
 	r_Texture lightmap_;
+	r_Texture fullbright_lightmap_dummy_;
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
 	GLuint models_textures_array_id_= ~0;
 	GLuint items_textures_array_id_= ~0;
+	GLuint rockets_textures_array_id_= ~0;
 
 	std::vector<GLuint> sprites_textures_arrays_;
 
@@ -110,6 +112,9 @@ private:
 
 	std::vector<ModelGeometry> items_geometry_;
 	r_PolygonBuffer items_geometry_data_;
+
+	std::vector<ModelGeometry> rockets_geometry_;
+	r_PolygonBuffer rockets_geometry_data_;
 
 	r_GLSLProgram sprites_shader_;
 

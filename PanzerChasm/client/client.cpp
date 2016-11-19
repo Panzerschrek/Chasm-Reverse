@@ -202,4 +202,22 @@ void Client::operator()( const Messages::TextMessage& message )
 	}
 }
 
+void Client::operator()( const Messages::RocketState& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::RocketBirth& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::RocketDeath& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 } // namespace PanzerChasm

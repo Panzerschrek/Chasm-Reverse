@@ -31,6 +31,7 @@ SOURCES+= \
 	loopback_buffer.cpp \
 	main.cpp \
 	map_loader.cpp \
+	math_utils.cpp \
 	menu.cpp \
 	menu_drawer.cpp \
 	messages.cpp \

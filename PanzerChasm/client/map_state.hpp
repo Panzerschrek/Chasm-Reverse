@@ -61,7 +61,20 @@ public:
 		unsigned int animation_frame;
 	};
 
-	typedef std::unordered_map< Messages::EntityId, Monster> MonstersContainer;
+	typedef std::unordered_map< Messages::EntityId, Monster > MonstersContainer;
+
+	struct Rocket
+	{
+		m_Vec3 start_pos;
+		m_Vec3 pos;
+		float angle[2]; // 0 - z, 1 - x
+		unsigned char rocket_id;
+		Time start_time= Time::FromSeconds(0);
+
+		unsigned int frame;
+	};
+
+	typedef std::unordered_map< Messages::EntityId, Rocket > RocketsContainer;
 
 public:
 	MapState(
@@ -75,6 +88,7 @@ public:
 	const Items& GetItems() const;
 	const SpriteEffects& GetSpriteEffects() const;
 	const MonstersContainer& GetMonsters() const;
+	const RocketsContainer& GetRockets() const;
 
 	void Tick( Time current_time );
 
@@ -84,6 +98,9 @@ public:
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
 	void ProcessMessage( const Messages::MonsterBirth& message );
 	void ProcessMessage( const Messages::MonsterDeath& message );
+	void ProcessMessage( const Messages::RocketState& message );
+	void ProcessMessage( const Messages::RocketBirth& message );
+	void ProcessMessage( const Messages::RocketDeath& message );
 
 private:
 	const MapDataConstPtr map_data_;
@@ -96,6 +113,7 @@ private:
 	Items items_;
 	SpriteEffects sprite_effects_;
 	MonstersContainer monsters_;
+	RocketsContainer rockets_;
 };
 
 } // namespace PanzerChasm

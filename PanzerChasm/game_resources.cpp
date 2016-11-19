@@ -206,6 +206,75 @@ static void LoadWeaponsDescription(
 	}
 }
 
+static void LoadRocketsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	const char* const rockets_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[ROCKETS]" );
+	const char* const rockets_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( rockets_start, rockets_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int rockets_count= 0u;
+	stream >> rockets_count;
+	stream.getline( line, sizeof(line), '\n' );
+	stream.getline( line, sizeof(line), '\n' );
+
+	game_resources.rockets_description.resize( rockets_count );
+
+	for( unsigned int i= 0u; i < rockets_count; i++ )
+	{
+		GameResources::RocketDescription& rocket_description= game_resources.rockets_description[i];
+
+		rocket_description.model_file_name[0]= '\0';
+		rocket_description.animation_file_name[0]= '\0';
+
+		for( unsigned int j= 0u; j < 2u; j++ )
+		{
+			stream.getline( line, sizeof(line), '\n' );
+			std::istringstream line_stream{ std::string( line ) };
+
+			char param_name[64], param_value[64], eq[16];
+			param_name[0]= param_value[0]= '\0';
+
+			line_stream >> param_name;
+			line_stream >> eq;
+			line_stream >> param_value;
+
+			if( param_value[0] == ';' )
+				continue;
+
+			if( std::strcmp( param_name, "3d_MODEL" ) == 0u )
+				std::strcpy( rocket_description.model_file_name, param_value );
+			else if( std::strcmp( param_name, "ANIMATION" ) == 0u )
+				std::strcpy( rocket_description.animation_file_name, param_value );
+		}
+
+		stream.getline( line, sizeof(line), '\n' );
+		std::istringstream line_stream{ std::string( line ) };
+
+		line_stream >> rocket_description.blow_effect; // BW
+		line_stream >> rocket_description.gravity_force; // GF
+		line_stream >> rocket_description.Ard; // Ard
+		line_stream >> rocket_description.CRd; // CRd
+		line_stream >> rocket_description.power; // Pwr
+
+		line_stream >> rocket_description.reflect; // Rfl
+		line_stream >> rocket_description.fullbright; // FBright
+		line_stream >> rocket_description.Light; // Light
+		line_stream >> rocket_description.Auto; // Auto
+		line_stream >> rocket_description.Auto2; // Auto2
+		line_stream >> rocket_description.fast; // Fast
+		line_stream >> rocket_description.smoke_trail_effect_id; // Smoke
+
+		stream.getline( line, sizeof(line), '\n' );
+	}
+}
+
 static void LoadItemsModels(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -282,6 +351,29 @@ static void LoadWeaponsModels(
 	}
 }
 
+static void LoadRocketsModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.rockets_models.resize( game_resources.rockets_description.size() );
+
+	Vfs::FileContent file_content;
+	Vfs::FileContent animation_file_content;
+
+	for( unsigned int i= 0u; i < game_resources.rockets_models.size(); i++ )
+	{
+		const GameResources::RocketDescription& rocket_description= game_resources.rockets_description[i];
+
+		if( rocket_description.model_file_name[0] == '\0' )
+			continue;
+
+		vfs.ReadFile( rocket_description.model_file_name, file_content );
+		vfs.ReadFile( rocket_description.animation_file_name, animation_file_content );
+
+		LoadModel_o3( file_content, animation_file_content, game_resources.rockets_models[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
 	PC_ASSERT( vfs != nullptr );
@@ -301,11 +393,13 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadMonstersDescription( inf_file, *result );
 	LoadSpriteEffectsDescription( inf_file, *result );
 	LoadWeaponsDescription( inf_file, *result );
+	LoadRocketsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
 	LoadMonstersModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
 	LoadWeaponsModels( *vfs, *result );
+	LoadRocketsModels( *vfs, *result );
 
 	return result;
 }

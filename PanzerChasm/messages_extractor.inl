@@ -87,6 +87,18 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					messages_handler( *reinterpret_cast<const Messages::SpriteEffectBirth*>( msg_ptr ) );
 					break;
 
+				case MessageId::RocketState:
+					messages_handler( *reinterpret_cast<const Messages::RocketState*>( msg_ptr ) );
+					break;
+
+				case MessageId::RocketBirth:
+					messages_handler( *reinterpret_cast<const Messages::RocketBirth*>( msg_ptr ) );
+					break;
+
+				case MessageId::RocketDeath:
+					messages_handler( *reinterpret_cast<const Messages::RocketDeath*>( msg_ptr ) );
+					break;
+
 				// Reliable
 				case MessageId::MapChange:
 					messages_handler( *reinterpret_cast<const Messages::MapChange*>( msg_ptr ) );
