@@ -229,8 +229,6 @@ public:
 	// [x; y] to element index in container (walls, items, etc.)
 	IndexElement map_index[ c_map_size * c_map_size ];
 
-	unsigned char floors_links_proc[ c_map_size * c_map_size ];
-
 	WallTextureDescription walls_textures[ c_max_walls_textures ];
 
 	unsigned char floor_textures[ c_map_size * c_map_size ];

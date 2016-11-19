@@ -690,11 +690,6 @@ void MapLoader::LoadProcedure(
 
 void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 {
-	std::memset(
-		map_data.floors_links_proc,
-		0,
-		MapData::c_map_size * MapData::c_map_size );
-
 	while( !stream.eof() )
 	{
 		char line[ 512 ];
@@ -726,9 +721,6 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 		link.y= y;
 		link.proc_id= proc_id;
 		link.type= LinkTypeFromString( link_type );
-
-		if( link.type == MapData::Link::Floor )
-			map_data.floors_links_proc[ x + y * MapData::c_map_size ]= link.proc_id;
 	}
 }
 

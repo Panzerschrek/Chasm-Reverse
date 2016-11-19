@@ -187,9 +187,11 @@ void Map::ProcessPlayerPosition(
 				player.Position().xy(), GameConstants::player_radius, x, y ) )
 			continue;
 
-		const unsigned char proc_id= map_data_->floors_links_proc[ x + y * MapData::c_map_size ];
-		if( proc_id != 0u )
-			TryActivateProcedure( proc_id, current_time, player, messages_sender );
+		for( const MapData::Link& link : map_data_->links )
+		{
+			if( link.type == MapData::Link::Floor && link.x == x && link.y == y )
+				TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+		}
 	}
 
 	// Collide
