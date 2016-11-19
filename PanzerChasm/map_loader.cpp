@@ -455,11 +455,15 @@ void MapLoader::LoadWallsTexturesDescription( const Vfs::FileContent& resource_f
 
 		char colon[8];
 		line_stream >> colon;
+		if( line_stream.fail() )
+			continue;
 
 		MapData::WallTextureDescription& texture_description= map_data.walls_textures[ texture_number ];
 
 		char texture_name[ MapData::c_max_file_name_size ];
 		line_stream >> texture_name;
+		if( line_stream.fail() )
+			continue;
 
 		if( texture_name[0] != '\0' )
 			std::snprintf(
