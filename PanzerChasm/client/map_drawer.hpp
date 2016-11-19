@@ -77,6 +77,34 @@ private:
 		std::vector<unsigned short>& indeces,
 		r_PolygonBuffer& buffer );
 
+	void DrawWalls( const m_Mat4& view_matrix );
+	void DrawFloors( const m_Mat4& view_matrix );
+
+	void DrawModels(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
+	void DrawItems(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
+	void DrawMonsters(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
+	void DrawRockets(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
+	void DrawSprites(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position );
+
 private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContext rendering_context_;

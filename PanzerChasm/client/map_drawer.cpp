@@ -163,6 +163,23 @@ static void CreateFullbrightLightmapDummy( r_Texture& texture )
 	texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 }
 
+static void CreateModelMatrices(
+	const m_Vec3& pos, const float angle,
+	m_Mat4& out_model_matrix, m_Mat3& out_lightmap_matrix )
+{
+	m_Mat4 shift, rotate;
+	shift.Translate( pos );
+	rotate.RotateZ( angle );
+
+	out_model_matrix= rotate * shift;
+
+	m_Mat3 shift_xy, rotate_z( rotate ), scale;
+	shift_xy.Translate( pos.xy() );
+	scale.Scale( 1.0f / float(MapData::c_map_size) );
+
+	out_lightmap_matrix= rotate_z * shift_xy * scale;
+}
+
 MapDrawer::MapDrawer(
 	GameResourcesConstPtr game_resources,
 	const RenderingContext& rendering_context )
@@ -296,321 +313,29 @@ void MapDrawer::Draw(
 
 	UpdateDynamicWalls( map_state.GetDynamicWalls() );
 
-	// Draw walls
 	r_OGLStateManager::UpdateState( g_walls_gl_state );
+	DrawWalls( view_matrix );
 
-	walls_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	lightmap_.Bind(1);
-
-	walls_shader_.Uniform( "tex", int(0) );
-	walls_shader_.Uniform( "lightmap", int(1) );
-
-	{
-		m_Mat4 scale_mat;
-		scale_mat.Scale( 1.0f / 256.0f );
-
-		walls_shader_.Uniform( "view_matrix", scale_mat * view_matrix );
-	}
-
-	walls_geometry_.Bind();
-	walls_geometry_.Draw();
-	dynamic_walls_geometry_.Bind();
-	dynamic_walls_geometry_.Draw();
-
-	// Draw floors and ceilings
 	r_OGLStateManager::UpdateState( g_floors_gl_state );
-
-	floors_geometry_.Bind();
-	floors_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
-	lightmap_.Bind(1);
-
-	floors_shader_.Uniform( "tex", int(0) );
-	floors_shader_.Uniform( "lightmap", int(1) );
-
-	floors_shader_.Uniform( "view_matrix", view_matrix );
-
-	for( unsigned int z= 0u; z < 2u; z++ )
-	{
-		floors_shader_.Uniform( "pos_z", float(z) * 2.0f );
-
-		glDrawArrays(
-			GL_TRIANGLES,
-			floors_geometry_info[z].first_vertex_number,
-			floors_geometry_info[z].vertex_count );
-	}
-
-	const auto get_model_matrix=
-	[&]( const m_Vec3& pos, const float angle, m_Mat4& out_mat )
-	{
-		m_Mat4 rotate_mat, shift_mat;
-		rotate_mat.RotateZ( angle );
-		shift_mat.Translate( pos );
-
-		out_mat= rotate_mat * shift_mat * view_matrix;
-	};
-
-	const auto get_lightmap_matrix=
-	[&]( const m_Vec3& pos, const float angle, m_Mat3& out_mat )
-	{
-		m_Mat3 rotate_mat, shift_mat, scale_mat;
-		rotate_mat.RotateZ( angle );
-		shift_mat.Translate( pos.xy() );
-		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
-		out_mat= rotate_mat * shift_mat * scale_mat;
-	};
-
-	// Draw static models
-	const auto draw_models=
-	[&]( const bool transparent )
-	{
-		for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
-		{
-			if( static_model.model_id >= models_geometry_.size() )
-				continue;
-
-			const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
-
-			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
-			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-			const unsigned int first_vertex=
-				model_geometry.first_vertex_index +
-				static_model.animation_frame * model_geometry.vertex_count;
-
-			m_Mat4 matrix;
-			get_model_matrix( static_model.pos, static_model.angle, matrix );
-			models_shader_.Uniform( "view_matrix", matrix );
-
-			m_Mat3 lightmap_matrix;
-			get_lightmap_matrix( static_model.pos, static_model.angle, lightmap_matrix );
-			models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
-
-			glDrawElementsBaseVertex(
-				GL_TRIANGLES,
-				index_count,
-				GL_UNSIGNED_SHORT,
-				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-				first_vertex );
-		}
-	};
-
-	// Items
-	const auto draw_items=
-	[&]( const bool transparent )
-	{
-		for( const MapState::Item& item : map_state.GetItems() )
-		{
-			if( item.picked_up || item.item_id >= items_geometry_.size() )
-				continue;
-
-			const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
-
-			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
-			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-			const unsigned int first_vertex=
-				model_geometry.first_vertex_index +
-				item.animation_frame * model_geometry.vertex_count;
-
-			m_Mat4 matrix;
-			get_model_matrix( item.pos, item.angle, matrix );
-			models_shader_.Uniform( "view_matrix", matrix );
-
-			m_Mat3 lightmap_matrix;
-			get_lightmap_matrix( item.pos, item.angle, lightmap_matrix );
-			models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
-
-			glDrawElementsBaseVertex(
-				GL_TRIANGLES,
-				index_count,
-				GL_UNSIGNED_SHORT,
-				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-				first_vertex );
-		}
-	};
-
-	models_geometry_data_.Bind();
-	models_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
-	lightmap_.Bind(1);
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "lightmap", int(1) );
+	DrawFloors( view_matrix );
 
 	r_OGLStateManager::UpdateState( g_models_gl_state );
-	draw_models( false );
-
-	items_geometry_data_.Bind();
-	models_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
-	lightmap_.Bind(1);
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "lightmap", int(1) );
-
-	r_OGLStateManager::UpdateState( g_models_gl_state );
-	draw_items( false );
-
-	// Monsters
-	monsters_shader_.Bind();
-	monsters_geometry_data_.Bind();
-
-	lightmap_.Bind(1);
-	monsters_shader_.Uniform( "lightmap", int(1) );
-
-	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
-	{
-		const MapState::Monster& monster= monster_value.second;
-		if( monster.monster_id >= monsters_models_.size() )
-			continue;
-
-		const MonsterModel& monster_model= monsters_models_[ monster.monster_id ];
-
-		m_Mat4 matrix;
-		get_model_matrix( monster.pos, monster.angle, matrix );
-		monsters_shader_.Uniform( "view_matrix", matrix );
-
-		m_Mat3 lightmap_matrix;
-		get_lightmap_matrix( monster.pos, monster.angle, lightmap_matrix );
-		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
-
-		monster_model.texture.Bind(0);
-		monsters_shader_.Uniform( "tex", int(0) );
-
-		const Model& model= game_resources_->monsters_models[ monster.monster_id ];
-		const unsigned int frame= model.animations[ monster.animation ].first_frame + monster.animation_frame;
-
-		const bool transparent= false;
-		const ModelGeometry& model_geometry= monster_model.geometry_description;
-		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
-		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			frame * model_geometry.vertex_count;
-
-		glDrawElementsBaseVertex(
-			GL_TRIANGLES,
-			index_count,
-			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
-	}
-
-	// Rockets
-	rockets_geometry_data_.Bind();
-	models_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
-	lightmap_.Bind(1);
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "lightmap", int(1) );
-
-	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
-	{
-		const MapState::Rocket& rocket= rocket_value.second;
-		PC_ASSERT( rocket.rocket_id < rockets_geometry_.size() );
-
-		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
-
-		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
-		rotate_max_x.RotateX( rocket.angle[1] );
-		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
-		shift_mat.Translate( rocket.pos );
-		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
-
-		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
-
-		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
-		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
-
-		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
-			fullbright_lightmap_dummy_.Bind(1);
-		else
-			lightmap_.Bind(1);
-
-		const bool transparent= false;
-
-		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
-		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			rocket.frame * model_geometry.vertex_count;
-
-		glDrawElementsBaseVertex(
-			GL_TRIANGLES,
-			index_count,
-			GL_UNSIGNED_SHORT,
-			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
-	}
+	DrawModels( map_state, view_matrix, false );
+	DrawItems( map_state, view_matrix, false );
+	DrawMonsters( map_state, view_matrix, false );
+	DrawRockets( map_state, view_matrix, false );
 
 	/*
 	TRANSPARENT SECTION
 	*/
-	models_geometry_data_.Bind();
-	models_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
-	lightmap_.Bind(1);
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "lightmap", int(1) );
-
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
-	draw_models( true );
+	DrawModels( map_state, view_matrix, true );
+	DrawItems( map_state, view_matrix, true );
+	DrawMonsters( map_state, view_matrix, true );
+	DrawRockets( map_state, view_matrix, true );
 
-	items_geometry_data_.Bind();
-	models_shader_.Bind();
-
-	glActiveTexture( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
-	lightmap_.Bind(1);
-	models_shader_.Uniform( "tex", int(0) );
-	models_shader_.Uniform( "lightmap", int(1) );
-
-	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
-	draw_items( true );
-
-	// Sprites
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
-
-	sprites_shader_.Bind();
-	glActiveTexture( GL_TEXTURE0 + 0 );
-
-	for( const MapState::SpriteEffect& sprite : map_state.GetSpriteEffects() )
-	{
-		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
-		const ObjSprite& sprite_picture= game_resources_->effects_sprites[ sprite.effect_id ];
-
-		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
-
-		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
-		const float angle= -std::atan2( vec_to_sprite.x, vec_to_sprite.y );
-
-		m_Mat4 rotate_mat, shift_mat, scale_mat;
-		rotate_mat.RotateZ( angle );
-		shift_mat.Translate( sprite.pos );
-
-		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
-		scale_mat.Scale(
-			m_Vec3(
-				float(sprite_picture.size[0]) * additional_scale,
-				1.0f,
-				float(sprite_picture.size[1]) * additional_scale ) );
-
-		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_mat * shift_mat * view_matrix );
-		sprites_shader_.Uniform( "tex", int(0) );
-		sprites_shader_.Uniform( "frame", sprite.frame );
-
-		glDrawArrays( GL_TRIANGLES, 0, 6 );
-	}
+	DrawSprites( map_state, view_matrix, camera_position );
 }
 
 void MapDrawer::LoadSprites()
@@ -1209,6 +934,287 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 	buffer.VertexAttribPointer(
 		3, 1, GL_UNSIGNED_BYTE, true,
 		((char*)&v.alpha_test_mask) - ((char*)&v) );
+}
+
+void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
+{
+	walls_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
+	lightmap_.Bind(1);
+
+	walls_shader_.Uniform( "tex", int(0) );
+	walls_shader_.Uniform( "lightmap", int(1) );
+
+	m_Mat4 scale_mat;
+	scale_mat.Scale( 1.0f / 256.0f );
+	walls_shader_.Uniform( "view_matrix", scale_mat * view_matrix );
+
+	walls_geometry_.Bind();
+	walls_geometry_.Draw();
+	dynamic_walls_geometry_.Bind();
+	dynamic_walls_geometry_.Draw();
+}
+
+void MapDrawer::DrawFloors( const m_Mat4& view_matrix )
+{
+	floors_geometry_.Bind();
+	floors_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
+	lightmap_.Bind(1);
+
+	floors_shader_.Uniform( "tex", int(0) );
+	floors_shader_.Uniform( "lightmap", int(1) );
+
+	floors_shader_.Uniform( "view_matrix", view_matrix );
+
+	for( unsigned int z= 0u; z < 2u; z++ )
+	{
+		floors_shader_.Uniform( "pos_z", float(z) * 2.0f );
+
+		glDrawArrays(
+			GL_TRIANGLES,
+			floors_geometry_info[z].first_vertex_number,
+			floors_geometry_info[z].vertex_count );
+	}
+}
+
+void MapDrawer::DrawModels(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+	{
+		if( static_model.model_id >= models_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			static_model.animation_frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
+
+		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawItems(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::Item& item : map_state.GetItems() )
+	{
+		if( item.picked_up || item.item_id >= items_geometry_.size() )
+			continue;
+
+		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			item.animation_frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
+
+		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawMonsters(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	monsters_shader_.Bind();
+	monsters_geometry_data_.Bind();
+
+	lightmap_.Bind(1);
+	monsters_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
+	{
+		const MapState::Monster& monster= monster_value.second;
+		if( monster.monster_id >= monsters_models_.size() )
+			continue;
+
+		const MonsterModel& monster_model= monsters_models_[ monster.monster_id ];
+		const ModelGeometry& model_geometry= monster_model.geometry_description;
+		const Model& model= game_resources_->monsters_models[ monster.monster_id ];
+
+		const unsigned int frame= model.animations[ monster.animation ].first_frame + monster.animation_frame;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( monster.pos, monster.angle, model_matrix, lightmap_matrix );
+
+		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		monster_model.texture.Bind(0);
+		monsters_shader_.Uniform( "tex", int(0) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawRockets(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	models_shader_.Bind();
+	rockets_geometry_data_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+	{
+		const MapState::Rocket& rocket= rocket_value.second;
+		PC_ASSERT( rocket.rocket_id < rockets_geometry_.size() );
+
+		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			rocket.frame * model_geometry.vertex_count;
+
+		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
+		rotate_max_x.RotateX( rocket.angle[1] );
+		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
+		shift_mat.Translate( rocket.pos );
+		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+
+		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
+
+		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+
+		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
+			fullbright_lightmap_dummy_.Bind(1);
+		else
+			lightmap_.Bind(1);
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawSprites(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position )
+{
+	sprites_shader_.Bind();
+	glActiveTexture( GL_TEXTURE0 + 0 );
+
+	for( const MapState::SpriteEffect& sprite : map_state.GetSpriteEffects() )
+	{
+		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
+		const ObjSprite& sprite_picture= game_resources_->effects_sprites[ sprite.effect_id ];
+
+		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
+
+		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
+		const float angle= -std::atan2( vec_to_sprite.x, vec_to_sprite.y );
+
+		m_Mat4 rotate_mat, shift_mat, scale_mat;
+		rotate_mat.RotateZ( angle );
+		shift_mat.Translate( sprite.pos );
+
+		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
+		scale_mat.Scale(
+			m_Vec3(
+				float(sprite_picture.size[0]) * additional_scale,
+				1.0f,
+				float(sprite_picture.size[1]) * additional_scale ) );
+
+		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_mat * shift_mat * view_matrix );
+		sprites_shader_.Uniform( "tex", int(0) );
+		sprites_shader_.Uniform( "frame", sprite.frame );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
 }
 
 } // PanzerChasm
