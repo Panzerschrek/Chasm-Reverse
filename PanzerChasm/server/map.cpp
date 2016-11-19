@@ -665,7 +665,6 @@ void Map::Tick( const Time current_time )
 		}
 
 		// Try break breakable models.
-		// TODO - process break event, check break limit.
 		if( hit_result.object_type == HitResult::ObjectType::Model )
 		{
 			StaticModel& model= static_models_[ hit_result.object_index ];
@@ -675,25 +674,37 @@ void Map::Tick( const Time current_time )
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.break_limit <= 0 )
-				goto end_loop;
-
-			model.health-= int(rocket_description.power);
-			if( model.health <= 0 )
 			{
-				model.model_id++; // now, this model has other model type
-				if( model.model_id < map_data_->models_description.size() )
-					model.health= map_data_->models_description[ model.model_id ].break_limit;
-				else
-					model.health= 0;
-
+				// Not breakable - process shot.
 				ProcessElementLinks(
 					MapData::IndexElement::StaticModel,
 					hit_result.object_index,
 					[&]( const MapData::Link& link )
 					{
-						if( link.type == MapData::Link::Destroy )
-							ProcedureProcessDestroy( link.proc_id, current_time );
-				} );
+						if( link.type == MapData::Link::Shoot )
+							ProcedureProcessShoot( link.proc_id, current_time );
+					} );
+			}
+			else
+			{
+				model.health-= int(rocket_description.power);
+				if( model.health <= 0 )
+				{
+					model.model_id++; // now, this model has other model type
+					if( model.model_id < map_data_->models_description.size() )
+						model.health= map_data_->models_description[ model.model_id ].break_limit;
+					else
+						model.health= 0;
+
+					ProcessElementLinks(
+						MapData::IndexElement::StaticModel,
+						hit_result.object_index,
+						[&]( const MapData::Link& link )
+						{
+							if( link.type == MapData::Link::Destroy )
+								ProcedureProcessDestroy( link.proc_id, current_time );
+						} );
+				}
 			}
 		}
 		else if(
