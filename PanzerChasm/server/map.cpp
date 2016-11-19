@@ -609,6 +609,7 @@ void Map::Tick( const Time current_time )
 			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
 		else
 		{
+			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
 			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 
@@ -712,6 +713,10 @@ void Map::Tick( const Time current_time )
 					if( link.type == MapData::Link::Shoot )
 						ProcedureProcessShoot( link.proc_id, current_time );
 				} );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::Floor )
+		{
+			// TODO - support rockets reflections
 		}
 
 	end_loop:
