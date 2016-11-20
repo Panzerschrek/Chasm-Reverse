@@ -116,18 +116,6 @@ private:
 
 	typedef std::vector<Rocket> Rockets;
 
-	struct HitResult
-	{
-		enum class ObjectType
-		{
-			None, StaticWall, DynamicWall, Model, Floor,
-		};
-
-		ObjectType object_type= ObjectType::None;
-		unsigned int object_index;
-		m_Vec3 pos;
-	};
-
 	struct SpriteEffect
 	{
 		m_Vec3 pos;
@@ -137,6 +125,18 @@ private:
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
 	typedef std::unordered_map< Messages::EntityId, MonsterPtr > MonstersContainer;
+
+	struct HitResult
+	{
+		enum class ObjectType
+		{
+			None, StaticWall, DynamicWall, Model, Monster, Floor,
+		};
+
+		ObjectType object_type= ObjectType::None;
+		uintptr_t object_index; // Pointer for monster
+		m_Vec3 pos;
+	};
 
 private:
 	void ActivateProcedure( unsigned int procedure_number, Time current_time );

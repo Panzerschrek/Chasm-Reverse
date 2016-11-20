@@ -95,6 +95,9 @@ static void LoadMonstersDescription(
 		line_stream >> monster_description.rock; // Rock
 		line_stream >> monster_description.sep_limit; // SepLimit
 
+		monster_description.w_radius/= 256.0f;
+		monster_description.a_radius/= 256.0f;
+
 		i++;
 	}
 }
