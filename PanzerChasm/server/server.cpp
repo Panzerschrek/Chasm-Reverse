@@ -113,7 +113,11 @@ void Server::Loop()
 		for( unsigned int j= 0u; j < 3u; j++ )
 			position_msg.xyz[j]= static_cast<short>( connected_player->player.Position().ToArr()[j] * 256.0f );
 
+		Messages::PlayerState state_msg;
+		connected_player->player.BuildStateMessage( state_msg );
+
 		messages_sender.SendUnreliableMessage( position_msg );
+		messages_sender.SendUnreliableMessage( state_msg );
 		messages_sender.Flush();
 	}
 

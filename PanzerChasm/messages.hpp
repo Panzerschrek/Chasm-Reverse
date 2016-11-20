@@ -2,6 +2,8 @@
 
 #include <vec.hpp>
 
+#include "game_constants.hpp"
+
 namespace PanzerChasm
 {
 
@@ -13,6 +15,7 @@ enum class MessageId : unsigned char
 	MonsterState,
 	WallPosition,
 	PlayerPosition, // position of player, which recieve this message.
+	PlayerState,
 	StaticModelState,
 	SpriteEffectBirth,
 	RocketState,
@@ -69,6 +72,14 @@ struct WallPosition : public MessageBase
 struct PlayerPosition : public MessageBase
 {
 	CoordType xyz[3];
+};
+
+struct PlayerState : public MessageBase
+{
+	unsigned char ammo[ GameConstants::weapon_count ];
+	unsigned char health;
+	unsigned char armor;
+	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
 };
 
 struct StaticModelState : public MessageBase

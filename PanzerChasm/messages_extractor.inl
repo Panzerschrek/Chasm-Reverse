@@ -79,6 +79,10 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					messages_handler( *reinterpret_cast<const Messages::PlayerPosition*>( msg_ptr ) );
 					break;
 
+				case MessageId::PlayerState:
+					messages_handler( *reinterpret_cast<const Messages::PlayerState*>( msg_ptr ) );
+					break;
+
 				case MessageId::StaticModelState:
 					messages_handler( *reinterpret_cast<const Messages::StaticModelState*>( msg_ptr ) );
 					break;

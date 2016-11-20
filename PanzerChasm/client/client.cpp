@@ -152,6 +152,11 @@ void Client::operator()( const Messages::PlayerPosition& message )
 	MessagePositionToPosition( message.xyz, player_position_ );
 }
 
+void Client::operator()( const Messages::PlayerState& message )
+{
+	hud_drawer_.SetPlayerState( message );
+}
+
 void Client::operator()( const Messages::StaticModelState& message )
 {
 	if( map_state_ != nullptr )

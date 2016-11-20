@@ -2,6 +2,7 @@
 
 #include <vec.hpp>
 
+#include "../game_constants.hpp"
 #include "../messages.hpp"
 #include "../time.hpp"
 
@@ -21,6 +22,8 @@ public:
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
 	void ResetActivatedProcedure();
+
+	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
@@ -43,6 +46,10 @@ private:
 	m_Vec3 speed_;
 	bool on_floor_;
 	bool noclip_;
+
+	unsigned char ammo_[ GameConstants::weapon_count ];
+	int health_;
+	int armor_;
 
 	bool have_red_key_= false;
 	bool have_green_key_= false;

@@ -7,6 +7,7 @@
 #include "../drawers.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "../messages.hpp"
 #include "../rendering_context.hpp"
 #include "../time.hpp"
 
@@ -23,6 +24,8 @@ public:
 	~HudDrawer();
 
 	void AddMessage( const MapData::Message& message, Time current_time );
+	void SetPlayerState( const Messages::PlayerState& player_state );
+
 	void DrawCrosshair( unsigned int scale= 1u );
 	void DrawCurrentMessage( unsigned int scale, Time current_time );
 	void DrawHud( unsigned int scale );
@@ -56,10 +59,8 @@ private:
 	Time current_message_time_= Time::FromSeconds(0);
 
 	bool draw_second_hud_= false;
-	unsigned int current_weapon_number_= 1u;
-	unsigned int life_count_= 100u;
-	unsigned int ammo_count_= 0u;
-	unsigned int armor_count_= 0u;
+	unsigned int current_weapon_number_= 0u;
+	Messages::PlayerState player_state_;
 };
 
 } // namespace PanzerChasm

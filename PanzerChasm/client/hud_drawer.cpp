@@ -69,6 +69,8 @@ HudDrawer::HudDrawer(
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( drawers_ != nullptr );
 
+	std::memset( &player_state_, 0u, sizeof(player_state_) );
+
 	// Textures
 	GenCrosshairTexture( game_resources->palette, crosshair_texture_ );
 	LoadTexture( "WICONS.CEL", 180u, weapon_icons_texture_ );
@@ -121,6 +123,11 @@ void HudDrawer::AddMessage( const MapData::Message& message, const Time current_
 {
 	current_message_= message;
 	current_message_time_= current_time;
+}
+
+void HudDrawer::SetPlayerState( const Messages::PlayerState& player_state )
+{
+	player_state_= player_state;
 }
 
 void HudDrawer::DrawCrosshair( const unsigned int scale )
@@ -319,12 +326,12 @@ void HudDrawer::DrawHud( const unsigned int scale )
 
 	const unsigned int numbers_first_quad= ( v - vertices ) / 4u;
 
-	gen_number( hud_x + scale * 104u, life_count_, 25u );
+	gen_number( hud_x + scale * 104u, player_state_.health, 25u );
 	if( !draw_second_hud_ )
 	{
 		if( current_weapon_number_ != 0u )
-			gen_number( hud_x + scale * 205u, ammo_count_, 10u );
-		gen_number( hud_x + scale * 315u, armor_count_, 10u );
+			gen_number( hud_x + scale * 205u, player_state_.ammo[ current_weapon_number_ ], 10u );
+		gen_number( hud_x + scale * 315u, player_state_.armor, 10u );
 	}
 
 	const unsigned int numbers_quad_count= ( v - vertices ) / 4u - numbers_first_quad;

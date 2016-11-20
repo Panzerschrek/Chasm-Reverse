@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "../map_loader.hpp"
 #include "./math_utils.hpp"
 
@@ -11,7 +13,10 @@ Player::Player()
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
+	, health_(100)
+	, armor_(0)
 {
+	std::memset( ammo_, 0u, sizeof(ammo_) );
 }
 
 Player::~Player()
@@ -54,6 +59,22 @@ void Player::ResetActivatedProcedure()
 {
 	last_activated_procedure_= 0u;
 	last_activated_procedure_activation_time_= Time::FromSeconds(0);
+}
+
+void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
+{
+	out_state_message.message_id= MessageId::PlayerState;
+
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+		out_state_message.ammo[i]= ammo_[i];
+
+	out_state_message.health= std::max( 0, health_ );
+	out_state_message.armor= armor_;
+
+	out_state_message.keys_mask= 0u;
+	if( have_red_key_   ) out_state_message.keys_mask|= 1u;
+	if( have_green_key_ ) out_state_message.keys_mask|= 2u;
+	if( have_blue_key_  ) out_state_message.keys_mask|= 4u;
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )

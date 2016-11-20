@@ -7,6 +7,8 @@ namespace PanzerChasm
 namespace GameConstants
 {
 
+constexpr unsigned int weapon_count= 8u;
+
 constexpr float player_eyes_level= 0.75f; // From ground
 constexpr float player_height= 0.9f;
 constexpr float player_radius= 70.0f / 256.0f;
