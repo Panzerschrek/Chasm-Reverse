@@ -25,6 +25,7 @@ public:
 	void AddMessage( const MapData::Message& message, Time current_time );
 	void DrawCrosshair( unsigned int scale= 1u );
 	void DrawCurrentMessage( unsigned int scale, Time current_time );
+	void DrawHud( unsigned int scale );
 
 private:
 	struct Vertex
@@ -32,6 +33,9 @@ private:
 		short xy[2];
 		short tex_coord[2];
 	};
+
+private:
+	void LoadTexture( const char* file_name, unsigned char alpha_color_index, r_Texture& out_texture );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -42,9 +46,20 @@ private:
 	r_PolygonBuffer quad_buffer_;
 
 	r_Texture crosshair_texture_;
+	r_Texture weapon_icons_texture_;
+	r_Texture hud_numbers_texture_;
+	r_Texture hud_background_texture_;
+
+	// State
 
 	MapData::Message current_message_;
 	Time current_message_time_= Time::FromSeconds(0);
+
+	bool draw_second_hud_= false;
+	unsigned int current_weapon_number_= 1u;
+	unsigned int life_count_= 100u;
+	unsigned int ammo_count_= 0u;
+	unsigned int armor_count_= 0u;
 };
 
 } // namespace PanzerChasm

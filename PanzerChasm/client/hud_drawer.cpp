@@ -1,7 +1,10 @@
+#include <cstring>
+
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
 #include "assert.hpp"
+#include "images.hpp"
 
 #include "hud_drawer.hpp"
 
@@ -11,9 +14,17 @@ namespace PanzerChasm
 static constexpr unsigned int g_max_hud_quads= 64u;
 
 static const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
-static const r_OGLState g_gl_state(
+
+static const r_OGLState g_crosshair_gl_state(
 	true, false, false, false,
 	g_gl_state_blend_func );
+
+static const r_OGLState g_hud_gl_state(
+	false, false, false, false,
+	g_gl_state_blend_func );
+
+static const unsigned int g_hud_line_height= 32u;
+static const unsigned int g_net_hud_line_height= 12u;
 
 static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture )
 {
@@ -60,6 +71,9 @@ HudDrawer::HudDrawer(
 
 	// Textures
 	GenCrosshairTexture( game_resources->palette, crosshair_texture_ );
+	LoadTexture( "WICONS.CEL", 180u, weapon_icons_texture_ );
+	LoadTexture( "BFONT2.CEL", 0u, hud_numbers_texture_ );
+	LoadTexture( "STATUS2.CEL", 0u, hud_background_texture_ );
 
 	{ // Vertex buffer
 		unsigned short  indeces[ g_max_hud_quads * 6u ];
@@ -143,11 +157,11 @@ void HudDrawer::DrawCrosshair( const unsigned int scale )
 	quad_buffer_.VertexSubData( vertices, vertex_count * sizeof(Vertex), 0u );
 
 	// Draw
-	r_OGLStateManager::UpdateState( g_gl_state );
+	r_OGLStateManager::UpdateState( g_crosshair_gl_state );
 	hud_shader_.Bind();
 
 	crosshair_texture_.Bind(0u);
-	hud_shader_.Uniform( "tile_tex", int(0) );
+	hud_shader_.Uniform( "tex", int(0) );
 
 	hud_shader_.Uniform(
 		"inv_viewport_size",
@@ -192,6 +206,184 @@ void HudDrawer::DrawCurrentMessage( const unsigned int scale, const Time current
 			scale,
 			TextDraw::FontColor::YellowGreen, alignemnt );
 	}
+}
+
+void HudDrawer::DrawHud( const unsigned int scale )
+{
+	Vertex vertices[ g_max_hud_quads * 4u ];
+	Vertex* v= vertices;
+
+	const unsigned int first_hud_bg_quad= ( v - vertices ) / 4u;
+
+	const unsigned int hud_x= viewport_size_.Width() / 2u - hud_background_texture_.Width() * scale / 2u;
+
+	{ // Hud background
+		const unsigned int tc_y= g_net_hud_line_height + ( draw_second_hud_ ? g_hud_line_height : 0u );
+
+		v[0].xy[0]= hud_x;
+		v[0].xy[1]= 0;
+		v[0].tex_coord[0]= 0;
+		v[0].tex_coord[1]= tc_y + g_hud_line_height;
+
+		v[1].xy[0]= hud_x + hud_background_texture_.Width() * scale;
+		v[1].xy[1]= 0;
+		v[1].tex_coord[0]= hud_background_texture_.Width();
+		v[1].tex_coord[1]= tc_y + g_hud_line_height;;
+
+		v[2].xy[0]= hud_x + hud_background_texture_.Width() * scale;
+		v[2].xy[1]= g_hud_line_height * scale;
+		v[2].tex_coord[0]= hud_background_texture_.Width();
+		v[2].tex_coord[1]= tc_y;
+
+		v[3].xy[0]= hud_x;
+		v[3].xy[1]= g_hud_line_height * scale;
+		v[3].tex_coord[0]= 0;
+		v[3].tex_coord[1]= tc_y;
+		v+= 4u;
+	}
+
+	const unsigned int hud_bg_quad_count= ( v - vertices ) / 4u - first_hud_bg_quad;
+
+	const unsigned int weapon_icon_first_quad= ( v - vertices ) / 4u;
+	if( !draw_second_hud_ ) // Weapon icon
+	{
+		const unsigned int icon_width = weapon_icons_texture_.Width() / 8u;
+		const unsigned int icon_height= weapon_icons_texture_.Height();
+		const unsigned int tc_x= current_weapon_number_ * icon_width;
+		const unsigned int y= ( g_hud_line_height - icon_height ) / 2u * scale;
+
+		const unsigned int icon_x= hud_x + 105u * scale;
+
+		v[0].xy[0]= icon_x;
+		v[0].xy[1]= y;
+		v[0].tex_coord[0]= tc_x;
+		v[0].tex_coord[1]= icon_height;
+
+		v[1].xy[0]= icon_x + icon_width * scale;
+		v[1].xy[1]= y;
+		v[1].tex_coord[0]= tc_x + icon_width;
+		v[1].tex_coord[1]= icon_height;
+
+		v[2].xy[0]= icon_x + icon_width * scale;
+		v[2].xy[1]= y + icon_height * scale;
+		v[2].tex_coord[0]= tc_x + icon_width;
+		v[2].tex_coord[1]= 0;
+
+		v[3].xy[0]= icon_x;
+		v[3].xy[1]= y + icon_height * scale;
+		v[3].tex_coord[0]= tc_x;
+		v[3].tex_coord[1]= 0;
+		v+= 4u;
+	}
+	const unsigned int weapon_icon_quad_count= ( v - vertices ) / 4u - weapon_icon_first_quad;
+
+	const auto gen_number=
+	[&]( const unsigned int x_end, const unsigned int number, const unsigned int red_value )
+	{
+		char digits[8];
+		std::snprintf( digits, sizeof(digits), "%d", number );
+		const unsigned int digit_count= std::strlen(digits);
+
+		const unsigned int digit_width = hud_numbers_texture_.Width() / 10u;
+		const unsigned int digit_height= ( hud_numbers_texture_.Height() - 1u ) / 2u;
+		const unsigned int y= ( g_hud_line_height - digit_height ) / 2u * scale;
+		const unsigned int tc_y= number >= red_value ? 0u : digit_height + 1u ;
+
+		for( unsigned int d= 0u; d < digit_count; d++ )
+		{
+			const unsigned int tc_x= ( digits[d] - '0' ) * digit_width;
+			const unsigned int digit_x= x_end - scale * digit_width * ( digit_count - d );
+
+			v[0].xy[0]= digit_x;
+			v[0].xy[1]= y;
+			v[0].tex_coord[0]= tc_x;
+			v[0].tex_coord[1]= tc_y + digit_height;
+
+			v[1].xy[0]= digit_x + ( digit_width - 1u ) * scale;
+			v[1].xy[1]= y;
+			v[1].tex_coord[0]= tc_x + digit_width - 1u;
+			v[1].tex_coord[1]= tc_y + digit_height;
+
+			v[2].xy[0]= digit_x + ( digit_width - 1u ) * scale;
+			v[2].xy[1]= y + digit_height * scale;
+			v[2].tex_coord[0]= tc_x + digit_width - 1u;
+			v[2].tex_coord[1]= tc_y;
+
+			v[3].xy[0]= digit_x;
+			v[3].xy[1]= y + digit_height * scale;
+			v[3].tex_coord[0]= tc_x;
+			v[3].tex_coord[1]= tc_y;
+			v+= 4u;
+		}
+	};
+
+	const unsigned int numbers_first_quad= ( v - vertices ) / 4u;
+
+	gen_number( hud_x + scale * 104u, life_count_, 25u );
+	if( !draw_second_hud_ )
+	{
+		if( current_weapon_number_ != 0u )
+			gen_number( hud_x + scale * 205u, ammo_count_, 10u );
+		gen_number( hud_x + scale * 315u, armor_count_, 10u );
+	}
+
+	const unsigned int numbers_quad_count= ( v - vertices ) / 4u - numbers_first_quad;
+
+	quad_buffer_.VertexSubData( vertices, ( v - vertices ) * sizeof(Vertex), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_hud_gl_state );
+	hud_shader_.Bind();
+	hud_shader_.Uniform( "tex", int(0) );
+	hud_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	const auto draw_quads=
+	[&]( const r_Texture& texture, const unsigned int first_quad, const unsigned int quad_count )
+	{
+		if( quad_count == 0u )
+			return;
+
+		texture.Bind(0u);
+		hud_shader_.Uniform(
+			"inv_texture_size",
+			 m_Vec2(
+				1.0f / float(texture.Width ()),
+				1.0f / float(texture.Height()) ) );
+
+		glDrawElements(
+			GL_TRIANGLES,
+			quad_count * 6u,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_quad * 6u * sizeof(unsigned short) ) );
+	};
+
+	draw_quads( hud_background_texture_, first_hud_bg_quad, hud_bg_quad_count );
+	draw_quads( weapon_icons_texture_, weapon_icon_first_quad, weapon_icon_quad_count );
+	draw_quads( hud_numbers_texture_, numbers_first_quad, numbers_quad_count );
+}
+
+void HudDrawer::LoadTexture(
+	const char* const file_name,
+	const unsigned char alpha_color_index,
+	r_Texture& out_texture )
+{
+	const Vfs::FileContent texture_file= game_resources_->vfs->ReadFile( file_name );
+	const CelTextureHeader& cel= *reinterpret_cast<const CelTextureHeader*>( texture_file.data() );
+
+	const unsigned char* const texture_data= texture_file.data() + sizeof(CelTextureHeader);
+	const unsigned int pixel_count= cel.size[0] * cel.size[1];
+	std::vector<unsigned char> texture_data_rgba( 4u * pixel_count );
+	ConvertToRGBA( pixel_count, texture_data, game_resources_->palette, texture_data_rgba.data(), alpha_color_index );
+
+	out_texture=
+		r_Texture(
+			r_Texture::PixelFormat::RGBA8,
+			cel.size[0], cel.size[1],
+			texture_data_rgba.data() );
+
+	out_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 }
 
 } // namespace PanzerChasm
