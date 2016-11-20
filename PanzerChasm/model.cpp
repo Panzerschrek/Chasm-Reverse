@@ -41,6 +41,11 @@ struct CARHeader
 {
 	unsigned short animations[20u];
 	unsigned short submodels_animations[3u][2u];
+
+	// 6, 7, 8 - gibs type
+	// 9 - 15 big values. It sum equals to file footer size.
+	// 16 - always zero, maybe
+	// 17 - 24 values, like 64, 96, 128 etc.
 	unsigned short unknown[25u];
 };
 
