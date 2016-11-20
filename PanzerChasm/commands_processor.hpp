@@ -7,6 +7,7 @@
 
 namespace PanzerChasm
 {
+
 typedef std::vector<std::string> CommandsArguments;
 
 typedef std::function<void( const CommandsArguments&)> CommandFunction;

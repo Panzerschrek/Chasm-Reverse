@@ -12,6 +12,7 @@ namespace PanzerChasm
 {
 
 Server::Server(
+	CommandsProcessor& commands_processor,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
 	const IConnectionsListenerPtr& connections_listener )
@@ -25,6 +26,17 @@ Server::Server(
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
 	PC_ASSERT( connections_listener_ != nullptr );
+
+	CommandsMapPtr commands= std::make_shared<CommandsMap>();
+
+	commands->emplace( "ammo", std::bind( &Server::GiveAmmo, this ) );
+	commands->emplace( "armor", std::bind( &Server::GiveArmor, this ) );
+	commands->emplace( "weapon", std::bind( &Server::GiveWeapon, this ) );
+	commands->emplace( "chojin", std::bind( &Server::ToggleGodMode, this ) );
+	commands->emplace( "noclip", std::bind( &Server::ToggleNoclip, this ) );
+
+	commands_= std::move( commands );
+	commands_processor.RegisterCommands( commands_ );
 }
 
 Server::~Server()
@@ -61,7 +73,8 @@ void Server::Loop()
 
 	if( map_ != nullptr )
 	{
-		map_->ProcessPlayerPosition( server_accumulated_time_, player_, connection_->messages_sender );
+		if( !player_.IsNoclip() )
+			map_->ProcessPlayerPosition( server_accumulated_time_, player_, connection_->messages_sender );
 		map_->Tick( server_accumulated_time_ );
 	}
 
@@ -159,6 +172,28 @@ void Server::UpdateTimes()
 	last_tick_= current_time;
 
 	server_accumulated_time_+= last_tick_duration_;
+}
+
+void Server::GiveAmmo()
+{
+}
+
+void Server::GiveArmor()
+{
+}
+
+void Server::GiveWeapon()
+{
+}
+
+void Server::ToggleGodMode()
+{
+}
+
+void Server::ToggleNoclip()
+{
+	player_.ToggleNoclip();
+	Log::Info( player_.IsNoclip() ? "noclip on" : "noclip off" );
 }
 
 } // namespace PanzerChasm

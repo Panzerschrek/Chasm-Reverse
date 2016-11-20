@@ -10,6 +10,7 @@ Player::Player()
 	: pos_( 0.0f, 0.0f, 0.0f )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
+	, noclip_(false)
 {
 }
 
@@ -105,7 +106,9 @@ void Player::Move( const Time time_delta )
 	speed_.z+= c_vertical_acceleration * time_delta_s;
 
 	// Jump
-	if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
+	if( jump_pessed_ && noclip_ )
+		speed_.z-= 2.0f * c_vertical_acceleration * time_delta_s;
+	else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
 		speed_.z+= c_jump_speed_delta;
 
 	// Clamp vertical speed
@@ -113,6 +116,22 @@ void Player::Move( const Time time_delta )
 		speed_.z*= c_max_vertical_speed / std::abs( speed_.z );
 
 	pos_+= speed_ * time_delta_s;
+
+	if( noclip_ && pos_.z < 0.0f )
+	{
+		pos_.z= 0.0f;
+		speed_.z= 0.0f;
+	}
+}
+
+void Player::ToggleNoclip()
+{
+	noclip_= !noclip_;
+}
+
+bool Player::IsNoclip() const
+{
+	return noclip_;
 }
 
 void Player::GiveRedKey()

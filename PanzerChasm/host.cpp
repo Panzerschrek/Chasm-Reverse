@@ -62,7 +62,7 @@ Host::Host()
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
 
 	Log::Info( "Create local server" );
-	local_server_.reset( new Server( game_resources_, map_loader_, loopback_buffer_ ) );
+	local_server_.reset( new Server( commands_processor_, game_resources_, map_loader_, loopback_buffer_ ) );
 
 	loopback_buffer_->RequestConnect();
 	local_server_->ChangeMap( 1 );

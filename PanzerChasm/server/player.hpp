@@ -25,6 +25,9 @@ public:
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
 
+	void ToggleNoclip();
+	bool IsNoclip() const;
+
 	void GiveRedKey();
 	void GiveGreenKey();
 	void GiveBlueKey();
@@ -39,6 +42,7 @@ private:
 	m_Vec3 pos_;
 	m_Vec3 speed_;
 	bool on_floor_;
+	bool noclip_;
 
 	bool have_red_key_= false;
 	bool have_green_key_= false;
