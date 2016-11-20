@@ -18,6 +18,7 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 	case SDL_SCANCODE_SPACE: return KeyCode::Space;
 	case SDL_SCANCODE_BACKSPACE: return KeyCode::Backspace;
 	case SDL_SCANCODE_GRAVE: return KeyCode::BackQuote;
+	case SDL_SCANCODE_TAB: return KeyCode::Tab;
 
 	case SDL_SCANCODE_PAGEUP: return KeyCode::PageUp;
 	case SDL_SCANCODE_PAGEDOWN: return KeyCode::PageDown;

@@ -215,7 +215,7 @@ void HudDrawer::DrawCurrentMessage( const unsigned int scale, const Time current
 	}
 }
 
-void HudDrawer::DrawHud( const unsigned int scale )
+void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -225,7 +225,7 @@ void HudDrawer::DrawHud( const unsigned int scale )
 	const unsigned int hud_x= viewport_size_.Width() / 2u - hud_background_texture_.Width() * scale / 2u;
 
 	{ // Hud background
-		const unsigned int tc_y= g_net_hud_line_height + ( draw_second_hud_ ? g_hud_line_height : 0u );
+		const unsigned int tc_y= g_net_hud_line_height + ( draw_second_hud ? g_hud_line_height : 0u );
 
 		v[0].xy[0]= hud_x;
 		v[0].xy[1]= 0;
@@ -252,7 +252,7 @@ void HudDrawer::DrawHud( const unsigned int scale )
 	const unsigned int hud_bg_quad_count= ( v - vertices ) / 4u - first_hud_bg_quad;
 
 	const unsigned int weapon_icon_first_quad= ( v - vertices ) / 4u;
-	if( !draw_second_hud_ ) // Weapon icon
+	if( !draw_second_hud ) // Weapon icon
 	{
 		const unsigned int icon_width = weapon_icons_texture_.Width() / 8u;
 		const unsigned int icon_height= weapon_icons_texture_.Height();
@@ -327,7 +327,7 @@ void HudDrawer::DrawHud( const unsigned int scale )
 	const unsigned int numbers_first_quad= ( v - vertices ) / 4u;
 
 	gen_number( hud_x + scale * 104u, player_state_.health, 25u );
-	if( !draw_second_hud_ )
+	if( !draw_second_hud )
 	{
 		if( current_weapon_number_ != 0u )
 			gen_number( hud_x + scale * 205u, player_state_.ammo[ current_weapon_number_ ], 10u );
@@ -369,6 +369,23 @@ void HudDrawer::DrawHud( const unsigned int scale )
 	draw_quads( hud_background_texture_, first_hud_bg_quad, hud_bg_quad_count );
 	draw_quads( weapon_icons_texture_, weapon_icon_first_quad, weapon_icon_quad_count );
 	draw_quads( hud_numbers_texture_, numbers_first_quad, numbers_quad_count );
+
+	// Keys
+	if( draw_second_hud )
+	{
+		const unsigned int c_left_x= 113u;
+		const unsigned int c_right_x= 133u;
+		const unsigned int c_top_y= 28u;
+		const unsigned int c_bottom_y= 14u;
+		if( ( player_state_.keys_mask & 1u ) != 0u )
+			drawers_->text.Print( hud_x + scale * c_left_x , viewport_size_.Height() - c_top_y    * scale, "\4", scale );
+		if( ( player_state_.keys_mask & 2u ) != 0u )
+			drawers_->text.Print( hud_x + scale * c_right_x, viewport_size_.Height() - c_top_y    * scale, "\5", scale );
+		if( ( player_state_.keys_mask & 4u ) != 0u )
+			drawers_->text.Print( hud_x + scale * c_left_x , viewport_size_.Height() - c_bottom_y * scale, "\6", scale );
+		if( ( player_state_.keys_mask & 8u ) != 0u )
+			drawers_->text.Print( hud_x + scale * c_right_x, viewport_size_.Height() - c_bottom_y * scale, "\7", scale );
+	}
 }
 
 void HudDrawer::LoadTexture(

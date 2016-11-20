@@ -63,6 +63,9 @@ void Client::ProcessEvents( const SystemEvents& events )
 				event.event.key.pressed ? camera_controller_.RotateLeftPressed() : camera_controller_.RotateLeftReleased();
 			else if( event.event.key.key_code == KeyCode::Right )
 				event.event.key.pressed ? camera_controller_.RotateRightPressed() : camera_controller_.RotateRightReleased();
+
+			if( event.event.key.key_code == KeyCode::Tab && event.event.key.pressed )
+				map_mode_= !map_mode_;
 		}
 		else if( event.type == SystemEvent::Type::MouseKey &&
 				event.event.mouse_key.pressed )
@@ -125,7 +128,7 @@ void Client::Draw()
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
 		hud_drawer_.DrawCrosshair(2u);
 		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
-		hud_drawer_.DrawHud( 2u );
+		hud_drawer_.DrawHud( map_mode_, 2u );
 	}
 }
 

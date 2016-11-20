@@ -25,6 +25,7 @@ struct SystemEvent
 			Enter,
 			Space,
 			Backspace,
+			Tab,
 
 			PageUp,
 			PageDown,

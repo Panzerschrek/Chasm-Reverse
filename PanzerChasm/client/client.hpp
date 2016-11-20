@@ -60,6 +60,7 @@ private:
 
 	m_Vec3 player_position_;
 	MovementController camera_controller_;
+	bool map_mode_= false;
 
 	MapDrawer map_drawer_;
 	MapDataConstPtr current_map_data_;

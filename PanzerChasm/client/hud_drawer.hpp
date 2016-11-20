@@ -28,7 +28,7 @@ public:
 
 	void DrawCrosshair( unsigned int scale= 1u );
 	void DrawCurrentMessage( unsigned int scale, Time current_time );
-	void DrawHud( unsigned int scale );
+	void DrawHud( bool draw_second_hud, unsigned int scale );
 
 private:
 	struct Vertex
@@ -58,7 +58,6 @@ private:
 	MapData::Message current_message_;
 	Time current_message_time_= Time::FromSeconds(0);
 
-	bool draw_second_hud_= false;
 	unsigned int current_weapon_number_= 0u;
 	Messages::PlayerState player_state_;
 };
