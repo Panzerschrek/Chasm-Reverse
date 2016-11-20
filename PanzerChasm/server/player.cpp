@@ -170,6 +170,13 @@ void Player::GiveBlueKey()
 	have_blue_key_= true;
 }
 
+void Player::GiveAllKeys()
+{
+	GiveRedKey();
+	GiveGreenKey();
+	GiveBlueKey();
+}
+
 bool Player::HaveRedKey() const
 {
 	return have_red_key_;

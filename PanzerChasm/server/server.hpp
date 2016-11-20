@@ -54,6 +54,7 @@ private:
 	void GiveAmmo();
 	void GiveArmor();
 	void GiveWeapon();
+	void GiveKeys();
 	void ToggleGodMode();
 	void ToggleNoclip();
 

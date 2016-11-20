@@ -37,6 +37,7 @@ Server::Server(
 	commands->emplace( "ammo", std::bind( &Server::GiveAmmo, this ) );
 	commands->emplace( "armor", std::bind( &Server::GiveArmor, this ) );
 	commands->emplace( "weapon", std::bind( &Server::GiveWeapon, this ) );
+	commands->emplace( "keys", std::bind( &Server::GiveKeys, this ) );
 	commands->emplace( "chojin", std::bind( &Server::ToggleGodMode, this ) );
 	commands->emplace( "noclip", std::bind( &Server::ToggleNoclip, this ) );
 
@@ -214,6 +215,14 @@ void Server::GiveArmor()
 
 void Server::GiveWeapon()
 {
+}
+
+void Server::GiveKeys()
+{
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player.GiveAllKeys();
+
+	Log::Info( "give all keys" );
 }
 
 void Server::ToggleGodMode()

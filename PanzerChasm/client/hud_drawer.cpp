@@ -377,6 +377,7 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 		const unsigned int c_right_x= 133u;
 		const unsigned int c_top_y= 28u;
 		const unsigned int c_bottom_y= 14u;
+
 		if( ( player_state_.keys_mask & 1u ) != 0u )
 			drawers_->text.Print( hud_x + scale * c_left_x , viewport_size_.Height() - c_top_y    * scale, "\4", scale );
 		if( ( player_state_.keys_mask & 2u ) != 0u )

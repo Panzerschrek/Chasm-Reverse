@@ -34,6 +34,7 @@ public:
 	void GiveRedKey();
 	void GiveGreenKey();
 	void GiveBlueKey();
+	void GiveAllKeys();
 
 	bool HaveRedKey() const;
 	bool HaveGreenKey() const;
