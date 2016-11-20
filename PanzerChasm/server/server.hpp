@@ -38,6 +38,16 @@ private:
 		PlayingMap,
 	};
 
+	struct ConnectedPlayer final
+	{
+		explicit ConnectedPlayer( const IConnectionPtr& connection );
+
+		ConnectionInfo connection_info;
+		Player player;
+	};
+
+	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;
+
 private:
 	void UpdateTimes();
 
@@ -59,13 +69,15 @@ private:
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<Map> map_;
 
-	std::unique_ptr<ConnectionInfo> connection_;
+	std::vector<ConnectedPlayerPtr> players_;
+	ConnectedPlayer* current_player_= nullptr;
 
 	Time last_tick_; // Real time
 	Time server_accumulated_time_; // Not real, can be faster or slower.
 	Time last_tick_duration_;
 
-	Player player_;
+	// Cheats
+	bool noclip_= false;
 };
 
 } // PanzerChasm

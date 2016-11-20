@@ -124,9 +124,9 @@ void Player::Move( const Time time_delta )
 	}
 }
 
-void Player::ToggleNoclip()
+void Player::SetNoclip( const bool noclip )
 {
-	noclip_= !noclip_;
+	noclip_= noclip;
 }
 
 bool Player::IsNoclip() const

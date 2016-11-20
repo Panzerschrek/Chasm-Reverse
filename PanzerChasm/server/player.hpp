@@ -25,7 +25,7 @@ public:
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
 
-	void ToggleNoclip();
+	void SetNoclip( bool noclip );
 	bool IsNoclip() const;
 
 	void GiveRedKey();

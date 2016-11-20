@@ -11,6 +11,11 @@
 namespace PanzerChasm
 {
 
+Server::ConnectedPlayer::ConnectedPlayer( const IConnectionPtr& connection )
+	: connection_info( connection )
+	, player()
+{}
+
 Server::Server(
 	CommandsProcessor& commands_processor,
 	const GameResourcesConstPtr& game_resources,
@@ -44,54 +49,72 @@ Server::~Server()
 
 void Server::Loop()
 {
-	while( IConnectionPtr connection= connections_listener_->GetNewConnection() )
+	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
-		connection_.reset( new ConnectionInfo( std::move( connection ) ) );
+		players_.emplace_back( new ConnectedPlayer( connection ) );
+		ConnectedPlayer& connected_player= *players_.back();
 
 		if( map_ != nullptr )
-			map_->SpawnPlayer( player_ );
+			map_->SpawnPlayer( connected_player.player );
 
 		Messages::MapChange map_change_msg;
 		map_change_msg.message_id= MessageId::MapChange;
 		map_change_msg.map_number= current_map_number_;
 
-		connection_->messages_sender.SendReliableMessage( map_change_msg );
+		connected_player.connection_info.messages_sender.SendReliableMessage( map_change_msg );
 
 		if( map_ != nullptr )
-			map_->SendMessagesForNewlyConnectedPlayer( connection_->messages_sender );
+			map_->SendMessagesForNewlyConnectedPlayer( connected_player.connection_info.messages_sender );
 
-		connection_->messages_sender.Flush();
+		connected_player.connection_info.messages_sender.Flush();
 	}
 
-	if( connection_ != nullptr )
-		connection_->messages_extractor.ProcessMessages( *this );
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+	{
+		current_player_= connected_player.get();
+		current_player_->connection_info.messages_extractor.ProcessMessages( *this );
+		current_player_= nullptr;
+	}
 
 	// Do server logic
 	UpdateTimes();
 
-	player_.Move( last_tick_duration_ );
-
-	if( map_ != nullptr )
+	// Move players
+	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
-		if( !player_.IsNoclip() )
-			map_->ProcessPlayerPosition( server_accumulated_time_, player_, connection_->messages_sender );
-		map_->Tick( server_accumulated_time_ );
+		connected_player->player.Move( last_tick_duration_ );
 	}
 
-	// Send messages
-	if( connection_ != nullptr )
+	// Process players position
+	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
+		if( map_ != nullptr && !connected_player->player.IsNoclip() )
+			map_->ProcessPlayerPosition(
+				server_accumulated_time_,
+				connected_player->player,
+				connected_player->connection_info.messages_sender );
+
+	}
+
+	// Process map inner logic
+	if( map_ != nullptr )
+		map_->Tick( server_accumulated_time_ );
+
+	// Send messages
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+	{
+		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
 		if( map_ != nullptr )
-			map_->SendUpdateMessages( connection_->messages_sender );
+			map_->SendUpdateMessages( messages_sender );
 
 		Messages::PlayerPosition position_msg;
 		position_msg.message_id= MessageId::PlayerPosition;
 
 		for( unsigned int j= 0u; j < 3u; j++ )
-			position_msg.xyz[j]= static_cast<short>( player_.Position().ToArr()[j] * 256.0f );
+			position_msg.xyz[j]= static_cast<short>( connected_player->player.Position().ToArr()[j] * 256.0f );
 
-		connection_->messages_sender.SendUnreliableMessage( position_msg );
-		connection_->messages_sender.Flush();
+		messages_sender.SendUnreliableMessage( position_msg );
+		messages_sender.Flush();
 	}
 
 	if( map_ != nullptr )
@@ -114,19 +137,20 @@ void Server::ChangeMap( const unsigned int map_number )
 
 	state_= State::PlayingMap;
 
-	map_->SpawnPlayer( player_ );
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		map_->SpawnPlayer( connected_player->player );
 
-	if( connection_ != nullptr )
+	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		Messages::MapChange message;
 		message.message_id= MessageId::MapChange;
 		message.map_number= current_map_number_;
 
-		connection_->messages_sender.SendReliableMessage( message );
-		connection_->messages_sender.Flush();
+		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
 
-		map_->SendMessagesForNewlyConnectedPlayer( connection_->messages_sender );
-		connection_->messages_sender.Flush();
+		messages_sender.SendReliableMessage( message );
+		map_->SendMessagesForNewlyConnectedPlayer( messages_sender );
+		messages_sender.Flush();
 	}
 }
 
@@ -138,12 +162,14 @@ void Server::operator()( const Messages::MessageBase& message )
 
 void Server::operator()( const Messages::PlayerMove& message )
 {
-	player_.UpdateMovement( message );
+	PC_ASSERT( current_player_ != nullptr );
+	current_player_->player.UpdateMovement( message );
 }
 
 void Server::operator()( const Messages::PlayerShot& message )
 {
 	// TODO - clear this
+	PC_ASSERT( current_player_ != nullptr );
 
 	const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
 
@@ -156,7 +182,7 @@ void Server::operator()( const Messages::PlayerShot& message )
 
 	map_->Shoot(
 		0u,
-		player_.Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
+		current_player_->player.Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
 		view_vec_rotated,
 		server_accumulated_time_ );
 }
@@ -192,8 +218,12 @@ void Server::ToggleGodMode()
 
 void Server::ToggleNoclip()
 {
-	player_.ToggleNoclip();
-	Log::Info( player_.IsNoclip() ? "noclip on" : "noclip off" );
+	noclip_= !noclip_;
+
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player.SetNoclip( noclip_ );
+
+	Log::Info( noclip_ ? "noclip on" : "noclip off" );
 }
 
 } // namespace PanzerChasm
