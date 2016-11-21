@@ -42,6 +42,7 @@ private:
 		enum class MovementState
 		{
 			None,
+			StartWait,
 			Movement,
 			BackWait,
 			ReverseMovement,

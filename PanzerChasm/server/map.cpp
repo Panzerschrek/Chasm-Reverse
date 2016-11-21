@@ -467,6 +467,17 @@ void Map::Tick( const Time current_time )
 		case ProcedureState::MovementState::None:
 			break;
 
+		case ProcedureState::MovementState::StartWait:
+			if( time_since_last_state_change.ToSeconds() >= procedure.start_delay_s )
+			{
+				procedure_state.movement_state= ProcedureState::MovementState::Movement;
+				procedure_state.movement_stage= 0.0f;
+				procedure_state.last_state_change_time= current_time;
+			}
+			else
+				procedure_state.movement_stage= new_stage;
+			break;
+
 		case ProcedureState::MovementState::Movement:
 			if( new_stage >= 1.0f )
 			{
@@ -964,7 +975,7 @@ void Map::ActivateProcedure( const unsigned int procedure_number, const Time cur
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
 
 	procedure_state.movement_stage= 0.0f;
-	procedure_state.movement_state= ProcedureState::MovementState::Movement;
+	procedure_state.movement_state= ProcedureState::MovementState::StartWait;
 	procedure_state.last_state_change_time= current_time;
 
 	for( const MapData::Procedure::SwitchPos& siwtch_pos : procedure.linked_switches )
