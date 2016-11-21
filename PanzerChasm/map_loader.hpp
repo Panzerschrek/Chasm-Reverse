@@ -45,6 +45,7 @@ public:
 		m_Vec2 pos;
 		float angle;
 		unsigned char model_id;
+		bool is_dynamic;
 	};
 
 	struct Item

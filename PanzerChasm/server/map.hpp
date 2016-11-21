@@ -63,7 +63,6 @@ private:
 	{
 		m_Vec2 vert_pos[2];
 		float z;
-		float base_z;
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;
@@ -162,6 +161,7 @@ private:
 		const Func& func );
 
 	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
+	float GetFloorLevel( const m_Vec2& pos ) const;
 
 	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
 

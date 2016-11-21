@@ -73,8 +73,6 @@ Map::Map(
 	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
-	for( DynamicWall& wall : dynamic_walls_ )
-		wall.base_z= 0.0f;
 
 	static_models_.resize( map_data_->static_models.size() );
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
@@ -115,11 +113,34 @@ Map::Map(
 		out_item.picked_up= false;
 	}
 
+	// Pull up items, which placed atop of models
+	for( Item& item : items_ )
+	{
+		item.pos.z= GetFloorLevel( item.pos.xy() );
+	}
+	for( StaticModel& model : static_models_ )
+	{
+		if( model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		if( map_data_->models_description[ model.model_id ].ac == 0u )
+			continue;
+
+		model.pos.z= model.baze_z= GetFloorLevel( model.pos.xy() );
+	}
+
 	// Spawn monsters
 	for( const MapData::Monster& map_monster : map_data_->monsters )
 	{
 		// TODO - check difficulty flags
-		monsters_[ next_monter_id_ ]= MonsterPtr( new Monster( map_monster, game_resources_, map_start_time ) );
+		monsters_[ next_monter_id_ ]=
+			MonsterPtr(
+				new Monster(
+					map_monster,
+					GetFloorLevel( map_monster.pos ),
+					game_resources_,
+					map_start_time ) );
+
 		next_monter_id_++;
 	}
 }
@@ -506,7 +527,7 @@ void Map::Tick( const Time current_time )
 					model.pos=
 						m_Vec3(
 							map_model.pos + m_Vec2( dx, dy ) * absolute_action_stage,
-							0.0f );
+							model.baze_z );
 				}
 			}
 				break;
@@ -550,6 +571,7 @@ void Map::Tick( const Time current_time )
 					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
 					StaticModel& model= static_models_[ index_element.index ];
 
+					model.pos= m_Vec3( map_model.pos, model.baze_z );
 					model.angle= map_model.angle + angle * absolute_action_stage;
 				}
 			}
@@ -583,7 +605,7 @@ void Map::Tick( const Time current_time )
 					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
 					StaticModel& model= static_models_[ index_element.index ];
 
-					model.pos= m_Vec3( map_model.pos, height );
+					model.pos= m_Vec3( map_model.pos, height + model.baze_z );
 				}
 			}
 				break;
@@ -1153,8 +1175,46 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 		}
 	}
 
-
 	return result;
+}
+
+float Map::GetFloorLevel( const m_Vec2& pos ) const
+{
+	float max_dz= 0.0f;
+
+	const float c_max_floor_level= 1.2f;
+
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const MapData::StaticModel& map_model= map_data_->static_models[m];
+		if( map_model.is_dynamic )
+			continue;
+
+		if( map_model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+		if( model_description.ac != 0u )
+			continue;
+
+		const float model_radius= model_description.radius;
+		if( model_radius <= 0.0f )
+			continue;
+
+		const float square_distance= ( pos - map_model.pos ).SquareLength();
+		if( square_distance > model_radius * model_radius )
+			continue;
+
+		// Hit here
+		const Model& model= map_data_->models[ map_model.model_id ];
+
+		if( model.z_max >= c_max_floor_level )
+			continue;
+
+		max_dz= std::max( max_dz, model.z_max );
+	}
+
+	return max_dz;
 }
 
 void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )

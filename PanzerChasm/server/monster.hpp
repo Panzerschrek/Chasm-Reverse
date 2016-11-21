@@ -15,6 +15,7 @@ class Monster final
 public:
 	Monster(
 		const MapData::Monster& map_monster,
+		float z,
 		const GameResourcesConstPtr& game_resources,
 		Time spawn_time );
 	~Monster();

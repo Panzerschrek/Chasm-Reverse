@@ -9,11 +9,12 @@ namespace PanzerChasm
 
 Monster::Monster(
 	const MapData::Monster& map_monster,
+	const float z,
 	const GameResourcesConstPtr& game_resources,
 	const Time spawn_time )
 	: monster_id_( map_monster.monster_id )
 	, game_resources_(game_resources)
-	, pos_( map_monster.pos, 0.0f )
+	, pos_( map_monster.pos, z )
 	, angle_( map_monster.angle )
 	, current_animation_start_time_(spawn_time)
 {
