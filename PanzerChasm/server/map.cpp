@@ -429,7 +429,21 @@ void Map::ProcessPlayerPosition(
 
 		const float square_distance= ( item.pos.xy() - player.Position().xy() ).SquareLength();
 		if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
+		{
 			item.picked_up= player.TryPickupItem( item.item_id );
+			if( item.picked_up )
+			{
+				// Try activate item links
+				ProcessElementLinks(
+					MapData::IndexElement::Item,
+					&item - items_.data(),
+					[&]( const MapData::Link& link )
+					{
+						if( link.type == MapData::Link::Link_ )
+							TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+					} );
+			}
+		}
 	}
 }
 
