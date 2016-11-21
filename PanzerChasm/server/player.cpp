@@ -63,8 +63,6 @@ void Player::ResetActivatedProcedure()
 
 void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 {
-	out_state_message.message_id= MessageId::PlayerState;
-
 	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
 		out_state_message.ammo[i]= ammo_[i];
 

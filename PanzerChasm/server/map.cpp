@@ -148,7 +148,6 @@ void Map::Shoot(
 	if( !rocket.HasInfiniteSpeed( *game_resources_ ) )
 	{
 		Messages::RocketBirth message;
-		message.message_id= MessageId::RocketBirth;
 
 		message.rocket_id= rocket.rocket_id;
 		message.rocket_type= rocket.rocket_type_id;
@@ -763,7 +762,6 @@ void Map::Tick( const Time current_time )
 			if( !has_infinite_speed )
 			{
 				rockets_death_messages_.emplace_back();
-				rockets_death_messages_.back().message_id= MessageId::RocketDeath;
 				rockets_death_messages_.back().rocket_id= rocket.rocket_id;
 			}
 
@@ -788,7 +786,6 @@ void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender )
 	for( const MonstersContainer::value_type& monster_entry : monsters_ )
 	{
 		Messages::MonsterBirth message;
-		message.message_id= MessageId::MonsterBirth;
 
 		PrepareMonsterStateMessage( *monster_entry.second, message.initial_state );
 		message.initial_state.monster_id= monster_entry.first;
@@ -801,7 +798,6 @@ void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender )
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 {
 	Messages::WallPosition wall_message;
-	wall_message.message_id= MessageId::WallPosition;
 
 	for( const DynamicWall& wall : dynamic_walls_ )
 	{
@@ -815,7 +811,6 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	}
 
 	Messages::StaticModelState model_message;
-	model_message.message_id= MessageId::StaticModelState;
 
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
@@ -833,7 +828,6 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	}
 
 	Messages::SpriteEffectBirth sprite_message;
-	sprite_message.message_id= MessageId::SpriteEffectBirth;
 
 	for( const SpriteEffect& effect : sprite_effects_ )
 	{
@@ -865,7 +859,6 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	for( const Rocket& rocket : rockets_ )
 	{
 		Messages::RocketState rocket_message;
-		rocket_message.message_id= MessageId::RocketState;
 
 		rocket_message.rocket_id= rocket.rocket_id;
 		PositionToMessagePosition( rocket.previous_position, rocket_message.xyz );
@@ -980,7 +973,6 @@ void Map::TryActivateProcedure(
 		procedure_state.first_message_printed= true;
 
 		Messages::TextMessage text_message;
-		text_message.message_id= MessageId::TextMessage;
 		text_message.text_message_number= procedure.first_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
@@ -988,14 +980,12 @@ void Map::TryActivateProcedure(
 		( procedure_state.locked || !have_necessary_keys ) )
 	{
 		Messages::TextMessage text_message;
-		text_message.message_id= MessageId::TextMessage;
 		text_message.text_message_number= procedure.lock_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
 	if( procedure.on_message_number != 0u )
 	{
 		Messages::TextMessage text_message;
-		text_message.message_id= MessageId::TextMessage;
 		text_message.text_message_number= procedure.on_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
@@ -1145,8 +1135,6 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 
 void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )
 {
-	message.message_id= MessageId::MonsterState;
-
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );
 	message.monster_type= monster.MonsterId();

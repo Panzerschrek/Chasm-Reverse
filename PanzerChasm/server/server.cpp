@@ -59,7 +59,6 @@ void Server::Loop()
 			map_->SpawnPlayer( connected_player.player );
 
 		Messages::MapChange map_change_msg;
-		map_change_msg.message_id= MessageId::MapChange;
 		map_change_msg.map_number= current_map_number_;
 
 		connected_player.connection_info.messages_sender.SendReliableMessage( map_change_msg );
@@ -109,7 +108,6 @@ void Server::Loop()
 			map_->SendUpdateMessages( messages_sender );
 
 		Messages::PlayerPosition position_msg;
-		position_msg.message_id= MessageId::PlayerPosition;
 
 		for( unsigned int j= 0u; j < 3u; j++ )
 			position_msg.xyz[j]= static_cast<short>( connected_player->player.Position().ToArr()[j] * 256.0f );
@@ -148,7 +146,6 @@ void Server::ChangeMap( const unsigned int map_number )
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		Messages::MapChange message;
-		message.message_id= MessageId::MapChange;
 		message.map_number= current_map_number_;
 
 		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;

@@ -11,28 +11,9 @@ enum class MessageId : unsigned char
 {
 	Unknown= 0u,
 
-	// Unreliable server to client
-	MonsterState,
-	WallPosition,
-	PlayerPosition, // position of player, which recieve this message.
-	PlayerState,
-	StaticModelState,
-	SpriteEffectBirth,
-	RocketState,
-	RocketBirth,
-	RocketDeath,
-
-	// Reliable server to client
-	MapChange,
-	MonsterBirth,
-	MonsterDeath,
-	TextMessage,
-
-	// Unrealiable client to server
-	PlayerMove,
-
-	// Reliable client to server
-	PlayerShot,
+	#define MESSAGE_FUNC(x) x,
+	#include "messages_list.h"
+	#undef MESSAGE_FUNC
 
 	// Put it last here
 	NumMessages,
@@ -47,6 +28,9 @@ typedef unsigned short AngleType;
 
 #pragma pack(push, 1)
 
+#define DEFINE_MESSAGE_CONSTRUCTOR(class_name)\
+	class_name() { message_id= MessageId::class_name; }
+
 struct MessageBase
 {
 	MessageId message_id;
@@ -54,6 +38,8 @@ struct MessageBase
 
 struct MonsterState : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterState)
+
 	EntityId monster_id;
 	CoordType xyz[3];
 	AngleType angle;
@@ -64,6 +50,8 @@ struct MonsterState : public MessageBase
 
 struct WallPosition : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(WallPosition)
+
 	unsigned short wall_index;
 	CoordType vertices_xy[2][2];
 	short z;
@@ -71,11 +59,15 @@ struct WallPosition : public MessageBase
 
 struct PlayerPosition : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerPosition)
+
 	CoordType xyz[3];
 };
 
 struct PlayerState : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerState)
+
 	unsigned char ammo[ GameConstants::weapon_count ];
 	unsigned char health;
 	unsigned char armor;
@@ -84,6 +76,8 @@ struct PlayerState : public MessageBase
 
 struct StaticModelState : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(StaticModelState)
+
 	unsigned short static_model_index;
 	CoordType xyz[3];
 	AngleType angle;
@@ -98,12 +92,16 @@ struct StaticModelState : public MessageBase
 
 struct SpriteEffectBirth : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(SpriteEffectBirth)
+
 	CoordType xyz[3];
 	unsigned char effect_id;
 };
 
 struct RocketState : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(RocketState)
+
 	EntityId rocket_id;
 	CoordType xyz[3];
 	AngleType angle[2];
@@ -111,37 +109,51 @@ struct RocketState : public MessageBase
 
 struct RocketBirth : public RocketState
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(RocketBirth)
+
 	unsigned char rocket_type;
 };
 
 struct RocketDeath : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(RocketDeath)
+
 	EntityId rocket_id;
 };
 
 struct MapChange : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(MapChange)
+
 	unsigned int map_number;
 };
 
 struct MonsterBirth : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterBirth)
+
 	EntityId monster_id;
 	MonsterState initial_state;
 };
 
 struct MonsterDeath : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterDeath)
+
 	EntityId monster_id;
 };
 
 struct TextMessage : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(TextMessage)
+
 	unsigned short text_message_number;
 };
 
 struct PlayerMove : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerMove)
+
 	AngleType angle;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
 	bool jump_pressed;
@@ -149,9 +161,13 @@ struct PlayerMove : public MessageBase
 
 struct PlayerShot : public MessageBase
 {
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerShot)
+
 	AngleType view_dir_angle_x;
 	AngleType view_dir_angle_z;
 };
+
+#undef DEFINE_MESSAGE_CONSTRUCTOR
 
 #pragma pack(pop)
 

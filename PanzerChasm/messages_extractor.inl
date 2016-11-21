@@ -66,69 +66,14 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 					PC_ASSERT(false);
 					break;
 
-				// Unreliable
-				case MessageId::MonsterState:
-					messages_handler( *reinterpret_cast<const Messages::MonsterState*>( msg_ptr ) );
+				#define MESSAGE_FUNC(x)\
+				case MessageId::x:\
+					messages_handler( *reinterpret_cast<const Messages::x*>( msg_ptr ) );\
 					break;
 
-				case MessageId::WallPosition:
-					messages_handler( *reinterpret_cast<const Messages::WallPosition*>( msg_ptr ) );
-					break;
+				#include "messages_list.h"
+				#undef MESSAGE_FUNC
 
-				case MessageId::PlayerPosition:
-					messages_handler( *reinterpret_cast<const Messages::PlayerPosition*>( msg_ptr ) );
-					break;
-
-				case MessageId::PlayerState:
-					messages_handler( *reinterpret_cast<const Messages::PlayerState*>( msg_ptr ) );
-					break;
-
-				case MessageId::StaticModelState:
-					messages_handler( *reinterpret_cast<const Messages::StaticModelState*>( msg_ptr ) );
-					break;
-
-				case MessageId::SpriteEffectBirth:
-					messages_handler( *reinterpret_cast<const Messages::SpriteEffectBirth*>( msg_ptr ) );
-					break;
-
-				case MessageId::RocketState:
-					messages_handler( *reinterpret_cast<const Messages::RocketState*>( msg_ptr ) );
-					break;
-
-				case MessageId::RocketBirth:
-					messages_handler( *reinterpret_cast<const Messages::RocketBirth*>( msg_ptr ) );
-					break;
-
-				case MessageId::RocketDeath:
-					messages_handler( *reinterpret_cast<const Messages::RocketDeath*>( msg_ptr ) );
-					break;
-
-				// Reliable
-				case MessageId::MapChange:
-					messages_handler( *reinterpret_cast<const Messages::MapChange*>( msg_ptr ) );
-
-					break;
-				case MessageId::MonsterBirth:
-					messages_handler( *reinterpret_cast<const Messages::MonsterBirth*>( msg_ptr ) );
-					break;
-
-				case MessageId::MonsterDeath:
-					messages_handler( *reinterpret_cast<const Messages::MonsterDeath*>( msg_ptr ) );
-					break;
-
-				case MessageId::TextMessage:
-					messages_handler( *reinterpret_cast<const Messages::TextMessage*>( msg_ptr ) );
-					break;
-
-				// Unreliable
-				case MessageId::PlayerMove:
-					messages_handler( *reinterpret_cast<const Messages::PlayerMove*>( msg_ptr ) );
-					break;
-
-				// Reliable
-				case MessageId::PlayerShot:
-					messages_handler( *reinterpret_cast<const Messages::PlayerShot*>( msg_ptr ) );
-					break;
 				};
 
 				pos+= message_size;

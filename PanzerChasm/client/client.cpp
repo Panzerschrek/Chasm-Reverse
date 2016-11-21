@@ -73,7 +73,6 @@ void Client::ProcessEvents( const SystemEvents& events )
 			if( connection_info_ != nullptr )
 			{
 				Messages::PlayerShot message;
-				message.message_id= MessageId::PlayerShot;
 
 				message.view_dir_angle_x=
 					static_cast<unsigned short>( float(camera_controller_.GetViewAngleX()) / Constants::two_pi * 65536.0f );
@@ -104,7 +103,6 @@ void Client::Loop()
 		camera_controller_.GetAcceleration( move_direction, move_acceleration );
 
 		Messages::PlayerMove message;
-		message.message_id= MessageId::PlayerMove;
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.angle= static_cast<unsigned short>( move_direction * 65536.0f / Constants::two_pi );
 		message.jump_pressed= camera_controller_.JumpPressed();

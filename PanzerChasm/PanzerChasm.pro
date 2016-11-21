@@ -75,6 +75,7 @@ HEADERS+= \
 	messages.hpp \
 	messages_extractor.hpp \
 	messages_extractor.inl \
+	messages_list.h \
 	messages_sender.hpp \
 	model.hpp \
 	obj.hpp \
