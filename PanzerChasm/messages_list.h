@@ -7,6 +7,7 @@ MESSAGE_FUNC(MonsterState)
 MESSAGE_FUNC(WallPosition)
 MESSAGE_FUNC(PlayerPosition) // position of player, which recieve this message.
 MESSAGE_FUNC(PlayerState)
+MESSAGE_FUNC(ItemState)
 MESSAGE_FUNC(StaticModelState)
 MESSAGE_FUNC(SpriteEffectBirth)
 MESSAGE_FUNC(RocketState)

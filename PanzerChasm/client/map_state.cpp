@@ -167,6 +167,16 @@ void MapState::ProcessMessage( const Messages::WallPosition& message )
 	wall.z= MessageCoordToCoord( message.z );
 }
 
+void MapState::ProcessMessage( const Messages::ItemState& message )
+{
+	if( message.item_index >= items_.size() )
+		return; // Bad index
+
+	Item& item= items_[ message.item_index ];
+	item.pos.z= MessageCoordToCoord( message.z );
+	item.picked_up= message.picked;
+}
+
 void MapState::ProcessMessage( const Messages::StaticModelState& message )
 {
 	if( message.static_model_index >= static_models_.size() )

@@ -74,6 +74,15 @@ struct PlayerState : public MessageBase
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
 };
 
+struct ItemState : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(ItemState)
+
+	unsigned short item_index;
+	CoordType z;
+	bool picked;
+};
+
 struct StaticModelState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(StaticModelState)

@@ -63,6 +63,7 @@ private:
 	{
 		m_Vec2 vert_pos[2];
 		float z;
+		float base_z;
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;
@@ -70,6 +71,7 @@ private:
 	struct StaticModel
 	{
 		m_Vec3 pos;
+		float baze_z;
 		float angle;
 
 		unsigned char model_id;
@@ -89,6 +91,15 @@ private:
 	};
 
 	typedef std::vector<StaticModel> StaticModels;
+
+	struct Item
+	{
+		m_Vec3 pos;
+		unsigned char item_id;
+		bool picked_up;
+	};
+
+	typedef std::vector<Item> Items;
 
 	struct Rocket
 	{
@@ -163,6 +174,7 @@ private:
 	std::vector<ProcedureState> procedures_;
 
 	StaticModels static_models_;
+	Items items_;
 
 	Rockets rockets_;
 	Messages::EntityId next_rocket_id_= 1u;

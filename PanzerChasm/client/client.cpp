@@ -158,6 +158,12 @@ void Client::operator()( const Messages::PlayerState& message )
 	hud_drawer_.SetPlayerState( message );
 }
 
+void Client::operator()( const Messages::ItemState& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 void Client::operator()( const Messages::StaticModelState& message )
 {
 	if( map_state_ != nullptr )

@@ -38,6 +38,7 @@ public: // Messages handlers
 	void operator()( const Messages::WallPosition& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::PlayerState& message );
+	void operator()( const Messages::ItemState& message );
 	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::SpriteEffectBirth& message );
 	void operator()( const Messages::MapChange& message );

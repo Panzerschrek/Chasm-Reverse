@@ -73,6 +73,8 @@ Map::Map(
 	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
+	for( DynamicWall& wall : dynamic_walls_ )
+		wall.base_z= 0.0f;
 
 	static_models_.resize( map_data_->static_models.size() );
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
@@ -90,6 +92,7 @@ Map::Map(
 
 		out_model.pos= m_Vec3( in_model.pos, 0.0f );
 		out_model.angle= in_model.angle;
+		out_model.baze_z= 0.0f;
 
 		if( model_description != nullptr &&
 			static_cast<ACode>(model_description->ac) == ACode::Switch )
@@ -99,6 +102,17 @@ Map::Map(
 
 		out_model.animation_start_time= map_start_time;
 		out_model.animation_start_frame= 0u;
+	}
+
+	items_.resize( map_data_->items.size() );
+	for( unsigned int i= 0u; i < items_.size(); i++ )
+	{
+		const MapData::Item& in_item= map_data_->items[i];
+		Item& out_item= items_[i];
+
+		out_item.item_id= in_item.item_id;
+		out_item.pos= m_Vec3( in_item.pos, 0.0f );
+		out_item.picked_up= false;
 	}
 
 	// Spawn monsters
@@ -825,6 +839,16 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		model_message.angle= AngleToMessageAngle( model.angle );
 
 		messages_sender.SendUnreliableMessage( model_message );
+	}
+
+	for( const Item& item : items_ )
+	{
+		Messages::ItemState message;
+		message.item_index= &item - items_.data();
+		message.z= CoordToMessageCoord( item.pos.z );
+		message.picked= item.picked_up;
+
+		messages_sender.SendUnreliableMessage( message );
 	}
 
 	Messages::SpriteEffectBirth sprite_message;

@@ -94,6 +94,7 @@ public:
 
 	void ProcessMessage( const Messages::MonsterState& message );
 	void ProcessMessage( const Messages::WallPosition& message );
+	void ProcessMessage( const Messages::ItemState& message );
 	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
 	void ProcessMessage( const Messages::MonsterBirth& message );
