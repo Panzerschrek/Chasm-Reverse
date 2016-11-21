@@ -653,10 +653,6 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.light_remap;
 		else if( StringEquals( thing, "Lock" ) )
 			procedure.locked= true;
-		else if( StringEquals( thing, "Loops" ) )
-			line_stream >> procedure.loops;
-		else if( StringEquals( thing, "LoopDelay" ) )
-			line_stream >> procedure.loop_delay_s;
 		else if( StringEquals( thing, "OnMessage" ) )
 			line_stream >> procedure.on_message_number;
 		else if( StringEquals( thing, "FirstMessage" ) )

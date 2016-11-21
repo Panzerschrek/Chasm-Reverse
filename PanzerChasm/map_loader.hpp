@@ -133,8 +133,6 @@ public:
 		bool mortal= false;
 		bool light_remap= false;
 		bool locked= false;
-		unsigned int loops= 0u;
-		float loop_delay_s= 0.0f;
 		unsigned int on_message_number= 0u;
 		unsigned int first_message_number= 0u;
 		unsigned int lock_message_number= 0u;
