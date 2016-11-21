@@ -124,6 +124,19 @@ void Server::Loop()
 
 	if( map_ != nullptr )
 		map_->ClearUpdateEvents();
+
+	// Change map, if needed at end of this loop
+	if( map_end_triggered_ )
+	{
+		map_end_triggered_= false;
+
+		if( map_ != nullptr &&
+			current_map_number_ < 16u )
+		{
+			current_map_number_++;
+			ChangeMap( current_map_number_ );
+		}
+	}
 }
 
 void Server::ChangeMap( const unsigned int map_number )
@@ -138,7 +151,14 @@ void Server::ChangeMap( const unsigned int map_number )
 
 	current_map_number_= map_number;
 	current_map_data_= map_data;
-	map_.reset( new Map( map_data, game_resources_, last_tick_ ) );
+	map_.reset(
+		new Map(
+			map_data,
+			game_resources_,
+			last_tick_,
+			[this](){ map_end_triggered_= true; } ) );
+
+	map_end_triggered_= false;
 
 	state_= State::PlayingMap;
 

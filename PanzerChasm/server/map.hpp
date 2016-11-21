@@ -14,10 +14,13 @@ namespace PanzerChasm
 class Map final
 {
 public:
+	typedef std::function<void()> MapEndCallback;
+
 	Map(
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
-		Time map_start_time );
+		Time map_start_time,
+		MapEndCallback map_end_callback );
 	~Map();
 
 	void SpawnPlayer( Player& player );
@@ -169,10 +172,13 @@ private:
 private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
+	const MapEndCallback map_end_callback_;
 
 	DynamicWalls dynamic_walls_;
 
 	std::vector<ProcedureState> procedures_;
+
+	bool map_end_triggered_= false;
 
 	StaticModels static_models_;
 	Items items_;

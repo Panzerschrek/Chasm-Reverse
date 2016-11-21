@@ -58,9 +58,11 @@ void Map::ProcessElementLinks(
 Map::Map(
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
-	const Time map_start_time )
+	const Time map_start_time,
+	MapEndCallback map_end_callback )
 	: map_data_(map_data)
 	, game_resources_(game_resources)
+	, map_end_callback_( std::move( map_end_callback ) )
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
@@ -455,12 +457,17 @@ void Map::Tick( const Time current_time )
 		const MapData::Procedure& procedure= map_data_->procedures[p];
 		ProcedureState& procedure_state= procedures_[p];
 
-
 		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
 		const float new_stage=
 			procedure.speed > 0.0f
 				? ( time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f )
 				: 1.0f;
+
+		// Check map end
+		if( procedure_state.movement_state != ProcedureState::MovementState::None &&
+			procedure.end_delay_s > 0.0f &&
+			time_since_last_state_change.ToSeconds() >= procedure.end_delay_s )
+			map_end_triggered_= true;
 
 		switch( procedure_state.movement_state )
 		{
@@ -514,7 +521,6 @@ void Map::Tick( const Time current_time )
 				procedure_state.movement_stage= new_stage;
 			break;
 		}; // switch state
-
 
 		// Select positions, using movement state.
 
@@ -858,6 +864,15 @@ void Map::Tick( const Time current_time )
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
 		monster_value.second->Tick( current_time );
+	}
+
+	// At end of this procedure, report about map change, if this needed.
+	// Do it here, because map can be desctructed at callback call.
+	if( map_end_triggered_ &&
+		map_end_callback_ != nullptr )
+	{
+		map_end_triggered_= false;
+		map_end_callback_();
 	}
 }
 

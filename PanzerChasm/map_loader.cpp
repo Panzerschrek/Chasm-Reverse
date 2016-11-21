@@ -639,6 +639,8 @@ void MapLoader::LoadProcedure(
 
 		else if( StringEquals( thing, "StartDelay" ) )
 			line_stream >> procedure.start_delay_s;
+		else if( StringEquals( thing, "EndDelay" ) )
+			line_stream >> procedure.end_delay_s;
 		else if( StringEquals( thing, "BackWait" ) )
 			line_stream >> procedure.back_wait_s;
 		else if( StringEquals( thing, "Speed" ) )

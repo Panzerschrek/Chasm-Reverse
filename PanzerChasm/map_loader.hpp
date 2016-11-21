@@ -127,6 +127,7 @@ public:
 		};
 
 		float start_delay_s= 0.0f;
+		float end_delay_s= 0.0f;
 		float back_wait_s= 0.0f; // If zero - not reversible
 		float speed= 0.0f;
 		bool life_check= false;

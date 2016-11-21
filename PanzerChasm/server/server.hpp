@@ -70,6 +70,8 @@ private:
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<Map> map_;
 
+	bool map_end_triggered_= false;
+
 	std::vector<ConnectedPlayerPtr> players_;
 	ConnectedPlayer* current_player_= nullptr;
 
