@@ -132,6 +132,10 @@ Map::Map(
 	// Spawn monsters
 	for( const MapData::Monster& map_monster : map_data_->monsters )
 	{
+		// Skip players
+		if( map_monster.monster_id == 0u )
+			continue;
+
 		// TODO - check difficulty flags
 		monsters_[ next_monter_id_ ]=
 			MonsterPtr(
