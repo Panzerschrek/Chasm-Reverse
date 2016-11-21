@@ -163,7 +163,12 @@ void Map::SpawnPlayer( Player& player )
 	}
 
 	if( spawn_with_min_number != nullptr )
-		player.SetPosition( m_Vec3( spawn_with_min_number->pos, 4.0f ) );
+	{
+		player.SetPosition(
+			m_Vec3(
+				spawn_with_min_number->pos,
+				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ) );
+	}
 	else
 		player.SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
@@ -1189,7 +1194,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	return result;
 }
 
-float Map::GetFloorLevel( const m_Vec2& pos ) const
+float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 {
 	float max_dz= 0.0f;
 
@@ -1213,7 +1218,8 @@ float Map::GetFloorLevel( const m_Vec2& pos ) const
 			continue;
 
 		const float square_distance= ( pos - map_model.pos ).SquareLength();
-		if( square_distance > model_radius * model_radius )
+		const float collision_distance= model_radius + radius;
+		if( square_distance > collision_distance * collision_distance )
 			continue;
 
 		// Hit here

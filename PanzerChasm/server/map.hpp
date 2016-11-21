@@ -161,7 +161,7 @@ private:
 		const Func& func );
 
 	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
-	float GetFloorLevel( const m_Vec2& pos ) const;
+	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
 	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
 
