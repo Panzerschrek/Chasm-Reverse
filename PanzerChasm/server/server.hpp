@@ -40,7 +40,7 @@ private:
 
 	struct ConnectedPlayer final
 	{
-		explicit ConnectedPlayer( const IConnectionPtr& connection );
+		ConnectedPlayer( const IConnectionPtr& connection, const GameResourcesConstPtr& game_resoruces );
 
 		ConnectionInfo connection_info;
 		Player player;

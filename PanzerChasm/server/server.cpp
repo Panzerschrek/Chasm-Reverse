@@ -11,9 +11,11 @@
 namespace PanzerChasm
 {
 
-Server::ConnectedPlayer::ConnectedPlayer( const IConnectionPtr& connection )
+Server::ConnectedPlayer::ConnectedPlayer(
+	const IConnectionPtr& connection,
+	const GameResourcesConstPtr& game_resoruces  )
 	: connection_info( connection )
-	, player()
+	, player( game_resoruces )
 {}
 
 Server::Server(
@@ -52,7 +54,7 @@ void Server::Loop()
 {
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
-		players_.emplace_back( new ConnectedPlayer( connection ) );
+		players_.emplace_back( new ConnectedPlayer( connection, game_resources_ ) );
 		ConnectedPlayer& connected_player= *players_.back();
 
 		if( map_ != nullptr )

@@ -3,8 +3,10 @@
 #include <vec.hpp>
 
 #include "../game_constants.hpp"
+#include "../game_resources.hpp"
 #include "../messages.hpp"
 #include "../time.hpp"
+#include "a_code.hpp"
 
 namespace PanzerChasm
 {
@@ -13,7 +15,7 @@ namespace PanzerChasm
 class Player final
 {
 public:
-	Player();
+	explicit Player( const GameResourcesConstPtr& game_resources );
 	~Player();
 
 	void SetPosition( const m_Vec3& pos );
@@ -22,6 +24,8 @@ public:
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
 	void ResetActivatedProcedure();
+
+	bool TryPickupItem( unsigned int item_id );
 
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 
@@ -43,12 +47,15 @@ public:
 	m_Vec3 Position() const;
 
 private:
+	const GameResourcesConstPtr game_resources_;
+
 	m_Vec3 pos_;
 	m_Vec3 speed_;
 	bool on_floor_;
 	bool noclip_;
 
 	unsigned char ammo_[ GameConstants::weapon_count ];
+	bool have_weapon_[ GameConstants::weapon_count ];
 	int health_;
 	int armor_;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "../game_constants.hpp"
 
 namespace PanzerChasm
 {
@@ -7,23 +8,14 @@ namespace PanzerChasm
 // Based on info from files CHASM.INF and RESOURCE.XX.
 enum class ACode : unsigned char
 {
-	// Weapon
-	Weapon_Rifle= 2,
-	Weapon_DoubleBarreldGun= 3,
-	Weapon_Disk= 4,
-	Weapon_Arbalet= 5,
-	Weapon_GrenadeLauncher= 6,
-	Weapon_MD= 8,
+	Weapon_First= 1u,
+	Weapon_Last= Weapon_First + GameConstants::weapon_count - 1u,
 
 	// Ammo
-	Ammo_Bullets= 21,
-	Ammo_gbbull= 22,
-	Ammo_vbox= 35,
-	Ammo_Saws= 41,
-	Ammo_Arrows= 52,
-	Ammo_Grenades= 62,
-	Ammo_Mines= 74,
-	Ammo_MDBox= 82,
+	// For ammo major decimal digit is weapon number, minor decimal digit is count of ammo portion.
+	// Portion size - see weapons description.
+	Ammo_First= Weapon_First * 10u,
+	Ammo_Last= Weapon_Last * 10u + 9u,
 
 	// Useful items
 	Item_chojin= 133,

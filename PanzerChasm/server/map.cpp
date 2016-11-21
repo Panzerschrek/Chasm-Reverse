@@ -411,6 +411,17 @@ void Map::ProcessPlayerPosition(
 			}
 		}
 	}
+
+	//Process items
+	for( Item& item : items_ )
+	{
+		if( item.picked_up )
+			continue;
+
+		const float square_distance= ( item.pos.xy() - player.Position().xy() ).SquareLength();
+		if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
+			item.picked_up= player.TryPickupItem( item.item_id );
+	}
 }
 
 void Map::Tick( const Time current_time )

@@ -8,15 +8,24 @@
 namespace PanzerChasm
 {
 
-Player::Player()
-	: pos_( 0.0f, 0.0f, 0.0f )
+Player::Player( const GameResourcesConstPtr& game_resources )
+	: game_resources_( game_resources )
+	, pos_( 0.0f, 0.0f, 0.0f )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
 	, health_(100)
 	, armor_(0)
 {
-	std::memset( ammo_, 0u, sizeof(ammo_) );
+	PC_ASSERT( game_resources_ != nullptr );
+
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+	{
+		ammo_[i]= 0u;
+		have_weapon_[i]= false;
+	}
+
+	have_weapon_[0]= true;
 }
 
 Player::~Player()
@@ -59,6 +68,93 @@ void Player::ResetActivatedProcedure()
 {
 	last_activated_procedure_= 0u;
 	last_activated_procedure_activation_time_= Time::FromSeconds(0);
+}
+
+bool Player::TryPickupItem( const unsigned int item_id )
+{
+	if( item_id >=  game_resources_->items_description.size() )
+		return false;
+
+	const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item_id ].a_code );
+
+	if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
+	{
+		const unsigned int weapon_index=
+			static_cast<unsigned int>( a_code ) - static_cast<unsigned int>( ACode::Weapon_First );
+
+		const GameResources::WeaponDescription& weapon_description= game_resources_->weapons_description[ weapon_index ];
+
+		if( have_weapon_[ weapon_index ] &&
+			ammo_[ weapon_index ] >= static_cast<unsigned int>( weapon_description.limit ) )
+			return false;
+
+		have_weapon_[ weapon_index ]= true;
+
+		unsigned int new_ammo_count= ammo_[ weapon_index ] + static_cast<unsigned int>( weapon_description.start );
+		new_ammo_count= std::min( new_ammo_count, static_cast<unsigned int>( weapon_description.limit ) );
+		ammo_[ weapon_index ]= new_ammo_count;
+
+		return true;
+	}
+	else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
+	{
+		const unsigned int weapon_index=
+			static_cast<unsigned int>( a_code ) / 10u - static_cast<unsigned int>( ACode::Weapon_First );
+
+		const unsigned int ammo_portion_size= static_cast<unsigned int>( a_code ) % 10u;
+
+		const GameResources::WeaponDescription& weapon_description= game_resources_->weapons_description[ weapon_index ];
+
+		if( ammo_[ weapon_index ] >= static_cast<unsigned int>( weapon_description.limit ) )
+			return false;
+
+		unsigned int new_ammo_count=
+			ammo_[ weapon_index ] +
+			static_cast<unsigned int>( weapon_description.d_am ) * ammo_portion_size;
+
+		new_ammo_count= std::min( new_ammo_count, static_cast<unsigned int>( weapon_description.limit ) );
+		ammo_[ weapon_index ]= new_ammo_count;
+
+		return true;
+	}
+	else if( a_code == ACode::Item_Life )
+	{
+		if( health_ < 100 )
+		{
+			health_= std::min( health_ + 20, 100 );
+			return true;
+		}
+		return false;
+	}
+	else if( a_code == ACode::Item_BigLife )
+	{
+		if( health_ < 200 )
+		{
+			health_= std::min( health_ + 100, 200 );
+			return true;
+		}
+		return false;
+	}
+	else if( a_code == ACode::Item_Armor )
+	{
+		if( armor_ < 200 )
+		{
+			armor_= std::min( armor_ + 200, 200 );
+			return true;
+		}
+		return false;
+	}
+	else if( a_code == ACode::Item_Helmet )
+	{
+		if( armor_ < 200 )
+		{
+			armor_= std::min( armor_ + 100, 200 );
+			return true;
+		}
+		return false;
+	}
+
+	return false;
 }
 
 void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const

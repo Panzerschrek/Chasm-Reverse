@@ -205,6 +205,7 @@ static void LoadWeaponsDescription(
 		line_stream >> weapon_description.r_z0;
 		line_stream >> weapon_description.d_am;
 		line_stream >> weapon_description.limit;
+		line_stream >> weapon_description.start;
 		line_stream >> weapon_description.r_count;
 	}
 }
