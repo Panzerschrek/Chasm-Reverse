@@ -203,7 +203,6 @@ public:
 			Shoot,
 			Return,
 			Destroy,
-			OnOffLink,
 		} type= None;
 		unsigned char proc_id= 0u;
 		unsigned char x, y;
