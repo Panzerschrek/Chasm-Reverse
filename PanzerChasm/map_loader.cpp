@@ -101,8 +101,6 @@ static decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
 		return MapData::Link::Shoot;
 	if( StringEquals( str, "return" ) )
 		return MapData::Link::Return;
-	if( StringEquals( str, "unlock" ) )
-		return MapData::Link::Unlock;
 	if(StringEquals( str, "destroy" ) )
 		return MapData::Link::Destroy;
 	if( StringEquals( str, "onofflink" ) )

@@ -204,7 +204,6 @@ public:
 			Floor,
 			Shoot,
 			Return,
-			Unlock,
 			Destroy,
 			OnOffLink,
 		} type= None;
