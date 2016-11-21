@@ -120,6 +120,14 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 	{
 		switch(event.type)
 		{
+		case SDL_WINDOWEVENT:
+			if( event.window.event == SDL_WINDOWEVENT_CLOSE )
+			{
+				out_events.emplace_back();
+				out_events.back().type= SystemEvent::Type::Quit;
+			}
+			break;
+
 		case SDL_QUIT:
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::Quit;
