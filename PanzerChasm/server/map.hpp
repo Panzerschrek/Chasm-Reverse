@@ -83,6 +83,8 @@ private:
 		enum class AnimationState
 		{
 			Animation,
+			SingleAnimation,
+			SingleReverseAnimation,
 			SingleFrame,
 		};
 
@@ -157,6 +159,7 @@ private:
 	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
 	void ProcedureProcessDestroy( unsigned int procedure_number, Time current_time );
 	void ProcedureProcessShoot( unsigned int procedure_number, Time current_time );
+	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time  );
 
 	template<class Func>
 	void ProcessElementLinks(

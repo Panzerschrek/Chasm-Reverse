@@ -477,6 +477,7 @@ void Map::Tick( const Time current_time )
 		case ProcedureState::MovementState::StartWait:
 			if( time_since_last_state_change.ToSeconds() >= procedure.start_delay_s )
 			{
+				ActivateProcedureSwitches( procedure, false, current_time );
 				procedure_state.movement_state= ProcedureState::MovementState::Movement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -503,6 +504,7 @@ void Map::Tick( const Time current_time )
 				procedure.back_wait_s > 0.0f &&
 				wait_time.ToSeconds() >= procedure.back_wait_s )
 			{
+				ActivateProcedureSwitches( procedure, true, current_time );
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -672,26 +674,58 @@ void Map::Tick( const Time current_time )
 	// Process static models
 	for( StaticModel& model : static_models_ )
 	{
+		const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
+		const float animation_frame= time_delta_s * GameConstants::animations_frames_per_second;
+
 		if( model.animation_state == StaticModel::AnimationState::Animation )
 		{
-			const float time_delta_s= ( current_time - model.animation_start_time ).ToSeconds();
-			const float animation_frame= time_delta_s * GameConstants::animations_frames_per_second;
-
 			if( model.model_id < map_data_->models.size() )
 			{
 				const Model& model_geometry= map_data_->models[ model.model_id ];
-				const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
 
-				if( static_cast<ACode>(description.ac) == ACode::Switch &&
-					animation_frame >= float( model_geometry.frame_count - 1u ) )
-					model.current_animation_frame= model_geometry.frame_count - 1u;
-				else
-					model.current_animation_frame=
-						static_cast<unsigned int>( std::round(animation_frame) ) % model_geometry.frame_count;
+				model.current_animation_frame=
+					static_cast<unsigned int>( std::round(animation_frame) ) % model_geometry.frame_count;
 			}
 			else
 				model.current_animation_frame= 0u;
 		}
+		else if( model.animation_state == StaticModel::AnimationState::SingleAnimation )
+		{
+			if( model.model_id < map_data_->models.size() )
+			{
+				const Model& model_geometry= map_data_->models[ model.model_id ];
+
+				const unsigned int animation_frame_integer= static_cast<unsigned int>( std::round(animation_frame) );
+				if( animation_frame_integer >= model_geometry.frame_count - 1u )
+				{
+					model.animation_state= StaticModel::AnimationState::SingleFrame;
+					model.animation_start_frame= model_geometry.frame_count - 1u;
+				}
+				else
+					model.current_animation_frame= animation_frame_integer;
+			}
+			else
+				model.current_animation_frame= 0u;
+		}
+		else if( model.animation_state == StaticModel::AnimationState::SingleReverseAnimation )
+		{
+			if( model.model_id < map_data_->models.size() )
+			{
+				const int animation_frame_integer=
+					int(model.animation_start_frame) - static_cast<int>( std::round(animation_frame) );
+				if( animation_frame_integer <= 0 )
+				{
+					model.animation_state= StaticModel::AnimationState::SingleFrame;
+					model.animation_start_frame= 0u;
+				}
+				else
+					model.current_animation_frame= animation_frame_integer;
+			}
+			else
+				model.current_animation_frame= 0u;
+		}
+		else if( model.animation_state == StaticModel::AnimationState::SingleFrame )
+			model.current_animation_frame= model.animation_start_frame;
 		else
 			model.current_animation_frame= model.animation_start_frame;
 	} // for static models
@@ -993,26 +1027,6 @@ void Map::ActivateProcedure( const unsigned int procedure_number, const Time cur
 	procedure_state.movement_state= ProcedureState::MovementState::StartWait;
 	procedure_state.last_state_change_time= current_time;
 
-	for( const MapData::Procedure::SwitchPos& siwtch_pos : procedure.linked_switches )
-	{
-		if( siwtch_pos.x >= MapData::c_map_size || siwtch_pos.y >= MapData::c_map_size )
-			continue;
-
-		const MapData::IndexElement& index_element= map_data_->map_index[ siwtch_pos.x + siwtch_pos.y * MapData::c_map_size ];
-		if( index_element.type == MapData::IndexElement::StaticModel )
-		{
-			PC_ASSERT( index_element.index < static_models_.size() );
-			StaticModel& model= static_models_[ index_element.index ];
-
-			if( model.animation_state == StaticModel::AnimationState::SingleFrame )
-			{
-				model.animation_state= StaticModel::AnimationState::Animation;
-				model.animation_start_time= current_time;
-				model.animation_start_frame= 0u;
-			}
-		}
-	}
-
 	// Do immediate commands
 	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
 	{
@@ -1110,6 +1124,41 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
 {
 	ActivateProcedure( procedure_number, current_time );
+}
+
+void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const bool inverse_animation, const Time current_time )
+{
+	for( const MapData::Procedure::SwitchPos& siwtch_pos : procedure.linked_switches )
+	{
+		if( siwtch_pos.x >= MapData::c_map_size || siwtch_pos.y >= MapData::c_map_size )
+			continue;
+
+		const MapData::IndexElement& index_element= map_data_->map_index[ siwtch_pos.x + siwtch_pos.y * MapData::c_map_size ];
+		if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( index_element.index < static_models_.size() );
+			StaticModel& model= static_models_[ index_element.index ];
+
+			if( model.animation_state == StaticModel::AnimationState::SingleFrame )
+			{
+				model.animation_start_time= current_time;
+
+				if( inverse_animation )
+				{
+					model.animation_state= StaticModel::AnimationState::SingleReverseAnimation;
+					if( model.model_id < map_data_->models.size() )
+						model.animation_start_frame= map_data_->models[ model.model_id ].frame_count - 1u;
+					else
+						model.animation_start_frame= 0u;
+				}
+				else
+				{
+					model.animation_state= StaticModel::AnimationState::SingleAnimation;
+					model.animation_start_frame= 0u;
+				}
+			}
+		}
+	}
 }
 
 Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const
