@@ -965,7 +965,7 @@ void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls 
 		v[0].xyz[2]= v[1].xyz[2]= short( wall.z * 256.0f );
 		v[2].xyz[2]= v[3].xyz[2]=v[0].xyz[2] + (2u << 8u);
 
-		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= map_wall.texture_id;
+		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= wall.texture_id;
 
 		v[2].tex_coord_x= v[0].tex_coord_x= map_wall.vert_tex_coord[0];
 		v[1].tex_coord_x= v[3].tex_coord_x= map_wall.vert_tex_coord[1];

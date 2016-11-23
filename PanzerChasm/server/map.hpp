@@ -79,6 +79,7 @@ private:
 	{
 		m_Vec2 vert_pos[2];
 		float z;
+		unsigned char texture_id;
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;
@@ -171,7 +172,8 @@ private:
 	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
 	void ProcedureProcessDestroy( unsigned int procedure_number, Time current_time );
 	void ProcedureProcessShoot( unsigned int procedure_number, Time current_time );
-	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time  );
+	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time );
+	void DoProcedureImmediateCommands( const MapData::Procedure& procedure );
 
 	template<class Func>
 	void ProcessElementLinks(

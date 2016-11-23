@@ -56,6 +56,7 @@ struct WallPosition : public MessageBase
 	unsigned short wall_index;
 	CoordType vertices_xy[2][2];
 	short z;
+	unsigned char texture_id;
 };
 
 struct PlayerPosition : public MessageBase

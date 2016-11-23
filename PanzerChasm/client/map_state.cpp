@@ -30,6 +30,7 @@ MapState::MapState(
 		out_wall.vert_pos[0]= in_wall.vert_pos[0];
 		out_wall.vert_pos[1]= in_wall.vert_pos[1];
 		out_wall.z= 0.0f;
+		out_wall.texture_id= in_wall.texture_id;
 	}
 
 	static_models_.resize( map_data_->static_models.size() );
@@ -200,6 +201,7 @@ void MapState::ProcessMessage( const Messages::WallPosition& message )
 	MessagePositionToPosition( message.vertices_xy[0], wall.vert_pos[0] );
 	MessagePositionToPosition( message.vertices_xy[1], wall.vert_pos[1] );
 	wall.z= MessageCoordToCoord( message.z );
+	wall.texture_id= message.texture_id;
 }
 
 void MapState::ProcessMessage( const Messages::ItemState& message )

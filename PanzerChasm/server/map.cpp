@@ -81,6 +81,10 @@ Map::Map(
 	}
 
 	dynamic_walls_.resize( map_data_->dynamic_walls.size() );
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		dynamic_walls_[w].texture_id= map_data_->dynamic_walls[w].texture_id;
+	}
 
 	static_models_.resize( map_data_->static_models.size() );
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
@@ -569,6 +573,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( time_since_last_state_change.ToSeconds() >= procedure.start_delay_s )
 			{
 				ActivateProcedureSwitches( procedure, false, current_time );
+				DoProcedureImmediateCommands( procedure );
 				procedure_state.movement_state= ProcedureState::MovementState::Movement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -1143,6 +1148,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		PositionToMessagePosition( wall.vert_pos[0], wall_message.vertices_xy[0] );
 		PositionToMessagePosition( wall.vert_pos[1], wall_message.vertices_xy[1] );
 		wall_message.z= CoordToMessageCoord( wall.z );
+		wall_message.texture_id= wall.texture_id;
 
 		messages_sender.SendUnreliableMessage( wall_message );
 	}
@@ -1233,40 +1239,11 @@ void Map::ClearUpdateEvents()
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
 {
-	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
 
 	procedure_state.movement_stage= 0.0f;
 	procedure_state.movement_state= ProcedureState::MovementState::StartWait;
 	procedure_state.last_state_change_time= current_time;
-
-	// Do immediate commands
-	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
-	{
-		using Command= MapData::Procedure::ActionCommandId;
-		if( command.id == Command::Lock )
-		{
-			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-			PC_ASSERT( proc_number < procedures_.size() );
-
-			procedures_[ proc_number ].locked= true;
-		}
-		else if( command.id == Command::Unlock )
-		{
-			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
-			PC_ASSERT( proc_number < procedures_.size() );
-
-			procedures_[ proc_number ].locked= false;
-		}
-		// TODO - know, how animation commands works
-		else if( command.id == Command::PlayAnimation )
-		{}
-		else if( command.id == Command::StopAnimation )
-		{}
-		// TODO - process other commands
-		else
-		{}
-	}
 }
 
 void Map::TryActivateProcedure(
@@ -1371,6 +1348,75 @@ void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const 
 				}
 			}
 		}
+	}
+}
+
+void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
+{
+	// Do immediate commands
+	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+	{
+		using Command= MapData::Procedure::ActionCommandId;
+		if( command.id == Command::Lock )
+		{
+			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+			PC_ASSERT( proc_number < procedures_.size() );
+
+			procedures_[ proc_number ].locked= true;
+		}
+		else if( command.id == Command::Unlock )
+		{
+			const unsigned short proc_number= static_cast<unsigned short>( command.args[0] );
+			PC_ASSERT( proc_number < procedures_.size() );
+
+			procedures_[ proc_number ].locked= false;
+		}
+		// TODO - know, how animation commands works
+		else if( command.id == Command::PlayAnimation )
+		{}
+		else if( command.id == Command::StopAnimation )
+		{}
+		else if( command.id == Command::Change )
+		{
+			const unsigned int x= static_cast<unsigned int>( command.args[0] );
+			const unsigned int y= static_cast<unsigned int>( command.args[1] );
+			const unsigned int id= static_cast<unsigned int>( command.args[2] );
+			if( x < MapData::c_map_size && y < MapData::c_map_size )
+			{
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+				if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+
+					StaticModel& model = static_models_[ index_element.index ];
+
+					// Reset Animation, if model changed.
+					if( model.model_id < map_data_->models_description.size())
+					{
+						if( ACode( map_data_->models_description[ model.model_id ].ac ) == ACode::Switch)
+						{
+							model.animation_start_frame= 0u;
+							model.animation_state= StaticModel::AnimationState::SingleFrame;
+						}
+					}
+					else
+					{
+						model.animation_start_frame= 0;
+						model.animation_state= StaticModel::AnimationState::Animation;
+					}
+
+					model.model_id= id - 163u;
+				}
+				else if( index_element.type == MapData::IndexElement::DynamicWall )
+				{
+					PC_ASSERT( index_element.index < dynamic_walls_.size() );
+					dynamic_walls_[ index_element.index ].texture_id= id;
+				}
+			}
+		}
+		// TODO - process other commands
+		else
+		{}
 	}
 }
 

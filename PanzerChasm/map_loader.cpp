@@ -757,7 +757,8 @@ void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out
 				command.id == Command::XMove ||
 				command.id == Command::YMove ||
 				command.id == Command::Rotate ||
-				command.id == Command::Up )
+				command.id == Command::Up ||
+				command.id == Command::Change )
 			{
 				const unsigned int x= static_cast<unsigned int>(command.args[0]);
 				const unsigned int y= static_cast<unsigned int>(command.args[1]);

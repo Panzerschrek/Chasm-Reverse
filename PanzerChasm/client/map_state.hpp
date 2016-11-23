@@ -15,6 +15,7 @@ public:
 	struct DynamicWall
 	{
 		m_Vec2 vert_pos[2];
+		unsigned char texture_id;
 		float z; // wall bottom z
 	};
 
