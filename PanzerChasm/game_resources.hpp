@@ -34,12 +34,13 @@ public:
 	struct MonsterDescription
 	{
 		char model_file_name[ c_max_file_name_size ];
-		float w_radius, a_radius;
-		int speed, r;
+		float w_radius; // Collisions radius ( with walls ).
+		float attack_radius; // Also collision with player radius.
+		int speed, rotation_speed;
 		int life;
 		int kick; // Kick damage.
 		int rock; // Rocket numer. -1 - no remote attack, maybe
-		int sep_limit;
+		int sep_limit; // Chance of body parts separation, percents.
 	};
 
 	struct SpriteEffectDescription
