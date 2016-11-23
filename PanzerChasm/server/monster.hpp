@@ -59,7 +59,7 @@ private:
 		RightHandLost= 11u,
 		LeftHandLost= 12u,
 		HeadLost= 13u, // ?
-		Death0= 14u,
+		Death0= 14u, // Reverse death animation, possibly
 		Death1= 15u,
 		Death2= 16u,
 		Death3= 17u,
