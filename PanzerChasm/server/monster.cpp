@@ -80,6 +80,7 @@ void Monster::Tick( const Time current_time )
 			state_= State::Idle;
 			current_animation_start_time_= current_time;
 			current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1 } );
+			current_animation_frame_= 0u;
 		}
 		else
 			current_animation_frame_= animation_frame_unwrapped;
