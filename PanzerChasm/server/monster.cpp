@@ -1,4 +1,5 @@
 #include "../game_constants.hpp"
+#include "math_utils.hpp"
 
 #include "collisions.hpp"
 
@@ -17,7 +18,7 @@ Monster::Monster(
 	, game_resources_(game_resources)
 	, random_generator_(random_generator)
 	, pos_( map_monster.pos, z )
-	, angle_( map_monster.angle )
+	, angle_( NormalizeAngle( map_monster.angle ) )
 	, current_animation_start_time_(spawn_time)
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -197,10 +198,9 @@ void Monster::MoveToTarget( const float time_delta_s )
 	if( vec_to_target_length == 0.0f )
 		return;
 
-	const m_Vec2 vec_to_target_normalized= vec_to_target / vec_to_target_length;
+	const GameResources::MonsterDescription& monster_description= game_resources_->monsters_description[ monster_id_ ];
 
-	const float distance_delta=
-		time_delta_s * float( game_resources_->monsters_description[ monster_id_ ].speed ) / 10.0f;
+	const float distance_delta= time_delta_s * float( monster_description.speed ) / 10.0f;
 
 	if( distance_delta >= vec_to_target_length )
 	{
@@ -209,9 +209,29 @@ void Monster::MoveToTarget( const float time_delta_s )
 	}
 	else
 	{
-		const m_Vec2 move_delta= vec_to_target_normalized * distance_delta;
-		pos_.x+= move_delta.x;
-		pos_.y+= move_delta.y;
+		pos_.x+= std::cos(angle_) * distance_delta;
+		pos_.y+= std::sin(angle_) * distance_delta;
+	}
+
+	const float target_angle= NormalizeAngle( std::atan2( vec_to_target.y, vec_to_target.x ) );
+	float target_angle_delta= target_angle - angle_;
+	if( target_angle_delta > +Constants::pi )
+		target_angle_delta-= Constants::two_pi;
+	if( target_angle_delta < -Constants::pi )
+		target_angle_delta+= Constants::two_pi;
+
+	if( target_angle_delta != 0.0f )
+	{
+		const float abs_target_angle_delta= std::abs(target_angle_delta);
+		const float angle_delta= time_delta_s * float(monster_description.rotation_speed);
+
+		if( angle_delta >= abs_target_angle_delta )
+			angle_= target_angle;
+		else
+		{
+			const float turn_direction= target_angle_delta > 0.0f ? 1.0f : -1.0f;
+			angle_= NormalizeAngle( angle_ + turn_direction * angle_delta );
+		}
 	}
 }
 

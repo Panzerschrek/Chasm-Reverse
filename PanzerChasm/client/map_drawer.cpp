@@ -1108,7 +1108,7 @@ void MapDrawer::DrawMonsters(
 
 		m_Mat4 model_matrix;
 		m_Mat3 lightmap_matrix;
-		CreateModelMatrices( monster.pos, monster.angle, model_matrix, lightmap_matrix );
+		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );

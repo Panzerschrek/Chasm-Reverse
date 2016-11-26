@@ -81,7 +81,7 @@ private:
 	LongRandPtr random_generator_;
 
 	m_Vec3 pos_;
-	float angle_;
+	float angle_; // [ 0; 2 * pi )
 	State state_= State::Idle;
 	int life_;
 

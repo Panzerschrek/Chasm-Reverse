@@ -27,4 +27,7 @@ const float min_float= -max_float;
 // Returnz z angle in out_angle[0] and x angle in out_angle[1]
 void VecToAngles( const m_Vec3& vec, float* out_angle );
 
+// Convert to range [ 0; 2 * pi )
+float NormalizeAngle( float angle );
+
 } // namespace PanzerChasm
