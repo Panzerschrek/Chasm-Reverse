@@ -28,10 +28,6 @@ Monster::Monster(
 	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
 
 	life_= game_resources_->monsters_description[ monster_id_ ].life;
-
-	current_animation_= GetAnimation( AnimationId::Run );
-	state_= State::MoveToTarget;
-	SelectTarget( spawn_time );
 }
 
 Monster::~Monster()
@@ -93,9 +89,10 @@ void Monster::Tick( const Time current_time, const Time last_tick_delta )
 	case State::PainShock:
 		if( animation_frame_unwrapped >= frame_count )
 		{
-			state_= State::Idle;
+			state_= State::MoveToTarget;
+			SelectTarget( current_time );
+			current_animation_= GetAnimation( AnimationId::Run );
 			current_animation_start_time_= current_time;
-			current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1 } );
 			current_animation_frame_= 0u;
 		}
 		else
