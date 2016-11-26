@@ -63,6 +63,7 @@ Map::Map(
 	: map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
+	, random_generator_( std::make_shared<LongRand>() )
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
@@ -145,6 +146,7 @@ Map::Map(
 					map_monster,
 					GetFloorLevel( map_monster.pos ),
 					game_resources_,
+					random_generator_,
 					map_start_time ) );
 
 		next_monter_id_++;

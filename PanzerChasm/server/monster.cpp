@@ -11,14 +11,17 @@ Monster::Monster(
 	const MapData::Monster& map_monster,
 	const float z,
 	const GameResourcesConstPtr& game_resources,
+	const LongRandPtr& random_generator,
 	const Time spawn_time )
 	: monster_id_( map_monster.monster_id )
 	, game_resources_(game_resources)
+	, random_generator_(random_generator)
 	, pos_( map_monster.pos, z )
 	, angle_( map_monster.angle )
 	, current_animation_start_time_(spawn_time)
 {
 	PC_ASSERT( game_resources_ != nullptr );
+	PC_ASSERT( random_generator_ != nullptr );
 	PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );
 
 	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );

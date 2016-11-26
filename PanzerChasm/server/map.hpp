@@ -6,6 +6,7 @@
 #include "../time.hpp"
 #include "monster.hpp"
 #include "player.hpp"
+#include "rand.hpp"
 
 namespace PanzerChasm
 {
@@ -176,6 +177,8 @@ private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const MapEndCallback map_end_callback_;
+
+	const LongRandPtr random_generator_;
 
 	DynamicWalls dynamic_walls_;
 

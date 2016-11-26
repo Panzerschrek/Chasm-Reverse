@@ -43,6 +43,7 @@ SOURCES+= \
 	server/map.cpp \
 	server/monster.cpp \
 	server/player.cpp \
+	server/rand.cpp \
 	server/server.cpp \
 	system_window.cpp \
 	time.cpp \
@@ -85,6 +86,7 @@ HEADERS+= \
 	server/map.hpp \
 	server/monster.hpp \
 	server/player.hpp \
+	server/rand.hpp \
 	server/server.hpp \
 	size.hpp \
 	system_event.hpp \

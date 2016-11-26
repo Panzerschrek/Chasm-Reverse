@@ -6,6 +6,7 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../time.hpp"
+#include "rand.hpp"
 
 namespace PanzerChasm
 {
@@ -17,6 +18,7 @@ public:
 		const MapData::Monster& map_monster,
 		float z,
 		const GameResourcesConstPtr& game_resources,
+		const LongRandPtr& random_generator,
 		Time spawn_time );
 	~Monster();
 
@@ -73,6 +75,7 @@ private:
 private:
 	const unsigned char monster_id_;
 	const GameResourcesConstPtr game_resources_;
+	LongRandPtr random_generator_;
 
 	m_Vec3 pos_;
 	float angle_;
