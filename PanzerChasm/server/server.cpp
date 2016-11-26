@@ -45,6 +45,8 @@ Server::Server(
 
 	commands_= std::move( commands );
 	commands_processor.RegisterCommands( commands_ );
+
+	UpdateTimes();
 }
 
 Server::~Server()
@@ -100,7 +102,7 @@ void Server::Loop()
 
 	// Process map inner logic
 	if( map_ != nullptr )
-		map_->Tick( server_accumulated_time_ );
+		map_->Tick( server_accumulated_time_, last_tick_duration_ );
 
 	// Send messages
 	for( const ConnectedPlayerPtr& connected_player : players_ )
@@ -155,7 +157,7 @@ void Server::ChangeMap( const unsigned int map_number )
 		new Map(
 			map_data,
 			game_resources_,
-			last_tick_,
+			server_accumulated_time_,
 			[this](){ map_end_triggered_= true; } ) );
 
 	map_end_triggered_= false;

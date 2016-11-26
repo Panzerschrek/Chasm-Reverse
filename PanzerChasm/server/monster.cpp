@@ -27,6 +27,10 @@ Monster::Monster(
 	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
 
 	life_= game_resources_->monsters_description[ monster_id_ ].life;
+
+	current_animation_= GetAnimation( AnimationId::Run );
+	state_= State::MoveToTarget;
+	SelectTarget( spawn_time );
 }
 
 Monster::~Monster()
@@ -57,7 +61,7 @@ unsigned int Monster::CurrentAnimationFrame() const
 	return current_animation_frame_;
 }
 
-void Monster::Tick( const Time current_time )
+void Monster::Tick( const Time current_time, const Time last_tick_delta )
 {
 	const Model& model= game_resources_->monsters_models[ monster_id_ ];
 
@@ -74,6 +78,14 @@ void Monster::Tick( const Time current_time )
 	{
 	case State::Idle:
 	default:
+		current_animation_frame_= animation_frame_unwrapped % frame_count;
+		break;
+
+	case State::MoveToTarget:
+		if( current_time >= target_change_time_ )
+			SelectTarget( current_time );
+		MoveToTarget( last_tick_delta.ToSeconds() );
+
 		current_animation_frame_= animation_frame_unwrapped % frame_count;
 		break;
 
@@ -174,6 +186,43 @@ int Monster::GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) co
 	}
 
 	return -1;
+}
+
+void Monster::MoveToTarget( const float time_delta_s )
+{
+	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
+	const float vec_to_target_length= vec_to_target.Length();
+
+	// Nothing to do, we are on target
+	if( vec_to_target_length == 0.0f )
+		return;
+
+	const m_Vec2 vec_to_target_normalized= vec_to_target / vec_to_target_length;
+
+	const float distance_delta=
+		time_delta_s * float( game_resources_->monsters_description[ monster_id_ ].speed ) / 10.0f;
+
+	if( distance_delta >= vec_to_target_length )
+	{
+		pos_.x= target_position_.x;
+		pos_.y= target_position_.y;
+	}
+	else
+	{
+		const m_Vec2 move_delta= vec_to_target_normalized * distance_delta;
+		pos_.x+= move_delta.x;
+		pos_.y+= move_delta.y;
+	}
+}
+
+void Monster::SelectTarget( const Time current_time )
+{
+	const float direction= random_generator_->RandAngle();
+	const float distance= random_generator_->RandValue( 2.0f, 5.0f );
+	const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
+
+	target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
+	target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 }
 
 } // namespace PanzerChasm

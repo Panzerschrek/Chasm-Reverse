@@ -29,7 +29,7 @@ public:
 	unsigned int CurrentAnimation() const;
 	unsigned int CurrentAnimationFrame() const;
 
-	void Tick( Time current_time );
+	void Tick( Time current_time, Time last_tick_delta );
 	void Hit( int damage, Time current_time );
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
@@ -72,6 +72,9 @@ private:
 	int GetAnimation( AnimationId id ) const;
 	int GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) const;
 
+	void MoveToTarget( const float time_delta_s );
+	void SelectTarget( Time current_time );
+
 private:
 	const unsigned char monster_id_;
 	const GameResourcesConstPtr game_resources_;
@@ -85,6 +88,9 @@ private:
 	unsigned int current_animation_= 0u;
 	unsigned int current_animation_frame_= 0u;
 	Time current_animation_start_time_;
+
+	m_Vec3 target_position_;
+	Time target_change_time_= Time::FromSeconds(0);
 };
 
 typedef std::unique_ptr<Monster> MonsterPtr;

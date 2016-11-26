@@ -33,7 +33,7 @@ public:
 		Time current_time );
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
-	void Tick( Time current_time );
+	void Tick( Time current_time, Time last_tick_delta );
 
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;

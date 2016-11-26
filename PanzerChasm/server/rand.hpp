@@ -15,6 +15,13 @@ public:
 
 	RandResultType Rand();
 
+	// Random angle in range [ 0; 2 * pi ) with linear distribution.
+	float RandAngle();
+	// Random value in range [ 0; next_value_after_max ) with linear distribution.
+	float RandValue( float next_value_after_max );
+	// Random value in range [ min_value; next_value_after_max ) with linear distribution.
+	float RandValue( float min_value, float next_value_after_max );
+
 private:
 	// Simple and fast generator.
 	// Produces good result for bits 0-31.

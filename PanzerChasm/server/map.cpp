@@ -451,7 +451,7 @@ void Map::ProcessPlayerPosition(
 	}
 }
 
-void Map::Tick( const Time current_time )
+void Map::Tick( const Time current_time, const Time last_tick_delta )
 {
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -899,7 +899,7 @@ void Map::Tick( const Time current_time )
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
-		monster_value.second->Tick( current_time );
+		monster_value.second->Tick( current_time, last_tick_delta );
 	}
 
 	// At end of this procedure, report about map change, if this needed.
