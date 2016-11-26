@@ -48,14 +48,14 @@ private:
 	{
 		Run= 0u,
 		Idle0= 2u,
-		Idle1= 3u,
-		RemoteAttack0= 4u,
-		RemoteAttack1= 5u,
-		MeleeAtack0= 6u,
-		MeleeAtack1= 7u,
-		MeleeAtack2= 8u,
+		Idle1= 3u, // Look around, check weapon, etc.
+		Boring= 4u,
+		RemoteAttack= 5u,
+		MeleeAttackLeftHand= 6u,
+		MeleeAttackRightHand= 7u,
+		MeleeAttackHead= 8u,
 		Pain0=  9u,
-		Pain1= 10u,
+		Pain1= 10u, // More painful
 		RightHandLost= 11u,
 		LeftHandLost= 12u,
 		HeadLost= 13u, // Head lost without death, possibly
