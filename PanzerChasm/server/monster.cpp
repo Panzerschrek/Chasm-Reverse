@@ -236,7 +236,7 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 	bool on_floor;
 	pos_=
 		map.CollideWithMap(
-			pos_, monster_description.w_radius, height,
+			pos_, height, monster_description.w_radius,
 			on_floor );
 }
 
