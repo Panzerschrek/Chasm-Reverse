@@ -43,9 +43,11 @@ void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
 		speed_-= clamp_surface_normal * projection;
 }
 
-void Player::SetOnFloor( bool on_floor )
+void Player::SetOnFloor( const bool on_floor )
 {
 	on_floor_= on_floor;
+	if( on_floor_ && speed_.z < 0.0f )
+		speed_.z= 0.0f;
 }
 
 bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
