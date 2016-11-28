@@ -211,19 +211,138 @@ void Map::Shoot(
 	}
 }
 
+m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
+{
+	m_Vec2 pos= in_pos.xy();
+	out_on_floor= false;
+
+	const float z_bottom= in_pos.z;
+	const float z_top= z_bottom + height;
+	float new_z= in_pos.z;
+
+	// Static walls
+	for( const MapData::Wall& wall : map_data_->static_walls )
+	{
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+		if( tex.gso[0] )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, radius,
+				new_pos ) )
+		{
+			pos= new_pos;
+		}
+	}
+
+	// Dynamic walls
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		const DynamicWall& wall= dynamic_walls_[w];
+		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
+
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ map_wall.texture_id ];
+		if( tex.gso[0] )
+			continue;
+
+		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, radius,
+				new_pos ) )
+		{
+			pos= new_pos;
+		}
+	}
+
+	// Models
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+		if( model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+		if( model_description.radius <= 0.0f )
+			continue;
+
+		const Model& model_geometry= map_data_->models[ model.model_id ];
+
+		const float model_z_min= model_geometry.z_min + model.pos.z;
+		const float model_z_max= model_geometry.z_max + model.pos.z;
+		if( z_top < model_z_min || z_bottom > model_z_max )
+			continue;
+
+		const float min_distance= radius + model_description.radius;
+
+		const m_Vec2 vec_to_pos= pos - model.pos.xy();
+		const float square_distance= vec_to_pos.SquareLength();
+
+		if( square_distance <= min_distance * min_distance )
+		{
+			// Pull up or down player.
+			if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
+			{
+				new_z= std::max( new_z, model_z_max );
+				out_on_floor= true;
+			}
+			else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
+				new_z= std::min( new_z, model_z_min - height );
+			// Push sideways.
+			else
+				pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+		}
+	}
+
+	if( new_z <= 0.0f )
+	{
+		out_on_floor= true;
+		new_z= 0.0f;
+	}
+
+	return m_Vec3( pos, new_z );
+}
+
 void Map::ProcessPlayerPosition(
 	const Time current_time,
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	const float c_wall_height= 2.0f;
-
 	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
 	const int player_y= static_cast<int>( std::floor( player.Position().y ) );
 	if( player_x < 0 || player_y < 0 ||
 		player_x >= int(MapData::c_map_size) ||
 		player_y >= int(MapData::c_map_size) )
 		return;
+
+	{ // Process and correct position, collide.
+		bool on_floor= false;
+		const m_Vec3 old_player_position= player.Position();
+		const m_Vec3 new_player_pos=
+			CollideWithMap(
+				old_player_position, GameConstants::player_height, GameConstants::player_radius,
+				on_floor );
+
+		const m_Vec3 position_delta= new_player_pos - old_player_position;
+		const float position_delta_length= position_delta.Length();
+		if( position_delta_length != 0.0f )
+		{
+			player.ClampSpeed( position_delta / ( -position_delta_length ) );
+			player.SetPosition( new_player_pos );
+		}
+		player.SetOnFloor( on_floor );
+	}
 
 	// Process floors
 	for( int x= std::max( 0, int(player_x) - 2); x < std::min( int(MapData::c_map_size), int(player_x) + 2 ); x++ )
@@ -241,16 +360,11 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Collide
-	m_Vec2 pos= player.Position().xy();
-
-	player.SetOnFloor( false );
-
+	const m_Vec2 pos= player.Position().xy();
 	const float z_bottom= player.Position().z;
-	const float z_top= z_bottom + GameConstants::player_height;
-	float new_z= z_bottom;
+	const float z_top= player.Position().z + GameConstants::player_height;
 
-	// Static walls
+	// Static walls lonks.
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
@@ -263,12 +377,9 @@ void Map::ProcessPlayerPosition(
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, GameConstants::player_radius,
+				pos, GameConstants::player_interact_radius,
 				new_pos ) )
 		{
-			pos= new_pos;
-			player.ClampSpeed( GetNormalForWall( wall ) );
-
 			ProcessElementLinks(
 				MapData::IndexElement::StaticWall,
 				&wall - map_data_->static_walls.data(),
@@ -280,7 +391,7 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Dynamic walls
+	// Dynamic walls links.
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
 	{
 		const DynamicWall& wall= dynamic_walls_[w];
@@ -293,18 +404,15 @@ void Map::ProcessPlayerPosition(
 		if( tex.gso[0] )
 			continue;
 
-		if( z_top < wall.z || z_bottom > wall.z + c_wall_height )
+		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
 			continue;
 
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, GameConstants::player_radius,
+				pos, GameConstants::player_interact_radius,
 				new_pos ) )
 		{
-			pos= new_pos;
-			player.ClampSpeed( GetNormalForWall( wall ) );
-
 			ProcessElementLinks(
 				MapData::IndexElement::DynamicWall,
 				w,
@@ -316,7 +424,7 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Models
+	// Models links.
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
 		const StaticModel& model= static_models_[m];
@@ -332,36 +440,13 @@ void Map::ProcessPlayerPosition(
 		if( z_top < model_z_min || z_bottom > model_z_max )
 			continue;
 
-		const float min_distance= GameConstants::player_radius + model_description.radius;
+		const float min_distance= GameConstants::player_interact_radius + model_description.radius;
 
 		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 		const float square_distance= vec_to_player_pos.SquareLength();
 
-		if( square_distance < min_distance * min_distance )
+		if( square_distance <= min_distance * min_distance )
 		{
-			// Change player position if model have nonzero radius
-			if( model_description.radius > 0.0f )
-			{
-				// Pull up or down player.
-				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
-				{
-					new_z= std::max( new_z, model_z_max );
-					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, +1.0f ) );
-					player.SetOnFloor( true );
-				}
-				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
-				{
-					new_z= std::min( new_z, model_z_min - GameConstants::player_height );
-					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, -1.0f ) );
-				}
-				// Push player sideways.
-				else
-				{
-					pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
-					player.ClampSpeed( m_Vec3( vec_to_player_pos / vec_to_player_pos.Length(), 0.0f ) );
-				}
-			}
-
 			// Links must work for zero radius
 			ProcessElementLinks(
 				MapData::IndexElement::StaticModel,
@@ -373,16 +458,6 @@ void Map::ProcessPlayerPosition(
 				} );
 		}
 	}
-
-	if( new_z <= 0.0f )
-	{
-		player.SetOnFloor( true );
-		player.ClampSpeed( m_Vec3( 0.0f, 0.0f, 1.0f ) );
-	}
-	new_z= std::max( new_z, 0.0f );
-
-	// Set position after collisions
-	player.SetPosition( m_Vec3( pos, new_z ) );
 
 	// Process "special" models.
 	// Pick-up keys.
@@ -431,8 +506,8 @@ void Map::ProcessPlayerPosition(
 		if( item.picked_up )
 			continue;
 
-		const float square_distance= ( item.pos.xy() - player.Position().xy() ).SquareLength();
-		if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
+		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
+		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
 		{
 			item.picked_up= player.TryPickupItem( item.item_id );
 			if( item.picked_up )

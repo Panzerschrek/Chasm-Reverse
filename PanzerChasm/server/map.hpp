@@ -32,6 +32,10 @@ public:
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
+	m_Vec3 CollideWithMap(
+		const m_Vec3 in_pos, float height, float radius,
+		bool& out_on_floor ) const;
+
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time, Time last_tick_delta );
 
