@@ -6,6 +6,7 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../time.hpp"
+#include "fwd.hpp"
 #include "rand.hpp"
 
 namespace PanzerChasm
@@ -29,7 +30,7 @@ public:
 	unsigned int CurrentAnimation() const;
 	unsigned int CurrentAnimationFrame() const;
 
-	void Tick( Time current_time, Time last_tick_delta );
+	void Tick( const Map& map, Time current_time, Time last_tick_delta );
 	void Hit( int damage, Time current_time );
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
@@ -72,7 +73,7 @@ private:
 	int GetAnimation( AnimationId id ) const;
 	int GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) const;
 
-	void MoveToTarget( const float time_delta_s );
+	void MoveToTarget( const Map& map, const float time_delta_s );
 	void SelectTarget( Time current_time );
 
 private:

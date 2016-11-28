@@ -40,6 +40,7 @@ SOURCES+= \
 	model.cpp \
 	obj.cpp \
 	server/collisions.cpp \
+	server/fwd.hpp \
 	server/map.cpp \
 	server/monster.cpp \
 	server/player.cpp \

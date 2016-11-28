@@ -974,7 +974,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
-		monster_value.second->Tick( current_time, last_tick_delta );
+		monster_value.second->Tick( *this, current_time, last_tick_delta );
 	}
 
 	// At end of this procedure, report about map change, if this needed.

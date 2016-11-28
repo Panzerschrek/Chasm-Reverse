@@ -2,6 +2,7 @@
 #include "math_utils.hpp"
 
 #include "collisions.hpp"
+#include "map.hpp"
 
 #include "monster.hpp"
 
@@ -58,7 +59,7 @@ unsigned int Monster::CurrentAnimationFrame() const
 	return current_animation_frame_;
 }
 
-void Monster::Tick( const Time current_time, const Time last_tick_delta )
+void Monster::Tick( const Map& map, const Time current_time, const Time last_tick_delta )
 {
 	const Model& model= game_resources_->monsters_models[ monster_id_ ];
 
@@ -81,7 +82,7 @@ void Monster::Tick( const Time current_time, const Time last_tick_delta )
 	case State::MoveToTarget:
 		if( current_time >= target_change_time_ )
 			SelectTarget( current_time );
-		MoveToTarget( last_tick_delta.ToSeconds() );
+		MoveToTarget( map, last_tick_delta.ToSeconds() );
 
 		current_animation_frame_= animation_frame_unwrapped % frame_count;
 		break;
@@ -186,7 +187,7 @@ int Monster::GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) co
 	return -1;
 }
 
-void Monster::MoveToTarget( const float time_delta_s )
+void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 {
 	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
 	const float vec_to_target_length= vec_to_target.Length();
@@ -230,6 +231,13 @@ void Monster::MoveToTarget( const float time_delta_s )
 			angle_= NormalizeAngle( angle_ + turn_direction * angle_delta );
 		}
 	}
+
+	const float height= GameConstants::player_height; // TODO - select height
+	bool on_floor;
+	pos_=
+		map.CollideWithMap(
+			pos_, monster_description.w_radius, height,
+			on_floor );
 }
 
 void Monster::SelectTarget( const Time current_time )
