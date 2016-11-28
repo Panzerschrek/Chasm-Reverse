@@ -115,13 +115,13 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 
 void Monster::Hit( const int damage, const Time current_time )
 {
-	if( state_ == State::Idle || state_ == State::PainShock )
+	if( state_ != State::DeathAnimation && state_ != State::Dead )
 	{
 		life_-= damage;
 
 		if( life_ > 0 )
 		{
-			if( state_ == State::Idle )
+			if( state_ != State::PainShock )
 			{
 				const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
 				if( animation >= 0 )
