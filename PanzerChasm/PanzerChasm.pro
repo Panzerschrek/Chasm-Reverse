@@ -43,6 +43,7 @@ SOURCES+= \
 	server/fwd.hpp \
 	server/map.cpp \
 	server/monster.cpp \
+	server/monster_base.cpp \
 	server/player.cpp \
 	server/rand.cpp \
 	server/server.cpp \
@@ -86,6 +87,7 @@ HEADERS+= \
 	server/collisions.hpp \
 	server/map.hpp \
 	server/monster.hpp \
+	server/monster_base.hpp \
 	server/player.hpp \
 	server/rand.hpp \
 	server/server.hpp \

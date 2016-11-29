@@ -9,8 +9,7 @@ namespace PanzerChasm
 {
 
 Player::Player( const GameResourcesConstPtr& game_resources )
-	: game_resources_( game_resources )
-	, pos_( 0.0f, 0.0f, 0.0f )
+	: MonsterBase( game_resources, 0u, m_Vec3( 0.0f, 0.0f, 0.0f ), 0.0f )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
@@ -30,11 +29,6 @@ Player::Player( const GameResourcesConstPtr& game_resources )
 
 Player::~Player()
 {}
-
-void Player::SetPosition( const m_Vec3& pos )
-{
-	pos_= pos;
-}
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
 {
@@ -286,11 +280,6 @@ bool Player::HaveGreenKey() const
 bool Player::HaveBlueKey() const
 {
 	return have_blue_key_;
-}
-
-m_Vec3 Player::Position() const
-{
-	return pos_;
 }
 
 } // namespace PanzerChasm

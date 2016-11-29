@@ -15,11 +15,12 @@ Monster::Monster(
 	const GameResourcesConstPtr& game_resources,
 	const LongRandPtr& random_generator,
 	const Time spawn_time )
-	: monster_id_( map_monster.monster_id )
-	, game_resources_(game_resources)
+	: MonsterBase(
+		game_resources,
+		map_monster.monster_id,
+		m_Vec3( map_monster.pos, z ),
+		map_monster.angle )
 	, random_generator_(random_generator)
-	, pos_( map_monster.pos, z )
-	, angle_( NormalizeAngle( map_monster.angle ) )
 	, current_animation_start_time_(spawn_time)
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -28,36 +29,11 @@ Monster::Monster(
 
 	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
 
-	life_= game_resources_->monsters_description[ monster_id_ ].life;
+	health_= game_resources_->monsters_description[ monster_id_ ].life;
 }
 
 Monster::~Monster()
 {}
-
-unsigned char Monster::MonsterId() const
-{
-	return monster_id_;
-}
-
-const m_Vec3& Monster::Position() const
-{
-	return pos_;
-}
-
-float Monster::Angle() const
-{
-	return angle_;
-}
-
-unsigned int Monster::CurrentAnimation() const
-{
-	return current_animation_;
-}
-
-unsigned int Monster::CurrentAnimationFrame() const
-{
-	return current_animation_frame_;
-}
 
 void Monster::Tick( const Map& map, const Time current_time, const Time last_tick_delta )
 {
@@ -117,9 +93,9 @@ void Monster::Hit( const int damage, const Time current_time )
 {
 	if( state_ != State::DeathAnimation && state_ != State::Dead )
 	{
-		life_-= damage;
+		health_-= damage;
 
-		if( life_ > 0 )
+		if( health_ > 0 )
 		{
 			if( state_ != State::PainShock )
 			{
@@ -160,31 +136,6 @@ bool Monster::TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m
 			pos_.z + model.z_min, pos_.z + model.z_max,
 			from, direction_normalized,
 			out_pos );
-}
-
-int Monster::GetAnimation( const AnimationId id ) const
-{
-	PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );
-	const Model& model= game_resources_->monsters_models[ monster_id_ ];
-
-	for( const Model::Animation& animation : model.animations )
-	{
-		if( animation.id == static_cast<unsigned int>(id) )
-			return &animation - model.animations.data();
-	}
-	return -1;
-}
-
-int Monster::GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) const
-{
-	for( const AnimationId id : ids )
-	{
-		const int  animation= GetAnimation( id );
-		if( animation >= 0 )
-			return animation;
-	}
-
-	return -1;
 }
 
 void Monster::MoveToTarget( const Map& map, const float time_delta_s )
