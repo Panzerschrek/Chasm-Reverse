@@ -6,8 +6,8 @@
 #include "../map_loader.hpp"
 #include "../time.hpp"
 #include "i_connections_listener.hpp"
+#include "fwd.hpp"
 #include "map.hpp"
-#include "player.hpp"
 
 namespace PanzerChasm
 {
@@ -43,7 +43,7 @@ private:
 		ConnectedPlayer( const IConnectionPtr& connection, const GameResourcesConstPtr& game_resoruces );
 
 		ConnectionInfo connection_info;
-		Player player;
+		PlayerPtr player;
 	};
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;

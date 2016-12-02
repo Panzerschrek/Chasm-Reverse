@@ -1,7 +1,6 @@
 #include "../game_constants.hpp"
 #include "math_utils.hpp"
 
-#include "collisions.hpp"
 #include "map.hpp"
 
 #include "monster.hpp"
@@ -120,22 +119,6 @@ void Monster::Hit( const int damage, const Time current_time )
 			current_animation_= static_cast<unsigned int>(animation);
 		}
 	}
-}
-
-bool Monster::TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const
-{
-	if( state_ == State::Dead )
-		return false;
-
-	const Model& model= game_resources_->monsters_models[ monster_id_ ];
-	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
-
-	return
-		RayIntersectCylinder(
-			pos_.xy(), description.w_radius,
-			pos_.z + model.z_min, pos_.z + model.z_max,
-			from, direction_normalized,
-			out_pos );
 }
 
 void Monster::MoveToTarget( const Map& map, const float time_delta_s )

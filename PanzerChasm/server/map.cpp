@@ -4,6 +4,8 @@
 #include "../math_utils.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
+#include "monster.hpp"
+#include "player.hpp"
 
 #include "map.hpp"
 
@@ -140,7 +142,7 @@ Map::Map(
 			continue;
 
 		// TODO - check difficulty flags
-		monsters_[ next_monter_id_ ]=
+		monsters_[ GetNextMonsterId() ]=
 			MonsterPtr(
 				new Monster(
 					map_monster,
@@ -148,16 +150,16 @@ Map::Map(
 					game_resources_,
 					random_generator_,
 					map_start_time ) );
-
-		next_monter_id_++;
 	}
 }
 
 Map::~Map()
 {}
 
-void Map::SpawnPlayer( Player& player )
+void Map::SpawnPlayer( const PlayerPtr& player )
 {
+	PC_ASSERT( player != nullptr );
+
 	unsigned int min_spawn_number= ~0u;
 	const MapData::Monster* spawn_with_min_number= nullptr;
 
@@ -172,15 +174,20 @@ void Map::SpawnPlayer( Player& player )
 
 	if( spawn_with_min_number != nullptr )
 	{
-		player.SetPosition(
+		player->SetPosition(
 			m_Vec3(
 				spawn_with_min_number->pos,
 				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ) );
 	}
 	else
-		player.SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
+		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
-	player.ResetActivatedProcedure();
+	player->ResetActivatedProcedure();
+
+	const Messages::EntityId player_id= GetNextMonsterId();
+
+	players_.emplace( player_id, player );
+	monsters_.emplace( player_id, player );
 }
 
 void Map::Shoot(
@@ -1404,7 +1411,12 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 	return max_dz;
 }
 
-void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )
+Messages::EntityId Map::GetNextMonsterId()
+{
+	return ++next_monster_id_;
+}
+
+void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message )
 {
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );

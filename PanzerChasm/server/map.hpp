@@ -1,11 +1,11 @@
 #pragma once
 #include <unordered_map>
 
+#include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
 #include "../time.hpp"
-#include "monster.hpp"
-#include "player.hpp"
+#include "fwd.hpp"
 #include "rand.hpp"
 
 namespace PanzerChasm
@@ -24,7 +24,7 @@ public:
 		MapEndCallback map_end_callback );
 	~Map();
 
-	void SpawnPlayer( Player& player );
+	void SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
 		unsigned int rocket_id,
@@ -131,8 +131,6 @@ private:
 
 		m_Vec3 previous_position;
 		float track_length;
-
-
 	};
 
 	typedef std::vector<Rocket> Rockets;
@@ -145,7 +143,8 @@ private:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
-	typedef std::unordered_map< Messages::EntityId, MonsterPtr > MonstersContainer;
+	typedef std::unordered_map< Messages::EntityId, MonsterBasePtr > MonstersContainer;
+	typedef std::unordered_map< Messages::EntityId, PlayerPtr > PlayersContainer;
 
 	struct HitResult
 	{
@@ -175,7 +174,9 @@ private:
 	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
-	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
+	Messages::EntityId GetNextMonsterId();
+
+	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
 private:
 	const MapDataConstPtr map_data_;
@@ -198,8 +199,9 @@ private:
 
 	SpriteEffects sprite_effects_;
 
-	MonstersContainer monsters_;
-	Messages::EntityId next_monter_id_= 1u;
+	PlayersContainer players_;
+	MonstersContainer monsters_; // + players
+	Messages::EntityId next_monster_id_= 1u;
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;

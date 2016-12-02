@@ -17,7 +17,10 @@ class Player final : public MonsterBase
 {
 public:
 	explicit Player( const GameResourcesConstPtr& game_resources );
-	~Player();
+	virtual ~Player() override;
+
+	virtual void Tick( const Map& map, Time current_time, Time last_tick_delta ) override;
+	virtual void Hit( int damage, Time current_time ) override;
 
 	void ClampSpeed( const m_Vec3& clamp_surface_normal );
 	void SetOnFloor( bool on_floor );
