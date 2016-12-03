@@ -34,7 +34,7 @@ private:
 		Idle,
 		MoveToTarget,
 		PainShock,
-		WaitAfterAttack,
+		RemoteAttack,
 		MeleeAttack,
 		DeathAnimation,
 		Dead,

@@ -9,6 +9,8 @@
 namespace PanzerChasm
 {
 
+static const m_Vec3 g_see_point_delta( 0.0f, 0.0f, 0.5f );
+
 Monster::Monster(
 	const MapData::Monster& map_monster,
 	const float z,
@@ -52,7 +54,6 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 	switch( state_ )
 	{
 	case State::Idle:
-	default:
 		current_animation_frame_= animation_frame_unwrapped % frame_count;
 		break;
 
@@ -72,10 +73,24 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 		}
 		else
 		{	if( current_time >= target_change_time_ )
-				SelectTarget( map, current_time );
+			{
+				if( description.rock >= 0 && target != nullptr &&
+					map.CanSee( pos_ + g_see_point_delta, target->Position() + g_see_point_delta ) )
+				{
+					state_= State::RemoteAttack;
+					current_animation_= GetAnimation( AnimationId::RemoteAttack );
+					current_animation_start_time_= current_time;
+					current_animation_frame_= 0u;
+				}
+				else
+					SelectTarget( map, current_time );
+			}
 
-			MoveToTarget( map, last_tick_delta.ToSeconds() );
-			current_animation_frame_= animation_frame_unwrapped % frame_count;
+			if( state_ == State::MoveToTarget )
+			{
+				MoveToTarget( map, last_tick_delta.ToSeconds() );
+				current_animation_frame_= animation_frame_unwrapped % frame_count;
+			}
 		}
 	}
 		break;
@@ -94,6 +109,19 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 		break;
 
 	case State::MeleeAttack:
+		if( animation_frame_unwrapped >= frame_count )
+		{
+			state_= State::MoveToTarget;
+			SelectTarget( map, current_time );
+			current_animation_= GetAnimation( AnimationId::Run );
+			current_animation_start_time_= current_time;
+			current_animation_frame_= 0u;
+		}
+		else
+			current_animation_frame_= animation_frame_unwrapped;
+		break;
+
+	case State::RemoteAttack:
 		if( animation_frame_unwrapped >= frame_count )
 		{
 			state_= State::MoveToTarget;
@@ -239,8 +267,8 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 		*/
 
 		if( map.CanSee(
-				Position() + m_Vec3( 0.0f, 0.0f, 0.5f ),
-				player.Position() + m_Vec3( 0.0f, 0.0f, 0.5f ) ) )
+				Position() + g_see_point_delta,
+				player.Position() + g_see_point_delta ) )
 		{
 			nearest_player_distance= distance_to_player;
 			nearest_player= player_value.second;
@@ -249,7 +277,7 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 
 	if( nearest_player != nullptr )
 	{
-		const float target_change_interval_s= random_generator_->RandValue( 0.1f, 0.2f );
+		const float target_change_interval_s= 0.8f;
 
 		target_= nearest_player;
 		target_position_= nearest_player->Position();
