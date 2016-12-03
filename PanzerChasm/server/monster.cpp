@@ -37,6 +37,7 @@ Monster::~Monster()
 
 void Monster::Tick( const Map& map, const Time current_time, const Time last_tick_delta )
 {
+	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
 	const Model& model= game_resources_->monsters_models[ monster_id_ ];
 
 	PC_ASSERT( current_animation_ < model.animations.size() );
@@ -56,14 +57,38 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 		break;
 
 	case State::MoveToTarget:
-		if( current_time >= target_change_time_ )
-			SelectTarget( map, current_time );
-		MoveToTarget( map, last_tick_delta.ToSeconds() );
+	{
+		if( ( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
+		{
+			state_= State::MeleeAttack;
+			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
+			current_animation_start_time_= current_time;
+			current_animation_frame_= 0u;
+		}
+		else
+		{	if( current_time >= target_change_time_ )
+				SelectTarget( map, current_time );
 
-		current_animation_frame_= animation_frame_unwrapped % frame_count;
+			MoveToTarget( map, last_tick_delta.ToSeconds() );
+			current_animation_frame_= animation_frame_unwrapped % frame_count;
+		}
+	}
 		break;
 
 	case State::PainShock:
+		if( animation_frame_unwrapped >= frame_count )
+		{
+			state_= State::MoveToTarget;
+			SelectTarget( map, current_time );
+			current_animation_= GetAnimation( AnimationId::Run );
+			current_animation_start_time_= current_time;
+			current_animation_frame_= 0u;
+		}
+		else
+			current_animation_frame_= animation_frame_unwrapped;
+		break;
+
+	case State::MeleeAttack:
 		if( animation_frame_unwrapped >= frame_count )
 		{
 			state_= State::MoveToTarget;
@@ -97,7 +122,8 @@ void Monster::Hit( const int damage, const Time current_time )
 
 		if( health_ > 0 )
 		{
-			if( state_ != State::PainShock )
+			if( state_ != State::PainShock &&
+				state_ != State::MeleeAttack )
 			{
 				const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
 				if( animation >= 0 )

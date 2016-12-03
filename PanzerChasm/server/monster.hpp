@@ -35,6 +35,7 @@ private:
 		MoveToTarget,
 		PainShock,
 		WaitAfterAttack,
+		MeleeAttack,
 		DeathAnimation,
 		Dead,
 	};
