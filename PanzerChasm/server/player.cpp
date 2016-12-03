@@ -30,7 +30,7 @@ Player::Player( const GameResourcesConstPtr& game_resources )
 Player::~Player()
 {}
 
-void Player::Tick( const Map& map, const Time current_time, const Time last_tick_delta )
+void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta )
 {
 	PC_UNUSED( map );
 	PC_UNUSED( current_time );

@@ -974,7 +974,11 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
-			Monster* monster= reinterpret_cast<Monster*>( hit_result.object_index );
+			auto it= monsters_.find( hit_result.object_index );
+			PC_ASSERT( it != monsters_.end() );
+
+			const MonsterBasePtr& monster= it->second;
+			PC_ASSERT( monster != nullptr );
 			monster->Hit( rocket_description.power, current_time );
 		}
 
@@ -1271,7 +1275,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	float nearest_shot_point_square_distance= Constants::max_float;
 
 	const auto process_candidate_shot_pos=
-	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const uintptr_t object_index )
+	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const unsigned int object_index )
 	{
 		const float square_distance= ( candidate_pos - shot_start_point ).SquareLength();
 		if( square_distance < nearest_shot_point_square_distance )
@@ -1357,7 +1361,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 		{
 			process_candidate_shot_pos(
 				candidate_pos, HitResult::ObjectType::Monster,
-				reinterpret_cast<uintptr_t>( monster_value.second.get() ) );
+				monster_value.first );
 		}
 	}
 

@@ -25,7 +25,7 @@ public:
 
 	virtual ~Monster() override;
 
-	virtual void Tick( const Map& map, Time current_time, Time last_tick_delta ) override;
+	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
 	virtual void Hit( int damage, Time current_time ) override;
 
 private:
@@ -50,6 +50,8 @@ private:
 	State state_= State::Idle;
 
 	Time current_animation_start_time_;
+
+	bool attack_was_done_;
 
 	PlayerConstWeakPtr target_;
 	m_Vec3 target_position_;

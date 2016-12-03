@@ -31,7 +31,7 @@ public:
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
 
-	virtual void Tick( const Map& map, Time current_time, Time last_tick_delta )= 0;
+	virtual void Tick( Map& map, Time current_time, Time last_tick_delta )= 0;
 	virtual void Hit( int damage, Time current_time )= 0;
 
 protected:

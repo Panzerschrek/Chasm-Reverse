@@ -11,6 +11,10 @@ namespace PanzerChasm
 
 static const m_Vec3 g_see_point_delta( 0.0f, 0.0f, 0.5f );
 
+// TODO - use different attack points for differnet mosnters.
+// In original game this points are hardcoded.
+static const m_Vec3 g_shoot_point_delta( 0.0f, 0.0f, 0.5f );
+
 Monster::Monster(
 	const MapData::Monster& map_monster,
 	const float z,
@@ -37,7 +41,7 @@ Monster::Monster(
 Monster::~Monster()
 {}
 
-void Monster::Tick( const Map& map, const Time current_time, const Time last_tick_delta )
+void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delta )
 {
 	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
 	const Model& model= game_resources_->monsters_models[ monster_id_ ];
@@ -51,6 +55,11 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 	const unsigned int animation_frame_unwrapped= static_cast<unsigned int>( std::round(frame) );
 	const unsigned int frame_count= model.animations[ current_animation_ ].frame_count;
 
+	// Update target position if target moves.
+	const PlayerConstPtr target= target_.lock();
+	if( target != nullptr )
+		target_position_= target->Position();
+
 	switch( state_ )
 	{
 	case State::Idle:
@@ -59,11 +68,6 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 
 	case State::MoveToTarget:
 	{
-		// Update target position if target moves.
-		const PlayerConstPtr target= target_.lock();
-		if( target != nullptr )
-			target_position_= target->Position();
-
 		if( ( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
 		{
 			state_= State::MeleeAttack;
@@ -81,6 +85,7 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 					current_animation_= GetAnimation( AnimationId::RemoteAttack );
 					current_animation_start_time_= current_time;
 					current_animation_frame_= 0u;
+					attack_was_done_= false;
 				}
 				else
 					SelectTarget( map, current_time );
@@ -131,7 +136,23 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 			current_animation_frame_= 0u;
 		}
 		else
+		{
+			if( animation_frame_unwrapped >= frame_count / 2u &&
+				!attack_was_done_ &&
+				target != nullptr )
+			{
+				const m_Vec3 shoot_pos= pos_ + g_shoot_point_delta;
+				m_Vec3 dir= target->Position() + g_see_point_delta - shoot_pos;
+				dir.Normalize();
+
+				PC_ASSERT( description.rock >= 0 );
+				map.Shoot( description.rock, shoot_pos, dir, current_time );
+
+				attack_was_done_= true;
+			}
+
 			current_animation_frame_= animation_frame_unwrapped;
+		}
 		break;
 
 	case State::DeathAnimation:

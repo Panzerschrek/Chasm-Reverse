@@ -159,7 +159,7 @@ private:
 		};
 
 		ObjectType object_type= ObjectType::None;
-		uintptr_t object_index; // Pointer for monster
+		unsigned int object_index; // monster_id for monster
 		m_Vec3 pos;
 	};
 
