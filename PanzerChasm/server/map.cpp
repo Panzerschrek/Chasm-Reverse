@@ -1008,6 +1008,60 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		monster_value.second->Tick( *this, current_time, last_tick_delta );
 	}
 
+	// Collide monsters with map
+	for( MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		MonsterBase& monster= *monster_value.second;
+		if( monster.MonsterId() == 0u ) // Skip players
+			continue;
+
+		const float height= GameConstants::player_height; // TODO - select height
+		bool on_floor;
+
+		monster.SetPosition(
+			CollideWithMap(
+				monster.Position(), height,
+				game_resources_->monsters_description[ monster.MonsterId() ].w_radius,
+				on_floor ) );
+	}
+
+	// Collide monsters together
+	for( MonstersContainer::value_type& first_monster_value : monsters_ )
+	{
+		MonsterBase& first_monster= *first_monster_value.second;
+		const float first_monster_radius= game_resources_->monsters_description[ first_monster.MonsterId() ].w_radius;
+
+		for( MonstersContainer::value_type& second_monster_value : monsters_ )
+		{
+			MonsterBase& second_monster= *second_monster_value.second;
+			if( &second_monster == &first_monster )
+				continue;
+
+			const float square_distance= ( first_monster.Position().xy() - second_monster.Position().xy() ).SquareLength();
+
+			const float c_max_collide_distance= 8.0f;
+			if( square_distance > c_max_collide_distance * c_max_collide_distance )
+				continue;
+
+			const float second_monster_radius= game_resources_->monsters_description[ second_monster.MonsterId() ].w_radius;
+			const float min_distance= second_monster_radius + first_monster_radius;
+			if( square_distance > min_distance * min_distance )
+				continue;
+
+			// Collide here
+			m_Vec2 collide_vec= second_monster.Position().xy() - first_monster.Position().xy();
+			collide_vec.Normalize();
+
+			const float move_delta= 0.5f * ( min_distance - std::sqrt( square_distance ) );
+
+			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta;
+			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta;
+
+			 first_monster.SetPosition( m_Vec3( first_monster_pos ,  first_monster.Position().z ) );
+			second_monster.SetPosition( m_Vec3( second_monster_pos, second_monster.Position().z ) );
+		}
+	}
+
 	// At end of this procedure, report about map change, if this needed.
 	// Do it here, because map can be desctructed at callback call.
 	if( map_end_triggered_ &&

@@ -246,13 +246,6 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 			angle_= NormalizeAngle( angle_ + turn_direction * angle_delta );
 		}
 	}
-
-	const float height= GameConstants::player_height; // TODO - select height
-	bool on_floor;
-	pos_=
-		map.CollideWithMap(
-			pos_, height, monster_description.w_radius,
-			on_floor );
 }
 
 void Monster::SelectTarget( const Map& map, const Time current_time )
