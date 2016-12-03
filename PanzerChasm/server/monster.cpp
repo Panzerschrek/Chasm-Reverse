@@ -58,6 +58,11 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 
 	case State::MoveToTarget:
 	{
+		// Update target position if target moves.
+		const PlayerConstPtr target= target_.lock();
+		if( target != nullptr )
+			target_position_= target->Position();
+
 		if( ( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
 		{
 			state_= State::MeleeAttack;
@@ -210,7 +215,7 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 	*/
 
 	float nearest_player_distance= Constants::max_float;
-	const Player* nearest_player= nullptr;
+	PlayerConstPtr nearest_player;
 
 	const Map::PlayersContainer& players= map.GetPlayers();
 	for( const Map::PlayersContainer::value_type& player_value : players )
@@ -238,14 +243,15 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 				player.Position() + m_Vec3( 0.0f, 0.0f, 0.5f ) ) )
 		{
 			nearest_player_distance= distance_to_player;
-			nearest_player= &player;
+			nearest_player= player_value.second;
 		}
 	}
 
 	if( nearest_player != nullptr )
 	{
-		const float target_change_interval_s= random_generator_->RandValue( 0.05f, 0.1f );
+		const float target_change_interval_s= random_generator_->RandValue( 0.1f, 0.2f );
 
+		target_= nearest_player;
 		target_position_= nearest_player->Position();
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 	}
@@ -255,6 +261,7 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 		const float distance= random_generator_->RandValue( 2.0f, 5.0f );
 		const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
 
+		target_= PlayerConstPtr();
 		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 	}

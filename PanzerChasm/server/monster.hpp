@@ -51,6 +51,7 @@ private:
 
 	Time current_animation_start_time_;
 
+	PlayerConstWeakPtr target_;
 	m_Vec3 target_position_;
 	Time target_change_time_= Time::FromSeconds(0);
 };
