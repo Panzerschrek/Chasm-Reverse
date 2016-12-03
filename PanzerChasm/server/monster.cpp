@@ -2,6 +2,7 @@
 #include "math_utils.hpp"
 
 #include "map.hpp"
+#include "player.hpp"
 
 #include "monster.hpp"
 
@@ -56,7 +57,7 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 
 	case State::MoveToTarget:
 		if( current_time >= target_change_time_ )
-			SelectTarget( current_time );
+			SelectTarget( map, current_time );
 		MoveToTarget( map, last_tick_delta.ToSeconds() );
 
 		current_animation_frame_= animation_frame_unwrapped % frame_count;
@@ -66,7 +67,7 @@ void Monster::Tick( const Map& map, const Time current_time, const Time last_tic
 		if( animation_frame_unwrapped >= frame_count )
 		{
 			state_= State::MoveToTarget;
-			SelectTarget( current_time );
+			SelectTarget( map, current_time );
 			current_animation_= GetAnimation( AnimationId::Run );
 			current_animation_start_time_= current_time;
 			current_animation_frame_= 0u;
@@ -174,14 +175,63 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 			on_floor );
 }
 
-void Monster::SelectTarget( const Time current_time )
+void Monster::SelectTarget( const Map& map, const Time current_time )
 {
-	const float direction= random_generator_->RandAngle();
-	const float distance= random_generator_->RandValue( 2.0f, 5.0f );
-	const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
+	/*
+	const float c_half_view_angle= Constants::pi * 0.25f;
+	const float c_half_view_angle_cos= std::cos( c_half_view_angle );
+	const m_Vec2 view_dir( std::cos(angle_), std::sin(angle_) );
+	*/
 
-	target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
-	target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
+	float nearest_player_distance= Constants::max_float;
+	const Player* nearest_player= nullptr;
+
+	const Map::PlayersContainer& players= map.GetPlayers();
+	for( const Map::PlayersContainer::value_type& player_value : players )
+	{
+		PC_ASSERT( player_value.second != nullptr );
+		const Player& player= *player_value.second;
+
+		const m_Vec2 dir_to_player= player.Position().xy() - Position().xy();
+		const float distance_to_player= dir_to_player.Length();
+		if( distance_to_player == 0.0f )
+			continue;
+
+		if( distance_to_player >= nearest_player_distance )
+			continue;
+
+		// TODO - add angle check, if needed
+		/*
+		const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
+		if( angle_cos < c_half_view_angle_cos )
+			continue;
+		*/
+
+		if( map.CanSee(
+				Position() + m_Vec3( 0.0f, 0.0f, 0.5f ),
+				player.Position() + m_Vec3( 0.0f, 0.0f, 0.5f ) ) )
+		{
+			nearest_player_distance= distance_to_player;
+			nearest_player= &player;
+		}
+	}
+
+	if( nearest_player != nullptr )
+	{
+		const float target_change_interval_s= random_generator_->RandValue( 0.05f, 0.1f );
+
+		target_position_= nearest_player->Position();
+		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
+	}
+	else
+	{
+		const float direction= random_generator_->RandAngle();
+		const float distance= random_generator_->RandValue( 2.0f, 5.0f );
+		const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
+
+		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
+		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
+	}
 }
 
 } // namespace PanzerChasm

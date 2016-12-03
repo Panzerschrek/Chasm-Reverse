@@ -41,7 +41,7 @@ private:
 
 private:
 	void MoveToTarget( const Map& map, const float time_delta_s );
-	void SelectTarget( Time current_time );
+	void SelectTarget( const Map& map, Time current_time );
 
 private:
 	LongRandPtr random_generator_;

@@ -17,6 +17,8 @@ class Map final
 public:
 	typedef std::function<void()> MapEndCallback;
 
+	typedef std::unordered_map< Messages::EntityId, PlayerPtr > PlayersContainer;
+
 	Map(
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
@@ -35,6 +37,10 @@ public:
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
 		bool& out_on_floor ) const;
+
+	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;
+
+	const PlayersContainer& GetPlayers() const;
 
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
 	void Tick( Time current_time, Time last_tick_delta );
@@ -144,7 +150,6 @@ private:
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
 	typedef std::unordered_map< Messages::EntityId, MonsterBasePtr > MonstersContainer;
-	typedef std::unordered_map< Messages::EntityId, PlayerPtr > PlayersContainer;
 
 	struct HitResult
 	{

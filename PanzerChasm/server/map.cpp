@@ -321,6 +321,26 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 	return m_Vec3( pos, new_z );
 }
 
+bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
+{
+	if( from == to )
+		return true;
+
+	m_Vec3 direction= to - from;
+	direction.Normalize();
+
+	const HitResult hit_result= ProcessShot( from, direction );
+
+	return
+		hit_result.object_type == HitResult::ObjectType::None ||
+		hit_result.object_type == HitResult::ObjectType::Monster;
+}
+
+const Map::PlayersContainer& Map::GetPlayers() const
+{
+	return players_;
+}
+
 void Map::ProcessPlayerPosition(
 	const Time current_time,
 	Player& player,
