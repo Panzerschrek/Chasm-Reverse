@@ -1033,12 +1033,18 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	for( MonstersContainer::value_type& first_monster_value : monsters_ )
 	{
 		MonsterBase& first_monster= *first_monster_value.second;
+		if( first_monster.Health() <= 0 )
+			continue;
+
 		const float first_monster_radius= game_resources_->monsters_description[ first_monster.MonsterId() ].w_radius;
 
 		for( MonstersContainer::value_type& second_monster_value : monsters_ )
 		{
 			MonsterBase& second_monster= *second_monster_value.second;
 			if( &second_monster == &first_monster )
+				continue;
+
+			if( second_monster.Health() <= 0 )
 				continue;
 
 			const float square_distance= ( first_monster.Position().xy() - second_monster.Position().xy() ).SquareLength();

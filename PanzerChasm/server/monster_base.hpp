@@ -26,6 +26,8 @@ public:
 
 	float Angle() const;
 
+	int Health() const;
+
 	unsigned int CurrentAnimation() const;
 	unsigned int CurrentAnimationFrame() const;
 

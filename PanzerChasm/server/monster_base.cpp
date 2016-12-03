@@ -46,6 +46,11 @@ float MonsterBase::Angle() const
 	return angle_;
 }
 
+int MonsterBase::Health() const
+{
+	return health_;
+}
+
 unsigned int MonsterBase::CurrentAnimation() const
 {
 	return current_animation_;
