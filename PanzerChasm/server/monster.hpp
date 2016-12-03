@@ -42,7 +42,7 @@ private:
 
 private:
 	void MoveToTarget( const Map& map, const float time_delta_s );
-	void SelectTarget( const Map& map, Time current_time );
+	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
 
 private:
 	LongRandPtr random_generator_;

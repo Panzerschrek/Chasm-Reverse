@@ -63,7 +63,15 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 	switch( state_ )
 	{
 	case State::Idle:
-		current_animation_frame_= animation_frame_unwrapped % frame_count;
+		if( SelectTarget( map, current_time ) )
+		{
+			state_= State::MoveToTarget;
+			current_animation_= GetAnimation( AnimationId::Run );
+			current_animation_start_time_= current_time;
+			current_animation_frame_= 0u;
+		}
+		else
+			current_animation_frame_= animation_frame_unwrapped % frame_count;
 		break;
 
 	case State::MoveToTarget:
@@ -248,7 +256,7 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 	}
 }
 
-void Monster::SelectTarget( const Map& map, const Time current_time )
+bool Monster::SelectTarget( const Map& map, const Time current_time )
 {
 	/*
 	const float c_half_view_angle= Constants::pi * 0.25f;
@@ -296,6 +304,8 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 		target_= nearest_player;
 		target_position_= nearest_player->Position();
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
+
+		return true;
 	}
 	else
 	{
@@ -306,6 +316,8 @@ void Monster::SelectTarget( const Map& map, const Time current_time )
 		target_= PlayerConstPtr();
 		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
+
+		return false;
 	}
 }
 
