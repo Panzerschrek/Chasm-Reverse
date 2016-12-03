@@ -362,12 +362,16 @@ void Map::ProcessPlayerPosition(
 				on_floor );
 
 		const m_Vec3 position_delta= new_player_pos - old_player_position;
-		const float position_delta_length= position_delta.Length();
-		if( position_delta_length != 0.0f )
-		{
-			player.ClampSpeed( position_delta / ( -position_delta_length ) );
-			player.SetPosition( new_player_pos );
-		}
+
+		if( position_delta.z != 0.0f ) // Vertical clamp
+			player.ClampSpeed( m_Vec3( 0.0f, 0.0f, position_delta.z > 0.0f ? 1.0f : -1.0f ) );
+
+		const float position_delta_length= position_delta.xy().Length();
+		if( position_delta_length != 0.0f ) // Horizontal clamp
+			player.ClampSpeed( m_Vec3( position_delta.xy() / position_delta_length, 0.0f ) );
+
+		player.SetPosition( new_player_pos );
+
 		player.SetOnFloor( on_floor );
 	}
 

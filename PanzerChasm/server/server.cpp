@@ -84,6 +84,10 @@ void Server::Loop()
 	// Do server logic
 	UpdateTimes();
 
+	// Process map inner logic
+	if( map_ != nullptr )
+		map_->Tick( server_accumulated_time_, last_tick_duration_ );
+
 	// Process players position
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
@@ -92,12 +96,7 @@ void Server::Loop()
 				server_accumulated_time_,
 				*connected_player->player,
 				connected_player->connection_info.messages_sender );
-
 	}
-
-	// Process map inner logic
-	if( map_ != nullptr )
-		map_->Tick( server_accumulated_time_, last_tick_duration_ );
 
 	// Send messages
 	for( const ConnectedPlayerPtr& connected_player : players_ )
