@@ -64,7 +64,17 @@ void Player::Hit( const int damage, const Time current_time )
 {
 	PC_UNUSED( current_time );
 
-	health_-= damage;
+	// TODO - in original game damage is bigger or smaller, sometimes. Know, why.
+
+	// Armor absorbess all damage and gives 1/4 of absorbed damage to health.
+	int armor_damage= damage;
+	if( armor_damage > armor_ )
+		armor_damage= armor_;
+
+	int health_damage= ( damage - armor_damage ) + armor_damage / 4;
+
+	armor_-= armor_damage;
+	health_-= health_damage;
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
