@@ -101,7 +101,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 
 			if( state_ == State::MoveToTarget )
 			{
-				MoveToTarget( map, last_tick_delta.ToSeconds() );
+				MoveToTarget( last_tick_delta.ToSeconds() );
 				current_animation_frame_= animation_frame_unwrapped % frame_count;
 			}
 		}
@@ -145,12 +145,16 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 		}
 		else
 		{
+			RotateToTarget( last_tick_delta.ToSeconds() );
+
 			if( animation_frame_unwrapped >= frame_count / 2u &&
 				!attack_was_done_ &&
 				target != nullptr )
 			{
 				const m_Vec3 shoot_pos= pos_ + g_shoot_point_delta;
-				m_Vec3 dir= target->Position() + g_see_point_delta - shoot_pos;
+
+				const m_Vec3 actual_dir= target->Position() + g_see_point_delta - shoot_pos;
+				m_Vec3 dir( std::cos(angle_), std::sin(angle_), actual_dir.z / actual_dir.xy().Length() );
 				dir.Normalize();
 
 				PC_ASSERT( description.rock >= 0 );
@@ -210,7 +214,7 @@ void Monster::Hit( const int damage, const Time current_time )
 	}
 }
 
-void Monster::MoveToTarget( const Map& map, const float time_delta_s )
+void Monster::MoveToTarget( const float time_delta_s )
 {
 	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
 	const float vec_to_target_length= vec_to_target.Length();
@@ -234,6 +238,15 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 		pos_.y+= std::sin(angle_) * distance_delta;
 	}
 
+	RotateToTarget( time_delta_s );
+}
+
+void Monster::RotateToTarget( float time_delta_s )
+{
+	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
+	if( vec_to_target.SquareLength() == 0.0f )
+		return;
+
 	const float target_angle= NormalizeAngle( std::atan2( vec_to_target.y, vec_to_target.x ) );
 	float target_angle_delta= target_angle - angle_;
 	if( target_angle_delta > +Constants::pi )
@@ -243,6 +256,8 @@ void Monster::MoveToTarget( const Map& map, const float time_delta_s )
 
 	if( target_angle_delta != 0.0f )
 	{
+		const GameResources::MonsterDescription& monster_description= game_resources_->monsters_description[ monster_id_ ];
+
 		const float abs_target_angle_delta= std::abs(target_angle_delta);
 		const float angle_delta= time_delta_s * float(monster_description.rotation_speed);
 

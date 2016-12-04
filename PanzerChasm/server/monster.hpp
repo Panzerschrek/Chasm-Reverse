@@ -41,7 +41,8 @@ private:
 	};
 
 private:
-	void MoveToTarget( const Map& map, const float time_delta_s );
+	void MoveToTarget( float time_delta_s );
+	void RotateToTarget( float time_delta_s );
 	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
 
 private:
