@@ -46,6 +46,17 @@ float MonsterBase::Angle() const
 	return angle_;
 }
 
+m_Vec2 MonsterBase::GetZMinMax() const
+{
+	if( monster_id_ == 0u )
+	{
+		return m_Vec2( 0.0f, GameConstants::player_height );
+	}
+
+	const Model& model= game_resources_->monsters_models[ monster_id_ ];
+	return m_Vec2( model.z_min, model.z_max );
+}
+
 int MonsterBase::Health() const
 {
 	return health_;

@@ -1027,6 +1027,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			continue;
 
 		const float first_monster_radius= game_resources_->monsters_description[ first_monster.MonsterId() ].w_radius;
+		const m_Vec2 first_monster_z_minmax=
+			first_monster.GetZMinMax() + m_Vec2( first_monster.Position().z, first_monster.Position().z );
 
 		for( MonstersContainer::value_type& second_monster_value : monsters_ )
 		{
@@ -1046,6 +1048,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			const float second_monster_radius= game_resources_->monsters_description[ second_monster.MonsterId() ].w_radius;
 			const float min_distance= second_monster_radius + first_monster_radius;
 			if( square_distance > min_distance * min_distance )
+				continue;
+
+			const m_Vec2 second_monster_z_minmax=
+				second_monster.GetZMinMax() + m_Vec2( second_monster.Position().z, second_monster.Position().z );
+			if(  first_monster_z_minmax.y < second_monster_z_minmax.x ||
+				second_monster_z_minmax.y <  first_monster_z_minmax.x ) // Z check
 				continue;
 
 			// Collide here

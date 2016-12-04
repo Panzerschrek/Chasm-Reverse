@@ -26,6 +26,9 @@ public:
 
 	float Angle() const;
 
+	// x - min, y -manx
+	m_Vec2 GetZMinMax() const;
+
 	int Health() const;
 
 	unsigned int CurrentAnimation() const;
