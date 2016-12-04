@@ -1,11 +1,12 @@
 #pragma once
 #include <unordered_map>
 
+#include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
 #include "../time.hpp"
-#include "monster.hpp"
-#include "player.hpp"
+#include "fwd.hpp"
+#include "rand.hpp"
 
 namespace PanzerChasm
 {
@@ -16,6 +17,8 @@ class Map final
 public:
 	typedef std::function<void()> MapEndCallback;
 
+	typedef std::unordered_map< Messages::EntityId, PlayerPtr > PlayersContainer;
+
 	Map(
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
@@ -23,7 +26,7 @@ public:
 		MapEndCallback map_end_callback );
 	~Map();
 
-	void SpawnPlayer( Player& player );
+	void SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
 		unsigned int rocket_id,
@@ -31,8 +34,16 @@ public:
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
+	m_Vec3 CollideWithMap(
+		const m_Vec3 in_pos, float height, float radius,
+		bool& out_on_floor ) const;
+
+	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;
+
+	const PlayersContainer& GetPlayers() const;
+
 	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
-	void Tick( Time current_time );
+	void Tick( Time current_time, Time last_tick_delta );
 
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
 	void SendUpdateMessages( MessagesSender& messages_sender ) const;
@@ -126,8 +137,6 @@ private:
 
 		m_Vec3 previous_position;
 		float track_length;
-
-
 	};
 
 	typedef std::vector<Rocket> Rockets;
@@ -140,7 +149,7 @@ private:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
-	typedef std::unordered_map< Messages::EntityId, MonsterPtr > MonstersContainer;
+	typedef std::unordered_map< Messages::EntityId, MonsterBasePtr > MonstersContainer;
 
 	struct HitResult
 	{
@@ -150,7 +159,7 @@ private:
 		};
 
 		ObjectType object_type= ObjectType::None;
-		uintptr_t object_index; // Pointer for monster
+		unsigned int object_index; // monster_id for monster
 		m_Vec3 pos;
 	};
 
@@ -170,12 +179,16 @@ private:
 	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
-	static void PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message );
+	Messages::EntityId GetNextMonsterId();
+
+	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
 private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const MapEndCallback map_end_callback_;
+
+	const LongRandPtr random_generator_;
 
 	DynamicWalls dynamic_walls_;
 
@@ -191,8 +204,9 @@ private:
 
 	SpriteEffects sprite_effects_;
 
-	MonstersContainer monsters_;
-	Messages::EntityId next_monter_id_= 1u;
+	PlayersContainer players_;
+	MonstersContainer monsters_; // + players
+	Messages::EntityId next_monster_id_= 1u;
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;

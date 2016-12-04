@@ -6,31 +6,30 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../time.hpp"
+#include "fwd.hpp"
+#include "monster_base.hpp"
+#include "rand.hpp"
 
 namespace PanzerChasm
 {
 
-class Monster final
+class Monster final : public MonsterBase
 {
 public:
 	Monster(
 		const MapData::Monster& map_monster,
 		float z,
 		const GameResourcesConstPtr& game_resources,
+		const LongRandPtr& random_generator,
 		Time spawn_time );
-	~Monster();
 
-	unsigned char MonsterId() const;
-	const m_Vec3& Position() const;
-	float Angle() const;
+	virtual ~Monster() override;
 
-	unsigned int CurrentAnimation() const;
-	unsigned int CurrentAnimationFrame() const;
+	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
+	virtual void Hit( int damage, Time current_time ) override;
 
-	void Tick( Time current_time );
-	void Hit( int damage, Time current_time );
-
-	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
+	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
+	virtual void SetOnFloor( bool on_floor ) override;
 
 private:
 	enum class State
@@ -38,52 +37,32 @@ private:
 		Idle,
 		MoveToTarget,
 		PainShock,
-		WaitAfterAttack,
+		RemoteAttack,
+		MeleeAttack,
 		DeathAnimation,
 		Dead,
 	};
 
-	// TODO - check this. Some numbers may be incorrect.
-	enum class AnimationId : unsigned int
-	{
-		Run= 0u,
-		Idle0= 2u,
-		Idle1= 3u,
-		RemoteAttack0= 4u,
-		RemoteAttack1= 5u,
-		MeleeAtack0= 6u,
-		MeleeAtack1= 7u,
-		MeleeAtack2= 8u,
-		Pain0=  9u,
-		Pain1= 10u,
-		RightHandLost= 11u,
-		LeftHandLost= 12u,
-		HeadLost= 13u, // ?
-		Death0= 14u, // Reverse death animation, possibly
-		Death1= 15u,
-		Death2= 16u,
-		Death3= 17u,
-	};
+private:
+	void FallDown( float time_delta_s );
+	void MoveToTarget( float time_delta_s );
+	void RotateToTarget( float time_delta_s );
+	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
 
 private:
-	// returns -1 if not found
-	int GetAnimation( AnimationId id ) const;
-	int GetAnyAnimation( const std::initializer_list<AnimationId>& ids ) const;
+	LongRandPtr random_generator_;
 
-private:
-	const unsigned char monster_id_;
-	const GameResourcesConstPtr game_resources_;
-
-	m_Vec3 pos_;
-	float angle_;
 	State state_= State::Idle;
-	int life_;
 
-	unsigned int current_animation_= 0u;
-	unsigned int current_animation_frame_= 0u;
 	Time current_animation_start_time_;
-};
 
-typedef std::unique_ptr<Monster> MonsterPtr;
+	float vertical_speed_= 0.0f;
+
+	bool attack_was_done_;
+
+	PlayerWeakPtr target_;
+	m_Vec3 target_position_;
+	Time target_change_time_= Time::FromSeconds(0);
+};
 
 } // namespace PanzerChasm

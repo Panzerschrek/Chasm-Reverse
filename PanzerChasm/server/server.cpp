@@ -5,6 +5,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "player.hpp"
 
 #include "server.hpp"
 
@@ -15,7 +16,7 @@ Server::ConnectedPlayer::ConnectedPlayer(
 	const IConnectionPtr& connection,
 	const GameResourcesConstPtr& game_resoruces  )
 	: connection_info( connection )
-	, player( game_resoruces )
+	, player( std::make_shared<Player>( game_resoruces ) )
 {}
 
 Server::Server(
@@ -45,6 +46,8 @@ Server::Server(
 
 	commands_= std::move( commands );
 	commands_processor.RegisterCommands( commands_ );
+
+	UpdateTimes();
 }
 
 Server::~Server()
@@ -81,26 +84,19 @@ void Server::Loop()
 	// Do server logic
 	UpdateTimes();
 
-	// Move players
-	for( const ConnectedPlayerPtr& connected_player : players_ )
-	{
-		connected_player->player.Move( last_tick_duration_ );
-	}
+	// Process map inner logic
+	if( map_ != nullptr )
+		map_->Tick( server_accumulated_time_, last_tick_duration_ );
 
 	// Process players position
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
-		if( map_ != nullptr && !connected_player->player.IsNoclip() )
+		if( map_ != nullptr && !connected_player->player->IsNoclip() )
 			map_->ProcessPlayerPosition(
 				server_accumulated_time_,
-				connected_player->player,
+				*connected_player->player,
 				connected_player->connection_info.messages_sender );
-
 	}
-
-	// Process map inner logic
-	if( map_ != nullptr )
-		map_->Tick( server_accumulated_time_ );
 
 	// Send messages
 	for( const ConnectedPlayerPtr& connected_player : players_ )
@@ -112,10 +108,10 @@ void Server::Loop()
 		Messages::PlayerPosition position_msg;
 
 		for( unsigned int j= 0u; j < 3u; j++ )
-			position_msg.xyz[j]= static_cast<short>( connected_player->player.Position().ToArr()[j] * 256.0f );
+			position_msg.xyz[j]= static_cast<short>( connected_player->player->Position().ToArr()[j] * 256.0f );
 
 		Messages::PlayerState state_msg;
-		connected_player->player.BuildStateMessage( state_msg );
+		connected_player->player->BuildStateMessage( state_msg );
 
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
@@ -155,7 +151,7 @@ void Server::ChangeMap( const unsigned int map_number )
 		new Map(
 			map_data,
 			game_resources_,
-			last_tick_,
+			server_accumulated_time_,
 			[this](){ map_end_triggered_= true; } ) );
 
 	map_end_triggered_= false;
@@ -187,7 +183,7 @@ void Server::operator()( const Messages::MessageBase& message )
 void Server::operator()( const Messages::PlayerMove& message )
 {
 	PC_ASSERT( current_player_ != nullptr );
-	current_player_->player.UpdateMovement( message );
+	current_player_->player->UpdateMovement( message );
 }
 
 void Server::operator()( const Messages::PlayerShot& message )
@@ -206,7 +202,7 @@ void Server::operator()( const Messages::PlayerShot& message )
 
 	map_->Shoot(
 		0u,
-		current_player_->player.Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
+		current_player_->player->Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
 		view_vec_rotated,
 		server_accumulated_time_ );
 }
@@ -239,7 +235,7 @@ void Server::GiveWeapon()
 void Server::GiveKeys()
 {
 	for( const ConnectedPlayerPtr& connected_player : players_ )
-		connected_player->player.GiveAllKeys();
+		connected_player->player->GiveAllKeys();
 
 	Log::Info( "give all keys" );
 }
@@ -253,7 +249,7 @@ void Server::ToggleNoclip()
 	noclip_= !noclip_;
 
 	for( const ConnectedPlayerPtr& connected_player : players_ )
-		connected_player->player.SetNoclip( noclip_ );
+		connected_player->player->SetNoclip( noclip_ );
 
 	Log::Info( noclip_ ? "noclip on" : "noclip off" );
 }

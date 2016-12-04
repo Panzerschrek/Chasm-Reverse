@@ -87,16 +87,16 @@ static void LoadMonstersDescription(
 
 		line_stream >> monster_description.model_file_name;
 		line_stream >> monster_description.w_radius; // WRad
-		line_stream >> monster_description.a_radius; // ARad
+		line_stream >> monster_description.attack_radius; // ARad
 		line_stream >> monster_description.speed; // SPEED/
-		line_stream >> monster_description.r; // R
+		line_stream >> monster_description.rotation_speed; // R
 		line_stream >> monster_description.life; // LIFE
 		line_stream >> monster_description.kick; // Kick
 		line_stream >> monster_description.rock; // Rock
 		line_stream >> monster_description.sep_limit; // SepLimit
 
 		monster_description.w_radius/= 256.0f;
-		monster_description.a_radius/= 256.0f;
+		monster_description.attack_radius/= 256.0f;
 
 		i++;
 	}

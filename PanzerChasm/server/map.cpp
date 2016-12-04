@@ -4,6 +4,8 @@
 #include "../math_utils.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
+#include "monster.hpp"
+#include "player.hpp"
 
 #include "map.hpp"
 
@@ -63,6 +65,7 @@ Map::Map(
 	: map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
+	, random_generator_( std::make_shared<LongRand>() )
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
@@ -139,23 +142,24 @@ Map::Map(
 			continue;
 
 		// TODO - check difficulty flags
-		monsters_[ next_monter_id_ ]=
+		monsters_[ GetNextMonsterId() ]=
 			MonsterPtr(
 				new Monster(
 					map_monster,
 					GetFloorLevel( map_monster.pos ),
 					game_resources_,
+					random_generator_,
 					map_start_time ) );
-
-		next_monter_id_++;
 	}
 }
 
 Map::~Map()
 {}
 
-void Map::SpawnPlayer( Player& player )
+void Map::SpawnPlayer( const PlayerPtr& player )
 {
+	PC_ASSERT( player != nullptr );
+
 	unsigned int min_spawn_number= ~0u;
 	const MapData::Monster* spawn_with_min_number= nullptr;
 
@@ -170,15 +174,20 @@ void Map::SpawnPlayer( Player& player )
 
 	if( spawn_with_min_number != nullptr )
 	{
-		player.SetPosition(
+		player->SetPosition(
 			m_Vec3(
 				spawn_with_min_number->pos,
 				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ) );
 	}
 	else
-		player.SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
+		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
-	player.ResetActivatedProcedure();
+	player->ResetActivatedProcedure();
+
+	const Messages::EntityId player_id= GetNextMonsterId();
+
+	players_.emplace( player_id, player );
+	monsters_.emplace( player_id, player );
 }
 
 void Map::Shoot(
@@ -209,13 +218,134 @@ void Map::Shoot(
 	}
 }
 
+m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
+{
+	m_Vec2 pos= in_pos.xy();
+	out_on_floor= false;
+
+	const float z_bottom= in_pos.z;
+	const float z_top= z_bottom + height;
+	float new_z= in_pos.z;
+
+	// Static walls
+	for( const MapData::Wall& wall : map_data_->static_walls )
+	{
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+		if( tex.gso[0] )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, radius,
+				new_pos ) )
+		{
+			pos= new_pos;
+		}
+	}
+
+	// Dynamic walls
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	{
+		const DynamicWall& wall= dynamic_walls_[w];
+		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
+
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
+			continue;
+
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ map_wall.texture_id ];
+		if( tex.gso[0] )
+			continue;
+
+		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
+			continue;
+
+		m_Vec2 new_pos;
+		if( CollideCircleWithLineSegment(
+				wall.vert_pos[0], wall.vert_pos[1],
+				pos, radius,
+				new_pos ) )
+		{
+			pos= new_pos;
+		}
+	}
+
+	// Models
+	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	{
+		const StaticModel& model= static_models_[m];
+		if( model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+		if( model_description.radius <= 0.0f )
+			continue;
+
+		const Model& model_geometry= map_data_->models[ model.model_id ];
+
+		const float model_z_min= model_geometry.z_min + model.pos.z;
+		const float model_z_max= model_geometry.z_max + model.pos.z;
+		if( z_top < model_z_min || z_bottom > model_z_max )
+			continue;
+
+		const float min_distance= radius + model_description.radius;
+
+		const m_Vec2 vec_to_pos= pos - model.pos.xy();
+		const float square_distance= vec_to_pos.SquareLength();
+
+		if( square_distance <= min_distance * min_distance )
+		{
+			// Pull up or down player.
+			if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
+			{
+				new_z= std::max( new_z, model_z_max );
+				out_on_floor= true;
+			}
+			else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
+				new_z= std::min( new_z, model_z_min - height );
+			// Push sideways.
+			else
+				pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+		}
+	}
+
+	if( new_z <= 0.0f )
+	{
+		out_on_floor= true;
+		new_z= 0.0f;
+	}
+
+	return m_Vec3( pos, new_z );
+}
+
+bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
+{
+	if( from == to )
+		return true;
+
+	m_Vec3 direction= to - from;
+	direction.Normalize();
+
+	const HitResult hit_result= ProcessShot( from, direction );
+
+	return
+		hit_result.object_type == HitResult::ObjectType::None ||
+		hit_result.object_type == HitResult::ObjectType::Monster;
+}
+
+const Map::PlayersContainer& Map::GetPlayers() const
+{
+	return players_;
+}
+
 void Map::ProcessPlayerPosition(
 	const Time current_time,
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	const float c_wall_height= 2.0f;
-
 	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
 	const int player_y= static_cast<int>( std::floor( player.Position().y ) );
 	if( player_x < 0 || player_y < 0 ||
@@ -239,16 +369,11 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Collide
-	m_Vec2 pos= player.Position().xy();
-
-	player.SetOnFloor( false );
-
+	const m_Vec2 pos= player.Position().xy();
 	const float z_bottom= player.Position().z;
-	const float z_top= z_bottom + GameConstants::player_height;
-	float new_z= z_bottom;
+	const float z_top= player.Position().z + GameConstants::player_height;
 
-	// Static walls
+	// Static walls lonks.
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
@@ -261,12 +386,9 @@ void Map::ProcessPlayerPosition(
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, GameConstants::player_radius,
+				pos, GameConstants::player_interact_radius,
 				new_pos ) )
 		{
-			pos= new_pos;
-			player.ClampSpeed( GetNormalForWall( wall ) );
-
 			ProcessElementLinks(
 				MapData::IndexElement::StaticWall,
 				&wall - map_data_->static_walls.data(),
@@ -278,7 +400,7 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Dynamic walls
+	// Dynamic walls links.
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
 	{
 		const DynamicWall& wall= dynamic_walls_[w];
@@ -291,18 +413,15 @@ void Map::ProcessPlayerPosition(
 		if( tex.gso[0] )
 			continue;
 
-		if( z_top < wall.z || z_bottom > wall.z + c_wall_height )
+		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
 			continue;
 
 		m_Vec2 new_pos;
 		if( CollideCircleWithLineSegment(
 				wall.vert_pos[0], wall.vert_pos[1],
-				pos, GameConstants::player_radius,
+				pos, GameConstants::player_interact_radius,
 				new_pos ) )
 		{
-			pos= new_pos;
-			player.ClampSpeed( GetNormalForWall( wall ) );
-
 			ProcessElementLinks(
 				MapData::IndexElement::DynamicWall,
 				w,
@@ -314,7 +433,7 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Models
+	// Models links.
 	for( unsigned int m= 0u; m < static_models_.size(); m++ )
 	{
 		const StaticModel& model= static_models_[m];
@@ -330,36 +449,13 @@ void Map::ProcessPlayerPosition(
 		if( z_top < model_z_min || z_bottom > model_z_max )
 			continue;
 
-		const float min_distance= GameConstants::player_radius + model_description.radius;
+		const float min_distance= GameConstants::player_interact_radius + model_description.radius;
 
 		const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 		const float square_distance= vec_to_player_pos.SquareLength();
 
-		if( square_distance < min_distance * min_distance )
+		if( square_distance <= min_distance * min_distance )
 		{
-			// Change player position if model have nonzero radius
-			if( model_description.radius > 0.0f )
-			{
-				// Pull up or down player.
-				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
-				{
-					new_z= std::max( new_z, model_z_max );
-					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, +1.0f ) );
-					player.SetOnFloor( true );
-				}
-				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
-				{
-					new_z= std::min( new_z, model_z_min - GameConstants::player_height );
-					player.ClampSpeed( m_Vec3( 0.0f, 0.0f, -1.0f ) );
-				}
-				// Push player sideways.
-				else
-				{
-					pos= model.pos.xy() + vec_to_player_pos * ( min_distance / std::sqrt( square_distance ) );
-					player.ClampSpeed( m_Vec3( vec_to_player_pos / vec_to_player_pos.Length(), 0.0f ) );
-				}
-			}
-
 			// Links must work for zero radius
 			ProcessElementLinks(
 				MapData::IndexElement::StaticModel,
@@ -371,16 +467,6 @@ void Map::ProcessPlayerPosition(
 				} );
 		}
 	}
-
-	if( new_z <= 0.0f )
-	{
-		player.SetOnFloor( true );
-		player.ClampSpeed( m_Vec3( 0.0f, 0.0f, 1.0f ) );
-	}
-	new_z= std::max( new_z, 0.0f );
-
-	// Set position after collisions
-	player.SetPosition( m_Vec3( pos, new_z ) );
 
 	// Process "special" models.
 	// Pick-up keys.
@@ -429,8 +515,8 @@ void Map::ProcessPlayerPosition(
 		if( item.picked_up )
 			continue;
 
-		const float square_distance= ( item.pos.xy() - player.Position().xy() ).SquareLength();
-		if( square_distance <= GameConstants::player_radius * GameConstants::player_radius )
+		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
+		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
 		{
 			item.picked_up= player.TryPickupItem( item.item_id );
 			if( item.picked_up )
@@ -449,7 +535,7 @@ void Map::ProcessPlayerPosition(
 	}
 }
 
-void Map::Tick( const Time current_time )
+void Map::Tick( const Time current_time, const Time last_tick_delta )
 {
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -870,7 +956,11 @@ void Map::Tick( const Time current_time )
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
-			Monster* monster= reinterpret_cast<Monster*>( hit_result.object_index );
+			auto it= monsters_.find( hit_result.object_index );
+			PC_ASSERT( it != monsters_.end() );
+
+			const MonsterBasePtr& monster= it->second;
+			PC_ASSERT( monster != nullptr );
 			monster->Hit( rocket_description.power, current_time );
 		}
 
@@ -897,7 +987,95 @@ void Map::Tick( const Time current_time )
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
-		monster_value.second->Tick( current_time );
+		monster_value.second->Tick( *this, current_time, last_tick_delta );
+	}
+
+	// Collide monsters with map
+	for( MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		MonsterBase& monster= *monster_value.second;
+		const bool is_player= monster.MonsterId() == 0u;
+
+		const float height= GameConstants::player_height; // TODO - select height
+		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+
+		bool on_floor= false;
+		const m_Vec3 old_monster_pos= monster.Position();
+		const m_Vec3 new_monster_pos=
+			CollideWithMap(
+				old_monster_pos, height, radius,
+				on_floor );
+
+		const m_Vec3 position_delta= new_monster_pos - old_monster_pos;
+
+		if( position_delta.z != 0.0f ) // Vertical clamp
+			monster.ClampSpeed( m_Vec3( 0.0f, 0.0f, position_delta.z > 0.0f ? 1.0f : -1.0f ) );
+
+		const float position_delta_length= position_delta.xy().Length();
+		if( position_delta_length != 0.0f ) // Horizontal clamp
+			monster.ClampSpeed( m_Vec3( position_delta.xy() / position_delta_length, 0.0f ) );
+
+		monster.SetPosition( new_monster_pos );
+		monster.SetOnFloor( on_floor );
+	}
+
+	// Collide monsters together
+	for( MonstersContainer::value_type& first_monster_value : monsters_ )
+	{
+		MonsterBase& first_monster= *first_monster_value.second;
+		if( first_monster.Health() <= 0 )
+			continue;
+
+		const float first_monster_radius= game_resources_->monsters_description[ first_monster.MonsterId() ].w_radius;
+		const m_Vec2 first_monster_z_minmax=
+			first_monster.GetZMinMax() + m_Vec2( first_monster.Position().z, first_monster.Position().z );
+
+		for( MonstersContainer::value_type& second_monster_value : monsters_ )
+		{
+			MonsterBase& second_monster= *second_monster_value.second;
+			if( &second_monster == &first_monster )
+				continue;
+
+			if( second_monster.Health() <= 0 )
+				continue;
+
+			const float square_distance= ( first_monster.Position().xy() - second_monster.Position().xy() ).SquareLength();
+
+			const float c_max_collide_distance= 8.0f;
+			if( square_distance > c_max_collide_distance * c_max_collide_distance )
+				continue;
+
+			const float second_monster_radius= game_resources_->monsters_description[ second_monster.MonsterId() ].w_radius;
+			const float min_distance= second_monster_radius + first_monster_radius;
+			if( square_distance > min_distance * min_distance )
+				continue;
+
+			const m_Vec2 second_monster_z_minmax=
+				second_monster.GetZMinMax() + m_Vec2( second_monster.Position().z, second_monster.Position().z );
+			if(  first_monster_z_minmax.y < second_monster_z_minmax.x ||
+				second_monster_z_minmax.y <  first_monster_z_minmax.x ) // Z check
+				continue;
+
+			// Collide here
+			m_Vec2 collide_vec= second_monster.Position().xy() - first_monster.Position().xy();
+			collide_vec.Normalize();
+
+			const float move_delta= min_distance - std::sqrt( square_distance );
+
+			float first_monster_k;
+			if( first_monster.MonsterId() == 0u && second_monster.MonsterId() != 0u )
+				first_monster_k= 1.0f;
+			else if( first_monster.MonsterId() != 0u && second_monster.MonsterId() == 0u )
+				first_monster_k= 0.0f;
+			else
+				first_monster_k= 0.5f;
+
+			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta * first_monster_k;
+			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta * ( 1.0f - first_monster_k );
+
+			 first_monster.SetPosition( m_Vec3( first_monster_pos ,  first_monster.Position().z ) );
+			second_monster.SetPosition( m_Vec3( second_monster_pos, second_monster.Position().z ) );
+		}
 	}
 
 	// At end of this procedure, report about map change, if this needed.
@@ -1167,7 +1345,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	float nearest_shot_point_square_distance= Constants::max_float;
 
 	const auto process_candidate_shot_pos=
-	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const uintptr_t object_index )
+	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const unsigned int object_index )
 	{
 		const float square_distance= ( candidate_pos - shot_start_point ).SquareLength();
 		if( square_distance < nearest_shot_point_square_distance )
@@ -1253,7 +1431,7 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 		{
 			process_candidate_shot_pos(
 				candidate_pos, HitResult::ObjectType::Monster,
-				reinterpret_cast<uintptr_t>( monster_value.second.get() ) );
+				monster_value.first );
 		}
 	}
 
@@ -1327,7 +1505,12 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 	return max_dz;
 }
 
-void Map::PrepareMonsterStateMessage( const Monster& monster, Messages::MonsterState& message )
+Messages::EntityId Map::GetNextMonsterId()
+{
+	return ++next_monster_id_;
+}
+
+void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message )
 {
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );

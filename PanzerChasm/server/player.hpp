@@ -7,20 +7,23 @@
 #include "../messages.hpp"
 #include "../time.hpp"
 #include "a_code.hpp"
+#include "monster_base.hpp"
 
 namespace PanzerChasm
 {
 
 // Server side player logic here.
-class Player final
+class Player final : public MonsterBase
 {
 public:
 	explicit Player( const GameResourcesConstPtr& game_resources );
-	~Player();
+	virtual ~Player() override;
 
-	void SetPosition( const m_Vec3& pos );
-	void ClampSpeed( const m_Vec3& clamp_surface_normal );
-	void SetOnFloor( bool on_floor );
+	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
+	virtual void Hit( int damage, Time current_time ) override;
+
+	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
+	virtual void SetOnFloor( bool on_floor ) override;
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
 	void ResetActivatedProcedure();
@@ -44,12 +47,8 @@ public:
 	bool HaveGreenKey() const;
 	bool HaveBlueKey() const;
 
-	m_Vec3 Position() const;
-
 private:
-	const GameResourcesConstPtr game_resources_;
 
-	m_Vec3 pos_;
 	m_Vec3 speed_;
 	bool on_floor_;
 	bool noclip_;

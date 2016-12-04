@@ -398,11 +398,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 		prepare_model( vertex_count, polygon_count, vertices, polygons, out_model );
 
-		// TODO - check this
-		CalculateModelZ(
-			out_model,
-			reinterpret_cast<const Vertex_o3*>( model_file.data() + 0x3266u ),
-			vertex_count );
+		// For all "Car" models first animation frame is frame of "run" animation
+		CalculateModelZ( out_model, vertices, vertex_count );
 	}
 
 	unsigned int submodels_offset=

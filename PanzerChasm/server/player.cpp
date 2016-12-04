@@ -9,8 +9,7 @@ namespace PanzerChasm
 {
 
 Player::Player( const GameResourcesConstPtr& game_resources )
-	: game_resources_( game_resources )
-	, pos_( 0.0f, 0.0f, 0.0f )
+	: MonsterBase( game_resources, 0u, m_Vec3( 0.0f, 0.0f, 0.0f ), 0.0f )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
@@ -31,9 +30,19 @@ Player::Player( const GameResourcesConstPtr& game_resources )
 Player::~Player()
 {}
 
-void Player::SetPosition( const m_Vec3& pos )
+void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta )
 {
-	pos_= pos;
+	PC_UNUSED( map );
+	PC_UNUSED( current_time );
+
+	Move( last_tick_delta );
+}
+
+void Player::Hit( const int damage, const Time current_time )
+{
+	PC_UNUSED( current_time );
+
+	health_-= damage;
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
@@ -43,9 +52,11 @@ void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
 		speed_-= clamp_surface_normal * projection;
 }
 
-void Player::SetOnFloor( bool on_floor )
+void Player::SetOnFloor( const bool on_floor )
 {
 	on_floor_= on_floor;
+	if( on_floor_ && speed_.z < 0.0f )
+		speed_.z= 0.0f;
 }
 
 bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
@@ -187,8 +198,6 @@ void Player::Move( const Time time_delta )
 	const float c_acceleration= 40.0f;
 	const float c_deceleration= 20.0f;
 	const float c_jump_speed_delta= 3.3f;
-	const float c_vertical_acceleration= -9.8f;
-	const float c_max_vertical_speed= 5.0f;
 
 	const float speed_delta= time_delta_s * mevement_acceleration_ * c_acceleration;
 	const float deceleration_speed_delta= time_delta_s * c_deceleration;
@@ -218,17 +227,17 @@ void Player::Move( const Time time_delta )
 	}
 
 	// Fall down
-	speed_.z+= c_vertical_acceleration * time_delta_s;
+	speed_.z+= GameConstants::vertical_acceleration * time_delta_s;
 
 	// Jump
 	if( jump_pessed_ && noclip_ )
-		speed_.z-= 2.0f * c_vertical_acceleration * time_delta_s;
+		speed_.z-= 2.0f * GameConstants::vertical_acceleration * time_delta_s;
 	else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
 		speed_.z+= c_jump_speed_delta;
 
 	// Clamp vertical speed
-	if( std::abs( speed_.z ) > c_max_vertical_speed )
-		speed_.z*= c_max_vertical_speed / std::abs( speed_.z );
+	if( std::abs( speed_.z ) > GameConstants::max_vertical_speed )
+		speed_.z*= GameConstants::max_vertical_speed / std::abs( speed_.z );
 
 	pos_+= speed_ * time_delta_s;
 
@@ -284,11 +293,6 @@ bool Player::HaveGreenKey() const
 bool Player::HaveBlueKey() const
 {
 	return have_blue_key_;
-}
-
-m_Vec3 Player::Position() const
-{
-	return pos_;
 }
 
 } // namespace PanzerChasm

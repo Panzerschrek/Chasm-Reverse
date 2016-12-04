@@ -375,9 +375,7 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 		monster.pos.x= float(map_monsters[m].position[0]) * g_map_coords_scale;
 		monster.pos.y= float(map_monsters[m].position[1]) * g_map_coords_scale;
 		monster.monster_id= map_monsters[m].id - 100u;
-		monster.angle=
-			float( map_monsters[m].angle & 7u) / 8.0f * Constants::two_pi +
-			1.5f * Constants::pi;
+		monster.angle= float( map_monsters[m].angle & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 
 		monster.difficulty_flags= map_monsters[m].difficulty_flags;
 	}

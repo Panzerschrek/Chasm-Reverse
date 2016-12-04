@@ -40,9 +40,12 @@ SOURCES+= \
 	model.cpp \
 	obj.cpp \
 	server/collisions.cpp \
+	server/fwd.hpp \
 	server/map.cpp \
 	server/monster.cpp \
+	server/monster_base.cpp \
 	server/player.cpp \
+	server/rand.cpp \
 	server/server.cpp \
 	system_window.cpp \
 	time.cpp \
@@ -84,7 +87,9 @@ HEADERS+= \
 	server/collisions.hpp \
 	server/map.hpp \
 	server/monster.hpp \
+	server/monster_base.hpp \
 	server/player.hpp \
+	server/rand.hpp \
 	server/server.hpp \
 	size.hpp \
 	system_event.hpp \
