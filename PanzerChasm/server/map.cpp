@@ -1060,10 +1060,18 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			m_Vec2 collide_vec= second_monster.Position().xy() - first_monster.Position().xy();
 			collide_vec.Normalize();
 
-			const float move_delta= 0.5f * ( min_distance - std::sqrt( square_distance ) );
+			const float move_delta= min_distance - std::sqrt( square_distance );
 
-			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta;
-			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta;
+			float first_monster_k;
+			if( first_monster.MonsterId() == 0u && second_monster.MonsterId() != 0u )
+				first_monster_k= 1.0f;
+			else if( first_monster.MonsterId() != 0u && second_monster.MonsterId() == 0u )
+				first_monster_k= 0.0f;
+			else
+				first_monster_k= 0.5f;
+
+			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta * first_monster_k;
+			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta * ( 1.0f - first_monster_k );
 
 			 first_monster.SetPosition( m_Vec3( first_monster_pos ,  first_monster.Position().z ) );
 			second_monster.SetPosition( m_Vec3( second_monster_pos, second_monster.Position().z ) );
