@@ -123,6 +123,11 @@ void Client::Draw()
 		camera_controller_.GetViewMatrix( pos, view_matrix );
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
+		map_drawer_.DrawWeapon(
+			view_matrix,
+			pos,
+			m_Vec3( camera_controller_.GetViewAngleX(), 0.0f, camera_controller_.GetViewAngleZ() ) );
+
 		hud_drawer_.DrawCrosshair(2u);
 		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
 		hud_drawer_.DrawHud( map_mode_, 2u );
