@@ -40,7 +40,10 @@ private:
 
 	struct ConnectedPlayer final
 	{
-		ConnectedPlayer( const IConnectionPtr& connection, const GameResourcesConstPtr& game_resoruces );
+		ConnectedPlayer(
+			const IConnectionPtr& connection,
+			const GameResourcesConstPtr& game_resoruces,
+			Time current_time );
 
 		ConnectionInfo connection_info;
 		PlayerPtr player;

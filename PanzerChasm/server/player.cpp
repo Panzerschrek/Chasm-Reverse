@@ -8,8 +8,9 @@
 namespace PanzerChasm
 {
 
-Player::Player( const GameResourcesConstPtr& game_resources )
+Player::Player( const GameResourcesConstPtr& game_resources, const Time current_time )
 	: MonsterBase( game_resources, 0u, m_Vec3( 0.0f, 0.0f, 0.0f ), 0.0f )
+	, spawn_time_( current_time )
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
@@ -36,6 +37,27 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 	PC_UNUSED( current_time );
 
 	Move( last_tick_delta );
+
+	if( mevement_acceleration_ > 0.0f )
+	{
+		float angle_diff= movement_direction_ - angle_;
+		if( angle_diff > +Constants::pi )
+			angle_diff-= Constants::two_pi;
+		if( angle_diff < -Constants::pi )
+			angle_diff+= Constants::two_pi;
+
+		if( std::abs(angle_diff) <= Constants::half_pi )
+			current_animation_= GetAnimation( AnimationId::Run );
+		else
+			current_animation_= GetAnimation( AnimationId::MeleeAttackLeftHand ); // TODO - select backwalk animation
+	}
+	else
+		current_animation_= GetAnimation( AnimationId::Idle0 );
+
+	const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
+	current_animation_frame_=
+		static_cast<unsigned int>( std::round( frame ) ) %
+		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
 }
 
 void Player::Hit( const int damage, const Time current_time )
@@ -184,8 +206,9 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
+	angle_= MessageAngleToAngle( move_message.view_direction );
+	movement_direction_= MessageAngleToAngle( move_message.move_direction );
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
-	movement_direction_= MessageAngleToAngle( move_message.angle );
 	jump_pessed_= move_message.jump_pressed;
 }
 

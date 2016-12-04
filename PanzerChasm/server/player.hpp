@@ -16,7 +16,7 @@ namespace PanzerChasm
 class Player final : public MonsterBase
 {
 public:
-	explicit Player( const GameResourcesConstPtr& game_resources );
+	Player( const GameResourcesConstPtr& game_resources, Time current_time );
 	virtual ~Player() override;
 
 	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
@@ -48,6 +48,7 @@ public:
 	bool HaveBlueKey() const;
 
 private:
+	const Time spawn_time_;
 
 	m_Vec3 speed_;
 	bool on_floor_;

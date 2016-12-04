@@ -103,15 +103,14 @@ void Client::Loop()
 		camera_controller_.GetAcceleration( move_direction, move_acceleration );
 
 		Messages::PlayerMove message;
+		message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
+		message.move_direction= AngleToMessageAngle( move_direction );
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
-		message.angle= static_cast<unsigned short>( move_direction * 65536.0f / Constants::two_pi );
 		message.jump_pressed= camera_controller_.JumpPressed();
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();
 	}
-
-	//Log::Info( "Pos: ", player_position_.x, " ", player_position_.y, " ", player_position_.z );
 }
 
 void Client::Draw()

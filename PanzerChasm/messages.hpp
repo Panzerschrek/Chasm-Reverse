@@ -163,7 +163,8 @@ struct PlayerMove : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerMove)
 
-	AngleType angle;
+	AngleType view_direction;
+	AngleType move_direction;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
 	bool jump_pressed;
 };
