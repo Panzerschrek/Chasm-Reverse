@@ -36,6 +36,9 @@ public:
 	virtual void Tick( Map& map, Time current_time, Time last_tick_delta )= 0;
 	virtual void Hit( int damage, Time current_time )= 0;
 
+	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal )= 0;
+	virtual void SetOnFloor( bool on_floor )= 0;
+
 protected:
 	// TODO - check this. Some numbers may be incorrect.
 	enum class AnimationId : unsigned int

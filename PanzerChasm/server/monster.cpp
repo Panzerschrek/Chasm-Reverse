@@ -60,6 +60,10 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 	if( target != nullptr )
 		target_position_= target->Position();
 
+	const float last_tick_delta_s= last_tick_delta.ToSeconds();
+
+	FallDown( last_tick_delta_s );
+
 	switch( state_ )
 	{
 	case State::Idle:
@@ -101,7 +105,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 
 			if( state_ == State::MoveToTarget )
 			{
-				MoveToTarget( last_tick_delta.ToSeconds() );
+				MoveToTarget( last_tick_delta_s );
 				current_animation_frame_= animation_frame_unwrapped % frame_count;
 			}
 		}
@@ -145,7 +149,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 		}
 		else
 		{
-			RotateToTarget( last_tick_delta.ToSeconds() );
+			RotateToTarget( last_tick_delta_s );
 
 			if( animation_frame_unwrapped >= frame_count / 2u &&
 				!attack_was_done_ &&
@@ -212,6 +216,34 @@ void Monster::Hit( const int damage, const Time current_time )
 			current_animation_= static_cast<unsigned int>(animation);
 		}
 	}
+}
+
+void Monster::ClampSpeed( const m_Vec3& clamp_surface_normal )
+{
+	if( vertical_speed_ > 0.0f &&
+		clamp_surface_normal.z < 0.0f )
+		vertical_speed_= 0.0f;
+
+	if( vertical_speed_ < 0.0f &&
+		clamp_surface_normal.z > 0.0f )
+		vertical_speed_= 0.0f;
+}
+
+void Monster::SetOnFloor( const bool on_floor )
+{
+	if( on_floor )
+		vertical_speed_= 0.0f;
+}
+
+void Monster::FallDown( const float time_delta_s )
+{
+	vertical_speed_+= time_delta_s * GameConstants::vertical_acceleration;
+	if( vertical_speed_ > +GameConstants::max_vertical_speed )
+		vertical_speed_= +GameConstants::max_vertical_speed;
+	if( vertical_speed_ < -GameConstants::max_vertical_speed )
+		vertical_speed_= -GameConstants::max_vertical_speed;
+
+	pos_.z+= vertical_speed_ * time_delta_s;
 }
 
 void Monster::MoveToTarget( const float time_delta_s )

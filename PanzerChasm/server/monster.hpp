@@ -28,6 +28,9 @@ public:
 	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
 	virtual void Hit( int damage, Time current_time ) override;
 
+	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
+	virtual void SetOnFloor( bool on_floor ) override;
+
 private:
 	enum class State
 	{
@@ -41,6 +44,7 @@ private:
 	};
 
 private:
+	void FallDown( float time_delta_s );
 	void MoveToTarget( float time_delta_s );
 	void RotateToTarget( float time_delta_s );
 	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
@@ -51,6 +55,8 @@ private:
 	State state_= State::Idle;
 
 	Time current_animation_start_time_;
+
+	float vertical_speed_= 0.0f;
 
 	bool attack_was_done_;
 

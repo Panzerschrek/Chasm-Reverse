@@ -24,6 +24,9 @@ const float rockets_gravity_scale= 1.5f;
 const float rockets_speed= 10.0f;
 const float fast_rockets_speed= 20.0f;
 
+constexpr float vertical_acceleration= -9.8f;
+constexpr float max_vertical_speed= 5.0f;
+
 } // namespace GameConstants
 
 } // namespace PanzerChasm

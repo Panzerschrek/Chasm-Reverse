@@ -22,8 +22,8 @@ public:
 	virtual void Tick( Map& map, Time current_time, Time last_tick_delta ) override;
 	virtual void Hit( int damage, Time current_time ) override;
 
-	void ClampSpeed( const m_Vec3& clamp_surface_normal );
-	void SetOnFloor( bool on_floor );
+	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
+	virtual void SetOnFloor( bool on_floor ) override;
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
 	void ResetActivatedProcedure();

@@ -353,28 +353,6 @@ void Map::ProcessPlayerPosition(
 		player_y >= int(MapData::c_map_size) )
 		return;
 
-	{ // Process and correct position, collide.
-		bool on_floor= false;
-		const m_Vec3 old_player_position= player.Position();
-		const m_Vec3 new_player_pos=
-			CollideWithMap(
-				old_player_position, GameConstants::player_height, GameConstants::player_radius,
-				on_floor );
-
-		const m_Vec3 position_delta= new_player_pos - old_player_position;
-
-		if( position_delta.z != 0.0f ) // Vertical clamp
-			player.ClampSpeed( m_Vec3( 0.0f, 0.0f, position_delta.z > 0.0f ? 1.0f : -1.0f ) );
-
-		const float position_delta_length= position_delta.xy().Length();
-		if( position_delta_length != 0.0f ) // Horizontal clamp
-			player.ClampSpeed( m_Vec3( position_delta.xy() / position_delta_length, 0.0f ) );
-
-		player.SetPosition( new_player_pos );
-
-		player.SetOnFloor( on_floor );
-	}
-
 	// Process floors
 	for( int x= std::max( 0, int(player_x) - 2); x < std::min( int(MapData::c_map_size), int(player_x) + 2 ); x++ )
 	for( int y= std::max( 0, int(player_y) - 2); y < std::min( int(MapData::c_map_size), int(player_y) + 2 ); y++ )
@@ -1016,17 +994,29 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
 		MonsterBase& monster= *monster_value.second;
-		if( monster.MonsterId() == 0u ) // Skip players
-			continue;
+		const bool is_player= monster.MonsterId() == 0u;
 
 		const float height= GameConstants::player_height; // TODO - select height
-		bool on_floor;
+		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
-		monster.SetPosition(
+		bool on_floor= false;
+		const m_Vec3 old_monster_pos= monster.Position();
+		const m_Vec3 new_monster_pos=
 			CollideWithMap(
-				monster.Position(), height,
-				game_resources_->monsters_description[ monster.MonsterId() ].w_radius,
-				on_floor ) );
+				old_monster_pos, height, radius,
+				on_floor );
+
+		const m_Vec3 position_delta= new_monster_pos - old_monster_pos;
+
+		if( position_delta.z != 0.0f ) // Vertical clamp
+			monster.ClampSpeed( m_Vec3( 0.0f, 0.0f, position_delta.z > 0.0f ? 1.0f : -1.0f ) );
+
+		const float position_delta_length= position_delta.xy().Length();
+		if( position_delta_length != 0.0f ) // Horizontal clamp
+			monster.ClampSpeed( m_Vec3( position_delta.xy() / position_delta_length, 0.0f ) );
+
+		monster.SetPosition( new_monster_pos );
+		monster.SetOnFloor( on_floor );
 	}
 
 	// Collide monsters together
