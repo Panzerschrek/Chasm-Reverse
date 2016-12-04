@@ -60,7 +60,7 @@ private:
 
 	bool attack_was_done_;
 
-	PlayerConstWeakPtr target_;
+	PlayerWeakPtr target_;
 	m_Vec3 target_position_;
 	Time target_change_time_= Time::FromSeconds(0);
 };

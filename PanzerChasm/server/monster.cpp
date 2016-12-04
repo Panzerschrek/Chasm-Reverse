@@ -56,7 +56,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 	const unsigned int frame_count= model.animations[ current_animation_ ].frame_count;
 
 	// Update target position if target moves.
-	const PlayerConstPtr target= target_.lock();
+	const PlayerPtr target= target_.lock();
 	if( target != nullptr )
 		target_position_= target->Position();
 
@@ -86,6 +86,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
 			current_animation_start_time_= current_time;
 			current_animation_frame_= 0u;
+			attack_was_done_= false;
 		}
 		else
 		{	if( current_time >= target_change_time_ )
@@ -135,7 +136,18 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 			current_animation_frame_= 0u;
 		}
 		else
+		{
+			if( animation_frame_unwrapped >= frame_count / 2u &&
+				!attack_was_done_ &&
+				target != nullptr &&
+				( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
+			{
+				target->Hit( description.kick, current_time );
+				attack_was_done_= true;
+			}
+
 			current_animation_frame_= animation_frame_unwrapped;
+		}
 		break;
 
 	case State::RemoteAttack:
@@ -312,7 +324,7 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 	*/
 
 	float nearest_player_distance= Constants::max_float;
-	PlayerConstPtr nearest_player;
+	PlayerPtr nearest_player;
 
 	const Map::PlayersContainer& players= map.GetPlayers();
 	for( const Map::PlayersContainer::value_type& player_value : players )
@@ -360,7 +372,7 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 		const float distance= random_generator_->RandValue( 2.0f, 5.0f );
 		const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
 
-		target_= PlayerConstPtr();
+		target_= PlayerPtr();
 		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 
