@@ -5,6 +5,7 @@
 #include "../assert.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
+#include "weapon_state.hpp"
 
 #include "map_drawer.hpp"
 
@@ -348,6 +349,7 @@ void MapDrawer::Draw(
 }
 
 void MapDrawer::DrawWeapon(
+	const WeaponState& weapon_state,
 	const m_Mat4& view_matrix,
 	const m_Vec3& position,
 	const m_Vec3& angle )
@@ -384,13 +386,13 @@ void MapDrawer::DrawWeapon(
 	models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
 	models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
 
-	unsigned int weapon_id= 5u;
-	unsigned int frame= 0u;
+	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
+	const unsigned int frame= model.animations[ weapon_state.CurrentAnimation() ].first_frame + weapon_state.CurrentAnimationFrame();
 
 	const auto draw_model_polygons=
 	[&]( const bool transparent )
 	{
-		const ModelGeometry& model_geometry= weapons_geometry_[ weapon_id ];
+		const ModelGeometry& model_geometry= weapons_geometry_[ weapon_state.CurrentWeaponIndex() ];
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		if( index_count == 0u )
 			return;
@@ -398,7 +400,7 @@ void MapDrawer::DrawWeapon(
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
 		const unsigned int first_vertex=
 			model_geometry.first_vertex_index +
-			frame * model_geometry.vertex_count;
+			model_geometry.vertex_count * frame;
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,

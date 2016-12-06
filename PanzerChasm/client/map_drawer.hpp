@@ -7,6 +7,7 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../rendering_context.hpp"
+#include "fwd.hpp"
 #include "map_state.hpp"
 
 namespace PanzerChasm
@@ -30,6 +31,7 @@ public:
 		const m_Vec3& camera_position );
 
 	void DrawWeapon(
+		const WeaponState& weapon_state,
 		const m_Mat4& view_matrix,
 		const m_Vec3& position,
 		const m_Vec3& angle);

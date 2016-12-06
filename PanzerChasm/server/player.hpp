@@ -31,6 +31,7 @@ public:
 	bool TryPickupItem( unsigned int item_id );
 
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
+	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
@@ -46,6 +47,11 @@ public:
 	bool HaveRedKey() const;
 	bool HaveGreenKey() const;
 	bool HaveBlueKey() const;
+
+	unsigned int CurrentWeaponIndex() const;
+
+	unsigned int CurrentAnimation() const;
+	unsigned int CurrentAnimationFrame() const;
 
 private:
 	const Time spawn_time_;
@@ -66,6 +72,10 @@ private:
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
 	bool jump_pessed_= false;
+
+	unsigned int current_weapon_index_= 0u;
+	unsigned int current_weapon_animation_= 0u;
+	unsigned int current_weapon_animation_frame_= 0u;
 
 	unsigned int last_activated_procedure_= 0u; // zero is dummy
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);

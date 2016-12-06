@@ -11,6 +11,7 @@
 #include "map_drawer.hpp"
 #include "map_state.hpp"
 #include "movement_controller.hpp"
+#include "weapon_state.hpp"
 
 namespace PanzerChasm
 {
@@ -38,6 +39,7 @@ public: // Messages handlers
 	void operator()( const Messages::WallPosition& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::PlayerState& message );
+	void operator()( const Messages::PlayerWeapon& message );
 	void operator()( const Messages::ItemState& message );
 	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::SpriteEffectBirth& message );
@@ -60,12 +62,15 @@ private:
 	Time current_tick_time_;
 
 	m_Vec3 player_position_;
+	unsigned int selected_weapon_index_= 0u;
 	MovementController camera_controller_;
 	bool map_mode_= false;
 
 	MapDrawer map_drawer_;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
+
+	WeaponState weapon_state_;
 
 	HudDrawer hud_drawer_;
 };

@@ -112,10 +112,13 @@ void Server::Loop()
 			position_msg.xyz[j]= static_cast<short>( connected_player->player->Position().ToArr()[j] * 256.0f );
 
 		Messages::PlayerState state_msg;
+		Messages::PlayerWeapon weapon_msg;
 		connected_player->player->BuildStateMessage( state_msg );
+		connected_player->player->BuildWeaponMessage( weapon_msg );
 
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
+		messages_sender.SendUnreliableMessage( weapon_msg );
 		messages_sender.Flush();
 	}
 

@@ -23,6 +23,7 @@ Client::Client(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( game_resources, rendering_context )
+	, weapon_state_( game_resources )
 	, hud_drawer_( game_resources, rendering_context, drawers )
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -63,6 +64,13 @@ void Client::ProcessEvents( const SystemEvents& events )
 				event.event.key.pressed ? camera_controller_.RotateLeftPressed() : camera_controller_.RotateLeftReleased();
 			else if( event.event.key.key_code == KeyCode::Right )
 				event.event.key.pressed ? camera_controller_.RotateRightPressed() : camera_controller_.RotateRightReleased();
+
+			else if( event.event.key.key_code >= KeyCode::K1 &&
+				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
+			{
+				selected_weapon_index_=
+					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
+			}
 
 			if( event.event.key.key_code == KeyCode::Tab && event.event.key.pressed )
 				map_mode_= !map_mode_;
@@ -107,6 +115,7 @@ void Client::Loop()
 		message.move_direction= AngleToMessageAngle( move_direction );
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.jump_pressed= camera_controller_.JumpPressed();
+		message.weapon_index= selected_weapon_index_;
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();
@@ -124,6 +133,7 @@ void Client::Draw()
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
 		map_drawer_.DrawWeapon(
+			weapon_state_,
 			view_matrix,
 			pos,
 			m_Vec3( camera_controller_.GetViewAngleX(), 0.0f, camera_controller_.GetViewAngleZ() ) );
@@ -160,6 +170,11 @@ void Client::operator()( const Messages::PlayerPosition& message )
 void Client::operator()( const Messages::PlayerState& message )
 {
 	hud_drawer_.SetPlayerState( message );
+}
+
+void Client::operator()( const Messages::PlayerWeapon& message )
+{
+	weapon_state_.ProcessMessage( message );
 }
 
 void Client::operator()( const Messages::ItemState& message )

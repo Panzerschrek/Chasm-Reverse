@@ -74,6 +74,15 @@ struct PlayerState : public MessageBase
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
 };
 
+struct PlayerWeapon : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerWeapon)
+
+	unsigned char current_weapon_index_;
+	unsigned char animation_;
+	unsigned char animation_frame_;
+};
+
 struct ItemState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(ItemState)
@@ -167,6 +176,7 @@ struct PlayerMove : public MessageBase
 	AngleType move_direction;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
 	bool jump_pressed;
+	unsigned char weapon_index;
 };
 
 struct PlayerShot : public MessageBase

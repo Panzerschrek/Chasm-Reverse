@@ -58,6 +58,10 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 	current_animation_frame_=
 		static_cast<unsigned int>( std::round( frame ) ) %
 		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
+
+	// Weapon
+	current_weapon_animation_= 0u;
+	current_weapon_animation_frame_= 0u;
 }
 
 void Player::Hit( const int damage, const Time current_time )
@@ -214,12 +218,23 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 	if( have_blue_key_  ) out_state_message.keys_mask|= 4u;
 }
 
+void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
+{
+	out_weapon_message.current_weapon_index_= current_weapon_index_;
+	out_weapon_message.animation_= current_weapon_animation_;
+	out_weapon_message.animation_frame_= current_weapon_animation_frame_;
+}
+
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
 	angle_= MessageAngleToAngle( move_message.view_direction );
 	movement_direction_= MessageAngleToAngle( move_message.move_direction );
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
 	jump_pessed_= move_message.jump_pressed;
+
+	current_weapon_index_= move_message.weapon_index;
+	if( current_weapon_index_ >= GameConstants::weapon_count )
+		current_weapon_index_= 0u;
 }
 
 void Player::Move( const Time time_delta )
@@ -326,6 +341,21 @@ bool Player::HaveGreenKey() const
 bool Player::HaveBlueKey() const
 {
 	return have_blue_key_;
+}
+
+unsigned int Player::CurrentWeaponIndex() const
+{
+	return current_weapon_index_;
+}
+
+unsigned int Player::CurrentAnimation() const
+{
+	return current_weapon_animation_;
+}
+
+unsigned int Player::CurrentAnimationFrame() const
+{
+	return current_weapon_animation_frame_;
 }
 
 } // namespace PanzerChasm
