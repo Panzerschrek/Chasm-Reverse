@@ -357,6 +357,7 @@ void MapDrawer::DrawWeapon(
 	// TODO - maybe this points differnet for differnet weapons?
 	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
 	const m_Vec3 c_weapon_shift= m_Vec3( 0.2f, 0.7f, -0.45f );
+	const m_Vec3 c_weapon_change_shift= m_Vec3( 0.0f, -0.9f, 0.0f );
 
 	weapons_geometry_data_.Bind();
 	models_shader_.Bind();
@@ -372,7 +373,9 @@ void MapDrawer::DrawWeapon(
 	rotate_z_mat.RotateZ( angle.z );
 	rotate_mat= rotate_x_mat * rotate_z_mat;
 
-	const m_Vec3 additional_shift= c_weapon_shift * rotate_mat;
+	const m_Vec3 additional_shift=
+		( c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() ) ) *
+		rotate_mat;
 	shift_mat.Translate( position + additional_shift );
 
 	const m_Mat4 model_mat= rotate_mat * shift_mat;

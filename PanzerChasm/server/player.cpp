@@ -61,14 +61,29 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 		static_cast<unsigned int>( std::round( frame ) ) %
 		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
 
-	// Weapon
-	{
+
+	{ // Weapon swich
+		const float delta= 2.0f * last_tick_delta.ToSeconds() / GameConstants::weapon_switch_time_s;
+
+		if( current_weapon_index_ != requested_weapon_index_ )
+		{
+			if( weapon_switch_stage_ > 0.0f )
+				weapon_switch_stage_= std::max( weapon_switch_stage_ - delta, 0.0f );
+
+			if( weapon_switch_stage_ <= 0.0f )
+				current_weapon_index_= requested_weapon_index_;
+		}
+		else if( weapon_switch_stage_ < 1.0f )
+			weapon_switch_stage_= std::min( weapon_switch_stage_ + delta, 1.0f );
+
+	}
+	{ // Weapon anination
 		const float weapon_time_s= ( current_time - weapon_animation_state_change_time_ ).ToSeconds();
 		const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
 
-		const float frame= weapon_time_s * weapons_animations_frames_per_second;
+		const float frame= weapon_time_s * GameConstants::weapons_animations_frames_per_second;
 
-		current_weapon_animation_= 1u;
+		current_weapon_animation_= 0u;
 		current_weapon_animation_frame_=
 			static_cast<unsigned int>( std::round( frame ) ) %
 			model.animations[ current_weapon_animation_ ].frame_count;
@@ -232,8 +247,10 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
 {
 	out_weapon_message.current_weapon_index_= current_weapon_index_;
-	out_weapon_message.animation_= current_weapon_animation_;
-	out_weapon_message.animation_frame_= current_weapon_animation_frame_;
+	out_weapon_message.animation= current_weapon_animation_;
+	out_weapon_message.animation_frame= current_weapon_animation_frame_;
+
+	out_weapon_message.switch_stage= static_cast<unsigned int>( weapon_switch_stage_ * 254.9f );
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
@@ -243,9 +260,9 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
 	jump_pessed_= move_message.jump_pressed;
 
-	current_weapon_index_= move_message.weapon_index;
-	if( current_weapon_index_ >= GameConstants::weapon_count )
-		current_weapon_index_= 0u;
+	requested_weapon_index_= move_message.weapon_index;
+	if( requested_weapon_index_ >= GameConstants::weapon_count )
+		requested_weapon_index_= 0u;
 }
 
 void Player::Move( const Time time_delta )

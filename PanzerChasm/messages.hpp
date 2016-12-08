@@ -79,8 +79,9 @@ struct PlayerWeapon : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerWeapon)
 
 	unsigned char current_weapon_index_;
-	unsigned char animation_;
-	unsigned char animation_frame_;
+	unsigned char animation;
+	unsigned char animation_frame;
+	unsigned char switch_stage; // 0 - retracted 255 - fully deployed
 };
 
 struct ItemState : public MessageBase

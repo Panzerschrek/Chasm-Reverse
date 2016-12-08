@@ -74,6 +74,9 @@ private:
 	bool jump_pessed_= false;
 
 	unsigned int current_weapon_index_= 0u;
+	unsigned int requested_weapon_index_= 0u;
+	float weapon_switch_stage_= 1.0f; // 0 - retracted, 1 - fully deployed
+
 	unsigned int current_weapon_animation_= 0u;
 	unsigned int current_weapon_animation_frame_= 0u;
 	Time weapon_animation_state_change_time_;
