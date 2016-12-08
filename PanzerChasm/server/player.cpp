@@ -16,6 +16,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, noclip_(false)
 	, health_(100)
 	, armor_(0)
+	, weapon_animation_state_change_time_( current_time )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -54,14 +55,24 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 	else
 		current_animation_= GetAnimation( AnimationId::Idle0 );
 
+
 	const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
 	current_animation_frame_=
 		static_cast<unsigned int>( std::round( frame ) ) %
 		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
 
 	// Weapon
-	current_weapon_animation_= 0u;
-	current_weapon_animation_frame_= 0u;
+	{
+		const float weapon_time_s= ( current_time - weapon_animation_state_change_time_ ).ToSeconds();
+		const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
+
+		const float frame= weapon_time_s * weapons_animations_frames_per_second;
+
+		current_weapon_animation_= 1u;
+		current_weapon_animation_frame_=
+			static_cast<unsigned int>( std::round( frame ) ) %
+			model.animations[ current_weapon_animation_ ].frame_count;
+	}
 }
 
 void Player::Hit( const int damage, const Time current_time )
