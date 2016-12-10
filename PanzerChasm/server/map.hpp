@@ -29,6 +29,7 @@ public:
 	void SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
+		Messages::EntityId owner_id,
 		unsigned int rocket_id,
 		const m_Vec3& from,
 		const m_Vec3& normalized_direction,
@@ -121,6 +122,7 @@ private:
 	{
 		Rocket(
 			Messages::EntityId in_rocket_id,
+			Messages::EntityId in_owner_id,
 			unsigned char in_rocket_type_id,
 			const m_Vec3& in_start_point,
 			const m_Vec3& in_normalized_direction,
@@ -133,6 +135,7 @@ private:
 		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
 		Messages::EntityId rocket_id;
+		Messages::EntityId owner_id; // owner - monster
 		unsigned char rocket_type_id;
 
 		m_Vec3 previous_position;
@@ -176,7 +179,11 @@ private:
 		unsigned int index,
 		const Func& func );
 
-	HitResult ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const;
+	HitResult ProcessShot(
+		const m_Vec3& shot_start_point,
+		const m_Vec3& shot_direction_normalized,
+		Messages::EntityId skip_monster_id ) const;
+
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
 	Messages::EntityId GetNextMonsterId();

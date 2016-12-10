@@ -7,6 +7,7 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../rendering_context.hpp"
+#include "fwd.hpp"
 #include "map_state.hpp"
 
 namespace PanzerChasm
@@ -28,6 +29,12 @@ public:
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
 		const m_Vec3& camera_position );
+
+	void DrawWeapon(
+		const WeaponState& weapon_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& position,
+		const m_Vec3& angle);
 
 private:
 	struct FloorGeometryInfo
@@ -119,6 +126,7 @@ private:
 	GLuint models_textures_array_id_= ~0;
 	GLuint items_textures_array_id_= ~0;
 	GLuint rockets_textures_array_id_= ~0;
+	GLuint weapons_textures_array_id_= ~0;
 
 	std::vector<GLuint> sprites_textures_arrays_;
 
@@ -143,6 +151,9 @@ private:
 
 	std::vector<ModelGeometry> rockets_geometry_;
 	r_PolygonBuffer rockets_geometry_data_;
+
+	std::vector<ModelGeometry> weapons_geometry_;
+	r_PolygonBuffer weapons_geometry_data_;
 
 	r_GLSLProgram sprites_shader_;
 

@@ -246,7 +246,7 @@ void LoadModel_o3(
 
 		animations[i].id= i;
 		animations[i].first_frame= frame_count;
-		animations[i].frame_count= ( animation_files[i].size() - 2u ) / vertex_count;
+		animations[i].frame_count= ( animation_files[i].size() - 2u ) / ( vertex_count * sizeof(Vertex_o3) );
 
 		frame_count+= animations[i].frame_count;
 	}

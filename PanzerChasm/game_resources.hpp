@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fwd.hpp"
 #include "images.hpp"
 #include "model.hpp"
 #include "obj.hpp"
@@ -112,9 +113,6 @@ public:
 	std::vector<RocketDescription> rockets_description;
 	std::vector<Model> rockets_models;
 };
-
-typedef std::shared_ptr<GameResources> GameResourcesPtr;
-typedef std::shared_ptr<const GameResources> GameResourcesConstPtr;
 
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs );
 

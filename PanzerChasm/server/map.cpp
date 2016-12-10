@@ -23,6 +23,7 @@ static m_Vec3 GetNormalForWall( const Wall& wall )
 
 Map::Rocket::Rocket(
 	const Messages::EntityId in_rocket_id,
+	const Messages::EntityId in_owner_id,
 	const unsigned char in_rocket_type_id,
 	const m_Vec3& in_start_point,
 	const m_Vec3& in_normalized_direction,
@@ -31,6 +32,7 @@ Map::Rocket::Rocket(
 	, start_point( in_start_point )
 	, normalized_direction( in_normalized_direction )
 	, rocket_id( in_rocket_id )
+	, owner_id( in_owner_id )
 	, rocket_type_id( in_rocket_type_id )
 	, previous_position( in_start_point )
 	, track_length( 0.0f )
@@ -182,6 +184,7 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 	else
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
+	player->SetRandomGenerator( random_generator_ );
 	player->ResetActivatedProcedure();
 
 	const Messages::EntityId player_id= GetNextMonsterId();
@@ -191,12 +194,13 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 }
 
 void Map::Shoot(
+	const Messages::EntityId owner_id,
 	const unsigned int rocket_id,
 	const m_Vec3& from,
 	const m_Vec3& normalized_direction,
 	const Time current_time )
 {
-	rockets_.emplace_back( next_rocket_id_, rocket_id, from, normalized_direction, current_time );
+	rockets_.emplace_back( next_rocket_id_, owner_id, rocket_id, from, normalized_direction, current_time );
 	next_rocket_id_++;
 
 	const Rocket& rocket= rockets_.back();
@@ -329,7 +333,7 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 	m_Vec3 direction= to - from;
 	direction.Normalize();
 
-	const HitResult hit_result= ProcessShot( from, direction );
+	const HitResult hit_result= ProcessShot( from, direction, 0u );
 
 	return
 		hit_result.object_type == HitResult::ObjectType::None ||
@@ -831,7 +835,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		HitResult hit_result;
 
 		if( has_infinite_speed )
-			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction );
+			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction, rocket.owner_id );
 		else
 		{
 			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
@@ -846,7 +850,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			m_Vec3 dir= new_pos - rocket.previous_position;
 			dir.Normalize();
 
-			hit_result= ProcessShot( rocket.previous_position, dir );
+			hit_result= ProcessShot( rocket.previous_position, dir, rocket.owner_id );
 
 			if( hit_result.object_type != HitResult::ObjectType::None )
 			{
@@ -987,7 +991,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
-		monster_value.second->Tick( *this, current_time, last_tick_delta );
+		monster_value.second->Tick( *this, monster_value.first, current_time, last_tick_delta );
 	}
 
 	// Collide monsters with map
@@ -1339,7 +1343,10 @@ void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const 
 	}
 }
 
-Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& shot_direction_normalized ) const
+Map::HitResult Map::ProcessShot(
+	const m_Vec3& shot_start_point,
+	const m_Vec3& shot_direction_normalized,
+	const Messages::EntityId skip_monster_id ) const
 {
 	HitResult result;
 	float nearest_shot_point_square_distance= Constants::max_float;
@@ -1424,6 +1431,9 @@ Map::HitResult Map::ProcessShot( const m_Vec3& shot_start_point, const m_Vec3& s
 	// Monsters
 	for( const MonstersContainer::value_type& monster_value : monsters_ )
 	{
+		if( monster_value.first == skip_monster_id )
+			continue;
+
 		m_Vec3 candidate_pos;
 		if( monster_value.second->TryShot(
 				shot_start_point, shot_direction_normalized,

@@ -2,6 +2,8 @@
 #include <memory>
 #include <random>
 
+#include <vec.hpp>
+
 namespace PanzerChasm
 {
 
@@ -22,6 +24,9 @@ public:
 	// Random value in range [ min_value; next_value_after_max ) with linear distribution.
 	float RandValue( float min_value, float next_value_after_max );
 
+	// Random value in sphere with linear density.
+	m_Vec3 RandPointInSphere( float sphere_radius );
+
 private:
 	// Simple and fast generator.
 	// Produces good result for bits 0-31.
@@ -34,7 +39,5 @@ public:
 private:
 	Generator generator_;
 };
-
-typedef std::shared_ptr<LongRand> LongRandPtr;
 
 } // namespace PanzerChasm

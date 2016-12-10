@@ -29,7 +29,6 @@ public:
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::PlayerMove& message );
-	void operator()( const Messages::PlayerShot& message );
 
 private:
 	enum class State

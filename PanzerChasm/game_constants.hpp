@@ -18,6 +18,9 @@ constexpr float player_z_pull_distance= 1.0f / 4.0f;
 constexpr float walls_height= 2.0f;
 
 const float animations_frames_per_second= 20.0f;
+const float weapons_animations_frames_per_second= 30.0f;
+
+const float weapon_switch_time_s= 0.7f;
 
 // TODO - calibrate rockets parameters.
 const float rockets_gravity_scale= 1.5f;

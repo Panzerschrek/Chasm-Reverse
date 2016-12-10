@@ -20,6 +20,7 @@ SOURCES+= \
 	client/map_drawer.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
+	client/weapon_state.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
 	drawers.cpp \
@@ -40,7 +41,6 @@ SOURCES+= \
 	model.cpp \
 	obj.cpp \
 	server/collisions.cpp \
-	server/fwd.hpp \
 	server/map.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
@@ -55,14 +55,17 @@ SOURCES+= \
 HEADERS+= \
 	assert.hpp \
 	client/client.hpp \
+	client/fwd.hpp \
 	client/hud_drawer.hpp \
 	client/map_drawer.hpp \
 	client/map_state.hpp \
 	client/movement_controller.hpp \
+	client/weapon_state.hpp \
 	commands_processor.hpp \
 	connection_info.hpp \
 	console.hpp \
 	drawers.hpp \
+	fwd.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \
@@ -85,6 +88,7 @@ HEADERS+= \
 	rendering_context.hpp \
 	server/a_code.hpp \
 	server/collisions.hpp \
+	server/fwd.hpp \
 	server/map.hpp \
 	server/monster.hpp \
 	server/monster_base.hpp \

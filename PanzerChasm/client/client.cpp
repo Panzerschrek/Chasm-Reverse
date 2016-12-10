@@ -23,6 +23,7 @@ Client::Client(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( game_resources, rendering_context )
+	, weapon_state_( game_resources )
 	, hud_drawer_( game_resources, rendering_context, drawers )
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -64,23 +65,29 @@ void Client::ProcessEvents( const SystemEvents& events )
 			else if( event.event.key.key_code == KeyCode::Right )
 				event.event.key.pressed ? camera_controller_.RotateRightPressed() : camera_controller_.RotateRightReleased();
 
+			else if( event.event.key.key_code >= KeyCode::K1 &&
+				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
+			{
+				unsigned int weapon_index=
+					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
+
+				if( player_state_.ammo[ weapon_index ] > 0u &&
+					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
+					requested_weapon_index_= weapon_index;
+			}
+
 			if( event.event.key.key_code == KeyCode::Tab && event.event.key.pressed )
 				map_mode_= !map_mode_;
 		}
 		else if( event.type == SystemEvent::Type::MouseKey &&
-				event.event.mouse_key.pressed )
+			event.event.mouse_key.mouse_button == 1u )
 		{
-			if( connection_info_ != nullptr )
-			{
-				Messages::PlayerShot message;
-
-				message.view_dir_angle_x=
-					static_cast<unsigned short>( float(camera_controller_.GetViewAngleX()) / Constants::two_pi * 65536.0f );
-				message.view_dir_angle_z=
-					static_cast<unsigned short>( float(camera_controller_.GetViewAngleZ()) / Constants::two_pi * 65536.0f );
-
-				connection_info_->messages_sender.SendUnreliableMessage( message );
-			}
+			shoot_pressed_= event.event.mouse_key.pressed;
+		}
+		else if( event.type == SystemEvent::Type::MouseMove )
+		{
+			camera_controller_.RotateZ( -event.event.mouse_move.dx );
+			camera_controller_.RotateX( -event.event.mouse_move.dy );
 		}
 	} // for events
 }
@@ -93,6 +100,11 @@ void Client::Loop()
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
 	camera_controller_.Tick();
+
+	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
+
+	if( player_state_.ammo[ requested_weapon_index_ ] == 0u )
+		TrySwitchWeaponOnOutOfAmmo();
 
 	if( map_state_ != nullptr )
 		map_state_->Tick( current_tick_time_ );
@@ -107,6 +119,11 @@ void Client::Loop()
 		message.move_direction= AngleToMessageAngle( move_direction );
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.jump_pressed= camera_controller_.JumpPressed();
+		message.weapon_index= requested_weapon_index_;
+
+		message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
+		message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
+		message.shoot_pressed= shoot_pressed_;
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();
@@ -123,6 +140,12 @@ void Client::Draw()
 		camera_controller_.GetViewMatrix( pos, view_matrix );
 
 		map_drawer_.Draw( *map_state_, view_matrix, pos );
+		map_drawer_.DrawWeapon(
+			weapon_state_,
+			view_matrix,
+			pos,
+			m_Vec3( camera_controller_.GetViewAngleX(), 0.0f, camera_controller_.GetViewAngleZ() ) );
+
 		hud_drawer_.DrawCrosshair(2u);
 		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
 		hud_drawer_.DrawHud( map_mode_, 2u );
@@ -154,7 +177,12 @@ void Client::operator()( const Messages::PlayerPosition& message )
 
 void Client::operator()( const Messages::PlayerState& message )
 {
-	hud_drawer_.SetPlayerState( message );
+	player_state_= message;
+}
+
+void Client::operator()( const Messages::PlayerWeapon& message )
+{
+	weapon_state_.ProcessMessage( message );
 }
 
 void Client::operator()( const Messages::ItemState& message )
@@ -230,6 +258,20 @@ void Client::operator()( const Messages::RocketDeath& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
+}
+
+void Client::TrySwitchWeaponOnOutOfAmmo()
+{
+	for( unsigned int i= 1u; i < GameConstants::weapon_count; i++ )
+	{
+		if( player_state_.ammo[i] != 0u )
+		{
+			requested_weapon_index_= i;
+			return;
+		}
+	}
+
+	requested_weapon_index_= 0u;
 }
 
 } // namespace PanzerChasm

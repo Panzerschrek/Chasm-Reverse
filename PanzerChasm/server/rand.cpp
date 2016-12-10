@@ -35,4 +35,25 @@ float LongRand::RandValue( const float min_value, const float next_value_after_m
 	return RandValue( next_value_after_max - min_value ) + min_value;
 }
 
+m_Vec3 LongRand::RandPointInSphere( const float sphere_radius )
+{
+	m_Vec3 result;
+
+	const float square_sphere_radius= sphere_radius * sphere_radius;
+
+	// Generate random value in cube.
+	// continue, while value is outside sphere.
+	while(1)
+	{
+		for( unsigned int j= 0u; j < 3u; j++ )
+			result.ToArr()[j]= RandValue( -sphere_radius, sphere_radius );
+
+		const float square_length= result.SquareLength();
+		if( square_length < square_sphere_radius )
+			break;
+	}
+
+	return result;
+}
+
 } // namespace PanzerChasm

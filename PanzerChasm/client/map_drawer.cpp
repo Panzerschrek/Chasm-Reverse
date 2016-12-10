@@ -5,6 +5,7 @@
 #include "../assert.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
+#include "weapon_state.hpp"
 
 #include "map_drawer.hpp"
 
@@ -194,6 +195,7 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
 	glGenTextures( 1, &rockets_textures_array_id_ );
+	glGenTextures( 1, &weapons_textures_array_id_ );
 
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
@@ -215,6 +217,13 @@ MapDrawer::MapDrawer(
 		rockets_geometry_,
 		rockets_geometry_data_,
 		rockets_textures_array_id_ );
+
+	// Weapons
+	LoadModels(
+		game_resources_->weapons_models,
+		weapons_geometry_,
+		weapons_geometry_data_,
+		weapons_textures_array_id_ );
 
 	// Shaders
 	char lightmap_scale[32];
@@ -271,6 +280,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &models_textures_array_id_ );
 	glDeleteTextures( 1, &items_textures_array_id_ );
 	glDeleteTextures( 1, &rockets_textures_array_id_ );
+	glDeleteTextures( 1, &weapons_textures_array_id_ );
 
 	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
 }
@@ -336,6 +346,82 @@ void MapDrawer::Draw(
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
 	DrawSprites( map_state, view_matrix, camera_position );
+}
+
+void MapDrawer::DrawWeapon(
+	const WeaponState& weapon_state,
+	const m_Mat4& view_matrix,
+	const m_Vec3& position,
+	const m_Vec3& angle )
+{
+	// TODO - maybe this points differnet for differnet weapons?
+	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
+	const m_Vec3 c_weapon_shift= m_Vec3( 0.2f, 0.7f, -0.45f );
+	const m_Vec3 c_weapon_change_shift= m_Vec3( 0.0f, -0.9f, 0.0f );
+
+	weapons_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, weapons_textures_array_id_ );
+	lightmap_.Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	m_Mat4 shift_mat, rotate_x_mat, rotate_z_mat, rotate_mat;
+	rotate_x_mat.RotateX( angle.x );
+	rotate_z_mat.RotateZ( angle.z );
+	rotate_mat= rotate_x_mat * rotate_z_mat;
+
+	const m_Vec3 additional_shift=
+		( c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() ) ) *
+		rotate_mat;
+	shift_mat.Translate( position + additional_shift );
+
+	const m_Mat4 model_mat= rotate_mat * shift_mat;
+
+	m_Mat3 scale_in_lightmap_mat, lightmap_shift_mat, lightmap_scale_mat;
+	scale_in_lightmap_mat.Scale( 0.0f ); // Make model so small, that it will have uniform light.
+	lightmap_shift_mat.Translate( position.xy() );
+	lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+	const m_Mat3 lightmap_mat= scale_in_lightmap_mat * lightmap_shift_mat * lightmap_scale_mat;
+
+	models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+	models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
+
+	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
+	const unsigned int frame= model.animations[ weapon_state.CurrentAnimation() ].first_frame + weapon_state.CurrentAnimationFrame();
+
+	const auto draw_model_polygons=
+	[&]( const bool transparent )
+	{
+		const ModelGeometry& model_geometry= weapons_geometry_[ weapon_state.CurrentWeaponIndex() ];
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			return;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			model_geometry.vertex_count * frame;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	};
+
+	glDepthRange( 0.0f, 1.0f / 8.0f );
+
+	r_OGLStateManager::UpdateState( g_models_gl_state );
+	draw_model_polygons(false);
+
+	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
+	draw_model_polygons(true);
+
+	glDepthRange( 0.0f, 1.0f );
 }
 
 void MapDrawer::LoadSprites()

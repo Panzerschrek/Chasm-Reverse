@@ -1,7 +1,10 @@
 #include <cstring>
 
+#include <matrix.hpp>
+
 #include "../map_loader.hpp"
 #include "./math_utils.hpp"
+#include "map.hpp"
 
 #include "player.hpp"
 
@@ -16,6 +19,8 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, noclip_(false)
 	, health_(100)
 	, armor_(0)
+	, last_shoot_time_( current_time )
+	, weapon_animation_state_change_time_( current_time )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -25,17 +30,20 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 		have_weapon_[i]= false;
 	}
 
+	// Give rifle
+	ammo_[0]= game_resources_->weapons_description[0].limit;
 	have_weapon_[0]= true;
 }
 
 Player::~Player()
 {}
 
-void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta )
+void Player::Tick(
+	Map& map,
+	const Messages::EntityId monster_id,
+	const Time current_time,
+	const Time last_tick_delta )
 {
-	PC_UNUSED( map );
-	PC_UNUSED( current_time );
-
 	Move( last_tick_delta );
 
 	if( mevement_acceleration_ > 0.0f )
@@ -54,10 +62,133 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 	else
 		current_animation_= GetAnimation( AnimationId::Idle0 );
 
+
 	const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
 	current_animation_frame_=
 		static_cast<unsigned int>( std::round( frame ) ) %
 		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
+
+
+	// Make some iterations of weapon logic.
+	bool switch_step_done= false;
+	for( unsigned int iter= 0u; iter < 3u; iter++ )
+	{
+		// Try start switching
+		if( weapon_state_ == WeaponState::Idle )
+		{
+			if( current_weapon_index_ != requested_weapon_index_ )
+				weapon_state_ = WeaponState::Switching;
+		}
+		// Try end reloading
+		if( weapon_state_ == WeaponState::Reloading )
+		{
+			const float time_sinse_last_shot_s= ( current_time - last_shoot_time_ ).ToSeconds();
+			const float reloading_time= float( game_resources_->weapons_description[ current_weapon_index_ ].reloading_time ) / 100.0f;
+			if( time_sinse_last_shot_s >= reloading_time )
+				weapon_state_= WeaponState::Idle;
+		}
+		// Switch
+		if( weapon_state_ == WeaponState::Switching && !switch_step_done )
+		{
+			const float delta= 2.0f * last_tick_delta.ToSeconds() / GameConstants::weapon_switch_time_s;
+
+			if( current_weapon_index_ != requested_weapon_index_ )
+			{
+				if( weapon_switch_stage_ > 0.0f )
+					weapon_switch_stage_= std::max( weapon_switch_stage_ - delta, 0.0f );
+
+				if( weapon_switch_stage_ <= 0.0f )
+					current_weapon_index_= requested_weapon_index_;
+			}
+			else if( weapon_switch_stage_ < 1.0f )
+				weapon_switch_stage_= std::min( weapon_switch_stage_ + delta, 1.0f );
+
+			if( weapon_switch_stage_ >= 1.0f )
+				weapon_state_= WeaponState::Idle;
+
+			switch_step_done= true;
+		}
+		// Try shoot
+		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ &&
+			( ammo_[ current_weapon_index_ ] > 0u || current_weapon_index_ == 0 ) )
+		{
+			const GameResources::WeaponDescription& description= game_resources_->weapons_description[ current_weapon_index_ ];
+
+			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
+
+			m_Mat4 x_rotate, z_rotate, rotate;
+			x_rotate.RotateX( view_angle_x_ );
+			z_rotate.RotateZ( view_angle_z_ );
+			rotate= x_rotate * z_rotate;
+
+			const m_Vec3 view_vec_rotated= view_vec * rotate;
+
+			// TODO - check and calibrate
+			const m_Vec3 shoot_point_delta(
+				1.0f / 16.0f,
+				0.0f,
+				-float(description.r_z0) / 2048.0f );
+
+			const m_Vec3 final_shoot_pos=
+				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate;
+
+			for( unsigned int i= 0u; i < static_cast<unsigned int>(description.r_count); i++ )
+			{
+				m_Vec3 final_view_dir_vec;
+				if( description.r_count > 1 && random_generator_ != nullptr )
+				{
+					final_view_dir_vec= view_vec_rotated + random_generator_->RandPointInSphere( 1.0f / 24.0f );
+					final_view_dir_vec.Normalize();
+				}
+				else
+					final_view_dir_vec= view_vec_rotated;
+
+				map.Shoot(
+					monster_id, description.r_type,
+					final_shoot_pos, final_view_dir_vec,
+					current_time );
+			}
+
+			if( current_weapon_index_ != 0u )
+				ammo_[ current_weapon_index_ ]--;
+
+			last_shoot_time_= current_time;
+			weapon_state_= WeaponState::Reloading;
+		}
+	}
+
+	{ // Weapon anination
+		bool use_idle_animation= false;
+		if( weapon_state_ == WeaponState::Reloading )
+		{
+			const float weapon_time_s= ( current_time - last_shoot_time_ ).ToSeconds();
+			const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
+
+			current_weapon_animation_= 1u;
+			const unsigned int frame= static_cast<unsigned int>( std::round( weapon_time_s * GameConstants::weapons_animations_frames_per_second ) );
+
+			const unsigned int frame_count= model.animations[ current_weapon_animation_ ].frame_count;
+			if( frame >= frame_count )
+			{
+				weapon_animation_state_change_time_= current_time;
+				use_idle_animation= true;
+			}
+			else
+				current_weapon_animation_frame_= frame;
+		}
+		if( weapon_state_ != WeaponState::Reloading || use_idle_animation )
+		{
+			const float weapon_time_s= ( current_time - weapon_animation_state_change_time_ ).ToSeconds();
+			const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
+
+			const float frame= weapon_time_s * GameConstants::weapons_animations_frames_per_second;
+
+			current_weapon_animation_= weapon_state_ == WeaponState::Reloading ? 1u : 0u;
+			current_weapon_animation_frame_=
+				static_cast<unsigned int>( std::round( frame ) ) %
+				model.animations[ current_weapon_animation_ ].frame_count;
+		}
+	}
 }
 
 void Player::Hit( const int damage, const Time current_time )
@@ -89,6 +220,11 @@ void Player::SetOnFloor( const bool on_floor )
 	on_floor_= on_floor;
 	if( on_floor_ && speed_.z < 0.0f )
 		speed_.z= 0.0f;
+}
+
+void Player::SetRandomGenerator( const LongRandPtr& random_generator )
+{
+	random_generator_= random_generator;
 }
 
 bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
@@ -212,6 +348,20 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 	if( have_red_key_   ) out_state_message.keys_mask|= 1u;
 	if( have_green_key_ ) out_state_message.keys_mask|= 2u;
 	if( have_blue_key_  ) out_state_message.keys_mask|= 4u;
+
+	out_state_message.weapons_mask= 0u;
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+		if( have_weapon_[i] )
+			out_state_message.weapons_mask|= 1 << i;
+}
+
+void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
+{
+	out_weapon_message.current_weapon_index_= current_weapon_index_;
+	out_weapon_message.animation= current_weapon_animation_;
+	out_weapon_message.animation_frame= current_weapon_animation_frame_;
+
+	out_weapon_message.switch_stage= static_cast<unsigned int>( weapon_switch_stage_ * 254.9f );
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
@@ -220,6 +370,17 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	movement_direction_= MessageAngleToAngle( move_message.move_direction );
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
 	jump_pessed_= move_message.jump_pressed;
+
+	if( have_weapon_[ move_message.weapon_index ] )
+	{
+		requested_weapon_index_= move_message.weapon_index;
+		if( requested_weapon_index_ >= GameConstants::weapon_count )
+			requested_weapon_index_= 0u;
+	}
+
+	view_angle_x_= MessageAngleToAngle( move_message.view_dir_angle_x );
+	view_angle_z_= MessageAngleToAngle( move_message.view_dir_angle_z );
+	shoot_pressed_= move_message.shoot_pressed;
 }
 
 void Player::Move( const Time time_delta )
@@ -291,6 +452,15 @@ bool Player::IsNoclip() const
 	return noclip_;
 }
 
+void Player::GiveWeapon()
+{
+	for( unsigned int w= 0u; w < GameConstants::weapon_count; w++ )
+	{
+		have_weapon_[w]= true;
+		ammo_[w]= game_resources_->weapons_description[w].limit;
+	}
+}
+
 void Player::GiveRedKey()
 {
 	have_red_key_= true;
@@ -326,6 +496,21 @@ bool Player::HaveGreenKey() const
 bool Player::HaveBlueKey() const
 {
 	return have_blue_key_;
+}
+
+unsigned int Player::CurrentWeaponIndex() const
+{
+	return current_weapon_index_;
+}
+
+unsigned int Player::CurrentAnimation() const
+{
+	return current_weapon_animation_;
+}
+
+unsigned int Player::CurrentAnimationFrame() const
+{
+	return current_weapon_animation_frame_;
 }
 
 } // namespace PanzerChasm

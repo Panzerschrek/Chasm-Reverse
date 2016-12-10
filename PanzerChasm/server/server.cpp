@@ -1,5 +1,3 @@
-#include <matrix.hpp>
-
 #include "../assert.hpp"
 #include "../game_constants.hpp"
 #include "../log.hpp"
@@ -112,10 +110,13 @@ void Server::Loop()
 			position_msg.xyz[j]= static_cast<short>( connected_player->player->Position().ToArr()[j] * 256.0f );
 
 		Messages::PlayerState state_msg;
+		Messages::PlayerWeapon weapon_msg;
 		connected_player->player->BuildStateMessage( state_msg );
+		connected_player->player->BuildWeaponMessage( weapon_msg );
 
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
+		messages_sender.SendUnreliableMessage( weapon_msg );
 		messages_sender.Flush();
 	}
 
@@ -187,27 +188,6 @@ void Server::operator()( const Messages::PlayerMove& message )
 	current_player_->player->UpdateMovement( message );
 }
 
-void Server::operator()( const Messages::PlayerShot& message )
-{
-	// TODO - clear this
-	PC_ASSERT( current_player_ != nullptr );
-
-	const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
-
-	m_Mat4 x_rotate, z_rotate;
-
-	x_rotate.RotateX( MessageAngleToAngle( message.view_dir_angle_x ) );
-	z_rotate.RotateZ( MessageAngleToAngle( message.view_dir_angle_z ) );
-
-	const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
-
-	map_->Shoot(
-		0u,
-		current_player_->player->Position() + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
-		view_vec_rotated,
-		server_accumulated_time_ );
-}
-
 void Server::UpdateTimes()
 {
 	const Time current_time= Time::CurrentTime();
@@ -231,6 +211,10 @@ void Server::GiveArmor()
 
 void Server::GiveWeapon()
 {
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player->GiveWeapon();
+
+	Log::Info( "weapons added" );
 }
 
 void Server::GiveKeys()

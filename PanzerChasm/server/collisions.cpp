@@ -219,14 +219,14 @@ bool RayIntersectCylinder(
 		const float square_distance_between_intersection_point_and_projection_point=
 			square_cylinder_radius - square_distance_from_cylinder_center_to_line;
 		if( square_distance_between_intersection_point_and_projection_point <= 0.0f )
-			return false;
+			goto check_sides;
 
 		const float distance_between_intersection_point_and_projection_point=
 			std::sqrt( square_distance_between_intersection_point_and_projection_point );
 
 		const float signed_distanse_to_intersection_point= vec_to_cylinder_center_projected_to_ray_length - distance_between_intersection_point_and_projection_point;
 		if( signed_distanse_to_intersection_point < 0.0f )
-			return false;
+			goto check_sides;
 
 		// 2D phase end
 		const float distanse_to_intersection_point_3d= signed_distanse_to_intersection_point / ray_direction_xy_length;
@@ -242,6 +242,8 @@ bool RayIntersectCylinder(
 			out_pos= intersection_point;
 		}
 	}
+
+	check_sides:
 
 	// Check cylinder sides
 	for( unsigned int i= 0u; i < 2u; i++ )
