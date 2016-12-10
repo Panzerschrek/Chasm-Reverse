@@ -416,8 +416,11 @@ bool Player::IsNoclip() const
 
 void Player::GiveWeapon()
 {
-	for( bool& w : have_weapon_ )
-		w= true;
+	for( unsigned int w= 0u; w < GameConstants::weapon_count; w++ )
+	{
+		have_weapon_[w]= true;
+		ammo_[w]= game_resources_->weapons_description[w].limit;
+	}
 }
 
 void Player::GiveRedKey()
