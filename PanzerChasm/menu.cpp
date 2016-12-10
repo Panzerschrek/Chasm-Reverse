@@ -213,8 +213,6 @@ Menu::Menu(
 	, root_menu_( new MainMenu( host_commands ) )
 {
 	PC_ASSERT( drawers_ != nullptr );
-
-	current_menu_= root_menu_.get();
 }
 
 Menu::~Menu()
