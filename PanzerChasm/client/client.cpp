@@ -95,6 +95,8 @@ void Client::Loop()
 
 	camera_controller_.Tick();
 
+	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
+
 	if( map_state_ != nullptr )
 		map_state_->Tick( current_tick_time_ );
 
@@ -167,7 +169,6 @@ void Client::operator()( const Messages::PlayerPosition& message )
 void Client::operator()( const Messages::PlayerState& message )
 {
 	player_state_= message;
-	hud_drawer_.SetPlayerState( message );
 }
 
 void Client::operator()( const Messages::PlayerWeapon& message )

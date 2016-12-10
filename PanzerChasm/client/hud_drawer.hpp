@@ -24,7 +24,7 @@ public:
 	~HudDrawer();
 
 	void AddMessage( const MapData::Message& message, Time current_time );
-	void SetPlayerState( const Messages::PlayerState& player_state );
+	void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number );
 
 	void DrawCrosshair( unsigned int scale= 1u );
 	void DrawCurrentMessage( unsigned int scale, Time current_time );
