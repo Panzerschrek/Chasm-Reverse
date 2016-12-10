@@ -1,7 +1,10 @@
 #include <cstring>
 
+#include <matrix.hpp>
+
 #include "../map_loader.hpp"
 #include "./math_utils.hpp"
+#include "map.hpp"
 
 #include "player.hpp"
 
@@ -16,6 +19,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, noclip_(false)
 	, health_(100)
 	, armor_(0)
+	, last_shoot_time_( current_time )
 	, weapon_animation_state_change_time_( current_time )
 {
 	PC_ASSERT( game_resources_ != nullptr );
@@ -34,9 +38,6 @@ Player::~Player()
 
 void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta )
 {
-	PC_UNUSED( map );
-	PC_UNUSED( current_time );
-
 	Move( last_tick_delta );
 
 	if( mevement_acceleration_ > 0.0f )
@@ -62,31 +63,95 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
 
 
-	{ // Weapon swich
-		const float delta= 2.0f * last_tick_delta.ToSeconds() / GameConstants::weapon_switch_time_s;
-
-		if( current_weapon_index_ != requested_weapon_index_ )
+	// Make some iterations of weapon logic.
+	for( unsigned int iter= 0u; iter < 3u; iter++ )
+	{
+		// Try start switching
+		if( weapon_state_ == WeaponState::Idle )
 		{
-			if( weapon_switch_stage_ > 0.0f )
-				weapon_switch_stage_= std::max( weapon_switch_stage_ - delta, 0.0f );
-
-			if( weapon_switch_stage_ <= 0.0f )
-				current_weapon_index_= requested_weapon_index_;
+			if( current_weapon_index_ != requested_weapon_index_ )
+				weapon_state_ = WeaponState::Switching;
 		}
-		else if( weapon_switch_stage_ < 1.0f )
-			weapon_switch_stage_= std::min( weapon_switch_stage_ + delta, 1.0f );
+		// Try end reloading
+		if( weapon_state_ == WeaponState::Reloading )
+		{
+			const float time_sinse_last_shot_s= ( current_time - last_shoot_time_ ).ToSeconds();
+			const float reloading_time= float( game_resources_->weapons_description[ current_weapon_index_ ].reloading_time ) / 100.0f;
+			if( time_sinse_last_shot_s >= reloading_time )
+				weapon_state_= WeaponState::Idle;
+		}
+		// Switch
+		if( weapon_state_ == WeaponState::Switching )
+		{
+			const float delta= 2.0f * last_tick_delta.ToSeconds() / GameConstants::weapon_switch_time_s;
 
+			if( current_weapon_index_ != requested_weapon_index_ )
+			{
+				if( weapon_switch_stage_ > 0.0f )
+					weapon_switch_stage_= std::max( weapon_switch_stage_ - delta, 0.0f );
+
+				if( weapon_switch_stage_ <= 0.0f )
+					current_weapon_index_= requested_weapon_index_;
+			}
+			else if( weapon_switch_stage_ < 1.0f )
+				weapon_switch_stage_= std::min( weapon_switch_stage_ + delta, 1.0f );
+
+			if( weapon_switch_stage_ >= 1.0f )
+				weapon_state_= WeaponState::Idle;
+		}
+		// Try shoot
+		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ )
+		{
+			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
+
+			m_Mat4 x_rotate, z_rotate;
+			x_rotate.RotateX( view_angle_x_ );
+			z_rotate.RotateZ( view_angle_z_ );
+
+			const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
+
+			map.Shoot(
+				game_resources_->weapons_description[ current_weapon_index_ ].r_type,
+				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
+				view_vec_rotated,
+				current_time );
+
+			last_shoot_time_= current_time;
+			weapon_state_= WeaponState::Reloading;
+		}
 	}
+
 	{ // Weapon anination
-		const float weapon_time_s= ( current_time - weapon_animation_state_change_time_ ).ToSeconds();
-		const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
+		bool use_idle_animation= false;
+		if( weapon_state_ == WeaponState::Reloading )
+		{
+			const float weapon_time_s= ( current_time - last_shoot_time_ ).ToSeconds();
+			const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
 
-		const float frame= weapon_time_s * GameConstants::weapons_animations_frames_per_second;
+			current_weapon_animation_= 1u;
+			const unsigned int frame= static_cast<unsigned int>( std::round( weapon_time_s * GameConstants::weapons_animations_frames_per_second ) );
 
-		current_weapon_animation_= 0u;
-		current_weapon_animation_frame_=
-			static_cast<unsigned int>( std::round( frame ) ) %
-			model.animations[ current_weapon_animation_ ].frame_count;
+			const unsigned int frame_count= model.animations[ current_weapon_animation_ ].frame_count;
+			if( frame >= frame_count )
+			{
+				weapon_animation_state_change_time_= current_time;
+				use_idle_animation= true;
+			}
+			else
+				current_weapon_animation_frame_= frame;
+		}
+		if( weapon_state_ != WeaponState::Reloading || use_idle_animation )
+		{
+			const float weapon_time_s= ( current_time - weapon_animation_state_change_time_ ).ToSeconds();
+			const Model& model= game_resources_->weapons_models[ current_weapon_index_ ];
+
+			const float frame= weapon_time_s * GameConstants::weapons_animations_frames_per_second;
+
+			current_weapon_animation_= weapon_state_ == WeaponState::Reloading ? 1u : 0u;
+			current_weapon_animation_frame_=
+				static_cast<unsigned int>( std::round( frame ) ) %
+				model.animations[ current_weapon_animation_ ].frame_count;
+		}
 	}
 }
 
@@ -263,6 +328,10 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	requested_weapon_index_= move_message.weapon_index;
 	if( requested_weapon_index_ >= GameConstants::weapon_count )
 		requested_weapon_index_= 0u;
+
+	view_angle_x_= MessageAngleToAngle( move_message.view_dir_angle_x );
+	view_angle_z_= MessageAngleToAngle( move_message.view_dir_angle_z );
+	shoot_pressed_= move_message.shoot_pressed;
 }
 
 void Player::Move( const Time time_delta )

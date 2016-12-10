@@ -71,6 +71,7 @@ private:
 	std::unique_ptr<MapState> map_state_;
 
 	WeaponState weapon_state_;
+	bool shoot_pressed_= false;
 
 	HudDrawer hud_drawer_;
 };

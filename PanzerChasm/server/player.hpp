@@ -54,6 +54,14 @@ public:
 	unsigned int CurrentAnimationFrame() const;
 
 private:
+	enum class WeaponState
+	{
+		Idle,
+		Reloading,
+		Switching,
+	};
+
+private:
 	const Time spawn_time_;
 
 	m_Vec3 speed_;
@@ -72,6 +80,13 @@ private:
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
 	bool jump_pessed_= false;
+
+	WeaponState weapon_state_= WeaponState::Idle;
+
+	float view_angle_x_= 0.0f;
+	float view_angle_z_= 0.0f;
+	bool shoot_pressed_= false;
+	Time last_shoot_time_;
 
 	unsigned int current_weapon_index_= 0u;
 	unsigned int requested_weapon_index_= 0u;

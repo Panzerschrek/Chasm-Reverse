@@ -76,19 +76,9 @@ void Client::ProcessEvents( const SystemEvents& events )
 				map_mode_= !map_mode_;
 		}
 		else if( event.type == SystemEvent::Type::MouseKey &&
-				event.event.mouse_key.pressed )
+			event.event.mouse_key.mouse_button == 1u )
 		{
-			if( connection_info_ != nullptr )
-			{
-				Messages::PlayerShot message;
-
-				message.view_dir_angle_x=
-					static_cast<unsigned short>( float(camera_controller_.GetViewAngleX()) / Constants::two_pi * 65536.0f );
-				message.view_dir_angle_z=
-					static_cast<unsigned short>( float(camera_controller_.GetViewAngleZ()) / Constants::two_pi * 65536.0f );
-
-				connection_info_->messages_sender.SendUnreliableMessage( message );
-			}
+			shoot_pressed_= event.event.mouse_key.pressed;
 		}
 	} // for events
 }
@@ -116,6 +106,10 @@ void Client::Loop()
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.jump_pressed= camera_controller_.JumpPressed();
 		message.weapon_index= selected_weapon_index_;
+
+		message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
+		message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
+		message.shoot_pressed= shoot_pressed_;
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();

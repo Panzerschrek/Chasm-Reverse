@@ -178,14 +178,9 @@ struct PlayerMove : public MessageBase
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
 	bool jump_pressed;
 	unsigned char weapon_index;
-};
-
-struct PlayerShot : public MessageBase
-{
-	DEFINE_MESSAGE_CONSTRUCTOR(PlayerShot)
-
 	AngleType view_dir_angle_x;
 	AngleType view_dir_angle_z;
+	bool shoot_pressed;
 };
 
 #undef DEFINE_MESSAGE_CONSTRUCTOR
