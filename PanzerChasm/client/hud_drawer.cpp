@@ -259,32 +259,34 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 	const unsigned int weapon_icon_first_quad= ( v - vertices ) / 4u;
 	if( !draw_second_hud ) // Weapon icon
 	{
+		const int c_border= 1;
+		const int border= int(scale) * c_border;
 		const unsigned int icon_width = weapon_icons_texture_.Width() / 8u;
 		const unsigned int icon_height= weapon_icons_texture_.Height();
 		const unsigned int tc_x= current_weapon_number_ * icon_width;
-		const unsigned int y= ( g_hud_line_height - icon_height ) / 2u * scale;
+		const unsigned int y= 4u * scale;
 
 		const unsigned int icon_x= hud_x + 105u * scale;
 
-		v[0].xy[0]= icon_x;
-		v[0].xy[1]= y;
-		v[0].tex_coord[0]= tc_x;
-		v[0].tex_coord[1]= icon_height;
+		v[0].xy[0]= icon_x + border;
+		v[0].xy[1]= y + border;
+		v[0].tex_coord[0]= tc_x + border;
+		v[0].tex_coord[1]= icon_height - border;
 
-		v[1].xy[0]= icon_x + icon_width * scale;
-		v[1].xy[1]= y;
-		v[1].tex_coord[0]= tc_x + icon_width;
-		v[1].tex_coord[1]= icon_height;
+		v[1].xy[0]= icon_x + icon_width * scale - border;
+		v[1].xy[1]= y + border;
+		v[1].tex_coord[0]= tc_x + icon_width - border;
+		v[1].tex_coord[1]= icon_height - border;
 
-		v[2].xy[0]= icon_x + icon_width * scale;
-		v[2].xy[1]= y + icon_height * scale;
-		v[2].tex_coord[0]= tc_x + icon_width;
-		v[2].tex_coord[1]= 0;
+		v[2].xy[0]= icon_x + icon_width * scale - border;
+		v[2].xy[1]= y + icon_height * scale - border;
+		v[2].tex_coord[0]= tc_x + icon_width - border;
+		v[2].tex_coord[1]= border;
 
-		v[3].xy[0]= icon_x;
-		v[3].xy[1]= y + icon_height * scale;
-		v[3].tex_coord[0]= tc_x;
-		v[3].tex_coord[1]= 0;
+		v[3].xy[0]= icon_x + border;
+		v[3].xy[1]= y + icon_height * scale - border;
+		v[3].tex_coord[0]= tc_x + border;
+		v[3].tex_coord[1]= border;
 		v+= 4u;
 	}
 	const unsigned int weapon_icon_quad_count= ( v - vertices ) / 4u - weapon_icon_first_quad;
