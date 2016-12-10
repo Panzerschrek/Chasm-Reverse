@@ -103,7 +103,8 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 			switch_step_done= true;
 		}
 		// Try shoot
-		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ )
+		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ &&
+			ammo_[ current_weapon_index_ ] > 0u )
 		{
 			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
 
@@ -118,6 +119,8 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
 				view_vec_rotated,
 				current_time );
+
+			ammo_[ current_weapon_index_ ]--;
 
 			last_shoot_time_= current_time;
 			weapon_state_= WeaponState::Reloading;
