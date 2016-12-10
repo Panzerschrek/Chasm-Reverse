@@ -71,7 +71,8 @@ void Client::ProcessEvents( const SystemEvents& events )
 				unsigned int weapon_index=
 					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
 
-				if( ( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
+				if( player_state_.ammo[ weapon_index ] > 0u &&
+					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
 					requested_weapon_index_= weapon_index;
 			}
 
@@ -96,6 +97,9 @@ void Client::Loop()
 	camera_controller_.Tick();
 
 	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
+
+	if( player_state_.ammo[ requested_weapon_index_ ] == 0u )
+		TrySwitchWeaponOnOutOfAmmo();
 
 	if( map_state_ != nullptr )
 		map_state_->Tick( current_tick_time_ );
@@ -249,6 +253,20 @@ void Client::operator()( const Messages::RocketDeath& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
+}
+
+void Client::TrySwitchWeaponOnOutOfAmmo()
+{
+	for( unsigned int i= 1u; i < GameConstants::weapon_count; i++ )
+	{
+		if( player_state_.ammo[i] != 0u )
+		{
+			requested_weapon_index_= i;
+			return;
+		}
+	}
+
+	requested_weapon_index_= 0u;
 }
 
 } // namespace PanzerChasm

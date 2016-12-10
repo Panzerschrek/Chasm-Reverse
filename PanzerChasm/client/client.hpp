@@ -52,6 +52,9 @@ public: // Messages handlers
 	void operator()( const Messages::RocketDeath& message );
 
 private:
+	void TrySwitchWeaponOnOutOfAmmo();
+
+private:
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const LoopbackBufferPtr loopback_buffer_;
