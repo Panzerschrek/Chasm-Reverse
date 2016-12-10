@@ -182,6 +182,7 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 	else
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
+	player->SetRandomGenerator( random_generator_ );
 	player->ResetActivatedProcedure();
 
 	const Messages::EntityId player_id= GetNextMonsterId();

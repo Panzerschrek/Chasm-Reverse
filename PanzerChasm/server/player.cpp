@@ -125,11 +125,25 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 				0.0f,
 				-float(description.r_z0) / 2048.0f );
 
-			map.Shoot(
-				description.r_type,
-				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate,
-				view_vec_rotated,
-				current_time );
+			const m_Vec3 final_shoot_pos=
+				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate;
+
+			for( unsigned int i= 0u; i < static_cast<unsigned int>(description.r_count); i++ )
+			{
+				m_Vec3 final_view_dir_vec;
+				if( description.r_count > 1 && random_generator_ != nullptr )
+				{
+					final_view_dir_vec= view_vec_rotated + random_generator_->RandPointInSphere( 1.0f / 24.0f );
+					final_view_dir_vec.Normalize();
+				}
+				else
+					final_view_dir_vec= view_vec_rotated;
+
+				map.Shoot(
+					description.r_type,
+					final_shoot_pos, final_view_dir_vec,
+					current_time );
+			}
 
 			if( current_weapon_index_ != 0u )
 				ammo_[ current_weapon_index_ ]--;
@@ -202,6 +216,11 @@ void Player::SetOnFloor( const bool on_floor )
 	on_floor_= on_floor;
 	if( on_floor_ && speed_.z < 0.0f )
 		speed_.z= 0.0f;
+}
+
+void Player::SetRandomGenerator( const LongRandPtr& random_generator )
+{
+	random_generator_= random_generator;
 }
 
 bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )

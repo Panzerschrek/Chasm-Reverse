@@ -18,6 +18,9 @@ typedef std::shared_ptr<const Player> PlayerConstPtr;
 typedef std::weak_ptr<Player> PlayerWeakPtr;
 typedef std::weak_ptr<const Player> PlayerConstWeakPtr;
 
+class LongRand;
+typedef std::shared_ptr<LongRand> LongRandPtr;
+
 class Server;
 
 } // namespace PanzerChasm
