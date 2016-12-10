@@ -1174,6 +1174,12 @@ void MapDrawer::DrawMonsters(
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
 	{
 		const MapState::Monster& monster= monster_value.second;
+
+		// HACK -REMOVE THIS. Skip players.
+		// TODO - skip only this player
+		if( monster.monster_id == 0u )
+			continue;
+
 		if( monster.monster_id >= monsters_models_.size() )
 			continue;
 
