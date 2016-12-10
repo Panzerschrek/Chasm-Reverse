@@ -26,11 +26,12 @@ static const r_OGLState g_hud_gl_state(
 static const unsigned int g_hud_line_height= 32u;
 static const unsigned int g_net_hud_line_height= 12u;
 
+constexpr unsigned int g_cross_offset= 4u;
+
 static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture )
 {
 	constexpr unsigned int c_size[2]= { 17u, 17u };
 	constexpr unsigned int c_center[2]= { c_size[0] / 2u, c_size[1] / 2u };
-	constexpr unsigned int c_cross_offset= 4u;
 	constexpr unsigned char c_start_color_index= 159u;
 
 	unsigned char data_rgba[ 4u * c_size[0] * c_size[1] ]= { 0u };
@@ -48,10 +49,10 @@ static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture 
 	for( unsigned int i= 0u; i < 4u; i++ )
 	{
 		const unsigned char color_index= c_start_color_index - i;
-		set_pixel( c_center[0], c_center[1] + c_cross_offset + i, color_index );
-		set_pixel( c_center[0], c_center[1] - c_cross_offset - i, color_index );
-		set_pixel( c_center[0] + c_cross_offset + i, c_center[1], color_index );
-		set_pixel( c_center[0] - c_cross_offset - i, c_center[1], color_index );
+		set_pixel( c_center[0], c_center[1] + g_cross_offset + i, color_index );
+		set_pixel( c_center[0], c_center[1] - g_cross_offset - i, color_index );
+		set_pixel( c_center[0] + g_cross_offset + i, c_center[1], color_index );
+		set_pixel( c_center[0] - g_cross_offset - i, c_center[1], color_index );
 	}
 
 	out_texture= r_Texture( r_Texture::PixelFormat::RGBA8, c_size[0], c_size[1], data_rgba );
@@ -138,8 +139,11 @@ void HudDrawer::DrawCrosshair( const unsigned int scale )
 
 	const Size2 viewport_center( viewport_size_.xy[0] >> 1u, viewport_size_.xy[1] >> 1u );
 
+	// In original game real view center shifted to upper crosshair bar start.
+	const int y_shift= int(scale) * g_cross_offset;
+
 	v[0].xy[0]= int( viewport_center.xy[0] - scale * crosshair_texture_.Width () / 2u );
-	v[0].xy[1]= int( viewport_center.xy[1] - scale * crosshair_texture_.Height() / 2u );
+	v[0].xy[1]= int( viewport_center.xy[1] - scale * crosshair_texture_.Height() / 2u ) - y_shift;
 	v[0].tex_coord[0]= 0;
 	v[0].tex_coord[1]= 0;
 
