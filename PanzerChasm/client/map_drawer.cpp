@@ -413,7 +413,7 @@ void MapDrawer::DrawWeapon(
 			first_vertex );
 	};
 
-	glDepthRange( 0.0f, 0.5f );
+	glDepthRange( 0.0f, 1.0f / 8.0f );
 
 	r_OGLStateManager::UpdateState( g_models_gl_state );
 	draw_model_polygons(false);
