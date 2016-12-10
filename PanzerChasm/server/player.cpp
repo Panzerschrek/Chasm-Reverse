@@ -30,6 +30,8 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 		have_weapon_[i]= false;
 	}
 
+	// Give rifle
+	ammo_[0]= game_resources_->weapons_description[0].limit;
 	have_weapon_[0]= true;
 }
 
@@ -104,7 +106,7 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 		}
 		// Try shoot
 		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ &&
-			ammo_[ current_weapon_index_ ] > 0u )
+			( ammo_[ current_weapon_index_ ] > 0u || current_weapon_index_ == 0 ) )
 		{
 			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
 
@@ -120,7 +122,8 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 				view_vec_rotated,
 				current_time );
 
-			ammo_[ current_weapon_index_ ]--;
+			if( current_weapon_index_ != 0u )
+				ammo_[ current_weapon_index_ ]--;
 
 			last_shoot_time_= current_time;
 			weapon_state_= WeaponState::Reloading;
