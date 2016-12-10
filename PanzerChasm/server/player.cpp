@@ -310,6 +310,11 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 	if( have_red_key_   ) out_state_message.keys_mask|= 1u;
 	if( have_green_key_ ) out_state_message.keys_mask|= 2u;
 	if( have_blue_key_  ) out_state_message.keys_mask|= 4u;
+
+	out_state_message.weapons_mask= 0u;
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+		if( have_weapon_[i] )
+			out_state_message.weapons_mask|= 1 << i;
 }
 
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
@@ -328,9 +333,12 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
 	jump_pessed_= move_message.jump_pressed;
 
-	requested_weapon_index_= move_message.weapon_index;
-	if( requested_weapon_index_ >= GameConstants::weapon_count )
-		requested_weapon_index_= 0u;
+	if( have_weapon_[ move_message.weapon_index ] )
+	{
+		requested_weapon_index_= move_message.weapon_index;
+		if( requested_weapon_index_ >= GameConstants::weapon_count )
+			requested_weapon_index_= 0u;
+	}
 
 	view_angle_x_= MessageAngleToAngle( move_message.view_dir_angle_x );
 	view_angle_z_= MessageAngleToAngle( move_message.view_dir_angle_z );

@@ -68,8 +68,11 @@ void Client::ProcessEvents( const SystemEvents& events )
 			else if( event.event.key.key_code >= KeyCode::K1 &&
 				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
 			{
-				selected_weapon_index_=
+				unsigned int weapon_index=
 					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
+
+				if( ( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
+					requested_weapon_index_= weapon_index;
 			}
 
 			if( event.event.key.key_code == KeyCode::Tab && event.event.key.pressed )
@@ -105,7 +108,7 @@ void Client::Loop()
 		message.move_direction= AngleToMessageAngle( move_direction );
 		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
 		message.jump_pressed= camera_controller_.JumpPressed();
-		message.weapon_index= selected_weapon_index_;
+		message.weapon_index= requested_weapon_index_;
 
 		message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
 		message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
@@ -163,6 +166,7 @@ void Client::operator()( const Messages::PlayerPosition& message )
 
 void Client::operator()( const Messages::PlayerState& message )
 {
+	player_state_= message;
 	hud_drawer_.SetPlayerState( message );
 }
 

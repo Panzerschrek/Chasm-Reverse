@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 
 #include <vec.hpp>
 
@@ -68,10 +69,16 @@ struct PlayerState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerState)
 
+	typedef unsigned char WeaponsMaskType;
+	static_assert(
+		std::numeric_limits< WeaponsMaskType >::digits >= GameConstants::weapon_count,
+		"Weapons mask type too small" );
+
 	unsigned char ammo[ GameConstants::weapon_count ];
 	unsigned char health;
 	unsigned char armor;
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
+	WeaponsMaskType weapons_mask;
 };
 
 struct PlayerWeapon : public MessageBase
