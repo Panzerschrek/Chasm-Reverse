@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../game_resources.hpp"
+#include "../messages.hpp"
 #include "../time.hpp"
 
 #include "fwd.hpp"
@@ -36,7 +37,12 @@ public:
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
 
-	virtual void Tick( Map& map, Time current_time, Time last_tick_delta )= 0;
+	virtual void Tick(
+		Map& map,
+		Messages::EntityId monster_id,
+		Time current_time,
+		Time last_tick_delta )= 0;
+
 	virtual void Hit( int damage, Time current_time )= 0;
 
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal )= 0;

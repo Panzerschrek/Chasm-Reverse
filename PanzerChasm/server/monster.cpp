@@ -41,7 +41,11 @@ Monster::Monster(
 Monster::~Monster()
 {}
 
-void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delta )
+void Monster::Tick(
+	Map& map,
+	const Messages::EntityId monster_id,
+	const Time current_time,
+	const Time last_tick_delta )
 {
 	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
 	const Model& model= game_resources_->monsters_models[ monster_id_ ];
@@ -174,7 +178,7 @@ void Monster::Tick( Map& map, const Time current_time, const Time last_tick_delt
 				dir.Normalize();
 
 				PC_ASSERT( description.rock >= 0 );
-				map.Shoot( description.rock, shoot_pos, dir, current_time );
+				map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
 
 				attack_was_done_= true;
 			}

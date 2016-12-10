@@ -38,7 +38,11 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 Player::~Player()
 {}
 
-void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta )
+void Player::Tick(
+	Map& map,
+	const Messages::EntityId monster_id,
+	const Time current_time,
+	const Time last_tick_delta )
 {
 	Move( last_tick_delta );
 
@@ -140,7 +144,7 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 					final_view_dir_vec= view_vec_rotated;
 
 				map.Shoot(
-					description.r_type,
+					monster_id, description.r_type,
 					final_shoot_pos, final_view_dir_vec,
 					current_time );
 			}
