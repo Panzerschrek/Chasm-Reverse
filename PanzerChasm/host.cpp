@@ -105,6 +105,8 @@ bool Host::Loop()
 	const bool input_goes_to_console= console_ != nullptr && console_->IsActive();
 	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
 
+	system_window_->CaptureMouse( !input_goes_to_console && !input_goes_to_menu );
+
 	if( input_goes_to_console )
 		console_->ProcessEvents( events_ );
 

@@ -152,6 +152,13 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().event.mouse_key.pressed= event.type == SDL_MOUSEBUTTONUP ? false : true;
 			break;
 
+		case SDL_MOUSEMOTION:
+			out_events.emplace_back();
+			out_events.back().type= SystemEvent::Type::MouseMove;
+			out_events.back().event.mouse_move.dx= event.motion.xrel;
+			out_events.back().event.mouse_move.dy= event.motion.yrel;
+			break;
+
 		case SDL_TEXTINPUT:
 			// Accept only visible ASCII
 			if( event.text.text[0] >= 32 )
@@ -169,6 +176,15 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			break;
 		};
 	} // while events
+}
+
+void SystemWindow::CaptureMouse( const bool need_capture )
+{
+	if( need_capture != mouse_captured_ )
+	{
+		mouse_captured_= need_capture;
+		SDL_SetRelativeMouseMode( need_capture ? SDL_TRUE : SDL_FALSE );
+	}
 }
 
 } // namespace PanzerChasm

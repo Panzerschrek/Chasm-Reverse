@@ -111,12 +111,12 @@ bool MovementController::JumpPressed() const
 
 void MovementController::RotateX( int delta )
 {
-	angle_.x+= float(delta) * 0.01f;
+	angle_.x+= float(delta) * 0.004f;
 }
 
-void MovementController::RotateY( int delta )
+void MovementController::RotateZ( int delta )
 {
-	angle_.y+= float(delta) * 0.01f;
+	angle_.z+= float(delta) * 0.004f;
 }
 
 void MovementController::ForwardPressed()

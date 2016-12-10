@@ -22,12 +22,15 @@ public:
 	void SwapBuffers();
 
 	void GetInput( SystemEvents& out_events );
+	void CaptureMouse( bool need_capture );
 
 private:
 	Size2 viewport_size_;
 
 	SDL_Window* window_= nullptr;
 	SDL_GLContext gl_context_= nullptr;
+
+	bool mouse_captured_= false;
 };
 
 } // namespace PanzerChasm

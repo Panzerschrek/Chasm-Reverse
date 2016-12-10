@@ -84,7 +84,7 @@ struct SystemEvent
 	{
 		KeyEvent key;
 		MouseKeyEvent mouse_key;
-		MouseMoveEvent mosue_move;
+		MouseMoveEvent mouse_move;
 		QuitEvent quit;
 		CharInputEvent char_input;
 	} event;

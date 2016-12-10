@@ -31,7 +31,7 @@ public:
 	bool JumpPressed() const;
 
 	void RotateX( int delta );
-	void RotateY( int delta );
+	void RotateZ( int delta );
 
 	void ForwardPressed();
 	void BackwardPressed();

@@ -84,6 +84,11 @@ void Client::ProcessEvents( const SystemEvents& events )
 		{
 			shoot_pressed_= event.event.mouse_key.pressed;
 		}
+		else if( event.type == SystemEvent::Type::MouseMove )
+		{
+			camera_controller_.RotateZ( -event.event.mouse_move.dx );
+			camera_controller_.RotateX( -event.event.mouse_move.dy );
+		}
 	} // for events
 }
 
