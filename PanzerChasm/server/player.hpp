@@ -39,6 +39,8 @@ public:
 	void SetNoclip( bool noclip );
 	bool IsNoclip() const;
 
+	void GiveWeapon();
+
 	void GiveRedKey();
 	void GiveGreenKey();
 	void GiveBlueKey();

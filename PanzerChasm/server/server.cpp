@@ -211,6 +211,10 @@ void Server::GiveArmor()
 
 void Server::GiveWeapon()
 {
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player->GiveWeapon();
+
+	Log::Info( "weapons added" );
 }
 
 void Server::GiveKeys()

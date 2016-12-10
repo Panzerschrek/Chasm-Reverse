@@ -406,6 +406,12 @@ bool Player::IsNoclip() const
 	return noclip_;
 }
 
+void Player::GiveWeapon()
+{
+	for( bool& w : have_weapon_ )
+		w= true;
+}
+
 void Player::GiveRedKey()
 {
 	have_red_key_= true;
