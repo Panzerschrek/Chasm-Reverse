@@ -1,5 +1,5 @@
 #pragma once
-#include "i_connection.hpp"
+#include "fwd.hpp"
 #include "messages_extractor.hpp"
 #include "messages_sender.hpp"
 

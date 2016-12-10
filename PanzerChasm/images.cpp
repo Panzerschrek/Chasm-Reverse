@@ -1,4 +1,5 @@
 #include "assert.hpp"
+#include "vfs.hpp"
 
 #include "images.hpp"
 

@@ -35,6 +35,4 @@ private:
 	VirtualFiles virtual_files_;
 };
 
-typedef std::shared_ptr<Vfs> VfsPtr;
-
 } // namespace PanzerChasm

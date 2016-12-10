@@ -4,15 +4,11 @@
 #include "client/client.hpp"
 #include "commands_processor.hpp"
 #include "console.hpp"
-#include "game_resources.hpp"
 #include "host_commands.hpp"
-#include "loopback_buffer.hpp"
-#include "map_loader.hpp"
 #include "menu.hpp"
 #include "server/server.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
-#include "vfs.hpp"
 
 namespace PanzerChasm
 {
@@ -52,7 +48,7 @@ private:
 
 	MapLoaderPtr map_loader_;
 
-	std::shared_ptr<LoopbackBuffer> loopback_buffer_;
+	LoopbackBufferPtr loopback_buffer_;
 	std::unique_ptr<Server> local_server_;
 
 	std::unique_ptr<Client> client_;

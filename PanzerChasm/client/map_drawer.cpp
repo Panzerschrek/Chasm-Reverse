@@ -3,7 +3,9 @@
 #include <ogl_state_manager.hpp>
 
 #include "../assert.hpp"
+#include "../game_resources.hpp"
 #include "../log.hpp"
+#include "../map_loader.hpp"
 #include "../math_utils.hpp"
 #include "weapon_state.hpp"
 

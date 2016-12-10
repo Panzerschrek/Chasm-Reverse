@@ -1,4 +1,5 @@
 #include "../assert.hpp"
+#include "../game_resources.hpp"
 #include "../math_utils.hpp"
 #include "collisions.hpp"
 #include "map.hpp"

@@ -4,7 +4,7 @@
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
 
-#include "game_resources.hpp"
+#include "fwd.hpp"
 #include "rendering_context.hpp"
 
 namespace PanzerChasm

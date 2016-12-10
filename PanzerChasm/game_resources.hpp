@@ -4,7 +4,6 @@
 #include "images.hpp"
 #include "model.hpp"
 #include "obj.hpp"
-#include "vfs.hpp"
 
 namespace PanzerChasm
 {

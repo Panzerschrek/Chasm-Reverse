@@ -5,6 +5,7 @@
 #include <vec.hpp>
 
 #include "assert.hpp"
+#include "fwd.hpp"
 #include "model.hpp"
 #include "vfs.hpp"
 
@@ -238,9 +239,6 @@ public:
 	unsigned char floor_textures_data[ c_floors_textures_count ][ c_floor_texture_size * c_floor_texture_size ];
 };
 
-typedef std::shared_ptr<MapData> MapDataPtr;
-typedef std::shared_ptr<const MapData> MapDataConstPtr;
-
 class MapLoader final
 {
 public:
@@ -283,7 +281,5 @@ private:
 	char models_path_[ MapData::c_max_file_name_size ];
 	char animations_path_[ MapData::c_max_file_name_size ];
 };
-
-typedef std::shared_ptr<MapLoader> MapLoaderPtr;
 
 } // namespace PanzerChasm

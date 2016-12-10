@@ -61,6 +61,4 @@ private:
 	Queue server_to_client_unreliable_buffer_;
 };
 
-typedef  std::shared_ptr<LoopbackBuffer> LoopbackBufferPtr;
-
 } // namespace PanzerChasm

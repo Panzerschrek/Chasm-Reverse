@@ -1,4 +1,5 @@
 #include "../assert.hpp"
+#include "../drawers.hpp"
 #include "../game_constants.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"

@@ -1,7 +1,10 @@
 #include <glsl_program.hpp>
 #include <shaders_loading.hpp>
 
+#include "drawers.hpp"
+#include "game_resources.hpp"
 #include "log.hpp"
+#include "map_loader.hpp"
 
 #include "host.hpp"
 

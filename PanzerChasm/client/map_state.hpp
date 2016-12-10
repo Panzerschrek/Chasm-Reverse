@@ -1,8 +1,6 @@
 #pragma once
 #include <unordered_map>
 
-#include "../game_resources.hpp"
-#include "../map_loader.hpp"
 #include "../messages.hpp"
 #include "../time.hpp"
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 
-#include "i_connection.hpp"
+#include "fwd.hpp"
 #include "messages.hpp"
 
 namespace PanzerChasm

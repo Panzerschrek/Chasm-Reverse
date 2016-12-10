@@ -18,6 +18,4 @@ struct Drawers
 	TextDraw text;
 };
 
-typedef std::shared_ptr<Drawers> DrawersPtr;
-
 } // namespace PanzerChasm

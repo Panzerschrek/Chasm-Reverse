@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "assert.hpp"
+#include "i_connection.hpp"
 #include "messages.hpp"
 
 #include "messages_extractor.hpp"

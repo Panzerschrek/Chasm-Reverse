@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "assert.hpp"
+#include "drawers.hpp"
 #include "log.hpp"
 
 #include "console.hpp"

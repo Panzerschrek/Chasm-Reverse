@@ -1,8 +1,9 @@
 #pragma once
 #include <array>
+#include <vector>
 
+#include "fwd.hpp"
 #include "size.hpp"
-#include "vfs.hpp"
 
 namespace PanzerChasm
 {

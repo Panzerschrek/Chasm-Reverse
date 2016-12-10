@@ -3,7 +3,6 @@
 
 #include <vec.hpp>
 
-#include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"

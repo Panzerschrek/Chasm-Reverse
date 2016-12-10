@@ -3,7 +3,6 @@
 #include <string>
 
 #include "commands_processor.hpp"
-#include "drawers.hpp"
 #include "system_event.hpp"
 #include "time.hpp"
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../game_resources.hpp"
 #include "../messages.hpp"
 #include "../time.hpp"
 

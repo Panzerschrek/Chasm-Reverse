@@ -3,8 +3,10 @@
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
-#include "assert.hpp"
-#include "images.hpp"
+#include "../assert.hpp"
+#include "../drawers.hpp"
+#include "../game_resources.hpp"
+#include "../images.hpp"
 
 #include "hud_drawer.hpp"
 

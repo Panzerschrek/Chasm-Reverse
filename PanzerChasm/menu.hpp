@@ -1,8 +1,6 @@
 #pragma once
 #include <memory>
 
-#include "drawers.hpp"
-#include "game_resources.hpp"
 #include "host_commands.hpp"
 #include "rendering_context.hpp"
 #include "system_event.hpp"

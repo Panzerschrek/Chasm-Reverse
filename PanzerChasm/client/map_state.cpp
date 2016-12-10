@@ -1,4 +1,6 @@
 #include "../game_constants.hpp"
+#include "../game_resources.hpp"
+#include "../map_loader.hpp"
 #include "../math_utils.hpp"
 
 #include "map_state.hpp"

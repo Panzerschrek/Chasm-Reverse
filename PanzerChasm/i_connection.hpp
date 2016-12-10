@@ -18,6 +18,4 @@ public:
 	virtual void Disconnect()= 0;
 };
 
-typedef std::shared_ptr<IConnection> IConnectionPtr;
-
 } // namespace PanzerChasm

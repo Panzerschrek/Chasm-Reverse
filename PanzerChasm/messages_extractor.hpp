@@ -1,6 +1,6 @@
 #pragma once
 
-#include "i_connection.hpp"
+#include "fwd.hpp"
 #include "messages.hpp"
 
 namespace PanzerChasm

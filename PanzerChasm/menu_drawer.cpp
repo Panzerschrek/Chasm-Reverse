@@ -3,7 +3,9 @@
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
+#include "game_resources.hpp"
 #include "menu_drawer.hpp"
+#include "vfs.hpp"
 
 namespace PanzerChasm
 {

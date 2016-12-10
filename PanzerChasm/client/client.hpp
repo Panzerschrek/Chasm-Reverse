@@ -1,10 +1,7 @@
 #pragma once
 
 #include "../connection_info.hpp"
-#include "../drawers.hpp"
-#include "../game_resources.hpp"
 #include "../loopback_buffer.hpp"
-#include "../map_loader.hpp"
 #include "../rendering_context.hpp"
 #include "../system_event.hpp"
 #include "hud_drawer.hpp"
