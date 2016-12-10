@@ -108,17 +108,26 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ &&
 			( ammo_[ current_weapon_index_ ] > 0u || current_weapon_index_ == 0 ) )
 		{
+			const GameResources::WeaponDescription& description= game_resources_->weapons_description[ current_weapon_index_ ];
+
 			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
 
-			m_Mat4 x_rotate, z_rotate;
+			m_Mat4 x_rotate, z_rotate, rotate;
 			x_rotate.RotateX( view_angle_x_ );
 			z_rotate.RotateZ( view_angle_z_ );
+			rotate= x_rotate * z_rotate;
 
-			const m_Vec3 view_vec_rotated= view_vec * x_rotate * z_rotate;
+			const m_Vec3 view_vec_rotated= view_vec * rotate;
+
+			// TODO - check and calibrate
+			const m_Vec3 shoot_point_delta(
+				1.0f / 16.0f,
+				0.0f,
+				-float(description.r_z0) / 2048.0f );
 
 			map.Shoot(
-				game_resources_->weapons_description[ current_weapon_index_ ].r_type,
-				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ),
+				description.r_type,
+				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate,
 				view_vec_rotated,
 				current_time );
 
