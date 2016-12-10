@@ -64,6 +64,7 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 
 
 	// Make some iterations of weapon logic.
+	bool switch_step_done= false;
 	for( unsigned int iter= 0u; iter < 3u; iter++ )
 	{
 		// Try start switching
@@ -81,7 +82,7 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 				weapon_state_= WeaponState::Idle;
 		}
 		// Switch
-		if( weapon_state_ == WeaponState::Switching )
+		if( weapon_state_ == WeaponState::Switching && !switch_step_done )
 		{
 			const float delta= 2.0f * last_tick_delta.ToSeconds() / GameConstants::weapon_switch_time_s;
 
@@ -98,6 +99,8 @@ void Player::Tick( Map& map, const Time current_time, const Time last_tick_delta
 
 			if( weapon_switch_stage_ >= 1.0f )
 				weapon_state_= WeaponState::Idle;
+
+			switch_step_done= true;
 		}
 		// Try shoot
 		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ )
