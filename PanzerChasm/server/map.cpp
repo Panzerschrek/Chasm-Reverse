@@ -1000,6 +1000,9 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		MonsterBase& monster= *monster_value.second;
 		const bool is_player= monster.MonsterId() == 0u;
 
+		if( is_player && static_cast<const Player&>(monster).IsNoclip() )
+			continue;
+
 		const float height= GameConstants::player_height; // TODO - select height
 		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
