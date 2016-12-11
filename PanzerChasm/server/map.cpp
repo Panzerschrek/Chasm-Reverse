@@ -910,6 +910,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		else if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
 			AddParticleEffect( hit_result.pos, ParticleEffect::Blood );
+
+			// Hack for rockets and grenades. Make effect together with blood.
+			if( rocket_description.blow_effect == 2 && !has_infinite_speed )
+				GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
 		}
 
 		// Try break breakable models.
