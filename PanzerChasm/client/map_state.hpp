@@ -2,6 +2,7 @@
 #include <unordered_map>
 
 #include "../messages.hpp"
+#include "../server/rand.hpp" // TODO - move random to common code
 #include "../time.hpp"
 
 namespace PanzerChasm
@@ -42,10 +43,11 @@ public:
 
 	struct SpriteEffect
 	{
-		m_Vec3 pos;
-		unsigned char effect_id;
 		Time start_time= Time::FromSeconds(0);
+		m_Vec3 pos;
+		m_Vec3 speed;
 		float frame;
+		unsigned char effect_id;
 	};
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
@@ -95,6 +97,7 @@ public:
 	void ProcessMessage( const Messages::ItemState& message );
 	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
+	void ProcessMessage( const Messages::ParticleEffectBirth& message );
 	void ProcessMessage( const Messages::MonsterBirth& message );
 	void ProcessMessage( const Messages::MonsterDeath& message );
 	void ProcessMessage( const Messages::RocketState& message );
@@ -106,6 +109,8 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const Time map_start_time_;
 	Time last_tick_time_;
+
+	LongRand random_generator_;
 
 	DynamicWalls dynamic_walls_;
 	StaticModels static_models_;

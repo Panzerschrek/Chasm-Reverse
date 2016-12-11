@@ -56,4 +56,22 @@ m_Vec3 LongRand::RandPointInSphere( const float sphere_radius )
 	return result;
 }
 
+m_Vec3 LongRand::RandDirection()
+{
+	m_Vec3 result;
+
+	while(1)
+	{
+		result= RandPointInSphere( 1.0f );
+		const float result_square_length= result.SquareLength();
+		if( result_square_length == 0.0f )
+			continue;
+
+		result/= std::sqrt( result_square_length );
+		break;
+	}
+
+	return result;
+}
+
 } // namespace PanzerChasm

@@ -40,6 +40,7 @@ public: // Messages handlers
 	void operator()( const Messages::ItemState& message );
 	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::SpriteEffectBirth& message );
+	void operator()( const Messages::ParticleEffectBirth& message );
 	void operator()( const Messages::MapChange& message );
 	void operator()( const Messages::MonsterBirth& message );
 	void operator()( const Messages::MonsterDeath& message );

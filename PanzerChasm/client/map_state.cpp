@@ -2,6 +2,7 @@
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
+#include "../particles.hpp"
 
 #include "map_state.hpp"
 
@@ -92,9 +93,11 @@ const MapState::RocketsContainer& MapState::GetRockets() const
 
 void MapState::Tick( const Time current_time )
 {
+	const float time_since_map_start_s= ( current_time - map_start_time_ ).ToSeconds();
+	const float tick_delta_s= ( current_time - last_tick_time_ ).ToSeconds();
+
 	last_tick_time_= current_time;
 
-	const float time_since_map_start_s= ( current_time - map_start_time_ ).ToSeconds();
 	for( Item& item : items_ )
 	{
 		const unsigned int animation_frame=
@@ -112,9 +115,26 @@ void MapState::Tick( const Time current_time )
 
 		const float time_delta_s= ( current_time - effect.start_time ).ToSeconds();
 
-		effect.frame= time_delta_s * GameConstants::animations_frames_per_second;
+		effect.frame= time_delta_s * GameConstants::sprites_animations_frames_per_second;
 
-		if( effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
+		const GameResources::SpriteEffectDescription& description= game_resources_->sprites_effects_description[ effect.effect_id ];
+
+		if( description.gravity )
+			effect.speed.z+= tick_delta_s * GameConstants::particles_vertical_acceleration;
+		effect.pos+= tick_delta_s * effect.speed;
+
+		bool force_kill= false;
+
+		if( effect.pos.z <= 0.0f )
+		{
+			if( description.jump )
+				effect.speed.z*= -0.5f;
+			else
+				force_kill= true;
+		}
+
+		if( force_kill ||
+			effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
 		{
 			if( i < sprite_effects_.size() -1u )
 				sprite_effects_[i]= sprite_effects_.back();
@@ -204,9 +224,62 @@ void MapState::ProcessMessage( const Messages::SpriteEffectBirth& message )
 	effect.effect_id= message.effect_id;
 	effect.frame= 0.0f;
 
+	effect.speed= m_Vec3( 0.0f, 0.0f, 0.0f );
+
 	MessagePositionToPosition( message.xyz, effect.pos );
 
 	effect.start_time= last_tick_time_;
+}
+
+void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
+{
+	const ParticleEffect effect= static_cast<ParticleEffect>(message.effect_id);
+
+	switch(effect)
+	{
+	case ParticleEffect::Glass:
+		break;
+	case ParticleEffect::Blood:
+		break;
+	case ParticleEffect::Bullet:
+	{
+		sprite_effects_.emplace_back();
+		SpriteEffect& effect= sprite_effects_.back();
+
+		effect.effect_id= static_cast<unsigned char>(Particels::Bullet);
+		effect.frame= 0.0f;
+
+		effect.speed= m_Vec3( 0.0f, 0.0f, 0.0f );
+
+		MessagePositionToPosition( message.xyz, effect.pos );
+		effect.start_time= last_tick_time_;
+	}
+		break;
+
+	case ParticleEffect::Sparkles:
+	{
+		const unsigned int c_sparcle_count= 48u;
+		sprite_effects_.resize( sprite_effects_.size() + c_sparcle_count );
+		SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_sparcle_count;
+
+		for( unsigned int i= 0u; i < c_sparcle_count; i++ )
+		{
+			SpriteEffect& effect= effects[i];
+
+			effect.effect_id= static_cast<unsigned char>(Particels::Sparcle);
+			effect.frame= 0.0f;
+
+			m_Vec3 dir= random_generator_.RandDirection();
+			dir.z*= 2.0f;
+
+			effect.speed= dir * random_generator_.RandValue( 1.0f, 2.0f );
+
+			MessagePositionToPosition( message.xyz, effect.pos );
+			effect.start_time= last_tick_time_;
+		}
+	}
+		break;
+	};
 }
 
 void MapState::ProcessMessage( const Messages::MonsterBirth& message )

@@ -46,11 +46,19 @@ public:
 	struct SpriteEffectDescription
 	{
 		char sprite_file_name[ c_max_file_name_size ];
+
+		// Something, like alpha
+		// 0 - opaque
+		// 1 - semi-transparent ~ 60%
+		// 2 - semi-transparent ~ 30%
+		// other values - unknown. Maybe transparency can chenge durign sprite animation?
 		int glass;
 		bool half_size;
+		// Particle left small smoke trail
 		bool smooking;
 		bool looped;
 		bool gravity;
+		// particle reflects from floors (maybee ceilings too)
 		bool jump;
 		bool light_on;
 	};

@@ -2,6 +2,7 @@
 
 #include "../game_constants.hpp"
 #include "../math_utils.hpp"
+#include "../particles.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
 #include "monster.hpp"
@@ -820,9 +821,6 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			model.current_animation_frame= model.animation_start_frame;
 	} // for static models
 
-	// Sprite effects
-	sprite_effects_.clear();
-
 	// Process shots
 	for( unsigned int r= 0u; r < rockets_.size(); )
 	{
@@ -888,13 +886,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}
 
 		if( hit_result.object_type != HitResult::ObjectType::None )
-		{
-			sprite_effects_.emplace_back();
-			SpriteEffect& effect= sprite_effects_.back();
-
-			effect.pos= hit_result.pos;
-			effect.effect_id= 8u;
-		}
+			GenSpriteEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
 
 		// Try break breakable models.
 		if( hit_result.object_type == HitResult::ObjectType::Model )
@@ -1180,6 +1172,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
@@ -1199,8 +1195,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 void Map::ClearUpdateEvents()
 {
+	sprite_effects_.clear();
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
+	particles_effects_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
@@ -1530,6 +1528,42 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.monster_type= monster.MonsterId();
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
+}
+
+void Map::GenSpriteEffectForRocketHit( const m_Vec3& pos, const unsigned int rocket_type_id )
+{
+	PC_ASSERT( rocket_type_id < game_resources_->rockets_description.size() );
+	const GameResources::RocketDescription& description= game_resources_->rockets_description[ rocket_type_id ];
+
+	Messages::ParticleEffectBirth* message= nullptr;
+
+	if( description.model_file_name[0] == '\0' )
+	{ // bullet
+		if( description.blow_effect == 1 )
+		{
+			//bullet
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Bullet );
+		}
+	}
+	else
+	{
+		if( description.blow_effect == 1 || description.blow_effect == 3 )
+		{
+			// sparcles
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Sparkles );
+		}
+		if( description.blow_effect == 4 )
+		{
+			// Mega destroyer
+		}
+	}
+
+	if( message != nullptr )
+		PositionToMessagePosition( pos, message->xyz );
 }
 
 } // PanzerChasm
