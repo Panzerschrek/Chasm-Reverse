@@ -240,6 +240,30 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 	case ParticleEffect::Glass:
 		break;
 	case ParticleEffect::Blood:
+	{
+		const unsigned int c_particle_count= 12u;
+		sprite_effects_.resize( sprite_effects_.size() + c_particle_count );
+		SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_particle_count;
+
+		m_Vec3 pos;
+		MessagePositionToPosition( message.xyz, pos );
+
+		for( unsigned int i= 0u; i < c_particle_count; i++ )
+		{
+			SpriteEffect& effect= effects[i];
+
+			effect.effect_id= static_cast<unsigned char>(Particels::Blood0) + ( random_generator_.Rand() & 1u );
+			effect.frame= 0.0f;
+
+			m_Vec3 rand_dir_in_upper_sphere= random_generator_.RandDirection();
+			rand_dir_in_upper_sphere.z= std::abs( rand_dir_in_upper_sphere.z );
+
+			effect.speed= rand_dir_in_upper_sphere * random_generator_.RandValue( 0.8f, 1.2f );
+			effect.pos= pos + effect.speed / 16.0f; // Shift just a bit from spawn point
+
+			effect.start_time= last_tick_time_;
+		}
+	}
 		break;
 	case ParticleEffect::Bullet:
 	{
