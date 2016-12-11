@@ -279,6 +279,29 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 		}
 	}
 		break;
+	case ParticleEffect::Explosion:
+	{
+		const unsigned int c_fireball_count= 16u;
+		sprite_effects_.resize( sprite_effects_.size() + c_fireball_count );
+		SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_fireball_count;
+
+		m_Vec3 pos;
+		MessagePositionToPosition( message.xyz, pos );
+
+		for( unsigned int i= 0u; i < c_fireball_count; i++ )
+		{
+			SpriteEffect& effect= effects[i];
+
+			effect.effect_id= static_cast<unsigned char>(Particels::Explosion);
+			effect.frame= 0.0f;
+
+			effect.speed= m_Vec3( 0.0f, 0.0f, random_generator_.RandValue( 0.3f, 0.5f ) );
+			effect.pos= pos + random_generator_.RandPointInSphere( 0.3f );
+
+			effect.start_time= last_tick_time_;
+		}
+	}
+		break;
 	};
 }
 

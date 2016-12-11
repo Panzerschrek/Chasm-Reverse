@@ -1556,6 +1556,13 @@ void Map::GenSpriteEffectForRocketHit( const m_Vec3& pos, const unsigned int roc
 			message= & particles_effects_messages_.back();
 			message->effect_id= static_cast<unsigned char>( ParticleEffect::Sparkles );
 		}
+		if( description.blow_effect == 2 )
+		{
+			//explosion
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Explosion );
+		}
 		if( description.blow_effect == 4 )
 		{
 			// Mega destroyer
