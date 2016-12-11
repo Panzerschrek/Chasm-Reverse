@@ -885,8 +885,32 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			rocket.previous_position= new_pos;
 		}
 
-		if( hit_result.object_type != HitResult::ObjectType::None )
-			GenSpriteEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
+		// Gen hit effect
+		const float c_walls_effect_offset= 1.0f / 32.0f;
+		if( hit_result.object_type == HitResult::ObjectType::StaticWall )
+		{
+			GenParticleEffectForRocketHit(
+				hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset,
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::DynamicWall )
+		{
+			GenParticleEffectForRocketHit(
+				hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset,
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::Floor )
+		{
+			GenParticleEffectForRocketHit(
+				hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset ),
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::Model )
+			GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
+		else if( hit_result.object_type == HitResult::ObjectType::Monster )
+		{
+			AddParticleEffect( hit_result.pos, ParticleEffect::Blood );
+		}
 
 		// Try break breakable models.
 		if( hit_result.object_type == HitResult::ObjectType::Model )
@@ -1530,7 +1554,16 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.animation_frame= monster.CurrentAnimationFrame();
 }
 
-void Map::GenSpriteEffectForRocketHit( const m_Vec3& pos, const unsigned int rocket_type_id )
+void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
+{
+	particles_effects_messages_.emplace_back();
+	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.effect_id= static_cast<unsigned char>( particle_effect );
+}
+
+void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int rocket_type_id )
 {
 	PC_ASSERT( rocket_type_id < game_resources_->rockets_description.size() );
 	const GameResources::RocketDescription& description= game_resources_->rockets_description[ rocket_type_id ];

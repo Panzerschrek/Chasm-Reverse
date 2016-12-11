@@ -3,6 +3,7 @@
 
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
+#include "../particles.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"
 #include "rand.hpp"
@@ -189,7 +190,8 @@ private:
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
-	void GenSpriteEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
+	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
+	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
 
 private:
 	const MapDataConstPtr map_data_;
