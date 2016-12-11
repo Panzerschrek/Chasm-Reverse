@@ -268,15 +268,32 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 	case ParticleEffect::Bullet:
 	{
 		sprite_effects_.emplace_back();
-		SpriteEffect& effect= sprite_effects_.back();
+		SpriteEffect& flash_effect= sprite_effects_.back();
 
-		effect.effect_id= static_cast<unsigned char>(Particels::Bullet);
-		effect.frame= 0.0f;
+		flash_effect.effect_id= static_cast<unsigned char>(Particels::Bullet);
+		flash_effect.frame= 0.0f;
 
-		effect.speed= m_Vec3( 0.0f, 0.0f, 0.0f );
+		flash_effect.speed= m_Vec3( 0.0f, 0.0f, 0.0f );
 
-		MessagePositionToPosition( message.xyz, effect.pos );
-		effect.start_time= last_tick_time_;
+		MessagePositionToPosition( message.xyz, flash_effect.pos );
+		flash_effect.start_time= last_tick_time_;
+
+		const unsigned int c_particle_count= 3u;
+		sprite_effects_.resize( sprite_effects_.size() + c_particle_count );
+		SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_particle_count;
+
+		for( unsigned int i= 0u; i < c_particle_count; i++ )
+		{
+			SpriteEffect& effect= effects[i];
+
+			effect.effect_id= static_cast<unsigned char>(Particels::LightSmoke);
+			effect.frame= 0.0f;
+
+			effect.speed= m_Vec3( 0.0f, 0.0f, 0.25f );
+			effect.pos= flash_effect.pos + random_generator_.RandPointInSphere( 0.05f ) + m_Vec3( 0.0f, 0.0f, 0.05f );
+
+			effect.start_time= last_tick_time_;
+		}
 	}
 		break;
 
