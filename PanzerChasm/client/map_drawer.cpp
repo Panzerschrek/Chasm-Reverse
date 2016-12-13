@@ -1310,10 +1310,12 @@ void MapDrawer::DrawSprites(
 		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
 
 		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
-		const float angle= -std::atan2( vec_to_sprite.x, vec_to_sprite.y );
+		float sprite_angles[2];
+		VecToAngles( vec_to_sprite, sprite_angles );
 
-		m_Mat4 rotate_mat, shift_mat, scale_mat;
-		rotate_mat.RotateZ( angle );
+		m_Mat4 rotate_z, rotate_x, shift_mat, scale_mat;
+		rotate_z.RotateZ( sprite_angles[0] - Constants::half_pi );
+		rotate_x.RotateX( sprite_angles[1] );
 		shift_mat.Translate( sprite.pos );
 
 		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
@@ -1323,7 +1325,7 @@ void MapDrawer::DrawSprites(
 				1.0f,
 				float(sprite_picture.size[1]) * additional_scale ) );
 
-		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_mat * shift_mat * view_matrix );
+		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_x * rotate_z * shift_mat * view_matrix );
 		sprites_shader_.Uniform( "tex", int(0) );
 		sprites_shader_.Uniform( "frame", sprite.frame );
 
