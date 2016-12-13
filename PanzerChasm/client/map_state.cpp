@@ -125,16 +125,26 @@ void MapState::Tick( const Time current_time )
 
 		bool force_kill= false;
 
-		if( effect.pos.z <= 0.0f )
+		if( effect.pos.z < 0.0f )
 		{
 			if( description.jump )
-				effect.speed.z*= -0.5f;
-			else
+			{
+				effect.pos.z= 0.0f;
+
+				const float c_speed_scale= 0.5f;
+				effect.speed.x*= c_speed_scale;
+				effect.speed.y*= c_speed_scale;
+				effect.speed.z*= -c_speed_scale;
+			}
+
+			if( !description.looped || std::abs( effect.speed.z ) < 0.2f )
 				force_kill= true;
 		}
 
+		const float sprite_frame_count= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count );
+
 		if( force_kill ||
-			effect.frame >= float( game_resources_->effects_sprites[ effect.effect_id ].frame_count ) )
+			( !description.looped && effect.frame >= sprite_frame_count ) )
 		{
 			if( i < sprite_effects_.size() -1u )
 				sprite_effects_[i]= sprite_effects_.back();
@@ -142,7 +152,10 @@ void MapState::Tick( const Time current_time )
 			sprite_effects_.pop_back();
 		}
 		else
+		{
+			effect.frame= std::fmod( effect.frame, sprite_frame_count );
 			i++;
+		}
 	}
 
 	for( RocketsContainer::value_type& rocket_value : rockets_ )
