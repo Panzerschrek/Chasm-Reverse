@@ -942,6 +942,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				model.health-= int(rocket_description.power);
 				if( model.health <= 0 )
 				{
+					EmitModelDestructionEffects( hit_result.object_index );
+
 					model.model_id++; // now, this model has other model type
 					if( model.model_id < map_data_->models_description.size() )
 						model.health= map_data_->models_description[ model.model_id ].break_limit;
@@ -1556,6 +1558,30 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.monster_type= monster.MonsterId();
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
+}
+
+void Map::EmitModelDestructionEffects( const unsigned int model_number )
+{
+	PC_ASSERT( model_number < static_models_.size() );
+	const StaticModel& model= static_models_[ model_number ];
+
+	if( model.model_id >= map_data_->models_description.size() )
+		return;
+
+	const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
+	const Model& model_data= map_data_->models[ model.model_id ];
+
+	const unsigned int blow_effect_id= description.blw % 100u;
+
+	m_Vec3 pos= model.pos;
+	// TODO - tune this formula. It can be invalid.
+	pos.z+= ( model_data.z_min + model_data.z_max ) * 0.5f + float( description.bmpz ) / 128.0f;
+
+	particles_effects_messages_.emplace_back();
+	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
 }
 
 void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )

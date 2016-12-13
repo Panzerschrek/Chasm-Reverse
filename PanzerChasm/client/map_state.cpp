@@ -343,6 +343,37 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 		}
 	}
 		break;
+
+	default:
+		if( effect >= ParticleEffect::FirstBlowEffect )
+		{
+			const unsigned int blow_effect_id=
+				static_cast<unsigned int>(effect) - static_cast<unsigned int>(ParticleEffect::FirstBlowEffect);
+
+			if( blow_effect_id < game_resources_->sprites_effects_description.size() )
+			{
+				const unsigned int c_particle_count= 16u;
+				sprite_effects_.resize( sprite_effects_.size() + c_particle_count );
+				SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_particle_count;
+
+				m_Vec3 pos;
+				MessagePositionToPosition( message.xyz, pos );
+
+				for( unsigned int i= 0u; i < c_particle_count; i++ )
+				{
+					SpriteEffect& effect= effects[i];
+
+					effect.effect_id= blow_effect_id;
+					effect.frame= 0.0f;
+
+					effect.speed= random_generator_.RandDirection() * random_generator_.RandValue( 1.0f, 2.0f );
+					effect.pos= pos + random_generator_.RandPointInSphere( 0.01f );
+
+					effect.start_time= last_tick_time_;
+				}
+			}
+		}
+		break;
 	};
 }
 

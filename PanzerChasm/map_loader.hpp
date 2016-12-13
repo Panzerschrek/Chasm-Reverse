@@ -93,7 +93,17 @@ public:
 		// For switches - 255
 		int ac;
 
-		int blw; // unknown
+		/* Blow effect.
+		 0 - object not breakable.
+		 2 minor decimal digits - blow particle id.
+		 form zero - sprites, from 71 - gibs.
+
+		 major decimal digits (2 or 3) - additional effect.
+		 10 - unknown
+		 11 - explosion
+		 12 - jumping smoke
+		*/
+		int blw;
 
 		// "Break limit", maybe. Zero for non-breakable objects.
 		// When object breaks, it changes model to next in list.

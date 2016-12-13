@@ -26,4 +26,9 @@ enum class ParticleEffect : unsigned char
 	Bullet,
 	Sparkles,
 	Explosion,
+
+	// Blow effects.
+	// from zero - with particles
+	// from 71 - with gibs
+	FirstBlowEffect, // Pur it last here
 };

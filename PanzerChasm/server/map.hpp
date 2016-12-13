@@ -190,6 +190,7 @@ private:
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
+	void EmitModelDestructionEffects( unsigned int model_number );
 	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
 	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
 
