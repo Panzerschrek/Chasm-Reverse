@@ -1327,6 +1327,19 @@ void MapDrawer::DrawSprites(
 		sprites_shader_.Uniform( "tex", int(0) );
 		sprites_shader_.Uniform( "frame", sprite.frame );
 
+		float light= 1.0f;
+		// TODO - check fullbright criteria
+		if( !sprite_description.light_on )
+		{
+			const int sx= static_cast<int>( sprite.pos.x * float(MapData::c_lightmap_scale) );
+			const int sy= static_cast<int>( sprite.pos.y * float(MapData::c_lightmap_scale) );
+			if( sx >= 0 && sx < int( MapData::c_lightmap_size ) &&
+				sy >= 0 && sy < int( MapData::c_lightmap_size ) )
+				light= float( current_map_data_->lightmap[ sx + sy * int( MapData::c_lightmap_size ) ] ) / 255.0f;
+		}
+
+		sprites_shader_.Uniform( "light", light );
+
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
 }

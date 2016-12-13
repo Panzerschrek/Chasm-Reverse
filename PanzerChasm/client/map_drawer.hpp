@@ -4,6 +4,7 @@
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
 
+#include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
 #include "map_state.hpp"
