@@ -379,7 +379,7 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 					effect.effect_id= blow_effect_id;
 					effect.frame= 0.0f;
 
-					effect.speed= random_generator_.RandDirection() * random_generator_.RandValue( 1.0f, 2.0f );
+					effect.speed= random_generator_.RandDirection() * random_generator_.RandValue( 0.5f, 2.5f );
 					effect.pos= pos + random_generator_.RandPointInSphere( 0.01f );
 
 					effect.start_time= last_tick_time_;
