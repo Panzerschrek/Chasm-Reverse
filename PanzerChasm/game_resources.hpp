@@ -46,11 +46,19 @@ public:
 	struct SpriteEffectDescription
 	{
 		char sprite_file_name[ c_max_file_name_size ];
+
+		// Something, like alpha
+		// 0 - opaque
+		// 1 - semi-transparent ~ 60%
+		// 2 - semi-transparent ~ 30%
+		// other values - unknown. Maybe transparency can chenge durign sprite animation?
 		int glass;
 		bool half_size;
+		// Particle left small smoke trail
 		bool smooking;
 		bool looped;
 		bool gravity;
+		// particle reflects from floors (maybee ceilings too)
 		bool jump;
 		bool light_on;
 	};
@@ -78,7 +86,20 @@ public:
 		char model_file_name[ c_max_file_name_size ];
 		char animation_file_name[ c_max_file_name_size ];
 
-		int blow_effect; // 1 - sparcles, 2 - blast, 4 - Mega-Destroyer blast.
+		/* For rockets:
+		 * 1 - sparcles
+		 * 2 - blast
+		 * 3 - sparkles
+		 * 4 - Mega-Destroyer blast
+		 * other - sparcles
+		 *
+		 * For bullets:
+		 * 1 - bullet hit
+		 * 2, 3, 4 - no effect
+		 * other - no effect
+		*/
+		int blow_effect;
+
 		int gravity_force; // gravity. 0 - fly straight.
 		int Ard; // Attack radius ( explosion damage distance )
 		int CRd; // Unknown - always 42

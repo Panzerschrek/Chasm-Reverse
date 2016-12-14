@@ -2,6 +2,7 @@
 
 #include "../game_constants.hpp"
 #include "../math_utils.hpp"
+#include "../particles.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
 #include "monster.hpp"
@@ -820,9 +821,6 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			model.current_animation_frame= model.animation_start_frame;
 	} // for static models
 
-	// Sprite effects
-	sprite_effects_.clear();
-
 	// Process shots
 	for( unsigned int r= 0u; r < rockets_.size(); )
 	{
@@ -887,13 +885,35 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			rocket.previous_position= new_pos;
 		}
 
-		if( hit_result.object_type != HitResult::ObjectType::None )
+		// Gen hit effect
+		const float c_walls_effect_offset= 1.0f / 32.0f;
+		if( hit_result.object_type == HitResult::ObjectType::StaticWall )
 		{
-			sprite_effects_.emplace_back();
-			SpriteEffect& effect= sprite_effects_.back();
+			GenParticleEffectForRocketHit(
+				hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset,
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::DynamicWall )
+		{
+			GenParticleEffectForRocketHit(
+				hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset,
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::Floor )
+		{
+			GenParticleEffectForRocketHit(
+				hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset ),
+				rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type == HitResult::ObjectType::Model )
+			GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
+		else if( hit_result.object_type == HitResult::ObjectType::Monster )
+		{
+			AddParticleEffect( hit_result.pos, ParticleEffect::Blood );
 
-			effect.pos= hit_result.pos;
-			effect.effect_id= 8u;
+			// Hack for rockets and grenades. Make effect together with blood.
+			if( rocket_description.blow_effect == 2 && !has_infinite_speed )
+				GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
 		}
 
 		// Try break breakable models.
@@ -922,6 +942,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				model.health-= int(rocket_description.power);
 				if( model.health <= 0 )
 				{
+					EmitModelDestructionEffects( hit_result.object_index );
+
 					model.model_id++; // now, this model has other model type
 					if( model.model_id < map_data_->models_description.size() )
 						model.health= map_data_->models_description[ model.model_id ].break_limit;
@@ -1180,6 +1202,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
@@ -1199,8 +1225,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 void Map::ClearUpdateEvents()
 {
+	sprite_effects_.clear();
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
+	particles_effects_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
@@ -1530,6 +1558,82 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.monster_type= monster.MonsterId();
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
+}
+
+void Map::EmitModelDestructionEffects( const unsigned int model_number )
+{
+	PC_ASSERT( model_number < static_models_.size() );
+	const StaticModel& model= static_models_[ model_number ];
+
+	if( model.model_id >= map_data_->models_description.size() )
+		return;
+
+	const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
+	const Model& model_data= map_data_->models[ model.model_id ];
+
+	const unsigned int blow_effect_id= description.blw % 100u;
+
+	m_Vec3 pos= model.pos;
+	// TODO - tune this formula. It can be invalid.
+	pos.z+= ( model_data.z_min + model_data.z_max ) * 0.5f + float( description.bmpz ) / 128.0f;
+
+	particles_effects_messages_.emplace_back();
+	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
+}
+
+void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
+{
+	particles_effects_messages_.emplace_back();
+	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.effect_id= static_cast<unsigned char>( particle_effect );
+}
+
+void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int rocket_type_id )
+{
+	PC_ASSERT( rocket_type_id < game_resources_->rockets_description.size() );
+	const GameResources::RocketDescription& description= game_resources_->rockets_description[ rocket_type_id ];
+
+	Messages::ParticleEffectBirth* message= nullptr;
+
+	if( description.model_file_name[0] == '\0' )
+	{ // bullet
+		if( description.blow_effect == 1 )
+		{
+			//bullet
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Bullet );
+		}
+	}
+	else
+	{
+		if( description.blow_effect == 1 || description.blow_effect == 3 || description.blow_effect == 4 )
+		{
+			// sparcles
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Sparkles );
+		}
+		if( description.blow_effect == 2 )
+		{
+			//explosion
+			particles_effects_messages_.emplace_back();
+			message= & particles_effects_messages_.back();
+			message->effect_id= static_cast<unsigned char>( ParticleEffect::Explosion );
+		}
+		if( description.blow_effect == 4 )
+		{
+			// Mega destroyer flash - TODO
+		}
+	}
+
+	if( message != nullptr )
+		PositionToMessagePosition( pos, message->xyz );
 }
 
 } // PanzerChasm

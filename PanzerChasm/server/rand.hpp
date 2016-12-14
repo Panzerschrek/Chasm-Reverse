@@ -26,6 +26,8 @@ public:
 
 	// Random value in sphere with linear density.
 	m_Vec3 RandPointInSphere( float sphere_radius );
+	// Normalized point on identity sphere.
+	m_Vec3 RandDirection();
 
 private:
 	// Simple and fast generator.

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstring>
 
 #include <ogl_state_manager.hpp>
@@ -1279,21 +1280,42 @@ void MapDrawer::DrawSprites(
 	const m_Mat4& view_matrix,
 	const m_Vec3& camera_position )
 {
+
+	// Sort from far to near
+	const MapState::SpriteEffects& sprite_effects= map_state.GetSpriteEffects();
+	sorted_sprites_.resize( sprite_effects.size() );
+	for( unsigned int i= 0u; i < sprite_effects.size(); i++ )
+		sorted_sprites_[i]= & sprite_effects[i];
+
+	std::sort(
+		sorted_sprites_.begin(),
+		sorted_sprites_.end(),
+		[&]( const MapState::SpriteEffect* const a, const MapState::SpriteEffect* const b )
+		{
+			const m_Vec3 dir_a= camera_position - a->pos;
+			const m_Vec3 dir_b= camera_position - b->pos;
+			return dir_a.SquareLength() >= dir_b.SquareLength();
+		});
+
 	sprites_shader_.Bind();
 	glActiveTexture( GL_TEXTURE0 + 0 );
 
-	for( const MapState::SpriteEffect& sprite : map_state.GetSpriteEffects() )
+	for( const MapState::SpriteEffect* const sprite_ptr : sorted_sprites_ )
 	{
+		const MapState::SpriteEffect& sprite= *sprite_ptr;
+
 		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
 		const ObjSprite& sprite_picture= game_resources_->effects_sprites[ sprite.effect_id ];
 
 		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
 
 		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
-		const float angle= -std::atan2( vec_to_sprite.x, vec_to_sprite.y );
+		float sprite_angles[2];
+		VecToAngles( vec_to_sprite, sprite_angles );
 
-		m_Mat4 rotate_mat, shift_mat, scale_mat;
-		rotate_mat.RotateZ( angle );
+		m_Mat4 rotate_z, rotate_x, shift_mat, scale_mat;
+		rotate_z.RotateZ( sprite_angles[0] - Constants::half_pi );
+		rotate_x.RotateX( sprite_angles[1] );
 		shift_mat.Translate( sprite.pos );
 
 		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
@@ -1303,9 +1325,22 @@ void MapDrawer::DrawSprites(
 				1.0f,
 				float(sprite_picture.size[1]) * additional_scale ) );
 
-		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_mat * shift_mat * view_matrix );
+		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_x * rotate_z * shift_mat * view_matrix );
 		sprites_shader_.Uniform( "tex", int(0) );
 		sprites_shader_.Uniform( "frame", sprite.frame );
+
+		float light= 1.0f;
+		// TODO - check fullbright criteria
+		if( !sprite_description.light_on )
+		{
+			const int sx= static_cast<int>( sprite.pos.x * float(MapData::c_lightmap_scale) );
+			const int sy= static_cast<int>( sprite.pos.y * float(MapData::c_lightmap_scale) );
+			if( sx >= 0 && sx < int( MapData::c_lightmap_size ) &&
+				sy >= 0 && sy < int( MapData::c_lightmap_size ) )
+				light= float( current_map_data_->lightmap[ sx + sy * int( MapData::c_lightmap_size ) ] ) / 255.0f;
+		}
+
+		sprites_shader_.Uniform( "light", light );
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}

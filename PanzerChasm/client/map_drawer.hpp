@@ -4,6 +4,7 @@
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
 
+#include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
 #include "map_state.hpp"
@@ -158,6 +159,9 @@ private:
 	r_GLSLProgram monsters_shader_;
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
+
+	// Reuse vector (do not create new vector each frame).
+	std::vector<const MapState::SpriteEffect*> sorted_sprites_;
 };
 
 } // PanzerChasm

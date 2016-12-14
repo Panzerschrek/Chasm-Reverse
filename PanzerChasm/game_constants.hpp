@@ -19,6 +19,7 @@ constexpr float walls_height= 2.0f;
 
 const float animations_frames_per_second= 20.0f;
 const float weapons_animations_frames_per_second= 30.0f;
+const float sprites_animations_frames_per_second= 15.0f;
 
 const float weapon_switch_time_s= 0.7f;
 
@@ -29,6 +30,8 @@ const float fast_rockets_speed= 20.0f;
 
 constexpr float vertical_acceleration= -9.8f;
 constexpr float max_vertical_speed= 5.0f;
+
+constexpr float particles_vertical_acceleration= -5.0f;
 
 } // namespace GameConstants
 

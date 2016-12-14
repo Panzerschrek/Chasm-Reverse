@@ -124,6 +124,14 @@ struct SpriteEffectBirth : public MessageBase
 	unsigned char effect_id;
 };
 
+struct ParticleEffectBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(ParticleEffectBirth)
+
+	CoordType xyz[3];
+	unsigned char effect_id;
+};
+
 struct RocketState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(RocketState)

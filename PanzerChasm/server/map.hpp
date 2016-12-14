@@ -3,6 +3,7 @@
 
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
+#include "../particles.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"
 #include "rand.hpp"
@@ -189,6 +190,10 @@ private:
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
+	void EmitModelDestructionEffects( unsigned int model_number );
+	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
+	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
+
 private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
@@ -216,6 +221,7 @@ private:
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
+	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
 };
 
 } // PanzerChasm
