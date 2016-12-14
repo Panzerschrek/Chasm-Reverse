@@ -55,8 +55,8 @@ SIZE_ASSERT( FloorVertex, 4u );
 
 struct WallVertex
 {
-	float tex_coord_x;
 	unsigned short xyz[3]; // 8.8 fixed
+	short tex_coord[2]; // 8.8 fixed
 	unsigned char texture_id;
 	char normal[2];
 	unsigned char reserved[3];
@@ -245,7 +245,7 @@ MapDrawer::MapDrawer(
 		rLoadShader( "walls_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "walls_v.glsl", rendering_context.glsl_version, defines ) );
 	walls_shader_.SetAttribLocation( "pos", 0u );
-	walls_shader_.SetAttribLocation( "tex_coord_x", 1u );
+	walls_shader_.SetAttribLocation( "tex_coord", 1u );
 	walls_shader_.SetAttribLocation( "tex_id", 2u );
 	walls_shader_.SetAttribLocation( "normal", 3u );
 	walls_shader_.Create();
@@ -657,8 +657,11 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 
 		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= wall.texture_id;
 
-		v[2].tex_coord_x= v[0].tex_coord_x= wall.vert_tex_coord[0];
-		v[1].tex_coord_x= v[3].tex_coord_x= wall.vert_tex_coord[1];
+		v[2].tex_coord[0]= v[0].tex_coord[0]= static_cast<short>( wall.vert_tex_coord[0] * 256.0f );
+		v[1].tex_coord[0]= v[3].tex_coord[0]= static_cast<short>( wall.vert_tex_coord[1] * 256.0f );
+
+		v[0].tex_coord[1]= v[1].tex_coord[1]= 0;
+		v[2].tex_coord[1]= v[3].tex_coord[1]= 256;
 
 		m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
@@ -695,8 +698,8 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 			((char*)v.xyz) - ((char*)&v) );
 
 		polygon_buffer.VertexAttribPointer(
-			1, 1, GL_FLOAT, false,
-			((char*)&v.tex_coord_x) - ((char*)&v) );
+			1, 2, GL_SHORT, false,
+			((char*)v.tex_coord) - ((char*)&v) );
 
 		polygon_buffer.VertexAttribPointerInt(
 			2, 1, GL_UNSIGNED_BYTE,
@@ -967,8 +970,11 @@ void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls 
 
 		v[0].texture_id= v[1].texture_id= v[2].texture_id= v[3].texture_id= wall.texture_id;
 
-		v[2].tex_coord_x= v[0].tex_coord_x= map_wall.vert_tex_coord[0];
-		v[1].tex_coord_x= v[3].tex_coord_x= map_wall.vert_tex_coord[1];
+		v[2].tex_coord[0]= v[0].tex_coord[0]= static_cast<short>( map_wall.vert_tex_coord[0] * 256.0f );
+		v[1].tex_coord[0]= v[3].tex_coord[0]= static_cast<short>( map_wall.vert_tex_coord[1] * 256.0f );
+
+		v[0].tex_coord[1]= v[1].tex_coord[1]= 0;
+		v[2].tex_coord[1]= v[3].tex_coord[1]= 256;
 
 		m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
