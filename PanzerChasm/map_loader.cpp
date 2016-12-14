@@ -791,7 +791,14 @@ void MapLoader::LoadModels( MapData& map_data )
 		vfs_->ReadFile( model_file_name, file_content );
 
 		if( model_description.animation_file_name[0u] != '\0' )
-			vfs_->ReadFile( animation_file_name, animation_file_content );
+		{
+			// TODO - know, why some models animations file names have % prefix.
+			const char* file_name= model_description.animation_file_name;
+			if( file_name[0] == '%' )
+				file_name++;
+
+			vfs_->ReadFile( file_name, animation_file_content );
+		}
 		else
 			animation_file_content.clear();
 
