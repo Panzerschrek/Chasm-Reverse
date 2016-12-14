@@ -406,7 +406,11 @@ void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, Ma
 		MapData::ModelDescription& model_description= map_data.models_description.back();
 
 		line_stream >> model_description.radius; // GoRad
-		line_stream >> model_description.cast_shadow; // Shad
+
+		int shadow= 0;
+		line_stream >> shadow; // Shad
+		model_description.cast_shadow= shadow != 0; // Stream fails if number is not zero or not one
+
 		line_stream >> model_description.bobj; // BObj
 		line_stream >> model_description.bmpz; // BMPz
 		line_stream >> model_description.ac; // AC
