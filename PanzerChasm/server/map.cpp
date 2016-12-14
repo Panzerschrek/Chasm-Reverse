@@ -1612,7 +1612,7 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 	}
 	else
 	{
-		if( description.blow_effect == 1 || description.blow_effect == 3 )
+		if( description.blow_effect == 1 || description.blow_effect == 3 || description.blow_effect == 4 )
 		{
 			// sparcles
 			particles_effects_messages_.emplace_back();
@@ -1628,7 +1628,7 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 		}
 		if( description.blow_effect == 4 )
 		{
-			// Mega destroyer
+			// Mega destroyer flash - TODO
 		}
 	}
 
