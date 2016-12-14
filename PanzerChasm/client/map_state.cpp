@@ -312,9 +312,13 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 
 	case ParticleEffect::Sparkles:
 	{
+		m_Vec3 pos;
+		MessagePositionToPosition( message.xyz, pos );
+
 		const unsigned int c_sparcle_count= 48u;
 		sprite_effects_.resize( sprite_effects_.size() + c_sparcle_count );
 		SpriteEffect* const effects= sprite_effects_.data() + sprite_effects_.size() - c_sparcle_count;
+
 
 		for( unsigned int i= 0u; i < c_sparcle_count; i++ )
 		{
@@ -327,8 +331,23 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 			dir.z*= 2.0f;
 
 			effect.speed= dir * random_generator_.RandValue( 1.0f, 2.0f );
+			effect.pos= pos;
 
-			MessagePositionToPosition( message.xyz, effect.pos );
+			effect.start_time= last_tick_time_;
+		}
+
+		const unsigned int c_smoke_particle_count= 5u;
+		sprite_effects_.resize( sprite_effects_.size() + c_sparcle_count );
+		SpriteEffect* const smoke_effects= sprite_effects_.data() + sprite_effects_.size() - c_smoke_particle_count;
+		for( unsigned int i= 0u; i < c_smoke_particle_count; i++ )
+		{
+			SpriteEffect& effect= smoke_effects[i];
+			effect.effect_id= static_cast<unsigned char>(Particels::LightSmoke);
+			effect.frame= 0.0f;
+
+			effect.speed= m_Vec3( 0.0f, 0.0f, random_generator_.RandValue( 0.5f, 1.5f ) );
+			effect.pos= pos + random_generator_.RandPointInSphere( 0.05f ) + m_Vec3( 0.0f, 0.0f, 0.05f );
+
 			effect.start_time= last_tick_time_;
 		}
 	}
