@@ -328,7 +328,7 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 	{ // sky
 		// TODO - cache texture
-		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( /*"SKY1.CEL"*/ "PYR17.CEL" );
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( "SKY.CEL" /*"ALIENB01.CEL"*/ );
 		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
 
 		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
