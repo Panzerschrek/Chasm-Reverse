@@ -147,6 +147,11 @@ void Client::Draw()
 			pos,
 			m_Vec3( camera_controller_.GetViewAngleX(), 0.0f, camera_controller_.GetViewAngleZ() ) );
 
+		m_Mat4 view_rotation_matrix;
+		camera_controller_.GetViewRotationMatrix( view_rotation_matrix );
+
+		map_drawer_.DrawSky( view_rotation_matrix );
+
 		hud_drawer_.DrawCrosshair(2u);
 		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
 		hud_drawer_.DrawHud( map_mode_, 2u );

@@ -67,13 +67,12 @@ void MovementController::GetAcceleration( float& out_dir, float& out_acceleratio
 	}
 }
 
-void MovementController::GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) const
+void MovementController::GetViewRotationMatrix( m_Mat4& out_mat ) const
 {
 	const bool old_style= false;
 
-	m_Mat4 rot_x, rot_z, translate, perspective, basis_change;
+	m_Mat4 rot_x, rot_z, perspective, basis_change;
 
-	translate.Translate( -pos );
 	rot_z.RotateZ( -angle_.z );
 	perspective.PerspectiveProjection( aspect_, fov_, 0.125f, 128.0f );
 
@@ -88,13 +87,23 @@ void MovementController::GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) con
 		rot_x.Identity();
 		rot_x.value[9]= std::tan( -angle_.x );
 
-		out_mat= translate * rot_z * basis_change * rot_x * perspective;
+		out_mat= rot_z * basis_change * rot_x * perspective;
 	}
 	else
 	{
 		rot_x.RotateX( -angle_.x );
-		out_mat= translate * rot_z * rot_x * basis_change * perspective;
+		out_mat= rot_z * rot_x * basis_change * perspective;
 	}
+}
+
+void MovementController::GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) const
+{
+	m_Mat4 translate, rotatation_and_perspective;
+
+	translate.Translate( -pos );
+	GetViewRotationMatrix( rotatation_and_perspective );
+
+	out_mat= translate * rotatation_and_perspective;
 }
 
 m_Vec3 MovementController::GetCamDir() const

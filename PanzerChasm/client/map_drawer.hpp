@@ -35,6 +35,8 @@ public:
 		const m_Vec3& position,
 		const m_Vec3& angle);
 
+	void DrawSky( const m_Mat4& view_rotation_matrix );
+
 private:
 	struct FloorGeometryInfo
 	{
@@ -61,6 +63,7 @@ private:
 
 private:
 	void LoadSprites();
+	void PrepareSkyGeometry();
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
@@ -159,6 +162,10 @@ private:
 	r_GLSLProgram monsters_shader_;
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
+
+	r_GLSLProgram sky_shader_;
+	r_Texture sky_texture_;
+	r_PolygonBuffer sky_geometry_data_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

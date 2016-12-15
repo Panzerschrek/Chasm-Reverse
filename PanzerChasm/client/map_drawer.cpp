@@ -5,6 +5,7 @@
 
 #include "../assert.hpp"
 #include "../game_resources.hpp"
+#include "../images.hpp"
 #include "../log.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
@@ -40,6 +41,10 @@ const r_OGLState g_transparent_models_gl_state(
 
 const r_OGLState g_sprites_gl_state(
 	true, false, true, false,
+	g_gl_state_blend_func );
+
+const r_OGLState g_sky_gl_state(
+	false, false, true, false,
 	g_gl_state_blend_func );
 
 } // namespace
@@ -203,6 +208,7 @@ MapDrawer::MapDrawer(
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
 	LoadSprites();
+	PrepareSkyGeometry();
 
 	// Items
 	LoadModels(
@@ -274,6 +280,11 @@ MapDrawer::MapDrawer(
 	monsters_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	monsters_shader_.Create();
 
+	sky_shader_.ShaderSource(
+		rLoadShader( "sky_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "sky_v.glsl", rendering_context.glsl_version ) );
+	sky_shader_.SetAttribLocation( "pos", 0u );
+	sky_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -314,6 +325,27 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 			MapData::c_lightmap_size, MapData::c_lightmap_size,
 			map_data->lightmap );
 	lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+
+	{ // sky
+		// TODO - cache texture
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( /*"SKY1.CEL"*/ "PYR17.CEL" );
+		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
+
+		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
+		std::vector<unsigned char> sky_texture_data_rgba( sky_pixel_count * 4u );
+		ConvertToRGBA(
+			sky_pixel_count,
+			sky_texture_data.data() + sizeof(CelTextureHeader),
+			game_resources_->palette,
+			sky_texture_data_rgba.data() );
+
+		sky_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				cel_header.size[0], cel_header.size[1],
+				sky_texture_data_rgba.data() );
+		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	}
 }
 
 void MapDrawer::Draw(
@@ -427,6 +459,20 @@ void MapDrawer::DrawWeapon(
 	glDepthRange( 0.0f, 1.0f );
 }
 
+void MapDrawer::DrawSky( const m_Mat4& view_rotation_matrix )
+{
+	r_OGLStateManager::UpdateState( g_sky_gl_state );
+
+	sky_shader_.Bind();
+
+	sky_texture_.Bind(0);
+
+	sky_shader_.Uniform( "tex", int(0) );
+	sky_shader_.Uniform( "view_matrix", view_rotation_matrix );
+
+	sky_geometry_data_.Draw();
+}
+
 void MapDrawer::LoadSprites()
 {
 	const Palette& palette= game_resources_->palette;
@@ -464,6 +510,31 @@ void MapDrawer::LoadSprites()
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 		glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 	}
+}
+
+void MapDrawer::PrepareSkyGeometry()
+{
+	const float c_scene_radius= 64.0f;
+	static const float c_sky_vertices[]=
+	{
+		c_scene_radius,  c_scene_radius,  c_scene_radius,  -c_scene_radius,  c_scene_radius,  c_scene_radius,
+		c_scene_radius, -c_scene_radius,  c_scene_radius,  -c_scene_radius, -c_scene_radius,  c_scene_radius,
+		c_scene_radius,  c_scene_radius, -c_scene_radius,  -c_scene_radius,  c_scene_radius, -c_scene_radius,
+		c_scene_radius, -c_scene_radius, -c_scene_radius,  -c_scene_radius, -c_scene_radius, -c_scene_radius,
+	};
+	static const unsigned short c_sky_indeces[]=
+	{
+		0, 1, 5,  0, 5, 4,
+		0, 4, 6,  0, 6, 2,
+		4, 5, 7,  4, 7, 6, // bottom
+		0, 3, 1,  0, 2, 3, // top
+		2, 7, 3,  2, 6, 7,
+		1, 3, 7,  1, 7, 5,
+	};
+
+	sky_geometry_data_.VertexData( c_sky_vertices, sizeof(float) * 8u * 3u, sizeof(float) * 3u );
+	sky_geometry_data_.IndexData( c_sky_indeces, sizeof(unsigned short) * 36u, GL_UNSIGNED_SHORT, GL_TRIANGLES );
+	sky_geometry_data_.VertexAttribPointer( 0u, 3u, GL_FLOAT, false, 0u );
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )
@@ -594,7 +665,8 @@ void MapDrawer::LoadFloors( const MapData& map_data )
 		{
 			const unsigned char texture_number= in_data[ x + y * MapData::c_map_size ];
 
-			if( texture_number == MapData::c_empty_floor_texture_id )
+			if( texture_number == MapData::c_empty_floor_texture_id ||
+				texture_number == MapData::c_sky_floor_texture_id )
 				continue;
 
 			floors_vertices.resize( floors_vertices.size() + 6u );
