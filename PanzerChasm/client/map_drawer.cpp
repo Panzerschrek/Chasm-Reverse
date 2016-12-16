@@ -356,13 +356,18 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 void MapDrawer::Draw(
 	const MapState& map_state,
-	const m_Mat4& view_matrix,
+	const m_Mat4& view_rotation_and_projection_matrix,
 	const m_Vec3& camera_position )
 {
 	if( current_map_data_ == nullptr )
 		return;
 
 	UpdateDynamicWalls( map_state.GetDynamicWalls() );
+
+	m_Mat4 translate;
+	translate.Translate( -camera_position );
+
+	const m_Mat4 view_matrix= translate * view_rotation_and_projection_matrix;
 
 	r_OGLStateManager::UpdateState( g_walls_gl_state );
 	DrawWalls( view_matrix );
@@ -375,6 +380,9 @@ void MapDrawer::Draw(
 	DrawItems( map_state, view_matrix, false );
 	DrawMonsters( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
+
+	r_OGLStateManager::UpdateState( g_sky_gl_state );
+	DrawSky( view_rotation_and_projection_matrix );
 
 	/*
 	TRANSPARENT SECTION
@@ -389,11 +397,11 @@ void MapDrawer::Draw(
 	DrawSprites( map_state, view_matrix, camera_position );
 }
 
+
 void MapDrawer::DrawWeapon(
 	const WeaponState& weapon_state,
-	const m_Mat4& view_matrix,
-	const m_Vec3& position,
-	const m_Vec3& angle )
+	const m_Mat4& projection_matrix,
+	const m_Vec3& camera_position )
 {
 	// TODO - maybe this points differnet for differnet weapons?
 	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
@@ -409,25 +417,18 @@ void MapDrawer::DrawWeapon(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
-	m_Mat4 shift_mat, rotate_x_mat, rotate_z_mat, rotate_mat;
-	rotate_x_mat.RotateX( angle.x );
-	rotate_z_mat.RotateZ( angle.z );
-	rotate_mat= rotate_x_mat * rotate_z_mat;
-
+	m_Mat4 shift_mat;
 	const m_Vec3 additional_shift=
-		( c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() ) ) *
-		rotate_mat;
-	shift_mat.Translate( position + additional_shift );
-
-	const m_Mat4 model_mat= rotate_mat * shift_mat;
+		c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
+	shift_mat.Translate( additional_shift );
 
 	m_Mat3 scale_in_lightmap_mat, lightmap_shift_mat, lightmap_scale_mat;
 	scale_in_lightmap_mat.Scale( 0.0f ); // Make model so small, that it will have uniform light.
-	lightmap_shift_mat.Translate( position.xy() );
+	lightmap_shift_mat.Translate( camera_position.xy() );
 	lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 	const m_Mat3 lightmap_mat= scale_in_lightmap_mat * lightmap_shift_mat * lightmap_scale_mat;
 
-	models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+	models_shader_.Uniform( "view_matrix", shift_mat * projection_matrix );
 	models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
 
 	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
@@ -463,20 +464,6 @@ void MapDrawer::DrawWeapon(
 	draw_model_polygons(true);
 
 	glDepthRange( 0.0f, 1.0f );
-}
-
-void MapDrawer::DrawSky( const m_Mat4& view_rotation_matrix )
-{
-	r_OGLStateManager::UpdateState( g_sky_gl_state );
-
-	sky_shader_.Bind();
-
-	sky_texture_.Bind(0);
-
-	sky_shader_.Uniform( "tex", int(0) );
-	sky_shader_.Uniform( "view_matrix", view_rotation_matrix );
-
-	sky_geometry_data_.Draw();
 }
 
 void MapDrawer::LoadSprites()
@@ -1428,6 +1415,18 @@ void MapDrawer::DrawSprites(
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
+}
+
+void MapDrawer::DrawSky( const m_Mat4& view_rotation_matrix )
+{
+	sky_shader_.Bind();
+
+	sky_texture_.Bind(0);
+
+	sky_shader_.Uniform( "tex", int(0) );
+	sky_shader_.Uniform( "view_matrix", view_rotation_matrix );
+
+	sky_geometry_data_.Draw();
 }
 
 } // PanzerChasm

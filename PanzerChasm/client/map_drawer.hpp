@@ -26,16 +26,13 @@ public:
 
 	void Draw(
 		const MapState& map_state,
-		const m_Mat4& view_matrix,
+		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position );
 
 	void DrawWeapon(
 		const WeaponState& weapon_state,
-		const m_Mat4& view_matrix,
-		const m_Vec3& position,
-		const m_Vec3& angle);
-
-	void DrawSky( const m_Mat4& view_rotation_matrix );
+		const m_Mat4& projection_matrix,
+		const m_Vec3& camera_position );
 
 private:
 	struct FloorGeometryInfo
@@ -113,6 +110,8 @@ private:
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
 		const m_Vec3& camera_position );
+
+	void DrawSky( const m_Mat4& view_rotation_and_projection_matrix );
 
 private:
 	const GameResourcesConstPtr game_resources_;
