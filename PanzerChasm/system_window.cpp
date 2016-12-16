@@ -99,6 +99,7 @@ SystemWindow::~SystemWindow()
 {
 	SDL_GL_DeleteContext( gl_context_ );
 	SDL_DestroyWindow( window_ );
+	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 }
 
 Size2 SystemWindow::GetViewportSize() const
