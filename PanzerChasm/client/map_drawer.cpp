@@ -197,6 +197,8 @@ MapDrawer::MapDrawer(
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
+	current_sky_texture_file_name_[0]= '\0';
+
 	// Textures
 	glGenTextures( 1, &floor_textures_array_id_ );
 	glGenTextures( 1, &wall_textures_array_id_ );
@@ -326,9 +328,12 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 			map_data->lightmap );
 	lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 
-	{ // sky
-		// TODO - cache texture
-		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( "SKY.CEL" /*"ALIENB01.CEL"*/ );
+	// Sky
+	if( std::strcmp( current_sky_texture_file_name_, current_map_data_->sky_texture_name ) != 0 )
+	{
+		std::strncpy( current_sky_texture_file_name_, current_map_data_->sky_texture_name, sizeof(current_sky_texture_file_name_) );
+
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( current_map_data_->sky_texture_name );
 		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
 
 		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
@@ -344,6 +349,7 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 				r_Texture::PixelFormat::RGBA8,
 				cel_header.size[0], cel_header.size[1],
 				sky_texture_data_rgba.data() );
+
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
 }

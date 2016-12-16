@@ -163,6 +163,7 @@ private:
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
 
+	char current_sky_texture_file_name_[32];
 	r_GLSLProgram sky_shader_;
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;

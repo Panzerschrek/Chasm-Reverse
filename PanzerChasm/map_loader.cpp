@@ -216,6 +216,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadMonsters( map_file_content, *result );
 
 	// Scan resource file
+	LoadSkyTextureName( resource_file_content, *result );
 	LoadModelsDescription( resource_file_content, *result );
 	LoadWallsTexturesDescription( resource_file_content, *result );
 
@@ -379,6 +380,23 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 
 		monster.difficulty_flags= map_monsters[m].difficulty_flags;
 	}
+}
+
+void MapLoader::LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data )
+{
+	map_data.sky_texture_name[0]= '\0';
+
+	const char* s= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#sky" );
+	s+= std::strlen( "#sky" );
+
+	while( std::isspace(*s) ) s++;
+
+	// =
+	s++;
+
+	while( std::isspace(*s) )s++;
+
+	std::sscanf( s, "%s", map_data.sky_texture_name );
 }
 
 void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data )
