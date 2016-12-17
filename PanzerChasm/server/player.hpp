@@ -30,6 +30,8 @@ public:
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
 	virtual void SetOnFloor( bool on_floor ) override;
 
+	void ZeroSpeed();
+
 	void SetRandomGenerator( const LongRandPtr& random_generator );
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );

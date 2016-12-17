@@ -222,6 +222,11 @@ void Player::SetOnFloor( const bool on_floor )
 		speed_.z= 0.0f;
 }
 
+void Player::ZeroSpeed()
+{
+	speed_.x= speed_.y= speed_.z= 0.0f;
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;
