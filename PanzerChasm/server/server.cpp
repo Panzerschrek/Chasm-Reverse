@@ -105,12 +105,9 @@ void Server::Loop()
 			map_->SendUpdateMessages( messages_sender );
 
 		Messages::PlayerPosition position_msg;
-
-		for( unsigned int j= 0u; j < 3u; j++ )
-			position_msg.xyz[j]= static_cast<short>( connected_player->player->Position().ToArr()[j] * 256.0f );
-
 		Messages::PlayerState state_msg;
 		Messages::PlayerWeapon weapon_msg;
+		connected_player->player->BuildPositionMessage( position_msg );
 		connected_player->player->BuildStateMessage( state_msg );
 		connected_player->player->BuildWeaponMessage( weapon_msg );
 

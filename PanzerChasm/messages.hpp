@@ -64,6 +64,7 @@ struct PlayerPosition : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerPosition)
 
 	CoordType xyz[3];
+	CoordType speed; // Units/s
 };
 
 struct PlayerState : public MessageBase

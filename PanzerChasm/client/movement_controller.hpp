@@ -19,8 +19,11 @@ public:
 	~MovementController();
 
 	void Tick();
+	void SetSpeed( float speed );
 
 	void GetAcceleration( float& out_dir, float& out_acceleration ) const;
+
+	float GetEyeZShift() const;
 
 	void GetViewProjectionMatrix(  m_Mat4& out_mat ) const;
 	void GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) const;
@@ -64,10 +67,13 @@ private:
 	float aspect_;
 	float fov_;
 
+	float speed_;
+
 	bool forward_pressed_, backward_pressed_, left_pressed_, right_pressed_;
 	bool up_pressed_, down_pressed_;
 	bool rotate_up_pressed_, rotate_down_pressed_, rotate_left_pressed_, rotate_right_pressed_;
 
+	const Time start_tick_;
 	Time prev_calc_tick_;
 };
 

@@ -15,6 +15,8 @@ constexpr float player_radius= 70.0f / 256.0f;
 constexpr float player_interact_radius= 100.0f / 256.0f;
 constexpr float player_z_pull_distance= 1.0f / 4.0f;
 
+const float player_max_speed= 5.0f;
+
 constexpr float walls_height= 2.0f;
 
 const float animations_frames_per_second= 20.0f;

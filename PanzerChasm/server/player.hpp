@@ -37,6 +37,7 @@ public:
 
 	bool TryPickupItem( unsigned int item_id );
 
+	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
 

@@ -336,6 +336,12 @@ bool Player::TryPickupItem( const unsigned int item_id )
 	return false;
 }
 
+void Player::BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const
+{
+	PositionToMessagePosition( pos_, out_position_message.xyz );
+	out_position_message.speed= CoordToMessageCoord( speed_.xy().Length() );
+}
+
 void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 {
 	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
@@ -388,7 +394,6 @@ void Player::Move( const Time time_delta )
 	const float time_delta_s= time_delta.ToSeconds();
 
 	// TODO - calibrate this
-	const float c_max_speed= 5.0f;
 	const float c_acceleration= 40.0f;
 	const float c_deceleration= 20.0f;
 	const float c_jump_speed_delta= 3.3f;
@@ -413,9 +418,9 @@ void Player::Move( const Time time_delta )
 
 	// Clamp speed
 	const float new_speed_square_length= speed_.xy().SquareLength();
-	if( new_speed_square_length > c_max_speed * c_max_speed )
+	if( new_speed_square_length > GameConstants::player_max_speed * GameConstants::player_max_speed )
 	{
-		const float k= c_max_speed / std::sqrt( new_speed_square_length );
+		const float k= GameConstants::player_max_speed / std::sqrt( new_speed_square_length );
 		speed_.x*= k;
 		speed_.y*= k;
 	}

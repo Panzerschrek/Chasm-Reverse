@@ -1,3 +1,7 @@
+#include <algorithm>
+
+#include "game_constants.hpp"
+
 #include "movement_controller.hpp"
 
 namespace PanzerChasm
@@ -7,9 +11,11 @@ MovementController::MovementController(
 	const m_Vec3& angle,
 	float aspect, float fov )
 	: angle_(angle), aspect_(aspect), fov_(fov)
+	, speed_(0.0f)
 	, forward_pressed_(false), backward_pressed_(false), left_pressed_(false), right_pressed_(false)
 	, up_pressed_(false), down_pressed_(false)
 	, rotate_up_pressed_(false), rotate_down_pressed_(false), rotate_left_pressed_(false), rotate_right_pressed_(false)
+	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
 {}
 
@@ -39,6 +45,11 @@ void MovementController::Tick()
 	else if( angle_.x < -Constants::half_pi ) angle_.x= -Constants::half_pi;
 }
 
+void MovementController::SetSpeed( const float speed )
+{
+	speed_= speed;
+}
+
 void MovementController::GetAcceleration( float& out_dir, float& out_acceleration ) const
 {
 	m_Vec3 move_vector(0.0f,0.0f,0.0f);
@@ -65,6 +76,19 @@ void MovementController::GetAcceleration( float& out_dir, float& out_acceleratio
 		out_dir= std::atan2( move_vector.y, move_vector.x );
 		out_acceleration= 1.0f;
 	}
+}
+
+float MovementController::GetEyeZShift() const
+{
+	const float time_s= ( prev_calc_tick_ - start_tick_ ).ToSeconds();
+
+	const float c_amplitude= 0.0625f;
+	const float c_frequency= 1.75f * Constants::two_pi;
+
+	const float amplitude= c_amplitude * std::min( speed_ / GameConstants::player_max_speed, 1.0f );
+	const float phase= time_s * c_frequency;
+
+	return amplitude * std::sin( phase );
 }
 
 void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
