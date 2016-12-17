@@ -135,17 +135,18 @@ void Client::Draw()
 {
 	if( map_state_ != nullptr )
 	{
-		m_Mat4 view_matrix;
 		m_Vec3 pos= player_position_;
 		pos.z+= GameConstants::player_eyes_level;
-		camera_controller_.GetViewMatrix( pos, view_matrix );
 
-		map_drawer_.Draw( *map_state_, view_matrix, pos );
+		m_Mat4 view_rotation_and_projection_matrix, projection_matrix;
+		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
+		camera_controller_.GetViewProjectionMatrix( projection_matrix );
+
+		map_drawer_.Draw( *map_state_, view_rotation_and_projection_matrix, pos );
 		map_drawer_.DrawWeapon(
 			weapon_state_,
-			view_matrix,
-			pos,
-			m_Vec3( camera_controller_.GetViewAngleX(), 0.0f, camera_controller_.GetViewAngleZ() ) );
+			projection_matrix,
+			pos );
 
 		hud_drawer_.DrawCrosshair(2u);
 		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );

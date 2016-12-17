@@ -5,6 +5,7 @@
 
 #include "../assert.hpp"
 #include "../game_resources.hpp"
+#include "../images.hpp"
 #include "../log.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
@@ -40,6 +41,10 @@ const r_OGLState g_transparent_models_gl_state(
 
 const r_OGLState g_sprites_gl_state(
 	true, false, true, false,
+	g_gl_state_blend_func );
+
+const r_OGLState g_sky_gl_state(
+	false, false, true, false,
 	g_gl_state_blend_func );
 
 } // namespace
@@ -192,6 +197,8 @@ MapDrawer::MapDrawer(
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
+	current_sky_texture_file_name_[0]= '\0';
+
 	// Textures
 	glGenTextures( 1, &floor_textures_array_id_ );
 	glGenTextures( 1, &wall_textures_array_id_ );
@@ -203,6 +210,7 @@ MapDrawer::MapDrawer(
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
 	LoadSprites();
+	PrepareSkyGeometry();
 
 	// Items
 	LoadModels(
@@ -274,6 +282,11 @@ MapDrawer::MapDrawer(
 	monsters_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	monsters_shader_.Create();
 
+	sky_shader_.ShaderSource(
+		rLoadShader( "sky_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "sky_v.glsl", rendering_context.glsl_version ) );
+	sky_shader_.SetAttribLocation( "pos", 0u );
+	sky_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -314,17 +327,47 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 			MapData::c_lightmap_size, MapData::c_lightmap_size,
 			map_data->lightmap );
 	lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+
+	// Sky
+	if( std::strcmp( current_sky_texture_file_name_, current_map_data_->sky_texture_name ) != 0 )
+	{
+		std::strncpy( current_sky_texture_file_name_, current_map_data_->sky_texture_name, sizeof(current_sky_texture_file_name_) );
+
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( current_map_data_->sky_texture_name );
+		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
+
+		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
+		std::vector<unsigned char> sky_texture_data_rgba( sky_pixel_count * 4u );
+		ConvertToRGBA(
+			sky_pixel_count,
+			sky_texture_data.data() + sizeof(CelTextureHeader),
+			game_resources_->palette,
+			sky_texture_data_rgba.data() );
+
+		sky_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				cel_header.size[0], cel_header.size[1],
+				sky_texture_data_rgba.data() );
+
+		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	}
 }
 
 void MapDrawer::Draw(
 	const MapState& map_state,
-	const m_Mat4& view_matrix,
+	const m_Mat4& view_rotation_and_projection_matrix,
 	const m_Vec3& camera_position )
 {
 	if( current_map_data_ == nullptr )
 		return;
 
 	UpdateDynamicWalls( map_state.GetDynamicWalls() );
+
+	m_Mat4 translate;
+	translate.Translate( -camera_position );
+
+	const m_Mat4 view_matrix= translate * view_rotation_and_projection_matrix;
 
 	r_OGLStateManager::UpdateState( g_walls_gl_state );
 	DrawWalls( view_matrix );
@@ -337,6 +380,9 @@ void MapDrawer::Draw(
 	DrawItems( map_state, view_matrix, false );
 	DrawMonsters( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
+
+	r_OGLStateManager::UpdateState( g_sky_gl_state );
+	DrawSky( view_rotation_and_projection_matrix );
 
 	/*
 	TRANSPARENT SECTION
@@ -351,11 +397,11 @@ void MapDrawer::Draw(
 	DrawSprites( map_state, view_matrix, camera_position );
 }
 
+
 void MapDrawer::DrawWeapon(
 	const WeaponState& weapon_state,
-	const m_Mat4& view_matrix,
-	const m_Vec3& position,
-	const m_Vec3& angle )
+	const m_Mat4& projection_matrix,
+	const m_Vec3& camera_position )
 {
 	// TODO - maybe this points differnet for differnet weapons?
 	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
@@ -371,25 +417,18 @@ void MapDrawer::DrawWeapon(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
-	m_Mat4 shift_mat, rotate_x_mat, rotate_z_mat, rotate_mat;
-	rotate_x_mat.RotateX( angle.x );
-	rotate_z_mat.RotateZ( angle.z );
-	rotate_mat= rotate_x_mat * rotate_z_mat;
-
+	m_Mat4 shift_mat;
 	const m_Vec3 additional_shift=
-		( c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() ) ) *
-		rotate_mat;
-	shift_mat.Translate( position + additional_shift );
-
-	const m_Mat4 model_mat= rotate_mat * shift_mat;
+		c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
+	shift_mat.Translate( additional_shift );
 
 	m_Mat3 scale_in_lightmap_mat, lightmap_shift_mat, lightmap_scale_mat;
 	scale_in_lightmap_mat.Scale( 0.0f ); // Make model so small, that it will have uniform light.
-	lightmap_shift_mat.Translate( position.xy() );
+	lightmap_shift_mat.Translate( camera_position.xy() );
 	lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 	const m_Mat3 lightmap_mat= scale_in_lightmap_mat * lightmap_shift_mat * lightmap_scale_mat;
 
-	models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+	models_shader_.Uniform( "view_matrix", shift_mat * projection_matrix );
 	models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
 
 	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
@@ -464,6 +503,32 @@ void MapDrawer::LoadSprites()
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 		glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 	}
+}
+
+void MapDrawer::PrepareSkyGeometry()
+{
+	static const float c_scene_radius= 64.0f;
+	static const float c_bottom_z_level= -c_scene_radius * 0.5f;
+	static const float c_sky_vertices[]=
+	{
+		c_scene_radius,  c_scene_radius,   c_scene_radius,  -c_scene_radius,  c_scene_radius,   c_scene_radius,
+		c_scene_radius, -c_scene_radius,   c_scene_radius,  -c_scene_radius, -c_scene_radius,   c_scene_radius,
+		c_scene_radius,  c_scene_radius, c_bottom_z_level,  -c_scene_radius,  c_scene_radius, c_bottom_z_level,
+		c_scene_radius, -c_scene_radius, c_bottom_z_level,  -c_scene_radius, -c_scene_radius, c_bottom_z_level,
+	};
+	static const unsigned short c_sky_indeces[]=
+	{
+		0, 1, 5,  0, 5, 4,
+		0, 4, 6,  0, 6, 2,
+		//4, 5, 7,  4, 7, 6, // bottom
+		0, 3, 1,  0, 2, 3, // top
+		2, 7, 3,  2, 6, 7,
+		1, 3, 7,  1, 7, 5,
+	};
+
+	sky_geometry_data_.VertexData( c_sky_vertices, sizeof(c_sky_vertices), sizeof(float) * 3u );
+	sky_geometry_data_.IndexData( c_sky_indeces, sizeof(c_sky_indeces), GL_UNSIGNED_SHORT, GL_TRIANGLES );
+	sky_geometry_data_.VertexAttribPointer( 0u, 3u, GL_FLOAT, false, 0u );
 }
 
 void MapDrawer::LoadFloorsTextures( const MapData& map_data )
@@ -594,7 +659,8 @@ void MapDrawer::LoadFloors( const MapData& map_data )
 		{
 			const unsigned char texture_number= in_data[ x + y * MapData::c_map_size ];
 
-			if( texture_number == MapData::c_empty_floor_texture_id )
+			if( texture_number == MapData::c_empty_floor_texture_id ||
+				texture_number == MapData::c_sky_floor_texture_id )
 				continue;
 
 			floors_vertices.resize( floors_vertices.size() + 6u );
@@ -1350,6 +1416,18 @@ void MapDrawer::DrawSprites(
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
+}
+
+void MapDrawer::DrawSky( const m_Mat4& view_rotation_matrix )
+{
+	sky_shader_.Bind();
+
+	sky_texture_.Bind(0);
+
+	sky_shader_.Uniform( "tex", int(0) );
+	sky_shader_.Uniform( "view_matrix", view_rotation_matrix );
+
+	sky_geometry_data_.Draw();
 }
 
 } // PanzerChasm

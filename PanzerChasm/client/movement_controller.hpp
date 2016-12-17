@@ -22,6 +22,8 @@ public:
 
 	void GetAcceleration( float& out_dir, float& out_acceleration ) const;
 
+	void GetViewProjectionMatrix(  m_Mat4& out_mat ) const;
+	void GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) const;
 	void GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) const;
 
 	m_Vec3 GetCamDir() const;

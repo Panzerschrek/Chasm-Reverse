@@ -234,6 +234,8 @@ public:
 	std::vector<Procedure> procedures;
 	std::vector<Link> links;
 
+	char sky_texture_name[ c_max_file_path_size ];
+
 	// All map tables cells are accesible via table[ x + y * size ].
 
 	// [x; y] to element index in container (walls, items, etc.)
@@ -266,6 +268,7 @@ private:
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
+	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 

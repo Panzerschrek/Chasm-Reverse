@@ -26,14 +26,13 @@ public:
 
 	void Draw(
 		const MapState& map_state,
-		const m_Mat4& view_matrix,
+		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position );
 
 	void DrawWeapon(
 		const WeaponState& weapon_state,
-		const m_Mat4& view_matrix,
-		const m_Vec3& position,
-		const m_Vec3& angle);
+		const m_Mat4& projection_matrix,
+		const m_Vec3& camera_position );
 
 private:
 	struct FloorGeometryInfo
@@ -61,6 +60,7 @@ private:
 
 private:
 	void LoadSprites();
+	void PrepareSkyGeometry();
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
@@ -111,6 +111,8 @@ private:
 		const m_Mat4& view_matrix,
 		const m_Vec3& camera_position );
 
+	void DrawSky( const m_Mat4& view_rotation_and_projection_matrix );
+
 private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContext rendering_context_;
@@ -159,6 +161,11 @@ private:
 	r_GLSLProgram monsters_shader_;
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
+
+	char current_sky_texture_file_name_[32];
+	r_GLSLProgram sky_shader_;
+	r_Texture sky_texture_;
+	r_PolygonBuffer sky_geometry_data_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;
