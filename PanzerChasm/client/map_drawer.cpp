@@ -333,7 +333,10 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	{
 		std::strncpy( current_sky_texture_file_name_, current_map_data_->sky_texture_name, sizeof(current_sky_texture_file_name_) );
 
-		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( current_map_data_->sky_texture_name );
+		char sky_texture_file_path[ MapData::c_max_file_path_size ];
+		std::snprintf( sky_texture_file_path, sizeof(sky_texture_file_path), "COMMON/%s", current_map_data_->sky_texture_name );
+
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( sky_texture_file_path );
 		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
 
 		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
