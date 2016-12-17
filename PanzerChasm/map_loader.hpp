@@ -220,6 +220,13 @@ public:
 		unsigned char x, y;
 	};
 
+	struct Teleport
+	{
+		unsigned short from[2];
+		unsigned short to[2];
+		float angle;
+	};
+
 public:
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
@@ -233,6 +240,7 @@ public:
 	std::vector<Message> messages;
 	std::vector<Procedure> procedures;
 	std::vector<Link> links;
+	std::vector<Teleport> teleports;
 
 	char sky_texture_name[ c_max_file_path_size ];
 
@@ -279,6 +287,7 @@ private:
 	void LoadMessage( unsigned int message_number, std::istringstream& stream, MapData& map_data );
 	void LoadProcedure( unsigned int procedure_number, std::istringstream& stream, MapData& map_data );
 	void LoadLinks( std::istringstream& stream, MapData& map_data );
+	void LoadTeleports( std::istringstream& stream, MapData& map_data );
 
 	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
 
