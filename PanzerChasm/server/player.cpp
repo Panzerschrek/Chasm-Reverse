@@ -17,6 +17,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
+	, teleported_(true)
 	, health_(100)
 	, armor_(0)
 	, last_shoot_time_( current_time )
@@ -44,6 +45,8 @@ void Player::Tick(
 	const Time current_time,
 	const Time last_tick_delta )
 {
+	teleported_= false;
+
 	Move( last_tick_delta );
 
 	if( mevement_acceleration_ > 0.0f )
@@ -222,6 +225,14 @@ void Player::SetOnFloor( const bool on_floor )
 		speed_.z= 0.0f;
 }
 
+void Player::Teleport( const m_Vec3& pos, const float angle )
+{
+	teleported_= true;
+	pos_= pos;
+	angle_= angle - Constants::half_pi;
+	speed_.x= speed_.y= speed_.z= 0.0f;
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;
@@ -368,6 +379,17 @@ void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) co
 	out_weapon_message.animation_frame= current_weapon_animation_frame_;
 
 	out_weapon_message.switch_stage= static_cast<unsigned int>( weapon_switch_stage_ * 254.9f );
+}
+
+bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const
+{
+	if( !teleported_ )
+		return false;
+
+	PositionToMessagePosition( pos_, out_spawn_message.xyz );
+	out_spawn_message.direction= AngleToMessageAngle( angle_ );
+
+	return true;
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )

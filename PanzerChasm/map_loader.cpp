@@ -570,12 +570,12 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 		}
 		else if( StringEquals( thing_type, "#links" ) )
 			LoadLinks( stream, map_data );
+		else if( StringEquals( thing_type, "#teleports" ) )
+			LoadTeleports( stream, map_data );
 		else if( StringEquals( thing_type, "#stopani" ) )
 		{ /* TODO */ }
 
 	} // for file
-
-	return;
 }
 
 void MapLoader::LoadMessage(
@@ -762,6 +762,41 @@ void MapLoader::LoadLinks( std::istringstream& stream, MapData& map_data )
 		link.y= y;
 		link.proc_id= proc_id;
 		link.type= LinkTypeFromString( link_type );
+	}
+}
+
+void MapLoader::LoadTeleports( std::istringstream& stream, MapData& map_data )
+{
+	while( !stream.eof() )
+	{
+		char line[ 512 ];
+		stream.getline( line, sizeof(line), '\n' );
+
+		if( stream.eof() )
+			break;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		char str[512]; // must be "tcenter"
+		line_stream >> str;
+		if( line_stream.fail() )
+			continue;
+		if( str[0] == ';' )
+			continue;
+		if( StringEquals( str, "#end" ) )
+			break;
+
+		map_data.teleports.emplace_back();
+		MapData::Teleport& teleport= map_data.teleports.back();
+
+		line_stream >> teleport.from[0];
+		line_stream >> teleport.from[1];
+		line_stream >> teleport.to[0];
+		line_stream >> teleport.to[1];
+
+		unsigned int angle;
+		line_stream >> angle;
+		teleport.angle= -float(angle) / 4.0f * Constants::two_pi - Constants::half_pi;
 	}
 }
 

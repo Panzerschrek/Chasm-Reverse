@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <matrix.hpp>
 
 #include "../game_constants.hpp"
@@ -72,6 +74,8 @@ Map::Map(
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
+
+	std::memset( wind_field_, 0, sizeof(wind_field_) );
 
 	procedures_.resize( map_data_->procedures.size() );
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -181,10 +185,11 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 
 	if( spawn_with_min_number != nullptr )
 	{
-		player->SetPosition(
+		player->Teleport(
 			m_Vec3(
 				spawn_with_min_number->pos,
-				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ) );
+				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ),
+			spawn_with_min_number->angle );
 	}
 	else
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
@@ -585,6 +590,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		case ProcedureState::MovementState::Movement:
 			if( new_stage >= 1.0f )
 			{
+				// TODO - do it at the end if movement?
+				// Maybe, do this at end of reverse-movement?
+				DoProcedureDeactivationCommands( procedure );
+
 				procedure_state.movement_state= ProcedureState::MovementState::BackWait;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -1019,6 +1028,55 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
 		monster_value.second->Tick( *this, monster_value.first, current_time, last_tick_delta );
+
+		// Process teleports for monster
+		MonsterBase& monster= *monster_value.second;
+		const bool is_player= monster.MonsterId() == 0u;;
+
+		const float monster_radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+		const float teleport_radius= monster_radius + 0.1f;
+
+		for( const MapData::Teleport& teleport : map_data_->teleports )
+		{
+			const m_Vec2 tele_pos( float(teleport.from[0]) + 0.5f, float(teleport.from[1]) + 0.5f );
+
+			if( ( tele_pos - monster.Position().xy() ).SquareLength() >= teleport_radius * teleport_radius )
+				continue;
+
+			m_Vec2 dst;
+			for( unsigned int j= 0u; j < 2u; j++ )
+			{
+				if( teleport.to[j] >= MapData::c_map_size )
+					dst.ToArr()[j]= float( teleport.to[j] ) / 256.0f;
+				else
+					dst.ToArr()[j]= float( teleport.to[j] );
+			}
+			monster.Teleport(
+				m_Vec3(
+					dst,
+					GetFloorLevel( dst, GameConstants::player_radius ) ),
+				teleport.angle );
+			break;
+		}
+
+		// Process wind for monster
+		// TODO - select more correct way to do this.
+		// Calculate intersection between monster circle and wind field cells.
+		const int monster_x= static_cast<int>( monster.Position().x );
+		const int monster_y= static_cast<int>( monster.Position().y );
+		if( monster_x >= 0 && monster_x < int(MapData::c_map_size) &&
+			monster_y >= 0 && monster_y < int(MapData::c_map_size) )
+		{
+			const char* const wind_cell= wind_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
+			if( wind_cell[0] == 0 && wind_cell[1] == 0 )
+				continue;
+
+			const float time_delta_s= last_tick_delta.ToSeconds();
+			const float c_wind_power_scale= 0.5f;
+			const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * m_Vec2( float(wind_cell[0]), float(wind_cell[1]) );
+
+			monster.SetPosition( monster.Position() + m_Vec3( pos_delta, 0.0f ) );
+		}
 	}
 
 	// Collide monsters with map
@@ -1414,9 +1472,55 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
 				}
 			}
 		}
+		else if( command.id == Command::Wind )
+		{
+			ProcessWind( command, true );
+		}
 		// TODO - process other commands
 		else
 		{}
+	}
+}
+
+void Map::DoProcedureDeactivationCommands( const MapData::Procedure& procedure )
+{
+	using Command= MapData::Procedure::ActionCommandId;
+
+	// Check nonstop.
+	// TODO - set nonstop as procedure flag, not as action command.
+	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		if( command.id == Command::Nonstop )
+			return;
+
+	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+	{
+		if( command.id == Command::Wind )
+			ProcessWind( command, false );
+	}
+}
+
+void Map::ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate )
+{
+	PC_ASSERT( command.id == MapData::Procedure::ActionCommandId::Wind );
+
+	const unsigned int x0= static_cast<unsigned int>( command.args[0] );
+	const unsigned int y0= static_cast<unsigned int>( command.args[1] );
+	const unsigned int x1= static_cast<unsigned int>( command.args[2] );
+	const unsigned int y1= static_cast<unsigned int>( command.args[3] );
+	const int dir_x= static_cast<int>( command.args[4] );
+	const int dir_y= static_cast<int>( command.args[5] );
+
+	for( unsigned int y= y0; y <= y1 && y < MapData::c_map_size; y++ )
+	for( unsigned int x= x0; x <= x1 && x < MapData::c_map_size; x++ )
+	{
+		char* const cell= wind_field_[ x + y * MapData::c_map_size ];
+		if( activate )
+		{
+			cell[0]= dir_x;
+			cell[1]= dir_y;
+		}
+		else
+			cell[0]= cell[1]= 0;
 	}
 }
 

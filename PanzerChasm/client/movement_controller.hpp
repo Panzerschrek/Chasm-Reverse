@@ -20,6 +20,7 @@ public:
 
 	void Tick();
 	void SetSpeed( float speed );
+	void SetAngles( float z_angle, float x_angle );
 
 	void GetAcceleration( float& out_dir, float& out_acceleration ) const;
 

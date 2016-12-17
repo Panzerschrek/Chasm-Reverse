@@ -29,6 +29,7 @@ public:
 
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
 	virtual void SetOnFloor( bool on_floor ) override;
+	virtual void Teleport( const m_Vec3& pos, float angle ) override;
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );
 
@@ -40,6 +41,7 @@ public:
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
+	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const; // returns tru, if newly-spawned
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 	void Move( Time time_delta );
@@ -79,6 +81,7 @@ private:
 	m_Vec3 speed_;
 	bool on_floor_;
 	bool noclip_;
+	bool teleported_;
 
 	unsigned char ammo_[ GameConstants::weapon_count ];
 	bool have_weapon_[ GameConstants::weapon_count ];

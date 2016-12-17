@@ -174,6 +174,9 @@ private:
 	void ProcedureProcessShoot( unsigned int procedure_number, Time current_time );
 	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time );
 	void DoProcedureImmediateCommands( const MapData::Procedure& procedure );
+	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
+
+	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
 
 	template<class Func>
 	void ProcessElementLinks(
@@ -224,6 +227,8 @@ private:
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
+
+	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 };
 
 } // PanzerChasm
