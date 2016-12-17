@@ -11,7 +11,7 @@ constexpr unsigned int weapon_count= 8u;
 
 constexpr float player_eyes_level= 0.75f; // From ground
 constexpr float player_height= 0.9f;
-constexpr float player_radius= 70.0f / 256.0f;
+constexpr float player_radius= 60.0f / 256.0f;
 constexpr float player_interact_radius= 100.0f / 256.0f;
 constexpr float player_z_pull_distance= 1.0f / 4.0f;
 
