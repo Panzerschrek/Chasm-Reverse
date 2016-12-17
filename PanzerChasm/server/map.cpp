@@ -378,29 +378,6 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
-	// Process teleports
-	for( const MapData::Teleport& teleport : map_data_->teleports )
-	{
-		if( !( teleport.from[0] == player_x && teleport.from[1] == player_y ) )
-			continue;
-
-		m_Vec2 dst;
-		for( unsigned int j= 0u; j < 2u; j++ )
-		{
-			if( teleport.to[j] >= MapData::c_map_size )
-				dst.ToArr()[j]= float( teleport.to[j] ) / 256.0f;
-			else
-				dst.ToArr()[j]= float( teleport.to[j] );
-		}
-		player.SetPosition(
-			m_Vec3(
-				dst,
-				GetFloorLevel( dst, GameConstants::player_radius ) ) );
-
-		player.ZeroSpeed();
-		break;
-	}
-
 	const m_Vec2 pos= player.Position().xy();
 	const float z_bottom= player.Position().z;
 	const float z_top= player.Position().z + GameConstants::player_height;
@@ -1042,6 +1019,38 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
 		monster_value.second->Tick( *this, monster_value.first, current_time, last_tick_delta );
+
+		// Process teleports for monster
+		MonsterBase& monster= *monster_value.second;
+		const bool is_player= monster.MonsterId() == 0u;;
+
+		const float monster_radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+		const float teleport_radius= monster_radius + 0.1f;
+
+		for( const MapData::Teleport& teleport : map_data_->teleports )
+		{
+			const m_Vec2 tele_pos( float(teleport.from[0]) + 0.5f, float(teleport.from[1]) + 0.5f );
+
+			if( ( tele_pos - monster.Position().xy() ).SquareLength() >= teleport_radius * teleport_radius )
+				continue;
+
+			m_Vec2 dst;
+			for( unsigned int j= 0u; j < 2u; j++ )
+			{
+				if( teleport.to[j] >= MapData::c_map_size )
+					dst.ToArr()[j]= float( teleport.to[j] ) / 256.0f;
+				else
+					dst.ToArr()[j]= float( teleport.to[j] );
+			}
+			monster.SetPosition(
+				m_Vec3(
+					dst,
+					GetFloorLevel( dst, GameConstants::player_radius ) ) );
+
+			if( monster.MonsterId() == 0u )
+				static_cast<Player&>(monster).ZeroSpeed();
+			break;
+		}
 	}
 
 	// Collide monsters with map
