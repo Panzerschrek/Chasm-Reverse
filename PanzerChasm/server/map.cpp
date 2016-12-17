@@ -376,6 +376,23 @@ void Map::ProcessPlayerPosition(
 			if( link.type == MapData::Link::Floor && link.x == x && link.y == y )
 				TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
 		}
+
+		for( const MapData::Teleport& teleport : map_data_->teleports )
+		{
+			if( !( teleport.from[0] == x && teleport.from[1] == y ) )
+				continue;
+
+			float dst[2];
+			for( unsigned int j= 0u; j < 2u; j++ )
+			{
+				if( teleport.to[j] >= MapData::c_map_size )
+					dst[j]= float( teleport.to[j] ) / 256.0f;
+				else
+					dst[j]= float( teleport.to[j] );
+			}
+			player.SetPosition( m_Vec3( dst[0], dst[1], player.Position().z ) );
+			break;
+		}
 	}
 
 	const m_Vec2 pos= player.Position().xy();
