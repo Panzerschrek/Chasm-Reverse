@@ -39,8 +39,8 @@ void MovementController::Tick()
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
-	if( angle_.y > Constants::two_pi ) angle_.y-= Constants::two_pi;
-	else if( angle_.y < 0.0f ) angle_.y+= Constants::two_pi;
+	if( angle_.z > Constants::two_pi ) angle_.z-= Constants::two_pi;
+	else if( angle_.z < 0.0f ) angle_.z+= Constants::two_pi;
 	if( angle_.x > Constants::half_pi ) angle_.x= Constants::half_pi;
 	else if( angle_.x < -Constants::half_pi ) angle_.x= -Constants::half_pi;
 }
@@ -48,6 +48,12 @@ void MovementController::Tick()
 void MovementController::SetSpeed( const float speed )
 {
 	speed_= speed;
+}
+
+void MovementController::SetAngles( float z_angle, float x_angle )
+{
+	angle_.z= z_angle;
+	angle_.x= x_angle;
 }
 
 void MovementController::GetAcceleration( float& out_dir, float& out_acceleration ) const

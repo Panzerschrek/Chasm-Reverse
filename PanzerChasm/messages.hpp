@@ -59,6 +59,14 @@ struct WallPosition : public MessageBase
 	unsigned char texture_id;
 };
 
+struct PlayerSpawn : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerSpawn)
+
+	CoordType xyz[3];
+	AngleType direction;
+};
+
 struct PlayerPosition : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerPosition)

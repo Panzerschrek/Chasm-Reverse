@@ -185,10 +185,11 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 
 	if( spawn_with_min_number != nullptr )
 	{
-		player->SetPosition(
+		player->Teleport(
 			m_Vec3(
 				spawn_with_min_number->pos,
-				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ) );
+				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ),
+			spawn_with_min_number->angle );
 	}
 	else
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
@@ -1050,13 +1051,11 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				else
 					dst.ToArr()[j]= float( teleport.to[j] );
 			}
-			monster.SetPosition(
+			monster.Teleport(
 				m_Vec3(
 					dst,
-					GetFloorLevel( dst, GameConstants::player_radius ) ) );
-
-			if( monster.MonsterId() == 0u )
-				static_cast<Player&>(monster).ZeroSpeed();
+					GetFloorLevel( dst, GameConstants::player_radius ) ),
+				teleport.angle );
 			break;
 		}
 

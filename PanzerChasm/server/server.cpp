@@ -107,9 +107,13 @@ void Server::Loop()
 		Messages::PlayerPosition position_msg;
 		Messages::PlayerState state_msg;
 		Messages::PlayerWeapon weapon_msg;
+		Messages::PlayerSpawn spawn_msg;
 		connected_player->player->BuildPositionMessage( position_msg );
 		connected_player->player->BuildStateMessage( state_msg );
 		connected_player->player->BuildWeaponMessage( weapon_msg );
+
+		if( connected_player->player->BuildSpawnMessage( spawn_msg ) )
+			messages_sender.SendUnreliableMessage( spawn_msg );
 
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
@@ -169,6 +173,11 @@ void Server::ChangeMap( const unsigned int map_number )
 
 		messages_sender.SendReliableMessage( message );
 		map_->SendMessagesForNewlyConnectedPlayer( messages_sender );
+
+		Messages::PlayerSpawn spawn_message;
+		connected_player->player->BuildSpawnMessage( spawn_message );
+		messages_sender.SendReliableMessage( spawn_message );
+
 		messages_sender.Flush();
 	}
 }

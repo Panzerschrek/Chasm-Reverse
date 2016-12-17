@@ -796,7 +796,7 @@ void MapLoader::LoadTeleports( std::istringstream& stream, MapData& map_data )
 
 		unsigned int angle;
 		line_stream >> angle;
-		teleport.angle= float(angle) / 4.0f * Constants::two_pi;
+		teleport.angle= -float(angle) / 4.0f * Constants::two_pi - Constants::half_pi;
 	}
 }
 

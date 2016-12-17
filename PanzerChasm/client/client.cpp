@@ -175,6 +175,12 @@ void Client::operator()( const Messages::MonsterState& message )
 		map_state_->ProcessMessage( message );
 }
 
+void Client::operator()( const Messages::PlayerSpawn& message )
+{
+	MessagePositionToPosition( message.xyz, player_position_ );
+	camera_controller_.SetAngles( MessageAngleToAngle( message.direction ), 0.0f );
+}
+
 void Client::operator()( const Messages::WallPosition& message )
 {
 	if( map_state_ != nullptr )

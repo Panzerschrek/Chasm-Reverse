@@ -34,6 +34,7 @@ public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::MonsterState& message );
 	void operator()( const Messages::WallPosition& message );
+	void operator()( const Messages::PlayerSpawn& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::PlayerState& message );
 	void operator()( const Messages::PlayerWeapon& message );
