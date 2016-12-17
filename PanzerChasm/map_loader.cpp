@@ -250,7 +250,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 	const unsigned int c_walls_offset= 0x18001u;
 
 	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
-	for( unsigned int x= 1u; x < MapData::c_map_size; x++ )
+	for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
 	{
 		const bool is_dynamic= dynamic_walls_mask[ x + y * MapData::c_map_size ];
 		MapData::IndexElement& index_element= map_data.map_index[ x + y * MapData::c_map_size ];
