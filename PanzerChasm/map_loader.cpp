@@ -805,13 +805,9 @@ void MapLoader::LoadModels( MapData& map_data )
 	{
 		const MapData::ModelDescription& model_description= map_data.models_description[m];
 
-		char model_file_name[ MapData::c_max_file_path_size ];
-		char animation_file_name[ MapData::c_max_file_path_size ];
-
-		std::snprintf( model_file_name, sizeof(model_file_name), "%s%s", models_path_, model_description.file_name );
-		std::snprintf( animation_file_name, sizeof(animation_file_name), "%s%s", animations_path_, model_description.animation_file_name );
-
-		vfs_->ReadFile( model_file_name, file_content );
+		char model_file_path[ MapData::c_max_file_path_size ];
+		std::snprintf( model_file_path, sizeof(model_file_path), "%s%s", models_path_, model_description.file_name );
+		vfs_->ReadFile( model_file_path, file_content );
 
 		if( model_description.animation_file_name[0u] != '\0' )
 		{
@@ -820,7 +816,9 @@ void MapLoader::LoadModels( MapData& map_data )
 			if( file_name[0] == '%' )
 				file_name++;
 
-			vfs_->ReadFile( file_name, animation_file_content );
+			char animation_file_path[ MapData::c_max_file_path_size ];
+			std::snprintf( animation_file_path, sizeof(animation_file_path), "%s%s", animations_path_, file_name );
+			vfs_->ReadFile( animation_file_path, animation_file_content );
 		}
 		else
 			animation_file_content.clear();
