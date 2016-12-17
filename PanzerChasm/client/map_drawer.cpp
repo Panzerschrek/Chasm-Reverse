@@ -507,26 +507,27 @@ void MapDrawer::LoadSprites()
 
 void MapDrawer::PrepareSkyGeometry()
 {
-	const float c_scene_radius= 64.0f;
+	static const float c_scene_radius= 64.0f;
+	static const float c_bottom_z_level= -c_scene_radius * 0.5f;
 	static const float c_sky_vertices[]=
 	{
-		c_scene_radius,  c_scene_radius,  c_scene_radius,  -c_scene_radius,  c_scene_radius,  c_scene_radius,
-		c_scene_radius, -c_scene_radius,  c_scene_radius,  -c_scene_radius, -c_scene_radius,  c_scene_radius,
-		c_scene_radius,  c_scene_radius, -c_scene_radius,  -c_scene_radius,  c_scene_radius, -c_scene_radius,
-		c_scene_radius, -c_scene_radius, -c_scene_radius,  -c_scene_radius, -c_scene_radius, -c_scene_radius,
+		c_scene_radius,  c_scene_radius,   c_scene_radius,  -c_scene_radius,  c_scene_radius,   c_scene_radius,
+		c_scene_radius, -c_scene_radius,   c_scene_radius,  -c_scene_radius, -c_scene_radius,   c_scene_radius,
+		c_scene_radius,  c_scene_radius, c_bottom_z_level,  -c_scene_radius,  c_scene_radius, c_bottom_z_level,
+		c_scene_radius, -c_scene_radius, c_bottom_z_level,  -c_scene_radius, -c_scene_radius, c_bottom_z_level,
 	};
 	static const unsigned short c_sky_indeces[]=
 	{
 		0, 1, 5,  0, 5, 4,
 		0, 4, 6,  0, 6, 2,
-		4, 5, 7,  4, 7, 6, // bottom
+		//4, 5, 7,  4, 7, 6, // bottom
 		0, 3, 1,  0, 2, 3, // top
 		2, 7, 3,  2, 6, 7,
 		1, 3, 7,  1, 7, 5,
 	};
 
-	sky_geometry_data_.VertexData( c_sky_vertices, sizeof(float) * 8u * 3u, sizeof(float) * 3u );
-	sky_geometry_data_.IndexData( c_sky_indeces, sizeof(unsigned short) * 36u, GL_UNSIGNED_SHORT, GL_TRIANGLES );
+	sky_geometry_data_.VertexData( c_sky_vertices, sizeof(c_sky_vertices), sizeof(float) * 3u );
+	sky_geometry_data_.IndexData( c_sky_indeces, sizeof(c_sky_indeces), GL_UNSIGNED_SHORT, GL_TRIANGLES );
 	sky_geometry_data_.VertexAttribPointer( 0u, 3u, GL_FLOAT, false, 0u );
 }
 
