@@ -47,6 +47,7 @@ SOURCES+= \
 	server/player.cpp \
 	server/rand.cpp \
 	server/server.cpp \
+	sound/driver.cpp \
 	system_window.cpp \
 	time.cpp \
 	text_draw.cpp \
@@ -97,6 +98,8 @@ HEADERS+= \
 	server/rand.hpp \
 	server/server.hpp \
 	size.hpp \
+	sound/channel.hpp \
+	sound/driver.hpp \
 	system_event.hpp \
 	system_window.hpp \
 	text_draw.hpp \
