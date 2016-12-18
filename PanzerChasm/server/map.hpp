@@ -177,6 +177,7 @@ private:
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
+	void DestroyModel( unsigned int model_index );
 
 	template<class Func>
 	void ProcessElementLinks(

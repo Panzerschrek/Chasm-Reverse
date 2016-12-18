@@ -986,13 +986,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				model.health-= int(rocket_description.power);
 				if( model.health <= 0 )
 				{
-					EmitModelDestructionEffects( hit_result.object_index );
-
-					model.model_id++; // now, this model has other model type
-					if( model.model_id < map_data_->models_description.size() )
-						model.health= map_data_->models_description[ model.model_id ].break_limit;
-					else
-						model.health= 0;
+					DestroyModel( hit_result.object_index );
 
 					ProcessElementLinks(
 						MapData::IndexElement::StaticModel,
@@ -1509,6 +1503,18 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
 		{
 			ProcessWind( command, true );
 		}
+		else if( command.id == Command::Explode )
+		{
+			const unsigned int x= static_cast<unsigned int>( command.args[0] );
+			const unsigned int y= static_cast<unsigned int>( command.args[1] );
+
+			if( x < MapData::c_map_size && y < MapData::c_map_size )
+			{
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+				if( index_element.type == MapData::IndexElement::StaticModel )
+					DestroyModel( index_element.index );
+			}
+		}
 		// TODO - process other commands
 		else
 		{}
@@ -1555,6 +1561,20 @@ void Map::ProcessWind( const MapData::Procedure::ActionCommand& command, bool ac
 		else
 			cell[0]= cell[1]= 0;
 	}
+}
+
+void Map::DestroyModel( const unsigned int model_index )
+{
+	PC_ASSERT( model_index < static_models_.size() );
+	StaticModel& model= static_models_[ model_index ];
+
+	EmitModelDestructionEffects( model_index );
+
+	model.model_id++; // now, this model has other model type
+	if( model.model_id < map_data_->models_description.size() )
+		model.health= map_data_->models_description[ model.model_id ].break_limit;
+	else
+		model.health= 0;
 }
 
 Map::HitResult Map::ProcessShot(
