@@ -939,7 +939,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				goto end_loop;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-			if( model_description.break_limit <= 0 )
+			if( model_description.blow_effect == 0 )
 			{
 				// Not breakable - process shot.
 				ProcessElementLinks(
@@ -1721,7 +1721,7 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 	const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
 	const Model& model_data= map_data_->models[ model.model_id ];
 
-	const unsigned int blow_effect_id= description.blw % 100u;
+	const unsigned int blow_effect_id= description.blow_effect % 100u;
 
 	m_Vec3 pos= model.pos;
 	// TODO - tune this formula. It can be invalid.

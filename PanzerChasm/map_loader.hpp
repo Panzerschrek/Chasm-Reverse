@@ -103,7 +103,7 @@ public:
 		 11 - explosion
 		 12 - jumping smoke
 		*/
-		int blw;
+		int blow_effect;
 
 		// "Break limit", maybe. Zero for non-breakable objects.
 		// When object breaks, it changes model to next in list.
