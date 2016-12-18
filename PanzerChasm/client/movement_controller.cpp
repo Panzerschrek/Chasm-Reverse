@@ -99,6 +99,9 @@ float MovementController::GetEyeZShift() const
 
 void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 {
+	const float c_z_near= 1.0f / 16.0f;
+	const float c_z_far= 128.0f;
+
 	m_Mat4 perspective, basis_change;
 
 	basis_change.Identity();
@@ -107,7 +110,7 @@ void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 	basis_change[9]= 1.0f;
 	basis_change[10]= 0.0f;
 
-	perspective.PerspectiveProjection( aspect_, fov_, 0.125f, 128.0f );
+	perspective.PerspectiveProjection( aspect_, fov_, c_z_near, c_z_far );
 
 	out_mat= basis_change * perspective;
 }

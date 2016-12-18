@@ -331,6 +331,8 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 		out_on_floor= true;
 		new_z= 0.0f;
 	}
+	else if( new_z + height > GameConstants::walls_height )
+		new_z= GameConstants::walls_height - height;
 
 	return m_Vec3( pos, new_z );
 }

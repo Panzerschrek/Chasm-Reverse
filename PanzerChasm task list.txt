@@ -24,7 +24,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [GRAFIKA]
-* Opuskanije kamery jesli ona nahoditsä vyše urovnä potolka.
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
 * Pokazyvanije kartinki "Loading" pri zagruzke urovnej.
 * Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
