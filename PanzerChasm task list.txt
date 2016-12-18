@@ -1,0 +1,58 @@
+Spisok zadacj, kotoryje možno i nužno delatj.
+Zadaci, kotoryje vypolneny, nužno otsüda ubiratj.
+Zadaci, v çelom, raspoloženy v porädke prioriteta.
+
+
+[IGROVAJA LOGIKA]
+* Obrabotka "link" tipa "return".
+* Sozdanije zon smerti po komande "death" proçedury.
+* Sozdanije zon träski po komande "quake" proçedury.
+* Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
+  Vyjasnenije znacenija parametra "bobj".
+* Obrabotka komand tipa "xmove" i "ymove" otdeljno ot "move".
+* Ostanovka dvižuscihsä objektov pri popadanii v ih zonu dejstvija monstrov
+  ( svojsta "checkgo" i "checkback" proçedur ).
+* Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
+  ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
+* Optimizaçija rascötov stolknovenij monstrov s urovnem i polötov raket.
+* Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
+* Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
+* Issledovanije raboty nevidimosti i jejo realizaçija.
+* Issledovanije raboty scita i jego realizaçija.
+* Smertj igroka.
+* Urovni složnosti.
+* Sohranenije i zagruzka igry.
+
+
+[GRAFIKA]
+* Opuskanije kamery jesli ona nahoditsä vyše urovnä potolka.
+* Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
+* Pokazyvanije kartinki "Loading" pri zagruzke urovnej.
+* Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
+* Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
+* Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
+
+
+[ZVUK]
+* Obscaja realizaçija zvukovoj podsistemy.
+* Zvuki, priväzannyje k igroku.
+* Zvuki monstrov.
+* Zvuki sobytij v prostranstve.
+* Fonovyje zvuki objektov.
+* Fonovyje zvuki urovnä.
+* Zvuki menü.
+
+
+[OBSCEJE]
+* Sistema nastrojek.
+* Zapusk dopolnenij.
+* Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
+* Avtodopolnenije v konsoli.
+
+
+[SETJ]
+* Issledovanije raboty setevoj igry originala.
+* Realizaçja interfejsov "IConnection" i procih dlä raboty po realjnoj seti.
+* Realizaçija setevogo vzaimodejstvija pod "Windows".
+* Dorabotki igrovoj logiki dlä setevyh režimov.
+* Realizaçija setevogo vzaimodejstvija pod "GNU/Linux" i "OS X".
