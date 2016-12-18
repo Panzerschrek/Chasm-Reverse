@@ -647,8 +647,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			switch( command.id )
 			{
 			case Action::Move:
-
-			case Action::XMove: // Xmove and YMove commands looks just like move command alias.
+			case Action::XMove:
 			case Action::YMove:
 			{
 				const unsigned char x= static_cast<unsigned char>(command.args[0]);
@@ -668,11 +667,40 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
 					DynamicWall& wall= dynamic_walls_[ index_element.index ];
 
+					// TODO - maybe fractions depends on way length?
+					//const float total_way_length= std::abs(dx) + std::abs(dy);
+					const float x_fraction= 0.5f;//std::abs(dx) / total_way_length;
+					const float y_fraction= 0.5f;//std::abs(dy) / total_way_length;
+
 					for( unsigned int v= 0u; v < 2u; v++ )
 					{
 						wall.vert_pos[v]= map_wall.vert_pos[v];
-						wall.vert_pos[v].x+= dx * absolute_action_stage;
-						wall.vert_pos[v].y+= dy * absolute_action_stage;
+
+						if( command.id == Action::XMove )
+						{
+							if( absolute_action_stage <= x_fraction )
+								wall.vert_pos[v].x+= dx * absolute_action_stage / x_fraction;
+							else
+							{
+								wall.vert_pos[v].x+= dx;
+								wall.vert_pos[v].y+= dy * ( absolute_action_stage - x_fraction ) / y_fraction;
+							}
+						}
+						else if( command.id == Action::YMove )
+						{
+							if( absolute_action_stage <= y_fraction )
+								wall.vert_pos[v].y+= dy * absolute_action_stage / y_fraction;
+							else
+							{
+								wall.vert_pos[v].x+= dx * ( absolute_action_stage - y_fraction ) / x_fraction;
+								wall.vert_pos[v].y+= dy;
+							}
+						}
+						else//if( command.id == Action::Move )
+						{
+							wall.vert_pos[v].x+= dx * absolute_action_stage;
+							wall.vert_pos[v].y+= dy * absolute_action_stage;
+						}
 					}
 					wall.z= 0.0f;
 				}

@@ -9,7 +9,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj".
-* Obrabotka komand tipa "xmove" i "ymove" otdeljno ot "move".
 * Ostanovka dvižuscihsä objektov pri popadanii v ih zonu dejstvija monstrov
   ( svojsta "checkgo" i "checkback" proçedur ).
 * Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
