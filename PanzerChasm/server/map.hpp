@@ -179,6 +179,8 @@ private:
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
 
+	void MoveMapObjects( bool active );
+
 	template<class Func>
 	void ProcessElementLinks(
 		MapData::IndexElement::Type element_type,

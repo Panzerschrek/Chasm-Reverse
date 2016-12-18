@@ -630,181 +630,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				procedure_state.movement_stage= new_stage;
 			break;
 		}; // switch state
-
-		// Select positions, using movement state.
-
-		float absolute_action_stage;
-		if( procedure_state.movement_state == ProcedureState::MovementState::Movement )
-			absolute_action_stage= procedure_state.movement_stage;
-		else if( procedure_state.movement_state == ProcedureState::MovementState::BackWait )
-			absolute_action_stage= 1.0f;
-		else if( procedure_state.movement_state == ProcedureState::MovementState::ReverseMovement )
-			absolute_action_stage= 1.0f - procedure_state.movement_stage;
-		else
-			absolute_action_stage= 0.0f;
-
-		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
-		{
-			using Action= MapData::Procedure::ActionCommandId;
-			switch( command.id )
-			{
-			case Action::Move:
-			case Action::XMove:
-			case Action::YMove:
-			{
-				const unsigned char x= static_cast<unsigned char>(command.args[0]);
-				const unsigned char y= static_cast<unsigned char>(command.args[1]);
-				const float dx= command.args[2] * g_commands_coords_scale;
-				const float dy= command.args[3] * g_commands_coords_scale;
-				const float sound_number= command.args[4];
-				PC_UNUSED(sound_number);
-
-				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
-				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
-
-				if( index_element.type == MapData::IndexElement::DynamicWall )
-				{
-					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
-
-					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
-					DynamicWall& wall= dynamic_walls_[ index_element.index ];
-
-					// TODO - maybe fractions depends on way length?
-					//const float total_way_length= std::abs(dx) + std::abs(dy);
-					const float x_fraction= 0.5f;//std::abs(dx) / total_way_length;
-					const float y_fraction= 0.5f;//std::abs(dy) / total_way_length;
-
-					for( unsigned int v= 0u; v < 2u; v++ )
-					{
-						wall.vert_pos[v]= map_wall.vert_pos[v];
-
-						if( command.id == Action::XMove )
-						{
-							if( absolute_action_stage <= x_fraction )
-								wall.vert_pos[v].x+= dx * absolute_action_stage / x_fraction;
-							else
-							{
-								wall.vert_pos[v].x+= dx;
-								wall.vert_pos[v].y+= dy * ( absolute_action_stage - x_fraction ) / y_fraction;
-							}
-						}
-						else if( command.id == Action::YMove )
-						{
-							if( absolute_action_stage <= y_fraction )
-								wall.vert_pos[v].y+= dy * absolute_action_stage / y_fraction;
-							else
-							{
-								wall.vert_pos[v].x+= dx * ( absolute_action_stage - y_fraction ) / x_fraction;
-								wall.vert_pos[v].y+= dy;
-							}
-						}
-						else//if( command.id == Action::Move )
-						{
-							wall.vert_pos[v].x+= dx * absolute_action_stage;
-							wall.vert_pos[v].y+= dy * absolute_action_stage;
-						}
-					}
-					wall.z= 0.0f;
-				}
-				else if( index_element.type == MapData::IndexElement::StaticModel )
-				{
-					PC_ASSERT( index_element.index < static_models_.size() );
-					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
-					StaticModel& model= static_models_[ index_element.index ];
-
-					model.pos=
-						m_Vec3(
-							map_model.pos + m_Vec2( dx, dy ) * absolute_action_stage,
-							model.baze_z );
-				}
-			}
-				break;
-
-			case Action::Rotate:
-			{
-				const unsigned char x= static_cast<unsigned char>(command.args[0]);
-				const unsigned char y= static_cast<unsigned char>(command.args[1]);
-				const float center_x= command.args[2] * g_commands_coords_scale;
-				const float center_y= command.args[3] * g_commands_coords_scale;
-				const float angle= command.args[4] * Constants::to_rad;
-				const float sound_number= command.args[5];
-				PC_UNUSED(sound_number);
-
-				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
-
-				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
-
-				if( index_element.type == MapData::IndexElement::DynamicWall )
-				{
-					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
-
-					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
-					DynamicWall& wall= dynamic_walls_[ index_element.index ];
-
-					m_Mat3 rot_mat;
-					rot_mat.RotateZ( angle * absolute_action_stage );
-					const m_Vec2 center( center_x, center_y );
-
-					for( unsigned int v= 0u; v < 2u; v++ )
-					{
-						const m_Vec2 vec= map_wall.vert_pos[v] - center;
-						const m_Vec2 vec_rotated= ( m_Vec3( vec, 0.0f ) * rot_mat ).xy();
-						wall.vert_pos[v]= center + vec_rotated;
-					}
-					wall.z= 0.0f;
-				}
-				else if( index_element.type == MapData::IndexElement::StaticModel )
-				{
-					PC_ASSERT( index_element.index < static_models_.size() );
-					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
-					StaticModel& model= static_models_[ index_element.index ];
-
-					model.pos= m_Vec3( map_model.pos, model.baze_z );
-					model.angle= map_model.angle + angle * absolute_action_stage;
-				}
-			}
-				break;
-
-			case Action::Up:
-			{
-				const unsigned char x= static_cast<unsigned char>(command.args[0]);
-				const unsigned char y= static_cast<unsigned char>(command.args[1]);
-				const float height= command.args[2] * g_commands_coords_scale * 4.0f;
-				const float sound_number= command.args[3];
-				PC_UNUSED(sound_number);
-
-				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
-				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
-
-				if( index_element.type == MapData::IndexElement::DynamicWall )
-				{
-					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
-
-					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
-					DynamicWall& wall= dynamic_walls_[ index_element.index ];
-
-					for( unsigned int v= 0u; v < 2u; v++ )
-						wall.vert_pos[v]= map_wall.vert_pos[v];
-					wall.z= height * absolute_action_stage;
-				}
-				else if( index_element.type == MapData::IndexElement::StaticModel )
-				{
-					PC_ASSERT( index_element.index < static_models_.size() );
-					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
-					StaticModel& model= static_models_[ index_element.index ];
-
-					model.pos= m_Vec3( map_model.pos, height + model.baze_z );
-				}
-			}
-				break;
-
-			default:
-				// TODO
-				break;
-			}
-		} // for action commands
-
 	} // for procedures
+
+	// There are some objects (walls, models) in game maps linked more then with one procedures.
+	// Move objects, linked with unactive procedures, then, linked width active procedures.
+	MoveMapObjects( false );
+	MoveMapObjects( true );
 
 	// Process static models
 	for( StaticModel& model : static_models_ )
@@ -1575,6 +1406,191 @@ void Map::DestroyModel( const unsigned int model_index )
 		model.health= map_data_->models_description[ model.model_id ].break_limit;
 	else
 		model.health= 0;
+}
+
+void Map::MoveMapObjects( const bool active )
+{
+	for( unsigned int p= 0u; p < procedures_.size(); p++ )
+	{
+		const MapData::Procedure& procedure= map_data_->procedures[p];
+		const ProcedureState& procedure_state= procedures_[p];
+
+		// TODO - select correct active/unactive movement stages.
+		const bool procedure_is_active= procedure_state.movement_state != ProcedureState::MovementState::None;
+		if( active != procedure_is_active )
+			continue;
+
+		float absolute_action_stage;
+		if( procedure_state.movement_state == ProcedureState::MovementState::Movement )
+			absolute_action_stage= procedure_state.movement_stage;
+		else if( procedure_state.movement_state == ProcedureState::MovementState::BackWait )
+			absolute_action_stage= 1.0f;
+		else if( procedure_state.movement_state == ProcedureState::MovementState::ReverseMovement )
+			absolute_action_stage= 1.0f - procedure_state.movement_stage;
+		else
+			absolute_action_stage= 0.0f;
+
+		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		{
+			using Action= MapData::Procedure::ActionCommandId;
+			switch( command.id )
+			{
+			case Action::Move:
+			case Action::XMove:
+			case Action::YMove:
+			{
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
+				const float dx= command.args[2] * g_commands_coords_scale;
+				const float dy= command.args[3] * g_commands_coords_scale;
+				const float sound_number= command.args[4];
+				PC_UNUSED(sound_number);
+
+				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+
+				if( index_element.type == MapData::IndexElement::DynamicWall )
+				{
+					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
+
+					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
+					DynamicWall& wall= dynamic_walls_[ index_element.index ];
+
+					// TODO - maybe fractions depends on way length?
+					//const float total_way_length= std::abs(dx) + std::abs(dy);
+					const float x_fraction= 0.5f;//std::abs(dx) / total_way_length;
+					const float y_fraction= 0.5f;//std::abs(dy) / total_way_length;
+
+					for( unsigned int v= 0u; v < 2u; v++ )
+					{
+						wall.vert_pos[v]= map_wall.vert_pos[v];
+
+						if( command.id == Action::XMove )
+						{
+							if( absolute_action_stage <= x_fraction )
+								wall.vert_pos[v].x+= dx * absolute_action_stage / x_fraction;
+							else
+							{
+								wall.vert_pos[v].x+= dx;
+								wall.vert_pos[v].y+= dy * ( absolute_action_stage - x_fraction ) / y_fraction;
+							}
+						}
+						else if( command.id == Action::YMove )
+						{
+							if( absolute_action_stage <= y_fraction )
+								wall.vert_pos[v].y+= dy * absolute_action_stage / y_fraction;
+							else
+							{
+								wall.vert_pos[v].x+= dx * ( absolute_action_stage - y_fraction ) / x_fraction;
+								wall.vert_pos[v].y+= dy;
+							}
+						}
+						else//if( command.id == Action::Move )
+						{
+							wall.vert_pos[v].x+= dx * absolute_action_stage;
+							wall.vert_pos[v].y+= dy * absolute_action_stage;
+						}
+					}
+					wall.z= 0.0f;
+				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos=
+						m_Vec3(
+							map_model.pos + m_Vec2( dx, dy ) * absolute_action_stage,
+							model.baze_z );
+				}
+			}
+				break;
+
+			case Action::Rotate:
+			{
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
+				const float center_x= command.args[2] * g_commands_coords_scale;
+				const float center_y= command.args[3] * g_commands_coords_scale;
+				const float angle= command.args[4] * Constants::to_rad;
+				const float sound_number= command.args[5];
+				PC_UNUSED(sound_number);
+
+				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
+
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+
+				if( index_element.type == MapData::IndexElement::DynamicWall )
+				{
+					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
+
+					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
+					DynamicWall& wall= dynamic_walls_[ index_element.index ];
+
+					m_Mat3 rot_mat;
+					rot_mat.RotateZ( angle * absolute_action_stage );
+					const m_Vec2 center( center_x, center_y );
+
+					for( unsigned int v= 0u; v < 2u; v++ )
+					{
+						const m_Vec2 vec= map_wall.vert_pos[v] - center;
+						const m_Vec2 vec_rotated= ( m_Vec3( vec, 0.0f ) * rot_mat ).xy();
+						wall.vert_pos[v]= center + vec_rotated;
+					}
+					wall.z= 0.0f;
+				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos= m_Vec3( map_model.pos, model.baze_z );
+					model.angle= map_model.angle + angle * absolute_action_stage;
+				}
+			}
+				break;
+
+			case Action::Up:
+			{
+				const unsigned char x= static_cast<unsigned char>(command.args[0]);
+				const unsigned char y= static_cast<unsigned char>(command.args[1]);
+				const float height= command.args[2] * g_commands_coords_scale * 4.0f;
+				const float sound_number= command.args[3];
+				PC_UNUSED(sound_number);
+
+				PC_ASSERT( x < MapData::c_map_size && y < MapData::c_map_size );
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+
+				if( index_element.type == MapData::IndexElement::DynamicWall )
+				{
+					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
+
+					const MapData::Wall& map_wall= map_data_->dynamic_walls[ index_element.index ];
+					DynamicWall& wall= dynamic_walls_[ index_element.index ];
+
+					for( unsigned int v= 0u; v < 2u; v++ )
+						wall.vert_pos[v]= map_wall.vert_pos[v];
+					wall.z= height * absolute_action_stage;
+				}
+				else if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					PC_ASSERT( index_element.index < static_models_.size() );
+					const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+					StaticModel& model= static_models_[ index_element.index ];
+
+					model.pos= m_Vec3( map_model.pos, height + model.baze_z );
+				}
+			}
+				break;
+
+			default:
+				// TODO
+				break;
+			}
+		} // for action commands
+	} // for procedures
 }
 
 Map::HitResult Map::ProcessShot(
