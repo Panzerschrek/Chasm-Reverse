@@ -1371,6 +1371,9 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 
 void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
 {
+	if( procedures_[ procedure_number ].movement_state != ProcedureState::MovementState::None )
+		return;
+
 	ActivateProcedure( procedure_number, current_time );
 }
 
