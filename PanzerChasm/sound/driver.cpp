@@ -156,10 +156,12 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 						src[ sample_coord ] * ( g_frac - part ) + src[ sample_coord + 1u ] * part;
 
 					// TODO - set volume for left and right channels
-					mix_buffer_[ i * 2u + 1u ]=
-					mix_buffer_[ i * 2u ]=
+					const unsigned int v=
 						( int( mixed_src_sample ) - ( 128 << g_frac_bits ) )
 						>> ( int(g_frac_bits) - 8 );
+					mix_buffer_[ i * 2u ]     += v;
+					mix_buffer_[ i * 2u + 1u ]+= v;
+
 				}
 			}
 			break;
