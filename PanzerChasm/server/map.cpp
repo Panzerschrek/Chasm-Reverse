@@ -5,6 +5,7 @@
 #include "../game_constants.hpp"
 #include "../math_utils.hpp"
 #include "../particles.hpp"
+#include "../sound/sound_id.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
 #include "monster.hpp"
@@ -1867,6 +1868,12 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 
 	if( message != nullptr )
 		PositionToMessagePosition( pos, message->xyz );
+
+	// Emit sound message
+	map_events_sounds_messages_.emplace_back();
+	Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
+	PositionToMessagePosition( pos, sound_message.xyz );
+	sound_message.sound_id= Sound::SoundId::FirstRocketHit + rocket_type_id;
 }
 
 } // PanzerChasm
