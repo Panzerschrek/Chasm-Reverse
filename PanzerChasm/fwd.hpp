@@ -27,4 +27,12 @@ typedef std::shared_ptr<MapLoader> MapLoaderPtr;
 class Vfs;
 typedef std::shared_ptr<Vfs> VfsPtr;
 
+namespace Sound
+{
+
+class SoundEngine;
+typedef std::shared_ptr<SoundEngine> SoundEnginePtr;
+
+} // namespace Sound
+
 } // namespace PanzerChasm

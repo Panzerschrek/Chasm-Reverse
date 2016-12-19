@@ -103,6 +103,7 @@ HEADERS+= \
 	sound/channel.hpp \
 	sound/driver.hpp \
 	sound/sound_engine.hpp \
+	sound/sound_id.hpp \
 	sound/sounds_loader.hpp \
 	system_event.hpp \
 	system_window.hpp \

@@ -5,6 +5,7 @@
 #include "game_resources.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
+#include "sound/sound_engine.hpp"
 
 #include "host.hpp"
 
@@ -53,11 +54,14 @@ Host::Host()
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, drawers ) );
 
+	sound_engine_= std::make_shared<Sound::SoundEngine>( game_resources_ );
+
 	Log::Info( "Initialize menu" );
 	menu_.reset(
 		new Menu(
 			*this,
-			drawers ) );
+			drawers,
+			sound_engine_ ) );
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
 
@@ -78,9 +82,6 @@ Host::Host()
 			loopback_buffer_,
 			rendering_context,
 			drawers ) );
-
-	sound_engine_.reset( new Sound::SoundEngine( game_resources_ ) );
-	sound_engine_->PlayHeadSound( 0 );
 }
 
 Host::~Host()
