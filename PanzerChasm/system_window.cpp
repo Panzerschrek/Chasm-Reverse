@@ -184,7 +184,7 @@ void SystemWindow::CaptureMouse( const bool need_capture )
 	if( need_capture != mouse_captured_ )
 	{
 		mouse_captured_= need_capture;
-		//SDL_SetRelativeMouseMode( need_capture ? SDL_TRUE : SDL_FALSE );
+		SDL_SetRelativeMouseMode( need_capture ? SDL_TRUE : SDL_FALSE );
 	}
 }
 
