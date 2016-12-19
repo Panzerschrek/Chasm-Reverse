@@ -2,6 +2,7 @@
 
 #include <SDL_audio.h>
 
+#include "../assert.hpp"
 #include "../vfs.hpp"
 
 #include "sounds_loader.hpp"
@@ -69,6 +70,7 @@ public:
 					&wav_buffer_, &buffer_length_butes );
 
 			ok= result != nullptr;
+			PC_ASSERT( result == nullptr || result == &spec );
 		}
 
 		const unsigned int bits= SDL_AUDIO_BITSIZE( spec.format );
@@ -108,7 +110,6 @@ public:
 
 private:
 	Uint8* wav_buffer_= nullptr;
-	SDL_AudioSpec* spec_;
 };
 
 } // namespace

@@ -78,6 +78,9 @@ Host::Host()
 			loopback_buffer_,
 			rendering_context,
 			drawers ) );
+
+	sound_engine_.reset( new Sound::SoundEngine( game_resources_ ) );
+	sound_engine_->PlayHeadSound( 0 );
 }
 
 Host::~Host()
@@ -118,6 +121,9 @@ bool Host::Loop()
 
 	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu )
 		client_->ProcessEvents( events_ );
+
+	if( sound_engine_ != nullptr )
+		sound_engine_->Tick();
 
 	// Loop operations
 	if( local_server_ != nullptr )

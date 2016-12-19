@@ -7,6 +7,7 @@
 #include "host_commands.hpp"
 #include "menu.hpp"
 #include "server/server.hpp"
+#include "sound/sound_engine.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
 
@@ -52,6 +53,8 @@ private:
 	std::unique_ptr<Server> local_server_;
 
 	std::unique_ptr<Client> client_;
+
+	std::unique_ptr<Sound::SoundEngine> sound_engine_;
 };
 
 } // namespace PanzerChasm

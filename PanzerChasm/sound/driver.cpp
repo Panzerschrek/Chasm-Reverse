@@ -5,6 +5,8 @@
 #include "../assert.hpp"
 #include "../log.hpp"
 
+#include "sounds_loader.hpp"
+
 #include "driver.hpp"
 
 namespace PanzerChasm
@@ -70,6 +72,9 @@ Driver::Driver()
 	frequency_= obtained_format.freq;
 
 	mix_buffer_.resize( requested_format.samples * g_left_and_right );
+
+	// Run
+	SDL_PauseAudioDevice( device_id_ , 0 );
 }
 
 Driver::~Driver()
@@ -115,10 +120,36 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 	for( unsigned int i= 0u; i < sample_count * g_left_and_right; i++ )
 		mix_buffer_[i]= 0;
 
-	for( const Channel& channel : channels_ )
+	for( Channel& channel : channels_ )
 	{
-		PC_UNUSED( channel );
-		// TODO  - mix to buffer here
+		if( !channel.is_active && channel.src_sound_data == nullptr )
+			continue;
+
+		const unsigned int channel_samples_left= channel.src_sound_data->sample_count_ - channel.position_samples;
+		const unsigned int channel_sampls_to_play= std::min( channel_samples_left, sample_count );
+
+		switch( channel.src_sound_data->data_type_ )
+		{
+		case ISoundData::DataType::Unsigned8:
+			{
+				const unsigned char* const src=
+					static_cast<const unsigned char*>( channel.src_sound_data->data_ ) + channel.position_samples;
+				for( unsigned int i= 0u; i < channel_sampls_to_play; i++ )
+				{
+					mix_buffer_[ i * 2u + 1u ]=
+					mix_buffer_[ i * 2u ]= int( src[i] - 128u ) << 8;
+				}
+			}
+			break;
+
+		case ISoundData::DataType::Signed8:
+		case ISoundData::DataType::Signed16:
+		case ISoundData::DataType::Unsigned16:
+			// TODO
+			break;
+		};
+
+		channel.position_samples+= channel_sampls_to_play;
 	}
 
 	// Copy mix buffer to result buffer.

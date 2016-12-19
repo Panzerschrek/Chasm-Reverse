@@ -1,6 +1,6 @@
 #pragma once
+#include <array>
 #include <memory>
-#include <vector>
 
 namespace PanzerChasm
 {
@@ -9,6 +9,7 @@ namespace Sound
 {
 
 typedef short SampleType;
+class ISoundData;
 
 struct Channel
 {
@@ -16,18 +17,15 @@ struct Channel
 	static constexpr unsigned int  c_left_channel_number= 0u;
 	static constexpr unsigned int c_right_channel_number= 1u;
 
+	bool is_active= false;
 	float volume[2]; // right/left volume
 
 	unsigned int position_samples;
 
-	struct
-	{
-		SampleType* data;
-		unsigned int size_samples;
-	} src_sound_data;
+	ISoundData* src_sound_data= nullptr;
 };
 
-typedef std::vector<Channel> Channels;
+typedef std::array<Channel, Channel::c_max_channels> Channels;
 
 } // namespace Sound
 

@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+
 #include <SDL_audio.h>
 
 #include "channel.hpp"
