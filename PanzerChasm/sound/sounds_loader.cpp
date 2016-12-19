@@ -79,7 +79,7 @@ public:
 
 		if( !( bits == 16u || bits == 8u ) )
 			ok= false;
-		if( SDL_AUDIO_ISFLOAT( spec.format ) )
+		if( SDL_AUDIO_ISFLOAT( spec.format ) || spec.channels != 1u )
 			ok= false;
 
 		if( ok )
