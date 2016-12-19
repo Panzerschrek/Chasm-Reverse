@@ -13,11 +13,12 @@ namespace Sound
 {
 
 // Sound constants
-static const float g_volume_distance_scale= 8.0f;
+static const float g_volume_distance_scale= 4.0f;
 static const float g_max_ear_volume= 1.0f;
 static const float g_min_ear_volume= 0.1f;
 static const float g_ears_angle= 160.0f * Constants::to_rad;
 static const float g_ears_half_angle= 0.5f * g_ears_angle;
+static const float g_volume_oversaturation_level= 1.4f;
 
 SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
@@ -196,6 +197,9 @@ void SoundEngine::CalculateSourcesVolume()
 			const m_Vec3 vec_to_source= source.pos - head_position_;
 			const float disntance_to_source= vec_to_source.Length();
 
+			// Linear attenuation.
+			const float sound_volume= std::min( base_sound_volume * g_volume_distance_scale / disntance_to_source, g_volume_oversaturation_level );
+
 			for( unsigned int j= 0u; j < 2u; j++ )
 			{
 				const float angle_cos= ( vec_to_source * ears_vectors_[j] ) / disntance_to_source;
@@ -204,12 +208,8 @@ void SoundEngine::CalculateSourcesVolume()
 						angle_cos * ( g_max_ear_volume - g_min_ear_volume )
 						+ g_min_ear_volume + g_max_ear_volume );
 
-				// Quadratic attenuation.
-				const float volume=
-					base_sound_volume * g_volume_distance_scale * ear_volume /
-					( disntance_to_source * disntance_to_source );
-
-				source.volume[j]= std::min( std::max( volume, 0.0f ), 1.0f );
+				const float channel_volume= sound_volume * ear_volume;
+				source.volume[j]= std::min( std::max( channel_volume, 0.0f ), 1.0f );
 			}
 		}
 	}
