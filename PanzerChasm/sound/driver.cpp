@@ -109,8 +109,10 @@ void SDLCALL Driver::AudioCallback( void* userdata, Uint8* stream, int len_bytes
 
 void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sample_count )
 {
+	PC_ASSERT( mix_buffer_.size() <= sample_count * g_left_and_right );
+
 	// Zero mix buffer.
-	for( unsigned int i= 0u; i < sample_count * 2u; i++ )
+	for( unsigned int i= 0u; i < sample_count * g_left_and_right; i++ )
 		mix_buffer_[i]= 0;
 
 	for( const Channel& channel : channels_ )
@@ -120,7 +122,7 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 	}
 
 	// Copy mix buffer to result buffer.
-	for( unsigned int i= 0u; i < sample_count * 2u; i++ )
+	for( unsigned int i= 0u; i < sample_count * g_left_and_right; i++ )
 	{
 		int s= mix_buffer_[i];
 		if( s > +32767 ) s= +32767;
