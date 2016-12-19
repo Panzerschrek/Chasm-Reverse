@@ -3,6 +3,7 @@
 #include <SDL_audio.h>
 
 #include "../assert.hpp"
+#include "../log.hpp"
 #include "../vfs.hpp"
 
 #include "sounds_loader.hpp"
@@ -118,7 +119,10 @@ ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs )
 {
 	Vfs::FileContent file_content= vfs.ReadFile( file_path );
 	if( file_content.empty() )
+	{
+		Log::Warning( "Can not load \"", file_path, "\"" );
 		return nullptr;
+	}
 
 	const char* const extension= ExtractExtension( file_path );
 

@@ -23,6 +23,15 @@ public:
 		Unsigned16,
 	};
 
+public:
+	inline unsigned int GetDataSize() const
+	{
+		return
+			sample_count_ *
+			( ( data_type_ == DataType::Signed8 || data_type_ == DataType::Unsigned8 ) ? 1u : 2u );
+	}
+
+public:
 	unsigned int frequency_; // samples per seconds
 	DataType data_type_;
 

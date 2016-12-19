@@ -1,4 +1,5 @@
 #include "../assert.hpp"
+#include "../log.hpp"
 
 #include "sound_engine.hpp"
 
@@ -13,14 +14,28 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
-	for( unsigned int s= 0u; s < GameResources::c_max_global_sounds && s < 20u; s++ )
+	Log::Info( "Start loading sounds" );
+
+	unsigned int total_sounds_loaded= 0u;
+	unsigned int sound_data_size= 0u;
+
+	for( unsigned int s= 0u; s < GameResources::c_max_global_sounds; s++ )
 	{
 		const GameResources::SoundDescription& sound= game_resources_->sounds[s];
 		if( sound.file_name[0] == '\0' )
 			continue;
 
 		global_sounds_[s]= LoadSound( sound.file_name, *game_resources_->vfs );
+
+		if( global_sounds_[s] != nullptr )
+		{
+			total_sounds_loaded++;
+			sound_data_size+= global_sounds_[s]->GetDataSize();
+		}
 	}
+
+	Log::Info( "End loading sounds" );
+	Log::Info( "Total ", total_sounds_loaded, " sounds. Sound data size: ", sound_data_size / 1024u, "kb" );
 }
 
 SoundEngine::~SoundEngine()
