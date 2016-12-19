@@ -36,12 +36,12 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 		if( sound.file_name[0] == '\0' )
 			continue;
 
-		global_sounds_[s]= LoadSound( sound.file_name, *game_resources_->vfs );
+		sounds_[s]= LoadSound( sound.file_name, *game_resources_->vfs );
 
-		if( global_sounds_[s] != nullptr )
+		if( sounds_[s] != nullptr )
 		{
 			total_sounds_loaded++;
-			sound_data_size+= global_sounds_[s]->GetDataSize();
+			sound_data_size+= sounds_[s]->GetDataSize();
 		}
 	}
 
@@ -88,7 +88,7 @@ void SoundEngine::Tick()
 			{
 				channel.is_active= true;
 				channel.position_samples= 0u;
-				channel.src_sound_data= global_sounds_[ source.sound_id ].get();
+				channel.src_sound_data= sounds_[ source.sound_id ].get();
 			}
 
 			// Source is over
@@ -105,9 +105,25 @@ void SoundEngine::Tick()
 	driver_.UnlockChannels();
 }
 
-void SoundEngine::SetMap( const MapDataPtr& map_data )
+void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 {
 	current_map_data_= map_data;
+
+	if( current_map_data_ != nullptr )
+	{
+		// TODO reuse old sounds
+		for( unsigned int s= 0u; s < MapData::c_max_map_sounds; s++ )
+		{
+			ISoundDataConstPtr& sound= sounds_[ GameResources::c_max_global_sounds + s ];
+			sound= nullptr; // remove old
+
+			const GameResources::SoundDescription& sound_description= map_data->map_sounds[s];
+			if( sound_description.file_name[0] == '\0' )
+				continue;
+
+			sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
+		}
+	}
 }
 
 void SoundEngine::SetHeadPosition(
@@ -143,7 +159,7 @@ void SoundEngine::PlayWorldSound(
 	if( source == nullptr )
 		return;
 
-	if( global_sounds_[ sound_number ] == nullptr )
+	if( sounds_[ sound_number ] == nullptr )
 		return;
 
 	source->is_free= false;
@@ -155,11 +171,14 @@ void SoundEngine::PlayWorldSound(
 
 void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 {
+	if( sound_number >= sounds_.size() )
+		return;
+
 	Source* const source= GetFreeSource();
 	if( source == nullptr )
 		return;
 
-	if( global_sounds_[ sound_number ] == nullptr )
+	if( sounds_[ sound_number ] == nullptr )
 		return;
 
 	source->is_free= false;

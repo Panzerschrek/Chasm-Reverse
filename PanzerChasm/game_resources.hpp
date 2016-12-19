@@ -148,4 +148,9 @@ public:
 
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs );
 
+void LoadSoundsDescriptionFromMapResourcesFile(
+	const Vfs::FileContent& resoure_file,
+	GameResources::SoundDescription* out_sounds,
+	unsigned int max_sound_count );
+
 } // namespace PanzerChasm

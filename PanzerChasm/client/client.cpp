@@ -259,6 +259,9 @@ void Client::operator()( const Messages::MapChange& message )
 	map_drawer_.SetMap( map_data );
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 
+	if( sound_engine_ != nullptr )
+		sound_engine_->SetMap( map_data );
+
 	current_map_data_= map_data;
 }
 

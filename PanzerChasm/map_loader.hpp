@@ -6,6 +6,7 @@
 
 #include "assert.hpp"
 #include "fwd.hpp"
+#include "game_resources.hpp"
 #include "model.hpp"
 #include "vfs.hpp"
 
@@ -32,6 +33,8 @@ public:
 
 	static constexpr unsigned int c_max_file_name_size= 16u;
 	static constexpr unsigned int c_max_file_path_size= 64u;
+
+	static constexpr unsigned int c_max_map_sounds= 32u; // TODO - know, how much map sounds supports original game
 
 public:
 	struct Wall
@@ -243,6 +246,8 @@ public:
 	std::vector<Teleport> teleports;
 
 	char sky_texture_name[ c_max_file_path_size ];
+
+	GameResources::SoundDescription map_sounds[ c_max_map_sounds ];
 
 	// All map tables cells are accesible via table[ x + y * size ].
 

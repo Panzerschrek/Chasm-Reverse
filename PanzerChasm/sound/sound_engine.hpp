@@ -3,6 +3,7 @@
 
 #include "../fwd.hpp"
 #include "../game_resources.hpp"
+#include "../map_loader.hpp"
 #include "channel.hpp"
 #include "driver.hpp"
 #include "sounds_loader.hpp"
@@ -21,7 +22,7 @@ public:
 
 	void Tick();
 
-	void SetMap( const MapDataPtr& map_data );
+	void SetMap( const MapDataConstPtr& map_data );
 
 	void SetHeadPosition(
 		const m_Vec3& position,
@@ -55,9 +56,9 @@ private:
 
 	Driver driver_;
 
-	MapDataPtr current_map_data_;
+	MapDataConstPtr current_map_data_;
 
-	ISoundDataConstPtr global_sounds_[ GameResources::c_max_global_sounds ];
+	std::array< ISoundDataConstPtr, GameResources::c_max_global_sounds + MapData::c_max_map_sounds > sounds_;
 
 	Source sources_[ Channel::c_max_channels ];
 

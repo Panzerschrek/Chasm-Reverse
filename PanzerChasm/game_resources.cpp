@@ -279,21 +279,12 @@ static void LoadRocketsDescription(
 	}
 }
 
-static void LoadSoundsDescription(
-	const Vfs::FileContent& inf_file,
-	GameResources& game_resources )
+static void LoadSoundsDescriptionFromFileData(
+	const char* start, const char* end,
+	unsigned int first_sound,
+	GameResources::SoundDescription* out_sounds )
 {
-	for( GameResources::SoundDescription& sound : game_resources.sounds )
-	{
-		sound.file_name[0]= '\0';
-		sound.volume= 0u;
-	}
-
-	const char* const sounds_start=
-		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[SOUNDS]" );
-	const char* const sounds_end= std::strstr( sounds_start, "[SOUNDS_END]" );
-
-	std::istringstream stream( std::string( sounds_start, sounds_end ) );
+	std::istringstream stream( std::string( start, end ) );
 
 	char line[ 512 ];
 	stream.getline( line, sizeof(line), '\n' ); // skip [SOUNDS]
@@ -306,7 +297,7 @@ static void LoadSoundsDescription(
 
 		const char* s= line;
 
-		const unsigned int sound_number= std::atoi(s);
+		const unsigned int sound_number= std::atoi(s) - first_sound;
 
 		while( std::isdigit( *s ) ) s++;
 		while( std::isspace( *s ) ) s++;
@@ -318,7 +309,7 @@ static void LoadSoundsDescription(
 		if( *s == '\0' )
 			continue;
 
-		GameResources::SoundDescription& sound= game_resources.sounds[ sound_number ];
+		GameResources::SoundDescription& sound= out_sounds[ sound_number ];
 
 		char* file_name_dst= sound.file_name;
 		while( !std::isspace( *s ) && *s != '\0' )
@@ -338,6 +329,23 @@ static void LoadSoundsDescription(
 		else
 			sound.volume= GameResources::SoundDescription::c_max_volume;
 	}
+}
+
+static void LoadSoundsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	for( GameResources::SoundDescription& sound : game_resources.sounds )
+	{
+		sound.file_name[0]= '\0';
+		sound.volume= 0u;
+	}
+
+	const char* const start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[SOUNDS]" );
+	const char* const end= std::strstr( start, "[SOUNDS_END]" );
+
+	LoadSoundsDescriptionFromFileData( start, end, 0u, game_resources.sounds );
 }
 
 static void LoadItemsModels(
@@ -492,6 +500,24 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadRocketsModels( *vfs, *result );
 
 	return result;
+}
+
+void LoadSoundsDescriptionFromMapResourcesFile(
+	const Vfs::FileContent& resoure_file,
+	GameResources::SoundDescription* const out_sounds,
+	const unsigned int max_sound_count )
+{
+	for( unsigned int s= 0u; s < max_sound_count; s++ )
+	{
+		out_sounds[s].file_name[0]= '\0';
+		out_sounds[s].volume= 0u;
+	}
+
+	const char* const start=
+		std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#newsounds" );
+	const char* const end= std::strstr( start, "#end" );
+
+	LoadSoundsDescriptionFromFileData( start, end, GameResources::c_max_global_sounds, out_sounds );
 }
 
 } // namespace PanzerChasm
