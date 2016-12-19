@@ -40,7 +40,9 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 
 SoundEngine::~SoundEngine()
 {
-	// Force stop all channels
+	// Force stop all channels.
+	// This need, because driver life is longer, than life of sound data.
+
 	driver_.LockChannels();
 
 	Channels& channels= driver_.GetChannels();

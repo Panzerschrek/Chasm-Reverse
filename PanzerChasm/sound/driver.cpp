@@ -25,6 +25,11 @@ static int NearestPowerOfTwoFloor( int x )
 	return r;
 }
 
+static const unsigned int g_frac_bits= 10u;
+static const unsigned int g_frac= 1u << g_frac_bits;
+static const unsigned int g_frac_minus_one= g_frac - 1u;
+static_assert( g_frac_bits >= 8u, "Too low fractional bits" );
+
 Driver::Driver()
 {
 	SDL_InitSubSystem( SDL_INIT_AUDIO );
@@ -122,11 +127,13 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 
 	for( Channel& channel : channels_ )
 	{
-		if( !channel.is_active && channel.src_sound_data == nullptr )
+		if( !channel.is_active || channel.src_sound_data == nullptr )
 			continue;
 
-		const unsigned int channel_samples_left= channel.src_sound_data->sample_count_ - channel.position_samples;
-		const unsigned int channel_sampls_to_play= std::min( channel_samples_left, sample_count );
+		// Fill destination audio buffer with iterpolation,
+		// because original game sounds have frequency about 11025 Hz, but destination buffer have frequency 22050 - 44100 Hz.
+		const unsigned int freq_ratio_f= ( channel.src_sound_data->frequency_ << g_frac_bits ) / frequency_;
+		const unsigned int end_sample_coord= channel.src_sound_data->sample_count_ - channel.position_samples;
 
 		switch( channel.src_sound_data->data_type_ )
 		{
@@ -134,10 +141,25 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 			{
 				const unsigned char* const src=
 					static_cast<const unsigned char*>( channel.src_sound_data->data_ ) + channel.position_samples;
-				for( unsigned int i= 0u; i < channel_sampls_to_play; i++ )
+
+				for( unsigned int i= 0u; i < sample_count; i++ )
 				{
+					const unsigned int sample_coord_f= i * freq_ratio_f;
+					const unsigned int sample_coord= sample_coord_f >> g_frac_bits;
+					const unsigned int part= sample_coord_f & ( g_frac - 1u );
+
+					if( sample_coord + 1u >= end_sample_coord )
+						break;
+
+					// Value in range [ 0; 255 * g_frac ]
+					const unsigned int mixed_src_sample=
+						src[ sample_coord ] * ( g_frac - part ) + src[ sample_coord + 1u ] * part;
+
+					// TODO - set volume for left and right channels
 					mix_buffer_[ i * 2u + 1u ]=
-					mix_buffer_[ i * 2u ]= int( src[i] - 128u ) << 8;
+					mix_buffer_[ i * 2u ]=
+						( int( mixed_src_sample ) - ( 128 << g_frac_bits ) )
+						>> ( int(g_frac_bits) - 8 );
 				}
 			}
 			break;
@@ -146,10 +168,12 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 		case ISoundData::DataType::Signed16:
 		case ISoundData::DataType::Unsigned16:
 			// TODO
+			PC_ASSERT( false );
 			break;
 		};
 
-		channel.position_samples+= channel_sampls_to_play;
+		channel.position_samples+= ( sample_count * freq_ratio_f ) >> g_frac_bits;
+		channel.position_samples= std::min( channel.position_samples, channel.src_sound_data->sample_count_ );
 	}
 
 	// Copy mix buffer to result buffer.
