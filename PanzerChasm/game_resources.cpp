@@ -279,6 +279,67 @@ static void LoadRocketsDescription(
 	}
 }
 
+static void LoadSoundsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	for( GameResources::SoundDescription& sound : game_resources.sounds )
+	{
+		sound.file_name[0]= '\0';
+		sound.volume= 0u;
+	}
+
+	const char* const sounds_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[SOUNDS]" );
+	const char* const sounds_end= std::strstr( sounds_start, "[SOUNDS_END]" );
+
+	std::istringstream stream( std::string( sounds_start, sounds_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' ); // skip [SOUNDS]
+
+	while( !stream.eof() )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( stream.eof() )
+			break;
+
+		const char* s= line;
+
+		const unsigned int sound_number= std::atoi(s);
+
+		while( std::isdigit( *s ) ) s++;
+		while( std::isspace( *s ) ) s++;
+		s++; // :
+		while( *s != '=' ) s++;
+		s++; // =
+		while( std::isspace( *s ) && s != '\0' ) s++;
+
+		if( *s == '\0' )
+			continue;
+
+		GameResources::SoundDescription& sound= game_resources.sounds[ sound_number ];
+
+		char* file_name_dst= sound.file_name;
+		while( !std::isspace( *s ) && *s != '\0' )
+		{
+			*file_name_dst= *s;
+			file_name_dst++;
+			s++;
+		}
+		*file_name_dst= '\0';
+
+		while( std::isspace( *s ) && *s != '\0' ) s++;
+		if( *s == 'v' || *s == 'V' )
+		{
+			s+=2u;// v:
+			sound.volume= std::atoi( s );
+		}
+		else
+			sound.volume= GameResources::SoundDescription::c_max_volume;
+	}
+}
+
 static void LoadItemsModels(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -422,6 +483,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadSpriteEffectsDescription( inf_file, *result );
 	LoadWeaponsDescription( inf_file, *result );
 	LoadRocketsDescription( inf_file, *result );
+	LoadSoundsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
 	LoadMonstersModels( *vfs, *result );
