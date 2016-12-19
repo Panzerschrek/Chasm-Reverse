@@ -30,6 +30,9 @@ static const unsigned int g_frac= 1u << g_frac_bits;
 static const unsigned int g_frac_minus_one= g_frac - 1u;
 static_assert( g_frac_bits >= 8u, "Too low fractional bits" );
 
+const int g_volume_bits= 8;
+const int g_volume_scale= 1 << g_volume_bits;
+
 Driver::Driver()
 {
 	SDL_InitSubSystem( SDL_INIT_AUDIO );
@@ -135,6 +138,12 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 		const unsigned int freq_ratio_f= ( channel.src_sound_data->frequency_ << g_frac_bits ) / frequency_;
 		const unsigned int end_sample_coord= channel.src_sound_data->sample_count_ - channel.position_samples;
 
+		const int volume[2]=
+		{
+			static_cast<int>( channel.volume[0] * float( g_volume_scale ) ),
+			static_cast<int>( channel.volume[1] * float( g_volume_scale ) ),
+		};
+
 		switch( channel.src_sound_data->data_type_ )
 		{
 		case ISoundData::DataType::Unsigned8:
@@ -154,13 +163,10 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 					// Value in range [ 0; 255 * g_frac ]
 					const unsigned int mixed_src_sample=
 						src[ sample_coord ] * ( g_frac - part ) + src[ sample_coord + 1u ] * part;
+					const int signed_sample= int( mixed_src_sample ) - ( 128 << g_frac_bits );
 
-					// TODO - set volume for left and right channels
-					const unsigned int v=
-						( int( mixed_src_sample ) - ( 128 << g_frac_bits ) )
-						>> ( int(g_frac_bits) - 8 );
-					mix_buffer_[ i * 2u ]     += v;
-					mix_buffer_[ i * 2u + 1u ]+= v;
+					mix_buffer_[ i * 2u      ]+= ( signed_sample * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+					mix_buffer_[ i * 2u + 1u ]+= ( signed_sample * volume[1] ) >> ( int(g_frac_bits) + g_volume_bits - 8  );
 
 				}
 			}

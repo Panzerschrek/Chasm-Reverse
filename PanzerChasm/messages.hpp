@@ -142,6 +142,14 @@ struct ParticleEffectBirth : public MessageBase
 	unsigned char effect_id;
 };
 
+struct MapEventSound : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MapEventSound)
+
+	CoordType xyz[3];
+	unsigned char sound_id;
+};
+
 struct RocketState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(RocketState)

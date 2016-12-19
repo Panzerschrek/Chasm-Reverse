@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "../sound/sound_engine.hpp"
 
 #include "client.hpp"
 
@@ -15,10 +16,12 @@ Client::Client(
 	const MapLoaderPtr& map_loader,
 	const LoopbackBufferPtr& loopback_buffer,
 	const RenderingContext& rendering_context,
-	const DrawersPtr& drawers )
+	const DrawersPtr& drawers,
+	const Sound::SoundEnginePtr& sound_engine )
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, loopback_buffer_(loopback_buffer)
+	, sound_engine_(sound_engine)
 	, current_tick_time_( Time::CurrentTime() )
 	, camera_controller_(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
@@ -101,6 +104,12 @@ void Client::Loop()
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
 	camera_controller_.Tick();
+
+	if( sound_engine_ != nullptr )
+		sound_engine_->SetHeadPosition(
+			player_position_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ), // TODO - use exact camera position here
+			camera_controller_.GetViewAngleZ(),
+			camera_controller_.GetViewAngleX() );
 
 	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
 
@@ -225,6 +234,16 @@ void Client::operator()( const Messages::ParticleEffectBirth& message )
 {
 	if( map_state_ != nullptr )
 		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::MapEventSound& message )
+{
+	if( sound_engine_ != nullptr )
+	{
+		m_Vec3 pos;
+		MessagePositionToPosition( message.xyz, pos );
+		sound_engine_->PlayWorldSound( message.sound_id, pos );
+	}
 }
 
 void Client::operator()( const Messages::MapChange& message )

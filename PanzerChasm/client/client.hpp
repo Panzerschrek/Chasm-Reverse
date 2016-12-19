@@ -21,7 +21,8 @@ public:
 		const MapLoaderPtr& map_loader,
 		const LoopbackBufferPtr& loopback_buffer,
 		const RenderingContext& rendering_context,
-		const DrawersPtr& drawers );
+		const DrawersPtr& drawers,
+		const Sound::SoundEnginePtr& sound_engine );
 
 	~Client();
 
@@ -42,6 +43,7 @@ public: // Messages handlers
 	void operator()( const Messages::StaticModelState& message );
 	void operator()( const Messages::SpriteEffectBirth& message );
 	void operator()( const Messages::ParticleEffectBirth& message );
+	void operator()( const Messages::MapEventSound& message );
 	void operator()( const Messages::MapChange& message );
 	void operator()( const Messages::MonsterBirth& message );
 	void operator()( const Messages::MonsterDeath& message );
@@ -57,6 +59,7 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const LoopbackBufferPtr loopback_buffer_;
+	const Sound::SoundEnginePtr sound_engine_;
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 

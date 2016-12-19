@@ -81,7 +81,8 @@ Host::Host()
 			map_loader_,
 			loopback_buffer_,
 			rendering_context,
-			drawers ) );
+			drawers,
+			sound_engine_ ) );
 }
 
 Host::~Host()

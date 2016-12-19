@@ -1125,6 +1125,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::MapEventSound& message : map_events_sounds_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
@@ -1148,6 +1152,7 @@ void Map::ClearUpdateEvents()
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
 	particles_effects_messages_.clear();
+	map_events_sounds_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
@@ -1801,6 +1806,15 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 
 	PositionToMessagePosition( pos, message.xyz );
 	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
+
+	if( description.break_sfx_number != 0 )
+	{
+		map_events_sounds_messages_.emplace_back();
+		Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
+
+		PositionToMessagePosition( pos, sound_message.xyz );
+		sound_message.sound_id= description.break_sfx_number;
+	}
 }
 
 void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )

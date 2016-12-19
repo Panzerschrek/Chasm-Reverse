@@ -32,13 +32,23 @@ public:
 		const m_Vec3& position );
 
 	void PlayHeadSound( unsigned int sound_number );
+
 private:
 	struct Source
 	{
 		bool is_free= true;
+
 		unsigned int sound_id;
 		unsigned int pos_samples;
+		bool is_head_relative;
+		m_Vec3 pos;
+
+		float volume[2]; // calculated each tick
 	};
+
+private:
+	Source* GetFreeSource();
+	void CalculateSourcesVolume();
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -50,6 +60,9 @@ private:
 	ISoundDataConstPtr global_sounds_[ GameResources::c_max_global_sounds ];
 
 	Source sources_[ Channel::c_max_channels ];
+
+	m_Vec3 head_position_;
+	m_Vec3 ears_vectors_[2];
 };
 
 } // namespace Sound

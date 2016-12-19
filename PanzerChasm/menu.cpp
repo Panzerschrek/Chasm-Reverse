@@ -140,7 +140,7 @@ MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
 class MainMenu final : public MenuBase
 {
 public:
-	explicit MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	 MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~MainMenu() override;
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;

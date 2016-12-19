@@ -230,6 +230,7 @@ private:
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
+	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
 
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 };

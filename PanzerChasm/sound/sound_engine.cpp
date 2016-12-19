@@ -1,5 +1,8 @@
+#include <matrix.hpp>
+
 #include "../assert.hpp"
 #include "../log.hpp"
+#include "../math_utils.hpp"
 
 #include "sound_engine.hpp"
 
@@ -8,6 +11,13 @@ namespace PanzerChasm
 
 namespace Sound
 {
+
+// Sound constants
+static const float g_volume_distance_scale= 8.0f;
+static const float g_max_ear_volume= 1.0f;
+static const float g_min_ear_volume= 0.1f;
+static const float g_ears_angle= 160.0f * Constants::to_rad;
+static const float g_ears_half_angle= 0.5f * g_ears_angle;
 
 SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
@@ -54,6 +64,8 @@ SoundEngine::~SoundEngine()
 
 void SoundEngine::Tick()
 {
+	CalculateSourcesVolume();
+
 	driver_.LockChannels();
 
 	Channels& channels= driver_.GetChannels();
@@ -67,7 +79,8 @@ void SoundEngine::Tick()
 			channel.is_active= false;
 		else
 		{
-			channel.volume[0]= channel.volume[1]= 1.0f;
+			channel.volume[0]= source.volume[0];
+			channel.volume[1]= source.volume[1];
 
 			// Channel not active - fill data for channel
 			if( !channel.is_active )
@@ -100,31 +113,32 @@ void SoundEngine::SetHeadPosition(
 	const m_Vec3& position,
 	const float z_angle, const float x_angle )
 {
-	PC_UNUSED( position );
-	PC_UNUSED( z_angle );
-	PC_UNUSED( x_angle );
+	head_position_= position;
+
+	m_Vec3 vectors[2];
+	// Left
+	vectors[0].x= std::sin( -g_ears_half_angle );
+	vectors[0].y= std::cos( -g_ears_half_angle );
+	vectors[0].z= 0.0f;
+	// Right
+	vectors[1].x= std::sin( +g_ears_half_angle );
+	vectors[1].y= std::cos( +g_ears_half_angle );
+	vectors[1].z= 0.0f;
+
+	m_Mat4 rotate, rotate_z, rotate_x;
+	rotate_x.RotateX( x_angle );
+	rotate_z.RotateZ( z_angle );
+	rotate= rotate_x * rotate_z;
+
+	for( unsigned int j= 0u; j < 2u; j++ )
+		ears_vectors_[j]= vectors[j] * rotate;
 }
 
 void SoundEngine::PlayWorldSound(
 	const unsigned int sound_number,
 	const m_Vec3& position )
 {
-	PC_UNUSED( sound_number );
-	PC_UNUSED( position );
-}
-
-void SoundEngine::PlayHeadSound( const unsigned int sound_number )
-{
-	Source* source= nullptr;
-	for( Source& s : sources_ )
-	{
-		if( s.is_free )
-		{
-			source= &s;
-			break;
-		}
-	}
-
+	Source* const source= GetFreeSource();
 	if( source == nullptr )
 		return;
 
@@ -134,6 +148,71 @@ void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 	source->is_free= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
+	source->is_head_relative= false;
+	source->pos= position;
+}
+
+void SoundEngine::PlayHeadSound( const unsigned int sound_number )
+{
+	Source* const source= GetFreeSource();
+	if( source == nullptr )
+		return;
+
+	if( global_sounds_[ sound_number ] == nullptr )
+		return;
+
+	source->is_free= false;
+	source->sound_id= sound_number;
+	source->pos_samples= 0u;
+	source->is_head_relative= true;
+}
+
+SoundEngine::Source* SoundEngine::GetFreeSource()
+{
+	for( Source& s : sources_ )
+	{
+		if( s.is_free )
+			return &s;
+	}
+
+	return nullptr;
+}
+
+void SoundEngine::CalculateSourcesVolume()
+{
+	for( Source& source : sources_ )
+	{
+		if( source.is_free )
+			continue;
+
+		const float base_sound_volume=
+			float( game_resources_->sounds[ source.sound_id ].volume ) /
+			float( GameResources::SoundDescription::c_max_volume );
+
+		if( source.is_head_relative )
+			source.volume[0]= source.volume[1]= base_sound_volume;
+		else
+		{
+			const m_Vec3 vec_to_source= source.pos - head_position_;
+			const float disntance_to_source= vec_to_source.Length();
+
+			for( unsigned int j= 0u; j < 2u; j++ )
+			{
+				const float angle_cos= ( vec_to_source * ears_vectors_[j] ) / disntance_to_source;
+				const float ear_volume=
+					0.5f * (
+						angle_cos * ( g_max_ear_volume - g_min_ear_volume )
+						+ g_min_ear_volume + g_max_ear_volume );
+
+				// Quadratic attenuation.
+				const float volume=
+					base_sound_volume * g_volume_distance_scale * ear_volume /
+					( disntance_to_source * disntance_to_source );
+
+				source.volume[j]= std::min( std::max( volume, 0.0f ), 1.0f );
+			}
+		}
+	}
 }
 
 } // namespace Sound
