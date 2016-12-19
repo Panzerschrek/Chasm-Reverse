@@ -39,7 +39,16 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 }
 
 SoundEngine::~SoundEngine()
-{}
+{
+	// Force stop all channels
+	driver_.LockChannels();
+
+	Channels& channels= driver_.GetChannels();
+	for( Channel& channel : channels )
+		channel.is_active= false;
+
+	driver_.UnlockChannels();
+}
 
 void SoundEngine::Tick()
 {
