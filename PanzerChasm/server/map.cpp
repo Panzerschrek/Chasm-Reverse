@@ -246,6 +246,17 @@ void Map::PlayMonsterLinkedSound(
 	message.sound_id= sound_id;
 }
 
+void Map::PlayMonsterSound(
+	const Messages::EntityId monster_id,
+	const unsigned int monster_sound_id )
+{
+	monsters_sounds_messages_.emplace_back();
+	Messages::MonsterSound& message= monsters_sounds_messages_.back();
+
+	message.monster_id= monster_id;
+	message.monster_sound_id= monster_sound_id;
+}
+
 m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
 {
 	m_Vec2 pos= in_pos.xy();
@@ -1167,6 +1178,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::MonsterSound& message : monsters_sounds_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
@@ -1192,6 +1207,7 @@ void Map::ClearUpdateEvents()
 	particles_effects_messages_.clear();
 	map_events_sounds_messages_.clear();
 	monster_linked_sounds_messages_.clear();
+	monsters_sounds_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )

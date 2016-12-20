@@ -114,6 +114,25 @@ void SoundEngine::Tick()
 	driver_.UnlockChannels();
 }
 
+void SoundEngine::UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters )
+{
+	for( Source& source : sources_ )
+	{
+		if( source.is_free )
+			continue;
+
+		if( source.monster_id != 0u )
+		{
+			const auto it= monsters.find( source.monster_id );
+			if( it != monsters.end() )
+			{
+				const MapState::Monster& monster= it->second;
+				source.pos= monster.pos;  // TODO - correct z coordinate
+			}
+		}
+	}
+}
+
 void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 {
 	ForceStopAllChannels();
@@ -181,6 +200,33 @@ void SoundEngine::PlayWorldSound(
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
 	source->pos= position;
+	source->monster_id= 0u;
+}
+
+void SoundEngine::PlayMonsterSound(
+	const MapState::MonstersContainer::value_type& monster_value,
+	const unsigned int monster_sound_id )
+{
+	const MapState::Monster& monster= monster_value.second;
+
+	if( monster.monster_id >= c_max_monsters ||
+		monster_sound_id >= c_max_monster_sounds )
+		return;
+
+	Source* const source= GetFreeSource();
+	if( source == nullptr )
+		return;
+
+	const unsigned int sound_number=
+		GameResources::c_max_global_sounds + MapData::c_max_map_sounds +
+		monster.monster_id * c_max_monster_sounds + monster_sound_id;
+
+	source->is_free= false;
+	source->sound_id= sound_number;
+	source->pos_samples= 0u;
+	source->is_head_relative= false;
+	source->pos= monster.pos; // TODO - correct z coordinate
+	source->monster_id= monster_value.first;
 }
 
 void SoundEngine::PlayHeadSound( const unsigned int sound_number )
@@ -199,6 +245,7 @@ void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= true;
+	source->monster_id= 0u;
 }
 
 SoundEngine::Source* SoundEngine::GetFreeSource()

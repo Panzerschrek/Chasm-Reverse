@@ -106,10 +106,15 @@ void Client::Loop()
 	camera_controller_.Tick();
 
 	if( sound_engine_ != nullptr )
+	{
 		sound_engine_->SetHeadPosition(
 			player_position_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ), // TODO - use exact camera position here
 			camera_controller_.GetViewAngleZ(),
 			camera_controller_.GetViewAngleX() );
+
+		if( map_state_ != nullptr )
+		sound_engine_->UpdateMonstersSourcesPosition( map_state_->GetMonsters() );
+	}
 
 	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
 
@@ -259,6 +264,20 @@ void Client::operator()( const Messages::MonsterLinkedSound& message )
 	else
 	{
 		// TODO
+	}
+}
+
+void Client::operator()( const Messages::MonsterSound& message )
+{
+	if( sound_engine_ == nullptr )
+		return;
+
+	if( map_state_ != nullptr )
+	{
+		const MapState::MonstersContainer& monsters= map_state_->GetMonsters();
+		const auto it= monsters.find( message.monster_id );
+		if( it != monsters.end() )
+			sound_engine_->PlayMonsterSound( *it, message.monster_sound_id );
 	}
 }
 

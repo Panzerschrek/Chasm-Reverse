@@ -1,6 +1,7 @@
 #pragma once
 #include <vec.hpp>
 
+#include "../client/map_state.hpp"
 #include "../fwd.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
@@ -21,6 +22,7 @@ public:
 	~SoundEngine();
 
 	void Tick();
+	void UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters );
 
 	void SetMap( const MapDataConstPtr& map_data );
 
@@ -31,6 +33,10 @@ public:
 	void PlayWorldSound(
 		unsigned int sound_number,
 		const m_Vec3& position );
+
+	void PlayMonsterSound(
+		const MapState::MonstersContainer::value_type& monster_value,
+		unsigned int monster_sound_id );
 
 	void PlayHeadSound( unsigned int sound_number );
 
@@ -43,6 +49,7 @@ private:
 		unsigned int pos_samples;
 		bool is_head_relative;
 		m_Vec3 pos;
+		Messages::EntityId monster_id;
 
 		float volume[2]; // calculated each tick
 	};

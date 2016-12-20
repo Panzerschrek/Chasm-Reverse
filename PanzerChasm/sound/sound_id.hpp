@@ -28,6 +28,18 @@ struct SoundId
 	};
 };
 
+struct MonsterSoundId
+{
+	enum : unsigned char
+	{
+		Alarmed= 0u,
+		RemoteAttack= 1u,
+		MeleeAttack= 2u,
+		Pain= 4u,
+		Death= 6u,
+	};
+};
+
 } // namespace Sound
 
 } // namespace PanzerChasm

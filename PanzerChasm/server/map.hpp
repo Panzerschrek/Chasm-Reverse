@@ -40,6 +40,10 @@ public:
 		Messages::EntityId monster_id,
 		unsigned int sound_id );
 
+	void PlayMonsterSound(
+		Messages::EntityId monster_id,
+		unsigned int monster_sound_id );
+
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
 		bool& out_on_floor ) const;
@@ -237,6 +241,7 @@ private:
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
 	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
 	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
+	std::vector<Messages::MonsterSound> monsters_sounds_messages_;
 
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 };

@@ -159,6 +159,14 @@ struct MonsterLinkedSound : public MessageBase
 	unsigned char sound_id;
 };
 
+struct MonsterSound : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterSound)
+
+	EntityId monster_id;
+	unsigned char monster_sound_id;
+};
+
 struct RocketState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(RocketState)

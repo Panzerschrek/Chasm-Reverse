@@ -1,5 +1,6 @@
 #include "../game_constants.hpp"
-#include "math_utils.hpp"
+#include "../math_utils.hpp"
+#include "../sound/sound_id.hpp"
 
 #include "map.hpp"
 #include "player.hpp"
@@ -73,6 +74,8 @@ void Monster::Tick(
 	case State::Idle:
 		if( SelectTarget( map, current_time ) )
 		{
+			map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Alarmed );
+
 			state_= State::MoveToTarget;
 			current_animation_= GetAnimation( AnimationId::Run );
 			current_animation_start_time_= current_time;
@@ -147,6 +150,8 @@ void Monster::Tick(
 				( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
 			{
 				target->Hit( description.kick, current_time );
+				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::MeleeAttack );
+
 				attack_was_done_= true;
 			}
 
@@ -179,6 +184,7 @@ void Monster::Tick(
 
 				PC_ASSERT( description.rock >= 0 );
 				map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
+				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::RemoteAttack );
 
 				attack_was_done_= true;
 			}

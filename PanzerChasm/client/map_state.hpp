@@ -1,6 +1,7 @@
 #pragma once
 #include <unordered_map>
 
+#include "../fwd.hpp"
 #include "../messages.hpp"
 #include "../server/rand.hpp" // TODO - move random to common code
 #include "../time.hpp"
