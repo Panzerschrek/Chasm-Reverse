@@ -247,6 +247,21 @@ void Client::operator()( const Messages::MapEventSound& message )
 	}
 }
 
+void Client::operator()( const Messages::MonsterLinkedSound& message )
+{
+	if( sound_engine_ == nullptr )
+		return;
+
+	if( message.monster_id == player_monster_id_ )
+	{
+		sound_engine_->PlayHeadSound( message.sound_id );
+	}
+	else
+	{
+		// TODO
+	}
+}
+
 void Client::operator()( const Messages::MapChange& message )
 {
 	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );

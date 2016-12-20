@@ -3,7 +3,8 @@
 #include <matrix.hpp>
 
 #include "../map_loader.hpp"
-#include "./math_utils.hpp"
+#include "../math_utils.hpp"
+#include "../sound/sound_id.hpp"
 #include "map.hpp"
 
 #include "player.hpp"
@@ -151,6 +152,8 @@ void Player::Tick(
 					final_shoot_pos, final_view_dir_vec,
 					current_time );
 			}
+
+			map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::FirstWeaponFire + current_weapon_index_ );
 
 			if( current_weapon_index_ != 0u )
 				ammo_[ current_weapon_index_ ]--;

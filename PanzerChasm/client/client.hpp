@@ -44,6 +44,7 @@ public: // Messages handlers
 	void operator()( const Messages::SpriteEffectBirth& message );
 	void operator()( const Messages::ParticleEffectBirth& message );
 	void operator()( const Messages::MapEventSound& message );
+	void operator()( const Messages::MonsterLinkedSound& message );
 	void operator()( const Messages::MapChange& message );
 	void operator()( const Messages::MonsterBirth& message );
 	void operator()( const Messages::MonsterDeath& message );
