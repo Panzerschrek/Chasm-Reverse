@@ -373,9 +373,13 @@ const Map::PlayersContainer& Map::GetPlayers() const
 
 void Map::ProcessPlayerPosition(
 	const Time current_time,
-	Player& player,
+	const Messages::EntityId player_monster_id,
 	MessagesSender& messages_sender )
 {
+	const auto player_it= monsters_.find( player_monster_id );
+	PC_ASSERT( player_it != monsters_.end() );
+	Player& player= static_cast<Player&>( *(player_it->second) );
+
 	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
 	const int player_y= static_cast<int>( std::floor( player.Position().y ) );
 	if( player_x < 0 || player_y < 0 ||
@@ -527,6 +531,8 @@ void Map::ProcessPlayerPosition(
 				if( a_code == ACode::BlueKey )
 					player.GiveBlueKey();
 
+				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::GetKey );
+
 				ProcessElementLinks(
 					MapData::IndexElement::StaticModel,
 					m,
@@ -551,6 +557,20 @@ void Map::ProcessPlayerPosition(
 			item.picked_up= player.TryPickupItem( item.item_id );
 			if( item.picked_up )
 			{
+				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
+				if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
+				{
+					PlayMonsterLinkedSound(
+						player_monster_id,
+						Sound::SoundId::FirstWeaponPickup + static_cast<unsigned int>(a_code) - static_cast<unsigned int>(ACode::Weapon_First) );
+				}
+				if( a_code == ACode::Item_Life || a_code == ACode::Item_BigLife )
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::Health );
+				else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::FirstWeaponPickup + 1u );
+				else
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
+
 				// Try activate item links
 				ProcessElementLinks(
 					MapData::IndexElement::Item,
