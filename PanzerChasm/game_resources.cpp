@@ -515,6 +515,10 @@ void LoadSoundsDescriptionFromMapResourcesFile(
 
 	const char* const start=
 		std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#newsounds" );
+
+	if( start == nullptr )
+		return;
+
 	const char* const end= std::strstr( start, "#end" );
 
 	LoadSoundsDescriptionFromFileData( start, end, GameResources::c_max_global_sounds, out_sounds );
