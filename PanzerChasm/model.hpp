@@ -31,6 +31,7 @@ struct Submodel
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
 
+	// Associated with models sounds (raw PCM)
 	std::vector< std::vector<unsigned char> > sounds;
 
 	float z_min, z_max;

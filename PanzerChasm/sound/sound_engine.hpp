@@ -55,7 +55,7 @@ private:
 private:
 	// TODO - check this numbers
 	static constexpr unsigned int c_max_monsters= 24u;
-	static constexpr unsigned int c_max_monster_sounds= 10u;
+	static constexpr unsigned int c_max_monster_sounds= 8u;
 	static constexpr unsigned int c_max_total_monsters_sounds= c_max_monsters * c_max_monster_sounds;
 
 private:
