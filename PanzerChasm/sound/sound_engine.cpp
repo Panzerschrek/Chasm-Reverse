@@ -51,16 +51,7 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 
 SoundEngine::~SoundEngine()
 {
-	// Force stop all channels.
-	// This need, because driver life is longer, than life of sound data.
-
-	driver_.LockChannels();
-
-	Channels& channels= driver_.GetChannels();
-	for( Channel& channel : channels )
-		channel.is_active= false;
-
-	driver_.UnlockChannels();
+	ForceStopAllChannels();
 }
 
 void SoundEngine::Tick()
@@ -107,6 +98,8 @@ void SoundEngine::Tick()
 
 void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 {
+	ForceStopAllChannels();
+
 	current_map_data_= map_data;
 
 	if( current_map_data_ != nullptr )
@@ -232,6 +225,20 @@ void SoundEngine::CalculateSourcesVolume()
 			}
 		}
 	}
+}
+
+void SoundEngine::ForceStopAllChannels()
+{
+	// Force stop all channels.
+	// This need, because driver life is longer, than life of sound data (global or map).
+
+	driver_.LockChannels();
+
+	Channels& channels= driver_.GetChannels();
+	for( Channel& channel : channels )
+		channel.is_active= false;
+
+	driver_.UnlockChannels();
 }
 
 } // namespace Sound

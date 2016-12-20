@@ -50,6 +50,7 @@ private:
 private:
 	Source* GetFreeSource();
 	void CalculateSourcesVolume();
+	void ForceStopAllChannels();
 
 private:
 	const GameResourcesConstPtr game_resources_;
