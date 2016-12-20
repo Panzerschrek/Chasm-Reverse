@@ -13,14 +13,21 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   ( svojsta "checkgo" i "checkback" proçedur ).
 * Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
   ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
+* Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Optimizaçija rascötov stolknovenij monstrov s urovnem i polötov raket.
+* Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
+* Miny.
+* Rakety s otskokom ot pola.
+* Samonavodäscijesä rakety.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
+* Dorabotka bossov.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Smertj igroka.
 * Urovni složnosti.
 * Sohranenije i zagruzka igry.
+* Skriptovyje sçeny meždu urovnämi.
 
 
 [GRAFIKA]
@@ -29,6 +36,11 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
+* Boleje ekonomnoje hranenije animaçij modelej.
+* Plavnyje animaçii, po krajnej mere casti objektov.
+* Çvetokorrekçija.
+* Sglaživanije.
+* Risovanije modelej igrokov raznym çvetom.
 
 
 [ZVUK]
@@ -54,3 +66,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Realizaçija setevogo vzaimodejstvija pod "Windows".
 * Dorabotki igrovoj logiki dlä setevyh režimov.
 * Realizaçija setevogo vzaimodejstvija pod "GNU/Linux" i "OS X".
+* Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
+* Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
+  paketov. Rascöt animaçij na storone klijenta.
