@@ -65,6 +65,7 @@ struct PlayerSpawn : public MessageBase
 
 	CoordType xyz[3];
 	AngleType direction;
+	EntityId player_monster_id;
 };
 
 struct PlayerPosition : public MessageBase

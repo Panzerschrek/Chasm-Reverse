@@ -44,6 +44,7 @@ private:
 
 		ConnectionInfo connection_info;
 		PlayerPtr player;
+		Messages::EntityId player_monster_id;
 	};
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;

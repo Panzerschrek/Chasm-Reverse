@@ -168,7 +168,7 @@ Map::Map(
 Map::~Map()
 {}
 
-void Map::SpawnPlayer( const PlayerPtr& player )
+Messages::EntityId Map::SpawnPlayer( const PlayerPtr& player )
 {
 	PC_ASSERT( player != nullptr );
 
@@ -202,6 +202,8 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 
 	players_.emplace( player_id, player );
 	monsters_.emplace( player_id, player );
+
+	return player_id;
 }
 
 void Map::Shoot(

@@ -188,6 +188,7 @@ void Client::operator()( const Messages::PlayerSpawn& message )
 {
 	MessagePositionToPosition( message.xyz, player_position_ );
 	camera_controller_.SetAngles( MessageAngleToAngle( message.direction ), 0.0f );
+	player_monster_id_= message.player_monster_id;
 }
 
 void Client::operator()( const Messages::WallPosition& message )

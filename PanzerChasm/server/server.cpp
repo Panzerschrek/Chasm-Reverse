@@ -60,7 +60,10 @@ void Server::Loop()
 		ConnectedPlayer& connected_player= *players_.back();
 
 		if( map_ != nullptr )
-			map_->SpawnPlayer( connected_player.player );
+		{
+			connected_player.player_monster_id=
+				map_->SpawnPlayer( connected_player.player );
+		}
 
 		Messages::MapChange map_change_msg;
 		map_change_msg.map_number= current_map_number_;
@@ -69,6 +72,11 @@ void Server::Loop()
 
 		if( map_ != nullptr )
 			map_->SendMessagesForNewlyConnectedPlayer( connected_player.connection_info.messages_sender );
+
+		Messages::PlayerSpawn spawn_message;
+		connected_player.player->BuildSpawnMessage( spawn_message );
+		spawn_message.player_monster_id= connected_player.player_monster_id;
+		connected_player.connection_info.messages_sender.SendReliableMessage( spawn_message );
 
 		connected_player.connection_info.messages_sender.Flush();
 	}
@@ -113,7 +121,10 @@ void Server::Loop()
 		connected_player->player->BuildWeaponMessage( weapon_msg );
 
 		if( connected_player->player->BuildSpawnMessage( spawn_msg ) )
+		{
+			spawn_msg.player_monster_id= connected_player->player_monster_id;
 			messages_sender.SendUnreliableMessage( spawn_msg );
+		}
 
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );

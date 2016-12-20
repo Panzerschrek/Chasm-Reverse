@@ -26,7 +26,8 @@ public:
 		MapEndCallback map_end_callback );
 	~Map();
 
-	void SpawnPlayer( const PlayerPtr& player );
+	// Returns monster_id for spawned player
+	Messages::EntityId SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
 		Messages::EntityId owner_id,
