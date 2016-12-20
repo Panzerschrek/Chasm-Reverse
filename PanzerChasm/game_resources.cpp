@@ -513,15 +513,33 @@ void LoadSoundsDescriptionFromMapResourcesFile(
 		out_sounds[s].volume= 0u;
 	}
 
-	const char* const start=
-		std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#newsounds" );
-
+	const char* const start= std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#newsounds" );
 	if( start == nullptr )
 		return;
 
 	const char* const end= std::strstr( start, "#end" );
 
 	LoadSoundsDescriptionFromFileData( start, end, GameResources::c_max_global_sounds, out_sounds );
+}
+
+void LoadAmbientSoundsDescriptionFromMapResourcesFile(
+	const Vfs::FileContent& resoure_file,
+	GameResources::SoundDescription* out_sounds,
+	unsigned int max_sound_count )
+{
+	for( unsigned int s= 0u; s < max_sound_count; s++ )
+	{
+		out_sounds[s].file_name[0]= '\0';
+		out_sounds[s].volume= 0u;
+	}
+
+	const char* const start= std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#ambients" );
+	if( start == nullptr )
+		return;
+
+	const char* const end= std::strstr( start, "#end" );
+
+	LoadSoundsDescriptionFromFileData( start, end, 0u, out_sounds );
 }
 
 } // namespace PanzerChasm

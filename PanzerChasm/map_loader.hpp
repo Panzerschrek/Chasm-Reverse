@@ -34,7 +34,9 @@ public:
 	static constexpr unsigned int c_max_file_name_size= 16u;
 	static constexpr unsigned int c_max_file_path_size= 64u;
 
-	static constexpr unsigned int c_max_map_sounds= 32u; // TODO - know, how much map sounds supports original game
+	 // TODO - know, how much map sounds supports original game
+	static constexpr unsigned int c_max_map_sounds= 32u;
+	static constexpr unsigned int c_max_map_ambients= 32u;
 
 public:
 	struct Wall
@@ -248,6 +250,7 @@ public:
 	char sky_texture_name[ c_max_file_path_size ];
 
 	GameResources::SoundDescription map_sounds[ c_max_map_sounds ];
+	GameResources::SoundDescription ambients[ c_max_map_ambients ];
 
 	// All map tables cells are accesible via table[ x + y * size ].
 
