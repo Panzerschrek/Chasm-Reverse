@@ -261,9 +261,12 @@ void Client::operator()( const Messages::MonsterLinkedSound& message )
 	{
 		sound_engine_->PlayHeadSound( message.sound_id );
 	}
-	else
+	else if( map_state_ != nullptr )
 	{
-		// TODO
+		const MapState::MonstersContainer& monsters= map_state_->GetMonsters();
+		const auto it= monsters.find( message.monster_id );
+		if( it != monsters.end() )
+			sound_engine_->PlayMonsterLinkedSound( *it, message.sound_id );
 	}
 }
 

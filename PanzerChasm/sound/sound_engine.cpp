@@ -203,6 +203,27 @@ void SoundEngine::PlayWorldSound(
 	source->monster_id= 0u;
 }
 
+void SoundEngine::PlayMonsterLinkedSound(
+	const MapState::MonstersContainer::value_type& monster_value,
+	const unsigned int sound_number )
+{
+	if( sound_number >= sounds_.size() )
+		return;
+
+	Source* const source= GetFreeSource();
+	if( source == nullptr )
+		return;
+
+	const MapState::Monster& monster= monster_value.second;
+
+	source->is_free= false;
+	source->sound_id= sound_number;
+	source->pos_samples= 0u;
+	source->is_head_relative= false;
+	source->pos= monster.pos; // TODO - correct z coordinate
+	source->monster_id= monster_value.first;
+}
+
 void SoundEngine::PlayMonsterSound(
 	const MapState::MonstersContainer::value_type& monster_value,
 	const unsigned int monster_sound_id )

@@ -34,6 +34,10 @@ public:
 		unsigned int sound_number,
 		const m_Vec3& position );
 
+	void PlayMonsterLinkedSound(
+		const MapState::MonstersContainer::value_type& monster_value,
+		unsigned int sound_number );
+
 	void PlayMonsterSound(
 		const MapState::MonstersContainer::value_type& monster_value,
 		unsigned int monster_sound_id );
