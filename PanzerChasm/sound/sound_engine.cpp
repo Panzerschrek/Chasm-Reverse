@@ -45,6 +45,24 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 		}
 	}
 
+	for( unsigned int i= 0u; i < game_resources_->monsters_models.size() && i < c_max_monsters; i++ )
+	{
+		const unsigned int first_monster_sound= GameResources::c_max_global_sounds + MapData::c_max_map_sounds + i * c_max_monster_sounds;
+		const Model& model= game_resources_->monsters_models[i];
+
+		for( unsigned int j= 0; j < model.sounds.size() && j < c_max_monster_sounds; j++ )
+		{
+			ISoundDataConstPtr& sound= sounds_[ first_monster_sound + j ];
+			sound= LoadRawMonsterSound( model.sounds[j] );
+
+			if( sound != nullptr )
+			{
+				total_sounds_loaded++;
+				sound_data_size+= sound->GetDataSize();
+			}
+		}
+	}
+
 	Log::Info( "End loading sounds" );
 	Log::Info( "Total ", total_sounds_loaded, " sounds. Sound data size: ", sound_data_size / 1024u, "kb" );
 }

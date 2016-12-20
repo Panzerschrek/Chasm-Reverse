@@ -46,6 +46,26 @@ private:
 	Vfs::FileContent pcm_data_;
 };
 
+class RawMonsterSoundData final : public ISoundData
+{
+public:
+	RawMonsterSoundData( Vfs::FileContent data )
+	{
+		pcm_data_= std::move( data );
+
+		frequency_= 11025u;
+		data_type_= DataType::Signed8;
+		data_= pcm_data_.data();
+		sample_count_= pcm_data_.size();
+	}
+
+	virtual ~RawMonsterSoundData() override {}
+
+private:
+	Vfs::FileContent pcm_data_;
+};
+
+
 class WavSoundData final : public ISoundData
 {
 public:
@@ -135,6 +155,14 @@ ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs )
 		return ISoundDataConstPtr( new RawPCMSoundData( std::move( file_content ) ) );
 
 	return nullptr;
+}
+
+ISoundDataConstPtr LoadRawMonsterSound( const Vfs::FileContent& raw_sound_data )
+{
+	if( raw_sound_data.empty() )
+		return nullptr;
+
+	return ISoundDataConstPtr( new RawMonsterSoundData( raw_sound_data ) );
 }
 
 } // namespace Sound

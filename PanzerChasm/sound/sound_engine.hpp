@@ -53,13 +53,22 @@ private:
 	void ForceStopAllChannels();
 
 private:
+	// TODO - check this numbers
+	static constexpr unsigned int c_max_monsters= 24u;
+	static constexpr unsigned int c_max_monster_sounds= 10u;
+	static constexpr unsigned int c_max_total_monsters_sounds= c_max_monsters * c_max_monster_sounds;
+
+private:
 	const GameResourcesConstPtr game_resources_;
 
 	Driver driver_;
 
 	MapDataConstPtr current_map_data_;
 
-	std::array< ISoundDataConstPtr, GameResources::c_max_global_sounds + MapData::c_max_map_sounds > sounds_;
+	std::array<
+		ISoundDataConstPtr,
+		GameResources::c_max_global_sounds + MapData::c_max_map_sounds + c_max_total_monsters_sounds >
+		sounds_;
 
 	Source sources_[ Channel::c_max_channels ];
 

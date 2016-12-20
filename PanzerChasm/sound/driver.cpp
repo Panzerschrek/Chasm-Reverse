@@ -173,6 +173,30 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 			break;
 
 		case ISoundData::DataType::Signed8:
+		{
+			const char* const src=
+				static_cast<const char*>( channel.src_sound_data->data_ ) + channel.position_samples;
+
+			for( unsigned int i= 0u; i < sample_count; i++ )
+			{
+				const unsigned int sample_coord_f= i * freq_ratio_f;
+				const unsigned int sample_coord= sample_coord_f >> g_frac_bits;
+				const unsigned int part= sample_coord_f & ( g_frac - 1u );
+
+				if( sample_coord + 1u >= end_sample_coord )
+					break;
+
+				// Value in range [ -128 * g_frac; 127 * g_frac ]
+				const int signed_sample=
+					int( src[ sample_coord ] * ( g_frac - part ) ) + int( src[ sample_coord + 1u ] * part );
+
+				mix_buffer_[ i * 2u      ]+= ( signed_sample * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+				mix_buffer_[ i * 2u + 1u ]+= ( signed_sample * volume[1] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+
+			}
+		}
+		break;
+
 		case ISoundData::DataType::Signed16:
 		case ISoundData::DataType::Unsigned16:
 			// TODO

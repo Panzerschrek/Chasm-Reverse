@@ -458,6 +458,16 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 		submodels_offset+= c_animation_data_offset + submodel_animation_data_size;
 	} // for submodels
+
+	out_model.sounds.resize( 16u - 9u );
+	for( unsigned int i= 9u; i < 16u; i++ )
+	{
+		std::vector<unsigned char>& sound= out_model.sounds[ i - 9u ];
+		sound.resize( header->unknown[i] );
+		std::memcpy( sound.data(), model_file.data() + submodels_offset, header->unknown[i] );
+
+		submodels_offset+= header->unknown[i];
+	}
 }
 
 } // namespace ChasmReverse

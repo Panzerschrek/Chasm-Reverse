@@ -43,6 +43,7 @@ typedef std::unique_ptr<ISoundData> ISoundDataConstPtr;
 
 
 ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs );
+ISoundDataConstPtr LoadRawMonsterSound( const Vfs::FileContent& raw_sound_data );
 
 } // namespace Sound
 
