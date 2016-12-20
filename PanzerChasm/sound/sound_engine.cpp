@@ -148,6 +148,9 @@ void SoundEngine::PlayWorldSound(
 	const unsigned int sound_number,
 	const m_Vec3& position )
 {
+	if( sound_number >= sounds_.size() )
+		return;
+
 	Source* const source= GetFreeSource();
 	if( source == nullptr )
 		return;
@@ -198,9 +201,18 @@ void SoundEngine::CalculateSourcesVolume()
 		if( source.is_free )
 			continue;
 
+		unsigned char base_sound_volume_value;
+		if( source.sound_id < GameResources::c_max_global_sounds )
+			base_sound_volume_value= game_resources_->sounds[ source.sound_id ].volume;
+		else if(
+			current_map_data_ != nullptr &&
+			source.sound_id - GameResources::c_max_global_sounds < MapData::c_max_map_sounds )
+			base_sound_volume_value= current_map_data_->map_sounds[ source.sound_id - GameResources::c_max_global_sounds ].volume;
+		else
+			base_sound_volume_value= GameResources::SoundDescription::c_max_volume;
+
 		const float base_sound_volume=
-			float( game_resources_->sounds[ source.sound_id ].volume ) /
-			float( GameResources::SoundDescription::c_max_volume );
+			float( base_sound_volume_value ) / float( GameResources::SoundDescription::c_max_volume );
 
 		if( source.is_head_relative )
 			source.volume[0]= source.volume[1]= base_sound_volume;
