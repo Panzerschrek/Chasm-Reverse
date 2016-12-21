@@ -44,13 +44,16 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [ZVUK]
-* Obscaja realizaçija zvukovoj podsistemy.
-* Zvuki, priväzannyje k igroku.
-* Zvuki monstrov.
-* Zvuki sobytij v prostranstve.
-* Fonovyje zvuki objektov.
-* Fonovyje zvuki urovnä.
-* Zvuki menü.
+* Issledovatj, kak izlucajetsä zvuk ot proçedur, v slucaje otsutstvija parametra
+  "posxy" a takže, kogda takih parametrov neskoljko.
+* Zaçyklennyje zvuki, v tom cisle:
+	* Fonovyje zvuki urovnä.
+	* Zvuki modelej urovnä.
+* Optimizaçija zagruzki zvukov. V slucaje, kogda v tabliçe zvukov igry ili
+  urovnä imejutsä dublikaty, gruzitj zvuk toljko odin raz i ispoljzovatj jego
+  kak razdeläjemyj.
+* Optimizaçija zagruzki zvukov urovnej - pereispoljzovanije uže zagružennyh
+  zvukov ot predyduscego urovnä.
 
 
 [OBSCEJE]
