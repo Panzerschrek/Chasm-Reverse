@@ -26,7 +26,8 @@ public:
 		MapEndCallback map_end_callback );
 	~Map();
 
-	void SpawnPlayer( const PlayerPtr& player );
+	// Returns monster_id for spawned player
+	Messages::EntityId SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
 		Messages::EntityId owner_id,
@@ -34,6 +35,14 @@ public:
 		const m_Vec3& from,
 		const m_Vec3& normalized_direction,
 		Time current_time );
+
+	void PlayMonsterLinkedSound(
+		Messages::EntityId monster_id,
+		unsigned int sound_id );
+
+	void PlayMonsterSound(
+		Messages::EntityId monster_id,
+		unsigned int monster_sound_id );
 
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
@@ -43,7 +52,7 @@ public:
 
 	const PlayersContainer& GetPlayers() const;
 
-	void ProcessPlayerPosition( Time current_time, Player& player, MessagesSender& messages_sender );
+	void ProcessPlayerPosition( Time current_time, Messages::EntityId player_monster_id, MessagesSender& messages_sender );
 	void Tick( Time current_time, Time last_tick_delta );
 
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
@@ -230,6 +239,9 @@ private:
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
+	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
+	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
+	std::vector<Messages::MonsterSound> monsters_sounds_messages_;
 
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 };

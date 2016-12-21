@@ -39,14 +39,20 @@ SIZE_ASSERT( Vertex_o3, 6 );
 
 struct CARHeader
 {
+	static constexpr unsigned int c_sound_count= 7u;
+
 	unsigned short animations[20u];
 	unsigned short submodels_animations[3u][2u];
 
 	// 6, 7, 8 - gibs type
-	// 9 - 15 big values. It sum equals to file footer size.
-	// 16 - always zero, maybe
-	// 17 - 24 values, like 64, 96, 128 etc.
-	unsigned short unknown[25u];
+	unsigned short unknown0[9];
+
+	// Values - sound data size, in bytes.
+	unsigned short sounds[c_sound_count];
+
+	// 0 - always zero, maybe
+	// 1 - 8  values, like 64, 96, 128 etc.
+	unsigned short unknown1[9];
 };
 
 SIZE_ASSERT( CARHeader, 0x66 );
@@ -458,6 +464,20 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 		submodels_offset+= c_animation_data_offset + submodel_animation_data_size;
 	} // for submodels
+
+	unsigned int sounds_offset= submodels_offset;
+
+	out_model.sounds.resize( CARHeader::c_sound_count );
+	for( unsigned int i= 0u; i < CARHeader::c_sound_count; i++ )
+	{
+		std::vector<unsigned char>& sound= out_model.sounds[i];
+		sound.resize( header->sounds[i] );
+		std::memcpy( sound.data(), model_file.data() + sounds_offset, header->sounds[i] );
+
+		sounds_offset+= header->sounds[i];
+	}
+
+	PC_ASSERT( sounds_offset == model_file.size() );
 }
 
 } // namespace ChasmReverse

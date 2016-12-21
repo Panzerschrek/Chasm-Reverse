@@ -1,5 +1,7 @@
 #include "assert.hpp"
 #include "drawers.hpp"
+#include "sound/sound_engine.hpp"
+#include "sound/sound_id.hpp"
 
 #include "menu.hpp"
 
@@ -29,10 +31,11 @@ static const unsigned int g_menu_caption_offset= 2u;
 class MenuBase
 {
 public:
-	MenuBase( MenuBase* const parent_menu );
+	MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& sound_engine );
 	virtual ~MenuBase();
 
 	MenuBase* GetParent() const;
+	void PlayMenuSound( unsigned int sound_id );
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) = 0;
 
@@ -41,10 +44,12 @@ public:
 
 private:
 	MenuBase* const parent_menu_;
+	const Sound::SoundEnginePtr& sound_engine_;
 };
 
-MenuBase::MenuBase( MenuBase* const parent_menu )
+MenuBase::MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& sound_engine )
 	: parent_menu_(parent_menu)
+	, sound_engine_(sound_engine)
 {}
 
 MenuBase::~MenuBase()
@@ -55,12 +60,18 @@ MenuBase* MenuBase::GetParent() const
 	return parent_menu_;
 }
 
+void MenuBase::PlayMenuSound( const unsigned int sound_id )
+{
+	if( sound_engine_ != nullptr )
+		sound_engine_->PlayHeadSound( sound_id );
+}
+
 // Quit Menu
 
 class QuitMenu final : public MenuBase
 {
 public:
-	QuitMenu( MenuBase* parent, HostCommands& host_commands );
+	QuitMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~QuitMenu() override;
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
@@ -70,8 +81,8 @@ private:
 	HostCommands& host_commands_;
 };
 
-QuitMenu::QuitMenu( MenuBase* parent, HostCommands& host_commands )
-	: MenuBase( parent )
+QuitMenu::QuitMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
 	, host_commands_(host_commands)
 {}
 
@@ -129,7 +140,7 @@ MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
 class MainMenu final : public MenuBase
 {
 public:
-	explicit MainMenu( HostCommands& host_commands );
+	 MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~MainMenu() override;
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
@@ -141,10 +152,10 @@ private:
 
 };
 
-MainMenu::MainMenu( HostCommands& host_commands )
-	: MenuBase( nullptr )
+MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( nullptr, sound_engine )
 {
-	submenus_[5].reset( new QuitMenu( this, host_commands ) );
+	submenus_[5].reset( new QuitMenu( this, sound_engine, host_commands ) );
 }
 
 MainMenu::~MainMenu()
@@ -194,13 +205,22 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 		event.event.key.pressed )
 	{
 		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ - 1 + 6 ) % 6;
+		}
 
 		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ + 1 + 6 ) % 6;
+		}
 
 		if( event.event.key.key_code == KeyCode::Enter )
+		{
+			PlayMenuSound( Sound::SoundId::MenuSelect );
 			return submenus_[ current_row_ ].get();
+		}
 	}
 	return this;
 }
@@ -209,9 +229,10 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 
 Menu::Menu(
 	HostCommands& host_commands,
-	const DrawersPtr& drawers )
+	const DrawersPtr& drawers,
+	const Sound::SoundEnginePtr& sound_engine )
 	: drawers_(drawers)
-	, root_menu_( new MainMenu( host_commands ) )
+	, root_menu_( new MainMenu( sound_engine, host_commands ) )
 {
 	PC_ASSERT( drawers_ != nullptr );
 }
@@ -237,9 +258,15 @@ void Menu::ProcessEvents( const SystemEvents& events )
 				event.event.key.key_code == KeyCode::Escape )
 			{
 				if( current_menu_ != nullptr )
+				{
+					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
 					current_menu_= current_menu_->GetParent();
+				}
 				else
+				{
 					current_menu_= root_menu_.get();
+					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+				}
 			}
 			break;
 

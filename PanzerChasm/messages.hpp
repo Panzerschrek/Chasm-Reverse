@@ -65,6 +65,7 @@ struct PlayerSpawn : public MessageBase
 
 	CoordType xyz[3];
 	AngleType direction;
+	EntityId player_monster_id;
 };
 
 struct PlayerPosition : public MessageBase
@@ -140,6 +141,30 @@ struct ParticleEffectBirth : public MessageBase
 
 	CoordType xyz[3];
 	unsigned char effect_id;
+};
+
+struct MapEventSound : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MapEventSound)
+
+	CoordType xyz[3];
+	unsigned char sound_id;
+};
+
+struct MonsterLinkedSound : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterLinkedSound)
+
+	EntityId monster_id;
+	unsigned char sound_id;
+};
+
+struct MonsterSound : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterSound)
+
+	EntityId monster_id;
+	unsigned char monster_sound_id;
 };
 
 struct RocketState : public MessageBase

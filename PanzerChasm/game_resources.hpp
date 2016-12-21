@@ -15,6 +15,8 @@ public:
 	constexpr static unsigned int c_max_file_name_size= 20u;
 	constexpr static unsigned int c_max_file_path_size= 64u;
 
+	constexpr static unsigned int c_max_global_sounds= 80u;
+
 	struct ItemDescription
 	{
 		char model_file_name[ c_max_file_name_size ];
@@ -114,6 +116,14 @@ public:
 		int smoke_trail_effect_id; // Trail sprite effect type
 	};
 
+	struct SoundDescription
+	{
+		static constexpr unsigned char c_max_volume= 128u;
+
+		char file_name[ c_max_file_path_size ];
+		unsigned char volume;
+	};
+
 public:
 	VfsPtr vfs;
 	Palette palette; // main game palette
@@ -132,8 +142,20 @@ public:
 
 	std::vector<RocketDescription> rockets_description;
 	std::vector<Model> rockets_models;
+
+	SoundDescription sounds[ c_max_global_sounds ];
 };
 
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs );
+
+void LoadSoundsDescriptionFromMapResourcesFile(
+	const Vfs::FileContent& resoure_file,
+	GameResources::SoundDescription* out_sounds,
+	unsigned int max_sound_count );
+
+void LoadAmbientSoundsDescriptionFromMapResourcesFile(
+	const Vfs::FileContent& resoure_file,
+	GameResources::SoundDescription* out_sounds,
+	unsigned int max_sound_count );
 
 } // namespace PanzerChasm

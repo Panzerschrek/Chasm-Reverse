@@ -5,6 +5,7 @@
 #include "../game_constants.hpp"
 #include "../math_utils.hpp"
 #include "../particles.hpp"
+#include "../sound/sound_id.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
 #include "monster.hpp"
@@ -167,7 +168,7 @@ Map::Map(
 Map::~Map()
 {}
 
-void Map::SpawnPlayer( const PlayerPtr& player )
+Messages::EntityId Map::SpawnPlayer( const PlayerPtr& player )
 {
 	PC_ASSERT( player != nullptr );
 
@@ -201,6 +202,8 @@ void Map::SpawnPlayer( const PlayerPtr& player )
 
 	players_.emplace( player_id, player );
 	monsters_.emplace( player_id, player );
+
+	return player_id;
 }
 
 void Map::Shoot(
@@ -230,6 +233,28 @@ void Map::Shoot(
 
 		rockets_birth_messages_.emplace_back( message );
 	}
+}
+
+void Map::PlayMonsterLinkedSound(
+	const Messages::EntityId monster_id,
+	const unsigned int sound_id )
+{
+	monster_linked_sounds_messages_.emplace_back();
+	Messages::MonsterLinkedSound& message= monster_linked_sounds_messages_.back();
+
+	message.monster_id= monster_id;
+	message.sound_id= sound_id;
+}
+
+void Map::PlayMonsterSound(
+	const Messages::EntityId monster_id,
+	const unsigned int monster_sound_id )
+{
+	monsters_sounds_messages_.emplace_back();
+	Messages::MonsterSound& message= monsters_sounds_messages_.back();
+
+	message.monster_id= monster_id;
+	message.monster_sound_id= monster_sound_id;
 }
 
 m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
@@ -359,9 +384,13 @@ const Map::PlayersContainer& Map::GetPlayers() const
 
 void Map::ProcessPlayerPosition(
 	const Time current_time,
-	Player& player,
+	const Messages::EntityId player_monster_id,
 	MessagesSender& messages_sender )
 {
+	const auto player_it= monsters_.find( player_monster_id );
+	PC_ASSERT( player_it != monsters_.end() );
+	Player& player= static_cast<Player&>( *(player_it->second) );
+
 	const int player_x= static_cast<int>( std::floor( player.Position().x ) );
 	const int player_y= static_cast<int>( std::floor( player.Position().y ) );
 	if( player_x < 0 || player_y < 0 ||
@@ -513,6 +542,8 @@ void Map::ProcessPlayerPosition(
 				if( a_code == ACode::BlueKey )
 					player.GiveBlueKey();
 
+				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::GetKey );
+
 				ProcessElementLinks(
 					MapData::IndexElement::StaticModel,
 					m,
@@ -537,6 +568,20 @@ void Map::ProcessPlayerPosition(
 			item.picked_up= player.TryPickupItem( item.item_id );
 			if( item.picked_up )
 			{
+				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
+				if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
+				{
+					PlayMonsterLinkedSound(
+						player_monster_id,
+						Sound::SoundId::FirstWeaponPickup + static_cast<unsigned int>(a_code) - static_cast<unsigned int>(ACode::Weapon_First) );
+				}
+				if( a_code == ACode::Item_Life || a_code == ACode::Item_BigLife )
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::Health );
+				else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::FirstWeaponPickup + 1u );
+				else
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
+
 				// Try activate item links
 				ProcessElementLinks(
 					MapData::IndexElement::Item,
@@ -1125,6 +1170,18 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::MapEventSound& message : map_events_sounds_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::MonsterLinkedSound& message : monster_linked_sounds_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::MonsterSound& message : monsters_sounds_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
@@ -1148,6 +1205,9 @@ void Map::ClearUpdateEvents()
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
 	particles_effects_messages_.clear();
+	map_events_sounds_messages_.clear();
+	monster_linked_sounds_messages_.clear();
+	monsters_sounds_messages_.clear();
 }
 
 void Map::ActivateProcedure( const unsigned int procedure_number, const Time current_time )
@@ -1801,6 +1861,15 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 
 	PositionToMessagePosition( pos, message.xyz );
 	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
+
+	if( description.break_sfx_number != 0 )
+	{
+		map_events_sounds_messages_.emplace_back();
+		Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
+
+		PositionToMessagePosition( pos, sound_message.xyz );
+		sound_message.sound_id= description.break_sfx_number;
+	}
 }
 
 void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
@@ -1853,6 +1922,12 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 
 	if( message != nullptr )
 		PositionToMessagePosition( pos, message->xyz );
+
+	// Emit sound message
+	map_events_sounds_messages_.emplace_back();
+	Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
+	PositionToMessagePosition( pos, sound_message.xyz );
+	sound_message.sound_id= Sound::SoundId::FirstRocketHit + rocket_type_id;
 }
 
 } // PanzerChasm

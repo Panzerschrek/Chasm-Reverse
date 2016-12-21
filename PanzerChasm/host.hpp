@@ -43,8 +43,10 @@ private:
 	std::unique_ptr<SystemWindow> system_window_;
 	SystemEvents events_;
 
-	std::unique_ptr<Menu> menu_;
+	Sound::SoundEnginePtr sound_engine_;
+
 	std::unique_ptr<Console> console_;
+	std::unique_ptr<Menu> menu_;
 
 	MapLoaderPtr map_loader_;
 

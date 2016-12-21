@@ -219,6 +219,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadSkyTextureName( resource_file_content, *result );
 	LoadModelsDescription( resource_file_content, *result );
 	LoadWallsTexturesDescription( resource_file_content, *result );
+	LoadSoundsDescriptionFromMapResourcesFile( resource_file_content, result->map_sounds, MapData::c_max_map_sounds );
+	LoadAmbientSoundsDescriptionFromMapResourcesFile( resource_file_content, result->ambients, MapData::c_max_map_ambients );
 
 	// Scan floors file
 	LoadFloorsTexturesData( floors_file_content, *result );

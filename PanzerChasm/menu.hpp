@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 
+#include "fwd.hpp"
 #include "host_commands.hpp"
 #include "rendering_context.hpp"
 #include "system_event.hpp"
@@ -16,7 +17,8 @@ class Menu final
 public:
 	Menu(
 		HostCommands& host_commands,
-		const DrawersPtr& drawers );
+		const DrawersPtr& drawers,
+		const Sound::SoundEnginePtr& sound_engine );
 	~Menu();
 
 	bool IsActive() const;
