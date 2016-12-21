@@ -1,11 +1,20 @@
 include(../Common/Common.pri)
 
-SDL_INCLUDES_DIR = ../../SDL2-2.0.3/include
-SDL_LIBS_DIR = ../../SDL2-2.0.3/lib/x86
+win32 {
+	#put your SDL2 paths here
+	SDL_INCLUDES_DIR = ../../SDL2-2.0.3/include
+	SDL_LIBS_DIR = ../../SDL2-2.0.3/lib/x86
 
-LIBS+= $$SDL_LIBS_DIR/SDL2main.lib
-LIBS+= $$SDL_LIBS_DIR/SDL2.lib
-LIBS+= libopengl32
+	LIBS+= $$SDL_LIBS_DIR/SDL2main.lib
+	LIBS+= $$SDL_LIBS_DIR/SDL2.lib
+	LIBS+= libopengl32
+}
+else {
+	SDL_INCLUDES_DIR = /usr/include/SDL2/
+
+	LIBS+= -lSDL2
+	LIBS+= -lGL
+}
 
 CONFIG( debug, debug|release ) {
 	DEFINES+= DEBUG
