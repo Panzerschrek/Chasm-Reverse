@@ -398,7 +398,12 @@ void MapLoader::LoadSkyTextureName( const Vfs::FileContent& resource_file, MapDa
 
 	while( std::isspace(*s) )s++;
 
-	std::sscanf( s, "%s", map_data.sky_texture_name );
+	char* dst= map_data.sky_texture_name;
+	while( *s != '\0' && !std::isspace( *s ) )
+	{
+		*dst= *s; dst++; s++;
+	}
+	*dst= '\0';
 }
 
 void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data )
