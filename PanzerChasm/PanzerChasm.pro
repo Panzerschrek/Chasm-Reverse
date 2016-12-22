@@ -49,12 +49,12 @@ SOURCES+= \
 	messages_sender.cpp \
 	model.cpp \
 	obj.cpp \
+	rand.cpp \
 	server/collisions.cpp \
 	server/map.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
 	server/player.cpp \
-	server/rand.cpp \
 	server/server.cpp \
 	sound/driver.cpp \
 	sound/sound_engine.cpp \
@@ -98,6 +98,7 @@ HEADERS+= \
 	model.hpp \
 	obj.hpp \
 	particles.hpp \
+	rand.hpp \
 	rendering_context.hpp \
 	server/a_code.hpp \
 	server/collisions.hpp \
@@ -106,7 +107,6 @@ HEADERS+= \
 	server/monster.hpp \
 	server/monster_base.hpp \
 	server/player.hpp \
-	server/rand.hpp \
 	server/server.hpp \
 	size.hpp \
 	sound/channel.hpp \

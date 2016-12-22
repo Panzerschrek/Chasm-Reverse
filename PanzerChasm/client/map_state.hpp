@@ -3,7 +3,7 @@
 
 #include "../fwd.hpp"
 #include "../messages.hpp"
-#include "../server/rand.hpp" // TODO - move random to common code
+#include "../rand.hpp"
 #include "../time.hpp"
 
 namespace PanzerChasm
