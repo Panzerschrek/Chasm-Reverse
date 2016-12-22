@@ -27,6 +27,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Smertj igroka.
 * Urovni složnosti.
 * Sohranenije i zagruzka igry.
+* Otryvanije castej tela monstram.
+* Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
+  monstrov pri popadanii rakety ili puli.
 * Skriptovyje sçeny meždu urovnämi.
 
 
@@ -37,7 +40,12 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
 * Boleje ekonomnoje hranenije animaçij modelej.
+* Risovanije monstrov s otorvannymi castämi tela. Korrektnoje risovanije vspyšek
+  oružija monstrov, kogda oni streläjut.
 * Plavnyje animaçii, po krajnej mere casti objektov.
+* Graficeskij effekt pri vystrele iz "Mega-destroyer".
+* Risovanije minikarty. Risovanije toljko vidennyh sten.
+* Otsecenije objektov po piramide vidimosti.
 * Çvetokorrekçija.
 * Sglaživanije.
 * Risovanije modelej igrokov raznym çvetom.
@@ -59,8 +67,10 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 [OBSCEJE]
 * Sistema nastrojek.
 * Zapusk dopolnenij.
+* Menü nastrojek.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Avtodopolnenije v konsoli.
+* Menü "save" i "load".
 
 
 [SETJ]
@@ -68,6 +78,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Realizaçja interfejsov "IConnection" i procih dlä raboty po realjnoj seti.
 * Realizaçija setevogo vzaimodejstvija pod "Windows".
 * Dorabotki igrovoj logiki dlä setevyh režimov.
+* Menü setevoj igry.
 * Realizaçija setevogo vzaimodejstvija pod "GNU/Linux" i "OS X".
 * Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
 * Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
