@@ -290,7 +290,9 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 
 		flash_effect.speed= m_Vec3( 0.0f, 0.0f, 0.0f );
 
-		MessagePositionToPosition( message.xyz, flash_effect.pos );
+		m_Vec3 pos;
+		MessagePositionToPosition( message.xyz, pos );
+		flash_effect.pos= pos;
 		flash_effect.start_time= last_tick_time_;
 
 		const unsigned int c_particle_count= 3u;
@@ -305,7 +307,7 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 			effect.frame= 0.0f;
 
 			effect.speed= m_Vec3( 0.0f, 0.0f, 0.25f );
-			effect.pos= flash_effect.pos + random_generator_.RandPointInSphere( 0.05f ) + m_Vec3( 0.0f, 0.0f, 0.05f );
+			effect.pos= pos + random_generator_.RandPointInSphere( 0.05f ) + m_Vec3( 0.0f, 0.0f, 0.05f );
 
 			effect.start_time= last_tick_time_;
 		}
