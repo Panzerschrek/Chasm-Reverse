@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../messages.hpp"
 #include "../time.hpp"
 
 #include "fwd.hpp"
@@ -38,7 +37,7 @@ public:
 
 	virtual void Tick(
 		Map& map,
-		Messages::EntityId monster_id,
+		EntityId monster_id,
 		Time current_time,
 		Time last_tick_delta )= 0;
 

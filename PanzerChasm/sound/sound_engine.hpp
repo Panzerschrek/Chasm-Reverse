@@ -53,7 +53,7 @@ private:
 		unsigned int pos_samples;
 		bool is_head_relative;
 		m_Vec3 pos;
-		Messages::EntityId monster_id;
+		EntityId monster_id;
 
 		float volume[2]; // calculated each tick
 	};

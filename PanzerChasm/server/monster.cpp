@@ -44,7 +44,7 @@ Monster::~Monster()
 
 void Monster::Tick(
 	Map& map,
-	const Messages::EntityId monster_id,
+	const EntityId monster_id,
 	const Time current_time,
 	const Time last_tick_delta )
 {

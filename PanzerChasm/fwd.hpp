@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 
+// Forward declarations, basic typedefs here.
+
 namespace PanzerChasm
 {
 
@@ -26,6 +28,8 @@ typedef std::shared_ptr<MapLoader> MapLoaderPtr;
 
 class Vfs;
 typedef std::shared_ptr<Vfs> VfsPtr;
+
+typedef unsigned short EntityId;
 
 namespace Sound
 {

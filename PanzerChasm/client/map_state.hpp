@@ -63,7 +63,7 @@ public:
 		unsigned int animation_frame;
 	};
 
-	typedef std::unordered_map< Messages::EntityId, Monster > MonstersContainer;
+	typedef std::unordered_map< EntityId, Monster > MonstersContainer;
 
 	struct Rocket
 	{
@@ -76,7 +76,7 @@ public:
 		unsigned int frame;
 	};
 
-	typedef std::unordered_map< Messages::EntityId, Rocket > RocketsContainer;
+	typedef std::unordered_map< EntityId, Rocket > RocketsContainer;
 
 public:
 	MapState(

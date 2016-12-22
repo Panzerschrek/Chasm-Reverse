@@ -3,6 +3,7 @@
 
 #include <vec.hpp>
 
+#include "fwd.hpp"
 #include "game_constants.hpp"
 
 namespace PanzerChasm
@@ -23,7 +24,6 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
-typedef unsigned short EntityId;
 typedef short CoordType;
 typedef unsigned short AngleType;
 

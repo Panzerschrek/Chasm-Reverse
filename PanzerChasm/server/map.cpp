@@ -26,8 +26,8 @@ static m_Vec3 GetNormalForWall( const Wall& wall )
 }
 
 Map::Rocket::Rocket(
-	const Messages::EntityId in_rocket_id,
-	const Messages::EntityId in_owner_id,
+	const EntityId in_rocket_id,
+	const EntityId in_owner_id,
 	const unsigned char in_rocket_type_id,
 	const m_Vec3& in_start_point,
 	const m_Vec3& in_normalized_direction,
@@ -168,7 +168,7 @@ Map::Map(
 Map::~Map()
 {}
 
-Messages::EntityId Map::SpawnPlayer( const PlayerPtr& player )
+EntityId Map::SpawnPlayer( const PlayerPtr& player )
 {
 	PC_ASSERT( player != nullptr );
 
@@ -198,7 +198,7 @@ Messages::EntityId Map::SpawnPlayer( const PlayerPtr& player )
 	player->SetRandomGenerator( random_generator_ );
 	player->ResetActivatedProcedure();
 
-	const Messages::EntityId player_id= GetNextMonsterId();
+	const EntityId player_id= GetNextMonsterId();
 
 	players_.emplace( player_id, player );
 	monsters_.emplace( player_id, player );
@@ -207,7 +207,7 @@ Messages::EntityId Map::SpawnPlayer( const PlayerPtr& player )
 }
 
 void Map::Shoot(
-	const Messages::EntityId owner_id,
+	const EntityId owner_id,
 	const unsigned int rocket_id,
 	const m_Vec3& from,
 	const m_Vec3& normalized_direction,
@@ -236,7 +236,7 @@ void Map::Shoot(
 }
 
 void Map::PlayMonsterLinkedSound(
-	const Messages::EntityId monster_id,
+	const EntityId monster_id,
 	const unsigned int sound_id )
 {
 	monster_linked_sounds_messages_.emplace_back();
@@ -247,7 +247,7 @@ void Map::PlayMonsterLinkedSound(
 }
 
 void Map::PlayMonsterSound(
-	const Messages::EntityId monster_id,
+	const EntityId monster_id,
 	const unsigned int monster_sound_id )
 {
 	monsters_sounds_messages_.emplace_back();
@@ -384,7 +384,7 @@ const Map::PlayersContainer& Map::GetPlayers() const
 
 void Map::ProcessPlayerPosition(
 	const Time current_time,
-	const Messages::EntityId player_monster_id,
+	const EntityId player_monster_id,
 	MessagesSender& messages_sender )
 {
 	const auto player_it= monsters_.find( player_monster_id );
@@ -1656,7 +1656,7 @@ void Map::MoveMapObjects( const bool active )
 Map::HitResult Map::ProcessShot(
 	const m_Vec3& shot_start_point,
 	const m_Vec3& shot_direction_normalized,
-	const Messages::EntityId skip_monster_id ) const
+	const EntityId skip_monster_id ) const
 {
 	HitResult result;
 	float nearest_shot_point_square_distance= Constants::max_float;
@@ -1825,7 +1825,7 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 	return max_dz;
 }
 
-Messages::EntityId Map::GetNextMonsterId()
+EntityId Map::GetNextMonsterId()
 {
 	return ++next_monster_id_;
 }

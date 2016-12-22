@@ -17,7 +17,7 @@ class Map final
 public:
 	typedef std::function<void()> MapEndCallback;
 
-	typedef std::unordered_map< Messages::EntityId, PlayerPtr > PlayersContainer;
+	typedef std::unordered_map< EntityId, PlayerPtr > PlayersContainer;
 
 	Map(
 		const MapDataConstPtr& map_data,
@@ -27,21 +27,21 @@ public:
 	~Map();
 
 	// Returns monster_id for spawned player
-	Messages::EntityId SpawnPlayer( const PlayerPtr& player );
+	EntityId SpawnPlayer( const PlayerPtr& player );
 
 	void Shoot(
-		Messages::EntityId owner_id,
+		EntityId owner_id,
 		unsigned int rocket_id,
 		const m_Vec3& from,
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
 	void PlayMonsterLinkedSound(
-		Messages::EntityId monster_id,
+		EntityId monster_id,
 		unsigned int sound_id );
 
 	void PlayMonsterSound(
-		Messages::EntityId monster_id,
+		EntityId monster_id,
 		unsigned int monster_sound_id );
 
 	m_Vec3 CollideWithMap(
@@ -52,7 +52,7 @@ public:
 
 	const PlayersContainer& GetPlayers() const;
 
-	void ProcessPlayerPosition( Time current_time, Messages::EntityId player_monster_id, MessagesSender& messages_sender );
+	void ProcessPlayerPosition( Time current_time, EntityId player_monster_id, MessagesSender& messages_sender );
 	void Tick( Time current_time, Time last_tick_delta );
 
 	void SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender ) const;
@@ -131,8 +131,8 @@ private:
 	struct Rocket
 	{
 		Rocket(
-			Messages::EntityId in_rocket_id,
-			Messages::EntityId in_owner_id,
+			EntityId in_rocket_id,
+			EntityId in_owner_id,
 			unsigned char in_rocket_type_id,
 			const m_Vec3& in_start_point,
 			const m_Vec3& in_normalized_direction,
@@ -144,8 +144,8 @@ private:
 		Time start_time;
 		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
-		Messages::EntityId rocket_id;
-		Messages::EntityId owner_id; // owner - monster
+		EntityId rocket_id;
+		EntityId owner_id; // owner - monster
 		unsigned char rocket_type_id;
 
 		m_Vec3 previous_position;
@@ -162,7 +162,7 @@ private:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
-	typedef std::unordered_map< Messages::EntityId, MonsterBasePtr > MonstersContainer;
+	typedef std::unordered_map< EntityId, MonsterBasePtr > MonstersContainer;
 
 	struct HitResult
 	{
@@ -199,11 +199,11 @@ private:
 	HitResult ProcessShot(
 		const m_Vec3& shot_start_point,
 		const m_Vec3& shot_direction_normalized,
-		Messages::EntityId skip_monster_id ) const;
+		EntityId skip_monster_id ) const;
 
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
-	Messages::EntityId GetNextMonsterId();
+	EntityId GetNextMonsterId();
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
@@ -228,13 +228,13 @@ private:
 	Items items_;
 
 	Rockets rockets_;
-	Messages::EntityId next_rocket_id_= 1u;
+	EntityId next_rocket_id_= 1u;
 
 	SpriteEffects sprite_effects_;
 
 	PlayersContainer players_;
 	MonstersContainer monsters_; // + players
-	Messages::EntityId next_monster_id_= 1u;
+	EntityId next_monster_id_= 1u;
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;

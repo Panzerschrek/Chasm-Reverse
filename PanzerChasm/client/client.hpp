@@ -69,7 +69,7 @@ private:
 	Time current_tick_time_;
 
 	m_Vec3 player_position_;
-	Messages::EntityId player_monster_id_= 0u;
+	EntityId player_monster_id_= 0u;
 	Messages::PlayerState player_state_;
 	unsigned int requested_weapon_index_= 0u;
 	MovementController camera_controller_;
