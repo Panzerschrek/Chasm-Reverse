@@ -79,7 +79,7 @@ Driver::Driver()
 
 	frequency_= obtained_format.freq;
 
-	mix_buffer_.resize( requested_format.samples * g_left_and_right );
+	mix_buffer_.resize( obtained_format.samples * g_left_and_right );
 
 	// Run
 	SDL_PauseAudioDevice( device_id_ , 0 );
@@ -122,7 +122,7 @@ void SDLCALL Driver::AudioCallback( void* userdata, Uint8* stream, int len_bytes
 
 void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sample_count )
 {
-	PC_ASSERT( mix_buffer_.size() <= sample_count * g_left_and_right );
+	PC_ASSERT( sample_count * g_left_and_right <= mix_buffer_.size() );
 
 	// Zero mix buffer.
 	for( unsigned int i= 0u; i < sample_count * g_left_and_right; i++ )
