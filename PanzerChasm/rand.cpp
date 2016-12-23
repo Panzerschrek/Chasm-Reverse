@@ -1,5 +1,5 @@
-#include "../assert.hpp"
-#include "../math_utils.hpp"
+#include "assert.hpp"
+#include "math_utils.hpp"
 
 #include "rand.hpp"
 
