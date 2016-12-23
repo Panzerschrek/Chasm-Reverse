@@ -8,6 +8,7 @@ class Map;
 
 class MonsterBase;
 typedef std::shared_ptr<MonsterBase> MonsterBasePtr;
+typedef std::weak_ptr<MonsterBase> MonsterBaseWeakPtr;
 
 class Monster;
 typedef std::shared_ptr<Monster> MonsterPtr;

@@ -61,7 +61,7 @@ void Monster::Tick(
 	const unsigned int frame_count= model.animations[ current_animation_ ].frame_count;
 
 	// Update target position if target moves.
-	const PlayerPtr target= target_.lock();
+	const MonsterBasePtr target= target_.monster.lock();
 	if( target != nullptr )
 		target_position_= target->Position();
 
@@ -341,7 +341,7 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 	*/
 
 	float nearest_player_distance= Constants::max_float;
-	PlayerPtr nearest_player;
+	const Map::PlayersContainer::value_type* nearest_player= nullptr;
 
 	const Map::PlayersContainer& players= map.GetPlayers();
 	for( const Map::PlayersContainer::value_type& player_value : players )
@@ -369,7 +369,7 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 				player.Position() + g_see_point_delta ) )
 		{
 			nearest_player_distance= distance_to_player;
-			nearest_player= player_value.second;
+			nearest_player= &player_value;
 		}
 	}
 
@@ -377,8 +377,9 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 	{
 		const float target_change_interval_s= 0.8f;
 
-		target_= nearest_player;
-		target_position_= nearest_player->Position();
+		target_.monster_id= nearest_player->first;
+		target_.monster= nearest_player->second;
+		target_position_= nearest_player->second->Position();
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 
 		return true;
@@ -389,7 +390,9 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 		const float distance= random_generator_->RandValue( 2.0f, 5.0f );
 		const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
 
-		target_= PlayerPtr();
+		target_.monster_id= 0u;
+		target_.monster= MonsterPtr();
+
 		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
 		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
 

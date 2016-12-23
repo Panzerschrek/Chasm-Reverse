@@ -65,7 +65,12 @@ private:
 
 	bool attack_was_done_;
 
-	PlayerWeakPtr target_;
+	struct
+	{
+		EntityId monster_id= 0u;
+		MonsterBaseWeakPtr monster;
+	} target_;
+
 	m_Vec3 target_position_;
 	Time target_change_time_= Time::FromSeconds(0);
 };
