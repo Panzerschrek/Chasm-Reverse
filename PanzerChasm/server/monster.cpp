@@ -87,7 +87,8 @@ void Monster::Tick(
 
 	case State::MoveToTarget:
 	{
-		if( ( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
+		if( target != nullptr &&
+			( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
 		{
 			state_= State::MeleeAttack;
 			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
