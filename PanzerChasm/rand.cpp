@@ -74,4 +74,23 @@ m_Vec3 LongRand::RandDirection()
 	return result;
 }
 
+bool LongRand::RandBool()
+{
+	return ( Rand() & 1u ) != 0u;
+}
+
+bool LongRand::RandBool( const RandResultType chance_denominator )
+{
+	return RandBool( 1u, chance_denominator );
+}
+
+bool LongRand::RandBool( const RandResultType chance_numerator, const RandResultType chance_denominator )
+{
+	PC_ASSERT( chance_numerator <= chance_denominator );
+
+	return
+		static_cast<ExtendedType>(Rand()) * static_cast<ExtendedType>(chance_denominator) <
+		static_cast<ExtendedType>(c_max_rand_plus_one_) * static_cast<ExtendedType>(chance_numerator);
+}
+
 } // namespace PanzerChasm
