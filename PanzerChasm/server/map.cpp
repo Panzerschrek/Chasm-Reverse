@@ -901,7 +901,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const MonsterBasePtr& monster= it->second;
 			PC_ASSERT( monster != nullptr );
-			monster->Hit( rocket_description.power, current_time );
+			monster->Hit( rocket_description.power, *this, hit_result.object_index ,current_time );
 		}
 
 	end_loop:

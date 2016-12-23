@@ -197,7 +197,11 @@ void Player::Tick(
 	}
 }
 
-void Player::Hit( const int damage, const Time current_time )
+void Player::Hit(
+	const int damage,
+	Map& map,
+	const EntityId monster_id,
+	const Time current_time )
 {
 	PC_UNUSED( current_time );
 
@@ -212,6 +216,10 @@ void Player::Hit( const int damage, const Time current_time )
 
 	armor_-= armor_damage;
 	health_-= health_damage;
+
+	map.PlayMonsterSound(
+		monster_id,
+		random_generator_->RandBool() ? Sound::PlayerMonsterSoundId::Pain0 : Sound::PlayerMonsterSoundId::Pain1 );
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )

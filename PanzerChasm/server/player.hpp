@@ -25,7 +25,11 @@ public:
 		Time current_time,
 		Time last_tick_delta ) override;
 
-	virtual void Hit( int damage, Time current_time ) override;
+	virtual void Hit(
+		int damage,
+		Map& map,
+		EntityId monster_id,
+		Time current_time ) override;
 
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
 	virtual void SetOnFloor( bool on_floor ) override;

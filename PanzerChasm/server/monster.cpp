@@ -150,7 +150,7 @@ void Monster::Tick(
 				target != nullptr &&
 				( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
 			{
-				target->Hit( description.kick, current_time );
+				target->Hit( description.kick, map, target_.monster_id, current_time );
 				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::MeleeAttack );
 
 				attack_was_done_= true;
@@ -207,7 +207,11 @@ void Monster::Tick(
 	};
 }
 
-void Monster::Hit( const int damage, const Time current_time )
+void Monster::Hit(
+	const int damage,
+	Map& map,
+	const EntityId monster_id,
+	const Time current_time)
 {
 	if( state_ != State::DeathAnimation && state_ != State::Dead )
 	{
@@ -224,6 +228,7 @@ void Monster::Hit( const int damage, const Time current_time )
 					state_= State::PainShock;
 					current_animation_= static_cast<unsigned int>(animation);
 					current_animation_start_time_= current_time;
+					map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
 				}
 				else
 				{}// No pain - no gain
@@ -237,6 +242,8 @@ void Monster::Hit( const int damage, const Time current_time )
 			const int animation= GetAnyAnimation( { AnimationId::Death0, AnimationId::Death1, AnimationId::Death2, AnimationId::Death3 } );
 			PC_ASSERT( animation >= 0 );
 			current_animation_= static_cast<unsigned int>(animation);
+
+			map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Death );
 		}
 	}
 }

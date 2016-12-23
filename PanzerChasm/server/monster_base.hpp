@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../fwd.hpp"
 #include "../time.hpp"
-
 #include "fwd.hpp"
 
 #include <vec.hpp>
@@ -41,7 +41,11 @@ public:
 		Time current_time,
 		Time last_tick_delta )= 0;
 
-	virtual void Hit( int damage, Time current_time )= 0;
+	virtual void Hit(
+		int damage,
+		Map& map,
+		EntityId monster_id,
+		Time current_time )= 0;
 
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal )= 0;
 	virtual void SetOnFloor( bool on_floor )= 0;

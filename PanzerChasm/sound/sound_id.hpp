@@ -40,6 +40,17 @@ struct MonsterSoundId
 	};
 };
 
+// Player have differnet from other monsters sounds set.
+struct PlayerMonsterSoundId
+{
+	enum : unsigned char
+	{
+		Pain0= 0u,
+		Pain1= 1u,
+		Death= 6u,
+	};
+};
+
 } // namespace Sound
 
 } // namespace PanzerChasm
