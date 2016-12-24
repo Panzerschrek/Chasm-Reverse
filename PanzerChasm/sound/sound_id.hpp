@@ -14,6 +14,7 @@ struct SoundId
 		MenuOn= 3u,
 		MenuChange= 4u,
 		MenuSelect= 5u,
+		Jump= 12u,
 		FirstWeaponFire= 21u,
 		FirstRocketHit= 30u,
 		FirstWeaponPickup=  51u,

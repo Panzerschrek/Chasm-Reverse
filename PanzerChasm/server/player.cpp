@@ -49,7 +49,9 @@ void Player::Tick(
 {
 	teleported_= false;
 
-	Move( last_tick_delta );
+	const bool jumped= Move( last_tick_delta );
+	if( jumped )
+		map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::Jump );
 
 	if( mevement_acceleration_ > 0.0f )
 	{
@@ -427,64 +429,6 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	shoot_pressed_= move_message.shoot_pressed;
 }
 
-void Player::Move( const Time time_delta )
-{
-	const float time_delta_s= time_delta.ToSeconds();
-
-	// TODO - calibrate this
-	const float c_acceleration= 40.0f;
-	const float c_deceleration= 20.0f;
-	const float c_jump_speed_delta= 3.3f;
-
-	const float speed_delta= time_delta_s * mevement_acceleration_ * c_acceleration;
-	const float deceleration_speed_delta= time_delta_s * c_deceleration;
-
-	// Accelerate
-	speed_.x+= std::cos( movement_direction_ ) * speed_delta;
-	speed_.y+= std::sin( movement_direction_ ) * speed_delta;
-
-	// Decelerate
-	const float new_speed_length= speed_.xy().Length();
-	if( new_speed_length >= deceleration_speed_delta )
-	{
-		const float k= ( new_speed_length - deceleration_speed_delta ) / new_speed_length;
-		speed_.x*= k;
-		speed_.y*= k;
-	}
-	else
-		speed_.x= speed_.y= 0.0f;
-
-	// Clamp speed
-	const float new_speed_square_length= speed_.xy().SquareLength();
-	if( new_speed_square_length > GameConstants::player_max_speed * GameConstants::player_max_speed )
-	{
-		const float k= GameConstants::player_max_speed / std::sqrt( new_speed_square_length );
-		speed_.x*= k;
-		speed_.y*= k;
-	}
-
-	// Fall down
-	speed_.z+= GameConstants::vertical_acceleration * time_delta_s;
-
-	// Jump
-	if( jump_pessed_ && noclip_ )
-		speed_.z-= 2.0f * GameConstants::vertical_acceleration * time_delta_s;
-	else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
-		speed_.z+= c_jump_speed_delta;
-
-	// Clamp vertical speed
-	if( std::abs( speed_.z ) > GameConstants::max_vertical_speed )
-		speed_.z*= GameConstants::max_vertical_speed / std::abs( speed_.z );
-
-	pos_+= speed_ * time_delta_s;
-
-	if( noclip_ && pos_.z < 0.0f )
-	{
-		pos_.z= 0.0f;
-		speed_.z= 0.0f;
-	}
-}
-
 void Player::SetNoclip( const bool noclip )
 {
 	noclip_= noclip;
@@ -554,6 +498,70 @@ unsigned int Player::CurrentAnimation() const
 unsigned int Player::CurrentAnimationFrame() const
 {
 	return current_weapon_animation_frame_;
+}
+
+bool Player::Move( const Time time_delta )
+{
+	const float time_delta_s= time_delta.ToSeconds();
+
+	// TODO - calibrate this
+	const float c_acceleration= 40.0f;
+	const float c_deceleration= 20.0f;
+	const float c_jump_speed_delta= 3.3f;
+
+	const float speed_delta= time_delta_s * mevement_acceleration_ * c_acceleration;
+	const float deceleration_speed_delta= time_delta_s * c_deceleration;
+
+	// Accelerate
+	speed_.x+= std::cos( movement_direction_ ) * speed_delta;
+	speed_.y+= std::sin( movement_direction_ ) * speed_delta;
+
+	// Decelerate
+	const float new_speed_length= speed_.xy().Length();
+	if( new_speed_length >= deceleration_speed_delta )
+	{
+		const float k= ( new_speed_length - deceleration_speed_delta ) / new_speed_length;
+		speed_.x*= k;
+		speed_.y*= k;
+	}
+	else
+		speed_.x= speed_.y= 0.0f;
+
+	// Clamp speed
+	const float new_speed_square_length= speed_.xy().SquareLength();
+	if( new_speed_square_length > GameConstants::player_max_speed * GameConstants::player_max_speed )
+	{
+		const float k= GameConstants::player_max_speed / std::sqrt( new_speed_square_length );
+		speed_.x*= k;
+		speed_.y*= k;
+	}
+
+	// Fall down
+	speed_.z+= GameConstants::vertical_acceleration * time_delta_s;
+
+	bool jumped= false;
+
+	// Jump
+	if( jump_pessed_ && noclip_ )
+		speed_.z-= 2.0f * GameConstants::vertical_acceleration * time_delta_s;
+	else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
+	{
+		jumped= true;
+		speed_.z+= c_jump_speed_delta;
+	}
+
+	// Clamp vertical speed
+	if( std::abs( speed_.z ) > GameConstants::max_vertical_speed )
+		speed_.z*= GameConstants::max_vertical_speed / std::abs( speed_.z );
+
+	pos_+= speed_ * time_delta_s;
+
+	if( noclip_ && pos_.z < 0.0f )
+	{
+		pos_.z= 0.0f;
+		speed_.z= 0.0f;
+	}
+	return jumped;
 }
 
 } // namespace PanzerChasm

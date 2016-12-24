@@ -48,7 +48,6 @@ public:
 	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const; // returns tru, if newly-spawned
 
 	void UpdateMovement( const Messages::PlayerMove& move_message );
-	void Move( Time time_delta );
 
 	void SetNoclip( bool noclip );
 	bool IsNoclip() const;
@@ -68,6 +67,10 @@ public:
 
 	unsigned int CurrentAnimation() const;
 	unsigned int CurrentAnimationFrame() const;
+
+private:
+	// Returns true, if jumped.
+	bool Move( Time time_delta );
 
 private:
 	enum class WeaponState
