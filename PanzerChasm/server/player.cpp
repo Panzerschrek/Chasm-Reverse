@@ -23,7 +23,8 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, armor_(0)
 	, last_shoot_time_( current_time )
 	, weapon_animation_state_change_time_( current_time )
-	,last_pain_sound_time_( current_time )
+	, last_pain_sound_time_( current_time )
+	, last_step_sound_time_( current_time )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -69,6 +70,14 @@ void Player::Tick(
 	else
 		current_animation_= GetAnimation( AnimationId::Idle0 );
 
+
+	if( on_floor_ &&
+		mevement_acceleration_ > 0.0f &&
+		( current_time - last_step_sound_time_ ).ToSeconds() > 0.4f )
+	{
+		last_step_sound_time_= current_time;
+		map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::StepRun );
+	}
 
 	const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
 	current_animation_frame_=
