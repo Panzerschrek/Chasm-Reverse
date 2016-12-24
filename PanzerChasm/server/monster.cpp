@@ -239,7 +239,7 @@ void Monster::Hit(
 			state_= State::DeathAnimation;
 			current_animation_start_time_= current_time;
 
-			const int animation= GetAnyAnimation( { AnimationId::Death0, AnimationId::Death1, AnimationId::Death2, AnimationId::Death3 } );
+			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0 } );
 			PC_ASSERT( animation >= 0 );
 			current_animation_= static_cast<unsigned int>(animation);
 
