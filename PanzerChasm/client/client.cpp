@@ -5,6 +5,7 @@
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
 #include "../sound/sound_engine.hpp"
+#include "../sound/sound_id.hpp"
 
 #include "client.hpp"
 
@@ -322,6 +323,10 @@ void Client::operator()( const Messages::TextMessage& message )
 		if( message.text_message_number < current_map_data_->messages.size() )
 		{
 			hud_drawer_.AddMessage( current_map_data_->messages[ message.text_message_number ], current_tick_time_ );
+
+			// TODO - start playing text message sound from server, as monster-linked sound.
+			if( sound_engine_ != nullptr )
+				sound_engine_->PlayHeadSound( Sound::SoundId::Message );
 		}
 	}
 }
