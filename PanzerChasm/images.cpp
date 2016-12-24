@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "assert.hpp"
 #include "vfs.hpp"
 
@@ -68,6 +70,25 @@ void LoadPalette(
 	// Convert from 6-bit to 8-bit.
 	for( unsigned int i= 0u; i < 768u; i++ )
 		out_palette[i]= palette_file[i] << 2u;
+
+	// Make color correction.
+	// TODO - do color correction as screen image postprocessing.
+	const float c_mix_k= 1.3f;
+	const float c_one_minux_mix_k= 1.0f - c_mix_k;
+
+	for( unsigned int i= 0u; i < 256u; i++ )
+	{
+		float rgb[3];
+		for( unsigned int j= 0u; j < 3u; j++ )
+			rgb[j]= float( out_palette[ i * 3u + j ] );
+		const float grey= ( rgb[0] + rgb[1] + rgb[2] ) / 3.0f;
+
+		for( unsigned int j= 0u; j < 3u; j++ )
+		{
+			const int c= static_cast<int>( std::round( rgb[j] * c_mix_k + grey * c_one_minux_mix_k ) );
+			out_palette[ i * 3u + j ]= std::max( std::min( c, 255 ), 0 );
+		}
+	}
 }
 
 void CreateConsoleBackground(
