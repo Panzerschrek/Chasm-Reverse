@@ -62,8 +62,14 @@ void Monster::Tick(
 
 	// Update target position if target moves.
 	const MonsterBasePtr target= target_.monster.lock();
+	float distance_for_melee_attack= Constants::max_float;
 	if( target != nullptr )
+	{
 		target_position_= target->Position();
+
+		distance_for_melee_attack=
+			( pos_ - target_position_ ).xy().Length() - game_resources_->monsters_description[ target->MonsterId() ].w_radius;
+	}
 
 	const float last_tick_delta_s= last_tick_delta.ToSeconds();
 
@@ -88,7 +94,7 @@ void Monster::Tick(
 	case State::MoveToTarget:
 	{
 		if( target != nullptr &&
-			( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
+			distance_for_melee_attack <= description.attack_radius )
 		{
 			state_= State::MeleeAttack;
 			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
@@ -148,7 +154,7 @@ void Monster::Tick(
 			if( animation_frame_unwrapped >= frame_count / 2u &&
 				!attack_was_done_ &&
 				target != nullptr &&
-				( pos_.xy() - target_position_.xy() ).SquareLength() <= description.attack_radius * description.attack_radius )
+				distance_for_melee_attack <= description.attack_radius  )
 			{
 				target->Hit( description.kick, map, target_.monster_id, current_time );
 				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::MeleeAttack );
