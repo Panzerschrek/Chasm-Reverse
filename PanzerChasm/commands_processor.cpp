@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cstring>
+
 #include "log.hpp"
 
 #include "commands_processor.hpp"
@@ -47,6 +50,61 @@ void CommandsProcessor::ProcessCommand( const char* const command_string )
 	}
 
 	Log::Info( command_parsed.first, ": command not found" );
+}
+
+std::string CommandsProcessor::TryCompleteCommand( const char* command_string ) const
+{
+	const std::string command= ParseCommad( command_string ).first;
+
+	std::vector<std::string> candidates;
+
+	for( unsigned int m= 0u; m < commands_maps_.size(); m++ )
+	{
+		const CommandsMapConstPtr commads_map= commands_maps_[m].lock();
+		if( commads_map != nullptr )
+		{
+			for( const CommandsMap::value_type& command_value : *commads_map )
+			{
+				const char* const str= command_value.first.c_str();
+				if( std::strstr( str, command.c_str() ) == str )
+					candidates.push_back( command_value.first );
+			}
+		}
+	}
+
+	if( candidates.size() == 0u )
+		return command;
+
+	// Print candidates.
+	if( candidates.size() > 1u )
+	{
+		Log::Info( ">", command );
+		std::sort( candidates.begin(), candidates.end() );
+		for( const std::string& candidate : candidates )
+			Log::Info( "  ", candidate );
+	}
+
+	// Find common prefix for candidates.
+	unsigned int pos= command.size();
+	while( 1u )
+	{
+		if( pos >= candidates[0].size() )
+			break;
+
+		bool equals= true;
+		for( const std::string& candidate : candidates )
+			if( pos >= candidate.size() || candidate[pos] != candidates[0][pos] )
+			{
+				equals= false;
+				break;
+			}
+
+		if( !equals )
+			break;
+		pos++;
+	}
+
+	return std::string( candidates[0].begin(), candidates[0].begin() + pos );
 }
 
 std::pair< std::string, CommandsArguments > CommandsProcessor::ParseCommad(

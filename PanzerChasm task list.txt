@@ -70,7 +70,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Zapusk dopolnenij.
 * Menü nastrojek.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
-* Avtodopolnenije v konsoli.
 * Menü "save" i "load".
 
 

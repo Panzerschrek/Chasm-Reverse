@@ -82,6 +82,12 @@ void Console::ProcessEvents( const SystemEvents& events )
 				input_line_[ input_cursor_pos_ ]= '\0';
 			}
 		}
+		else if( key_code == KeyCode::Tab )
+		{
+			const std::string completed_command= commands_processor_.TryCompleteCommand( input_line_ );
+			std::strncpy( input_line_, completed_command.c_str(), sizeof(input_line_) );
+			input_cursor_pos_= std::strlen( input_line_ );
+		}
 		else if( key_code == KeyCode::Up )
 		{
 			if( history_size_ > 0u )

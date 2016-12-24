@@ -28,6 +28,9 @@ public:
 
 	void ProcessCommand( const char* command_string );
 
+	// Retruns completed string, prints to log candidates commands.
+	std::string TryCompleteCommand( const char* command_string ) const;
+
 private:
 	// Extract command from string, convert commnad to lower case, extract arguments
 	static std::pair< std::string, CommandsArguments > ParseCommad( const char* command_string );
