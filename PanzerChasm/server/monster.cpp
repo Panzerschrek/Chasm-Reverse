@@ -220,18 +220,23 @@ void Monster::Hit(
 		if( health_ > 0 )
 		{
 			if( state_ != State::PainShock &&
-				state_ != State::MeleeAttack )
+				state_ != State::MeleeAttack && state_ != State::RemoteAttack )
 			{
-				const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
-				if( animation >= 0 )
+				// Pain chance - proportianal do relative damage.
+				const unsigned int max_health= game_resources_->monsters_description[ monster_id_ ].life;
+				if( random_generator_->RandBool( std::min( damage * 3u, max_health ), max_health ) )
 				{
-					state_= State::PainShock;
-					current_animation_= static_cast<unsigned int>(animation);
-					current_animation_start_time_= current_time;
-					map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
+					const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
+					if( animation >= 0 )
+					{
+						state_= State::PainShock;
+						current_animation_= static_cast<unsigned int>(animation);
+						current_animation_start_time_= current_time;
+						map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
+					}
+					else
+					{}// No pain - no gain
 				}
-				else
-				{}// No pain - no gain
 			}
 		}
 		else
