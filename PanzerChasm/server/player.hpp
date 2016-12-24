@@ -115,6 +115,8 @@ private:
 	unsigned int current_weapon_animation_frame_= 0u;
 	Time weapon_animation_state_change_time_;
 
+	Time last_pain_sound_time_;
+
 	unsigned int last_activated_procedure_= 0u; // zero is dummy
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
 };

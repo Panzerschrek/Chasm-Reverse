@@ -23,6 +23,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, armor_(0)
 	, last_shoot_time_( current_time )
 	, weapon_animation_state_change_time_( current_time )
+	,last_pain_sound_time_( current_time )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -217,9 +218,13 @@ void Player::Hit(
 	armor_-= armor_damage;
 	health_-= health_damage;
 
-	map.PlayMonsterSound(
-		monster_id,
-		random_generator_->RandBool() ? Sound::PlayerMonsterSoundId::Pain0 : Sound::PlayerMonsterSoundId::Pain1 );
+	if( ( current_time - last_pain_sound_time_ ).ToSeconds() >= 0.5f )
+	{
+		last_pain_sound_time_= current_time;
+		map.PlayMonsterSound(
+			monster_id,
+			random_generator_->RandBool() ? Sound::PlayerMonsterSoundId::Pain0 : Sound::PlayerMonsterSoundId::Pain1 );
+	}
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
