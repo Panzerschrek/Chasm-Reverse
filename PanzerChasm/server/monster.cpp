@@ -151,6 +151,8 @@ void Monster::Tick(
 		}
 		else
 		{
+			RotateToTarget( last_tick_delta_s );
+
 			if( animation_frame_unwrapped >= frame_count / 2u &&
 				!attack_was_done_ &&
 				target != nullptr &&
