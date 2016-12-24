@@ -25,7 +25,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Smertj igroka.
-* Urovni složnosti.
+* Dorabotka urovnej složnosti. Sokrytije nenužnyh dlä konkretnogo urovnä
+  složnosti modelej. Issledovanije vlijanija urovnej složnosti na uron.
 * Sohranenije i zagruzka igry.
 * Otryvanije castej tela monstram.
 * Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,

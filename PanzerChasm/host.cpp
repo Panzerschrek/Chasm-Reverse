@@ -12,13 +12,25 @@
 namespace PanzerChasm
 {
 
+static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
+{
+	switch( n )
+	{
+	case 0: return Difficulty::Easy;
+	case 1: return Difficulty::Normal;
+	case 2: return Difficulty::Hard;
+	case 3: return Difficulty::Deathmatch;
+	default: return Difficulty::Normal;
+	};
+}
+
 Host::Host()
 {
 	{ // Register host commands
 		CommandsMapPtr commands= std::make_shared<CommandsMap>();
 
 		commands->emplace( "quit", std::bind( &Host::Quit, this ) );
-		commands->emplace( "new", std::bind( &Host::NewGame, this ) );
+		commands->emplace( "new", std::bind( &Host::NewGameCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "go", std::bind( &Host::RunLevel, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
@@ -72,7 +84,7 @@ Host::Host()
 	local_server_.reset( new Server( commands_processor_, game_resources_, map_loader_, loopback_buffer_ ) );
 
 	loopback_buffer_->RequestConnect();
-	local_server_->ChangeMap( 1 );
+	local_server_->ChangeMap( 1, Difficulty::Normal );
 
 	Log::Info( "Create client" );
 	client_.reset(
@@ -161,12 +173,21 @@ void Host::Quit()
 	quit_requested_= true;
 }
 
-void Host::NewGame()
+void Host::NewGame( const DifficultyType difficulty )
 {
 	if( local_server_ != nullptr )
 	{
-		local_server_->ChangeMap(1);
+		local_server_->ChangeMap( 1u, difficulty );
 	}
+}
+
+void Host::NewGameCommand( const CommandsArguments& args )
+{
+	DifficultyType difficulty= Difficulty::Normal;
+	if( args.size() >= 1u )
+		difficulty= DifficultyNumberToDifficulty( std::atoi( args[0].c_str() ) );
+
+	NewGame( difficulty );
 }
 
 void Host::RunLevel( const CommandsArguments& args )
@@ -178,8 +199,13 @@ void Host::RunLevel( const CommandsArguments& args )
 	}
 
 	unsigned int map_number= std::atoi( args.front().c_str() );
+
+	DifficultyType difficulty= Difficulty::Normal;
+	if( args.size() >= 2u )
+		difficulty= DifficultyNumberToDifficulty( std::atoi( args[1].c_str() ) );
+
 	if( local_server_ != nullptr )
-		local_server_->ChangeMap( map_number );
+		local_server_->ChangeMap( map_number, difficulty );
 }
 
 } // namespace PanzerChasm

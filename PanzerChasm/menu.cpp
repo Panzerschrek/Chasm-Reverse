@@ -66,6 +66,99 @@ void MenuBase::PlayMenuSound( const unsigned int sound_id )
 		sound_engine_->PlayHeadSound( sound_id );
 }
 
+// NewGame Menu
+
+class NewGameMenu final : public MenuBase
+{
+public:
+	NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~NewGameMenu() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	HostCommands& host_commands_;
+	int current_row_= 0;
+};
+
+NewGameMenu::NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, host_commands_(host_commands)
+{}
+
+NewGameMenu::~NewGameMenu()
+{}
+
+void NewGameMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::New );
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const unsigned int scale= 3u;
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * pic_size.xy[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * pic_size.xy[1] ) >> 1 );
+
+	menu_drawer.DrawMenuBackground(
+		x, y,
+		pic_size.xy[0] * scale, pic_size.xy[1] * scale,
+		scale );
+
+	MenuDrawer::PictureColor colors[3]=
+	{
+		MenuDrawer::PictureColor::Unactive,
+		MenuDrawer::PictureColor::Unactive,
+		MenuDrawer::PictureColor::Unactive,
+	};
+	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Difficulty",
+		scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+
+	menu_drawer.DrawMenuPicture(
+		x, y,
+		MenuDrawer::MenuPicture::New, colors, scale );
+}
+
+MenuBase* NewGameMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key &&
+		event.event.key.pressed )
+	{
+		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + 3 ) % 3;
+		}
+
+		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 + 3 ) % 3;
+		}
+
+		if( event.event.key.key_code == KeyCode::Enter )
+		{
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+
+			DifficultyType difficulty= Difficulty::Easy;
+			if( current_row_ == 1u )
+				difficulty= Difficulty::Normal;
+			if( current_row_ == 2u )
+				difficulty= Difficulty::Hard;
+
+			host_commands_.NewGame( difficulty );
+
+			return nullptr;
+		}
+	}
+	return this;
+}
+
 // Quit Menu
 
 class QuitMenu final : public MenuBase
@@ -155,6 +248,7 @@ private:
 MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( nullptr, sound_engine )
 {
+	submenus_[0].reset( new NewGameMenu( this, sound_engine, host_commands ) );
 	submenus_[5].reset( new QuitMenu( this, sound_engine, host_commands ) );
 }
 

@@ -34,6 +34,19 @@ typedef std::shared_ptr<Vfs> VfsPtr;
 
 typedef unsigned short EntityId;
 
+struct Difficulty
+{
+	enum : unsigned int
+	{
+		Easy= 1u,
+		Normal= 2u,
+		Hard= 4u,
+		Deathmatch= 8u,
+	};
+};
+
+typedef decltype(Difficulty::Easy) DifficultyType;
+
 namespace Sound
 {
 

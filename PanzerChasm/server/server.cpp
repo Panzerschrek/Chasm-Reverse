@@ -144,12 +144,12 @@ void Server::Loop()
 			current_map_number_ < 16u )
 		{
 			current_map_number_++;
-			ChangeMap( current_map_number_ );
+			ChangeMap( current_map_number_, map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty() );
 		}
 	}
 }
 
-void Server::ChangeMap( const unsigned int map_number )
+void Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty )
 {
 	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
 
@@ -163,6 +163,7 @@ void Server::ChangeMap( const unsigned int map_number )
 	current_map_data_= map_data;
 	map_.reset(
 		new Map(
+			difficulty,
 			map_data,
 			game_resources_,
 			server_accumulated_time_,

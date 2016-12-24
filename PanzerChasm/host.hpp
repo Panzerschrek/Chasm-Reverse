@@ -24,9 +24,10 @@ public:
 
 public: // HostCommands
 	virtual void Quit() override;
+	virtual void NewGame( DifficultyType difficulty ) override;
 
 private:
-	void NewGame();
+	void NewGameCommand( const CommandsArguments& args );
 	void RunLevel( const CommandsArguments& args );
 
 private:

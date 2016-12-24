@@ -20,11 +20,14 @@ public:
 	typedef std::unordered_map< EntityId, PlayerPtr > PlayersContainer;
 
 	Map(
+		DifficultyType difficulty,
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
 		Time map_start_time,
 		MapEndCallback map_end_callback );
 	~Map();
+
+	DifficultyType GetDifficulty() const;
 
 	// Returns monster_id for spawned player
 	EntityId SpawnPlayer( const PlayerPtr& player );
@@ -212,6 +215,7 @@ private:
 	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
 
 private:
+	const DifficultyType difficulty_;
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const MapEndCallback map_end_callback_;

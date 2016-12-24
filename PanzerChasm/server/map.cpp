@@ -64,11 +64,13 @@ void Map::ProcessElementLinks(
 }
 
 Map::Map(
+	const DifficultyType difficulty,
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
 	const Time map_start_time,
 	MapEndCallback map_end_callback )
-	: map_data_(map_data)
+	: difficulty_(difficulty)
+	, map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
 	, random_generator_( std::make_shared<LongRand>() )
@@ -153,7 +155,9 @@ Map::Map(
 		if( map_monster.monster_id == 0u )
 			continue;
 
-		// TODO - check difficulty flags
+		if( ( map_monster.difficulty_flags & difficulty_ ) == 0u )
+			continue;
+
 		monsters_[ GetNextMonsterId() ]=
 			MonsterPtr(
 				new Monster(
@@ -167,6 +171,11 @@ Map::Map(
 
 Map::~Map()
 {}
+
+DifficultyType Map::GetDifficulty() const
+{
+	return difficulty_;
+}
 
 EntityId Map::SpawnPlayer( const PlayerPtr& player )
 {

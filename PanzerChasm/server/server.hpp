@@ -22,7 +22,7 @@ public:
 
 	void Loop();
 
-	void ChangeMap( unsigned int map_number );
+	void ChangeMap( unsigned int map_number, DifficultyType difficulty );
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
