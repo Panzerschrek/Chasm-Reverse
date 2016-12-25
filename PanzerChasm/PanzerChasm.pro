@@ -1,4 +1,5 @@
 include(../Common/Common.pri)
+CONFIG-= console
 
 win32 {
 	#put your SDL2 paths here
