@@ -1,0 +1,85 @@
+Spisok zadacj, kotoryje možno i nužno delatj.
+Zadaci, kotoryje vypolneny, nužno otsüda ubiratj.
+Zadaci, v çelom, raspoloženy v porädke prioriteta.
+
+
+[IGROVAJA LOGIKA]
+* Obrabotka "link" tipa "return".
+* Sozdanije zon smerti po komande "death" proçedury.
+* Sozdanije zon träski po komande "quake" proçedury.
+* Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
+  Vyjasnenije znacenija parametra "bobj".
+* Ostanovka dvižuscihsä objektov pri popadanii v ih zonu dejstvija monstrov
+  ( svojsta "checkgo" i "checkback" proçedur ).
+* Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
+  ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
+* Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
+* Optimizaçija rascötov stolknovenij monstrov s urovnem i polötov raket.
+* Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
+* Miny.
+* Rakety s otskokom ot pola.
+* Samonavodäscijesä rakety.
+* Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
+* Dorabotka bossov.
+* Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
+* Issledovanije raboty nevidimosti i jejo realizaçija.
+* Issledovanije raboty scita i jego realizaçija.
+* Smertj igroka.
+* Dorabotka urovnej složnosti. Sokrytije nenužnyh dlä konkretnogo urovnä
+  složnosti modelej. Issledovanije vlijanija urovnej složnosti na uron.
+* Sohranenije i zagruzka igry.
+* Otryvanije castej tela monstram.
+* Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
+  monstrov pri popadanii rakety ili puli.
+* Skriptovyje sçeny meždu urovnämi.
+
+
+[GRAFIKA]
+* Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
+* Pokazyvanije kartinki "Loading" pri zagruzke urovnej.
+* Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
+* Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
+* Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
+* Boleje ekonomnoje hranenije animaçij modelej.
+* Risovanije monstrov s otorvannymi castämi tela. Korrektnoje risovanije vspyšek
+  oružija monstrov, kogda oni streläjut.
+* Plavnyje animaçii, po krajnej mere casti objektov.
+* Graficeskij effekt pri vystrele iz "Mega-destroyer".
+* Risovanije minikarty. Risovanije toljko vidennyh sten.
+* Otsecenije objektov po piramide vidimosti.
+* Çvetokorrekçija.
+* Sglaživanije.
+* Risovanije modelej igrokov raznym çvetom.
+
+
+[ZVUK]
+* Issledovatj, kak izlucajetsä zvuk ot proçedur, v slucaje otsutstvija parametra
+  "posxy" a takže, kogda takih parametrov neskoljko.
+* Zaçyklennyje zvuki, v tom cisle:
+	* Fonovyje zvuki urovnä.
+	* Zvuki modelej urovnä.
+* Optimizaçija zagruzki zvukov. V slucaje, kogda v tabliçe zvukov igry ili
+  urovnä imejutsä dublikaty, gruzitj zvuk toljko odin raz i ispoljzovatj jego
+  kak razdeläjemyj.
+* Optimizaçija zagruzki zvukov urovnej - pereispoljzovanije uže zagružennyh
+  zvukov ot predyduscego urovnä.
+
+
+[OBSCEJE]
+* Sistema nastrojek.
+* Zapusk dopolnenij.
+* Menü nastrojek.
+* Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
+* Menü "save" i "load".
+
+
+[SETJ]
+* Issledovanije raboty setevoj igry originala.
+* Realizaçja interfejsov "IConnection" i procih dlä raboty po realjnoj seti.
+* Realizaçija setevogo vzaimodejstvija pod "Windows".
+* Dorabotki igrovoj logiki dlä setevyh režimov.
+* Menü setevoj igry.
+* Realizaçija setevogo vzaimodejstvija pod "GNU/Linux" i "OS X".
+* Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
+* Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
+  paketov. Rascöt animaçij na storone klijenta.

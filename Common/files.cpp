@@ -9,7 +9,7 @@ void FileRead( std::FILE* const file, void* buffer, const unsigned int size )
 
 	do
 	{
-		const int read= std::fread( buffer, 1, size, file );
+		const int read= std::fread( buffer + read_total, 1, size - read_total, file );
 		if( read <= 0 )
 			break;
 
@@ -23,7 +23,7 @@ void FileWrite( std::FILE* const file, const void* buffer, const unsigned int si
 
 	do
 	{
-		const int write= std::fwrite( buffer, 1, size, file );
+		const int write= std::fwrite( buffer + write_total, 1, size - write_total, file );
 		if( write <= 0 )
 			break;
 

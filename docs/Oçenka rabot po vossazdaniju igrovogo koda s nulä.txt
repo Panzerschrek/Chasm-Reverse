@@ -1,0 +1,54 @@
+﻿Jesli napisatj vossozdanije igry s nulä (ispoljzuja toljko resursy) potrebujetsä sdelatj sledujusceje:
+
+ARHITEKTURA:
+*) Razrabotka arhitektury priloženija
+*) Razrabotka arhitektury setevogo vzaimodejstvija
+
+IGROVAJA LOGIKA:
+*) Zagruzka urovnä
+*) Skripty urovnä
+*) Streljba
+*) Podbor predmetov
+*) Rascöt stolknovenij pulj i raket s urovnem i monstrami
+*) Rascöt stolknovenij igroka s okruženijem
+*) Kod monstrov. Avtomat sostojanij, pereklücenije animaçij
+*) Poisk puti
+*) Sohranenije/zagruzka
+
+GRAFIKA:
+*) Risovanije urovnä
+*) Risovanije dinamiceskih castej urovnä (dveri i t. d.)
+*) Risovanije modelej urovnä (v tom cisle s animaçijej)
+*) Risovanije monstrov
+*) Otsecenije nevidimyh modelej
+*) Risovanije sprajtovyh effektov
+*) Risovanije menü, ekrana zagruzki
+*) Risovanije konsoli
+
+ZVUK:
+*) Fonovyje zvuki urovnä
+*) Zvuki iz skriptov urovnä
+*) Zvuki monstrov
+
+SETJ:
+*) Razdelenije na klienta i server
+*) Otpravka važnyh i nevažnyh soobscenij
+*) Kompensaçija zaderžek
+*) Minimizaçija peredavajemyh dannyh
+*) Peredaca soobscenij o zvukah
+
+OBSCEJE:
+*) Menü
+*) Menü nastrojek grafiki
+*) Menü nastrojek zvuka
+*) Konsolj
+*) Sohranenije/zagruzka nastrojek
+
+
+V alpha-versii planirujetsä sledujusceje:
+*) odinocnaja igra
+*) grafika, dostatocnaja dlä igrovogo proçessa
+*) netu zvuka
+
+Grubaja oçenka vseh rabot - 6 panzerschrek-mesäçev.
+Jesli scitatj, cto rabota nacata v konçe oktäbrä 2016, to k 01 maju 2017 ona dolžna bytj zakoncena.

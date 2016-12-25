@@ -1,7 +1,7 @@
-uniform sampler2DArray tex;
+uniform sampler2D tex;
 uniform sampler2D lightmap;
 
-in vec3 f_tex_coord;
+in vec2 f_tex_coord;
 in vec2 f_lightmap_coord;
 in float f_alpha_test_mask;
 

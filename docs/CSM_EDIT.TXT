@@ -1,0 +1,327 @@
+   CHASM - The Rift (TM)
+   
+
+   
+   Level Editor Manual
+
+
+Table of contents:
+
+1. Creating a room
+   1.1. The editor interface
+   1.2. Coordinate systems
+   1.3. Making walls
+   1.4. Floors and ceilings
+   1.5. Lights
+        1.5.1. Presets
+        1.5.2. Sources of light
+   1.6. Netplaces
+
+2. Making some enhancements to your room
+   2.1. 3D objects:
+   2.2. Monsters
+   2.3. Weapons, ammo and artifacts
+
+3. Processes
+   3.1. Links
+   3.2. Process description
+   3.3. Actions
+   3.4. Messages
+
+
+
+1. Creating a room
+
+   1.1. The editor interface
+
+   The main screen of the editor consists of two main parts: the Map window
+and the Control Panel. The Control Panel shows you all available instruments
+you can use in the current editing mode. In the top of the Control Panel, you
+can see five buttons that select the editing mode (Walls, Ceils, Floors,
+Lights and Ambient). There is a viewer window below these buttons which
+shows you the current wall, floor/ceiling, artifact etc.
+   In the bottom of the Control Panel, you can see 3 lines of buttons. The
+first line lets you choose the Map window display mode. There are six
+toggle buttons that mean (from left to right): grid on/off, walls on/off,
+normals on/off, objects on/off, monsters and netplaces on/off, lights on/off.
+You can set several modes at a time. Second line (from left to right):
+1:1, 1:2, 1:4 - specify the scaling factor for the Map window; Hold
+allows you to hold the current map; Fetch fetches previously held map.
+The third line specifies the difficulty (difficulties) of the game on which
+you will see the current monster, object, ammo, or artifact.
+   Note: Difficulty settings will not take any effect on walls, floors,
+         ceils, ambients, and lights.
+   Above the Map window you can see the bar containing the current coordinates
+of the cursor if it is in Map window or the menu bar in other cases.
+
+   1.2. Coordinate systems
+
+   First of all let's define the coordinate systems in Chasm: The Rift.
+As you can see the Map window is an array 64*64 squares. If you take a
+look to the menu bar while moving the cursor through the edit window, you will
+see two type of coordinates the editor uses. Location shows the current
+square the cursor is in. It looks like (X: dX, Y: dY) where X and Y are the
+coordinates of the current square. Each square is an array 256*256 of little
+squares. dX and dY show the current cursor position inside the big square.
+These coordinates (dX and dY) are very important when you create processes
+(see Processes for more information).
+When you move the mouse, the values of dX and dY are incremented or decremented
+by 16, therefore in the editor every big square consists of only 16*16 little
+squares.
+
+   1.3. Making walls
+
+   When you choose the NEW command from the file menu, the editor automatically
+creates a square room using the appropriate set of textures and puts 8
+netplaces in it (The last is vital for Chasm. It will NOT run if there
+are less then 8 netplaces).
+   To create a wall, choose the ADD command from Control Panel, then place the
+cursor at a position where you want it, and press the left mouse button or
+press Enter. All of the above will create a normal horizontal wall of
+the current size and darkness level.
+   After that you will see a line with normal showing its direction and
+a dark square which this wall is binded to. Any further actions to
+the wall can be made by making these actions to the corresponding square.
+   To make a square room, hold the right mouse button and move the mouse until you get the desired size of the square, and then release the mouse button. You'll see a box of walls of the current size and with normals showing their current direction. The side of the wall with the normal is visible, and the other is invisible. To change the direction of the normal, choose the DIR command from the Control Panel and click the mouse on the appropriate dark square or simply press "R" while the cursor is on the dark square.
+   The list in the right part of the screen shows you all available
+textures. To select one simply click the mouse on the desired texture.
+There is a switch upon a list (SIZE) that allows you to change the size of
+wall (64 or 128). Also, there is a scroll bar (DARK) situated to the
+right of this switch that allows you to set the darkness of the wall.
+The darkness of the wall is shown on the dark square that corresponds to
+the wall. To set the darkness and texture to the existing wall
+simply set the desired values, and then choose the SET command from the
+Control Panel and right-click on the corresponding dark square.
+   To get information (texture and darkness) from the existing wall, choose
+GET from the Control Panel and click on the dark square of the wall.
+   To delete a wall or a group of walls, select DELETE from the Control
+Panel and left-click or right-click on the desired wall or press the
+Spacebar on that wall. Right-clicking allows you to move the mouse and make
+a selection box where contents will be deleted.
+   Note: Right-clicking works not only with the DELETE command but almost
+         any other editor command except commands that work with lights.
+   Choose the USE command from the Control Panel to reserve a square for a
+future use or to move the existing wall's dark square.
+   To copy a fragment of the map to another location, choose the CUT command
+from the Control Panel. Then select the area you want to copy to. This will
+copy the selected area to the clipboard. To paste it from the clipboard,
+choose the PASTE command from the Control Panel and click where you want
+it to copy.
+
+   1.4. Floors and ceilings
+
+   To select the floors/ceiling editor mode, click on the Floors/Ceils button
+at the top of Control Panel. SET and GET commands are similar to their counterparts in the walls mode. The CLEAR command clears the floor/ceiling at the cursor position, or, if you hold the right button and move the mouse, it clears the selected area. The SEPARATE command fills the floors/ceilings of the same type with the selected floor/ceiling texture.
+   There are 3 viewing modes available in the FLOORS/CEILS editing mode.
+TEXTURE shows floors/ceilings with the textures on them. SHADOW shows
+textured floors/ceilings with shadowmap. INFO shows textured floors/ceilings
+with the numbers showing the darkness level of the appropriate floor/ceiling.
+
+   1.5. Lights
+
+   There are two types of lights in Chasm: The Rift. They are presets and
+light sources. The preset is a kind of light that is specified directly
+to the floor/ceiling or wall and illuminates it equally on the whole
+length of wall/floor/ceiling. Light sources allow you to put a light
+with center in a point and a certain radius.
+
+     1.5.1. Presets
+
+   To set a preset light to a wall, select the darkness level you desire,
+select SET in Control Panel, and right-click or press "D" on the square
+corresponding to the wall.
+   To set a preset to floor/ceiling, select the desired darkness level. Then
+select Darkness (you should deselect TEXTURE if you want to se only the darkness
+level), select the SET command, and left-click on the floor square.
+
+     1.5.2. Sources of light
+
+   To set the source of a light, switch to Lights editing mode and choose the ADD command in Control Panel. There are four scroll bars available in this
+mode. They are (from top to bottom): R0 specifies the inner radius of the
+light source (light level is constant inside this radius), R1 specifies
+the outer radius of the light source (inside this radius the light level
+changes from the level inside R0 to zero), L specifies the brightness of the
+light source, and Bm specifies the maximum brightness that can be obtained
+by one or several sources of light. After you have chosen the values you
+desire and selected the ADD command, simply click where you want to put it.
+   SET, GET, DELETE and MOVE commands work in the same way as they work with
+walls.
+   View control allows you to toggle between different viewing modes
+(you can view a rendered shadowmap or sources with their inner and outer
+radiuses).
+   The Preview control allows you to preview light sources in the window
+in the top of Control Panel.
+   THe RENDER command renders the shadowmap. It is necessary to render it
+every time you change the map.
+   The VIEW ALL command shows you the rendered shadowmap.
+
+   1.6. Netplaces
+
+   Netplaces are the positions where players spawn during network play.
+Chasm will not run unless there are at least 8 netplaces. The maximum number
+of netplaces is 32. To set a netplace, choose any option in the Objects bar.
+You'll see an ADD PLAYER button below it. Click on it, and then select the
+direction and right-click on the map where you want to set the netplace.
+
+
+2. Making some enhancements to your room
+
+   2.1. 3D objects:
+
+   There are two types of objects used in Chasm: The Rift: normal and
+destructible. They have no differences except for the fact that the
+last can be destroyed by shooting at them.
+
+   To add some 3D objects to your level, you should choose the Walls mode
+and choose the ADD command. In the Objects box, select models. Choose the
+desired model from the list below and its direction and skill level
+when it appears in Chasm. Then simply right-click on the map where you
+want to put it.
+
+   2.2. Monsters
+
+   To put some enemies into your map, select Walls editor mode and choose
+the ADD command. Then select the monsters option from the Objects bar. Select the direction of the monster and the skill level when it appears. Then click
+on the map where you want to place it. All commands that work with walls
+will also work with monsters.
+   Note: Monsters and netplaces, unlike other objects, do not have any
+         dark square which they are binded to.
+
+   2.3. Weapons, ammo and artifacts
+
+   To put weapon and artifacts, choose the artifacts option from Objects bar
+and follow the instructions mentioned above.
+
+
+3. Processes
+
+   After you have finished editing your level and have exited the editor
+you'll see a file process.NN (NN is the number of your level) in LEVELNN
+directory in your USERMAP directory. This file looks like this by default:
+
+#mess 01
+ Delay   1
+ TextA: -1 64  " "
+#end
+
+;=================================
+;|  Processes definition part    |
+;=================================
+#proc 01
+  StartDelay 0
+#action
+#end
+
+;============================================
+;|  Link switches and objects to processes: |
+;|  Format: "LINK  swx swy   Nproc"         |
+;============================================
+#links
+  floor 1 1 1
+#end
+.
+
+   It consists of two main parts: Process definition and Links.
+
+   3.1. Links
+
+   Links specify the method by which the process will be activated.
+They usually consist of three parts: LinkName, coordinates of floor,
+wall or object which activates the process and the number of process
+binded to this link. Below is a list of available links:
+
+  link      X Y ProcNumber  - activates a process when a player comes too
+                              close to the object or allows the player to
+			      take the object if it is a key or an artifact.
+  floor     X Y ProcNumber  - activates a process when a player steps on a
+                              certain floor tile.
+  shoot     X Y ProcNumber  - activates a process when a player shoots the
+                              specified wall or object.
+  return    X Y ProcNumber  - returns the process to its start state.
+  onofflink X Y ProcNumber  - same as link but also deactivates the process
+                              when it is touched a second time.
+  destroy   X Y ProcNumber  - activates a process when a player destroys the
+                              object it is binded to.
+
+   3.2. Process description
+
+   The next few lines after the line containing '#proc NN' are the description
+of the process. Use the following commands:
+
+  StartDelay    sec - sets the time period in seconds after which the
+                      process starts.
+  BackWait      sec - sets the time period after which the process will
+                      return to its starting position. If this value is
+                      set to 0 then process will never return.
+  Speed         num - sets the speed of the process.
+  Checkgo           - checks if there is any life form in the area of its action
+                      and stops when it is reached.
+  Checkback         - the same as above but works when the process returns.
+  Mortal            - use it with checkgo/checkback to kill the life form
+                      instead of stoping the process.
+  LightRemap        - while moving the wall it will use shadowmap
+  Lock              - the process is locked and should be unlocked to
+                      start.
+  Redlock,
+  Greenlock,
+  Bluelock          - the process is locked and can be activated only
+                      by the appropriate key.
+  OnMessage     num - specifies the message to be displayed when process
+                      is activated.
+  FirstMessage  num - the same but only one time.
+  LockMessage   num - the same but only if process is locked.
+  SfxId         num - specifies the sound for the current process.
+  SfxPosxy      x,y - specifies the coordinates of sound source.
+  LinkSwitchAt  x,y - the position of an object which will be animated
+                      by this process.
+
+   3.3. Actions
+
+   After the process definition is the action definition (lines after #action).
+Actions define what exactly the process will do:
+
+  lock          num   - locks the process with a specified number.
+  unlock        num   - unlocks the locked process with specified number.
+  playani       num   - plays specified animation.
+  stopani       num   - stops animation for specified object.
+  move          X Y dX dY - moves the wall/object with the location coordinates
+                            X,Y by dX,dY (see Coordinate systems)
+  xmove         ---   - the same but first along x-axis then y-axis.
+  ymove         ---   - the same but fitst along y-axis then x-axis.
+  rotate        X Y dX dY Fi - rotates the wall/object X,Y around the point
+                               with global coordinates dX,dY by axis Fi.
+  up            X Y H        - rises transparent wall X,Y by H points.
+  light         X Y time_off rad l - makes a rotating light in position
+                                     X,Y that will turn off after
+                                     time_off miliseconds of radius rad
+                                     and brightness l (needs an object to
+                                     be in X,Y).
+  source        dX dY rad l time_on - turns on the light in position
+                                      dX,dY of radius rad and brightness l
+                                      after time_on miliseconds of blinking.
+  nonstop                           - makes the action nonstoping.
+  death         X1 Y1 X2 Y2 death_power lo,hi - starts death area from
+                                                X1,Y1 to X2,Y2 with damage
+                                                death_power (needs nonstop).
+  wind          X1 Y1 X2 Y2 wx wy - starts wind in area from X1,Y1 to X2,Y2
+                                    in direction wx,wy (needs nonstop).
+  quake         X1 Y1 X2 Y2 PWR - starts vibration in a square area
+                                  from X1,Y1 to X2,Y2 of PWR power
+                                  (needs nonstop).
+
+   3.4. Messages
+
+   Also, you can put some messages to your process. To do so, you'll need to
+create a message definition. It looks like:
+
+ #mess NUM      - NUM is the number of message
+  Delay    sec  - delay in seconds during which the message is visible
+  TextA [ x,y] , x=-1 center for X "your message here"
+  TextB [ x,y] , x=-1 center for X "your message here"
+  TextC [ x,y] , x=-1 center for X "your message here"
+  TextD [ x,y] , x=-1 center for X "your message here"
+  TextE [ x,y] , x=-1 center for X "your message here"
+ #end
+
+(c) 1997 Megamedia Corporation. All Rights Reserved. Chasm - The Rift is a
+trademark of Megamedia Corporation.
