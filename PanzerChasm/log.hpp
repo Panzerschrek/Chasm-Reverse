@@ -36,6 +36,8 @@ private:
 	template<class... Args>
 	static void PrinLine( const Args&... args );
 
+	static void ShowFatalMessageBox( const std::string& error_message );
+
 private:
 	static LogCallback log_callback_;
 };
@@ -55,8 +57,14 @@ void Log::Warning( const Args&... args )
 template<class... Args>
 void Log::FatalError( const Args&... args )
 {
-	PrinLine( args... );
-	std::exit( -1 );
+	std::ostringstream stream;
+	Print( stream, args... );
+	const std::string str= stream.str();
+
+	std::cout << str << std::endl;
+	ShowFatalMessageBox( str );
+
+	std::exit(-1);
 }
 
 template<class Arg0, class... Args>
