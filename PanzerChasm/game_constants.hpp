@@ -15,6 +15,9 @@ constexpr float player_radius= 60.0f / 256.0f;
 constexpr float player_interact_radius= 100.0f / 256.0f;
 constexpr float player_z_pull_distance= 1.0f / 4.0f;
 
+// Ticks in second, when monsters recieve damage from death zones.
+constexpr float death_ticks_per_second= 3.0f;
+
 const float player_max_speed= 5.0f;
 
 constexpr float walls_height= 2.0f;

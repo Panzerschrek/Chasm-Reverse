@@ -179,6 +179,12 @@ private:
 		m_Vec3 pos;
 	};
 
+	struct DamageFiledCell
+	{
+		unsigned char damage; // 0 - means no damage
+		unsigned char z_bottom, z_top; // 64 units/m
+	};
+
 private:
 	void ActivateProcedure( unsigned int procedure_number, Time current_time );
 	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
@@ -189,6 +195,7 @@ private:
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
+	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
 
 	void MoveMapObjects( bool active );
@@ -247,7 +254,9 @@ private:
 	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
 	std::vector<Messages::MonsterSound> monsters_sounds_messages_;
 
+	// TODO - compress this fields
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
+	DamageFiledCell death_field_[ MapData::c_map_size * MapData::c_map_size ];
 };
 
 } // PanzerChasm

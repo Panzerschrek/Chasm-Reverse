@@ -79,6 +79,7 @@ Map::Map(
 	PC_ASSERT( game_resources_ != nullptr );
 
 	std::memset( wind_field_, 0, sizeof(wind_field_) );
+	std::memset( death_field_, 0, sizeof(death_field_) );
 
 	procedures_.resize( map_data_->procedures.size() );
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -607,6 +608,11 @@ void Map::ProcessPlayerPosition(
 
 void Map::Tick( const Time current_time, const Time last_tick_delta )
 {
+	const Time prev_tick_time= current_time - last_tick_delta;
+	const unsigned int death_ticks=
+		static_cast<unsigned int>( GameConstants::death_ticks_per_second * current_time  .ToSeconds() ) -
+		static_cast<unsigned int>( GameConstants::death_ticks_per_second * prev_tick_time.ToSeconds() );
+
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
 	{
@@ -977,14 +983,29 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			monster_y >= 0 && monster_y < int(MapData::c_map_size) )
 		{
 			const char* const wind_cell= wind_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
-			if( wind_cell[0] == 0 && wind_cell[1] == 0 )
-				continue;
+			if( !( wind_cell[0] == 0 && wind_cell[1] == 0 ) )
+			{
+				const float time_delta_s= last_tick_delta.ToSeconds();
+				const float c_wind_power_scale= 0.5f;
+				const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * m_Vec2( float(wind_cell[0]), float(wind_cell[1]) );
 
-			const float time_delta_s= last_tick_delta.ToSeconds();
-			const float c_wind_power_scale= 0.5f;
-			const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * m_Vec2( float(wind_cell[0]), float(wind_cell[1]) );
+				monster.SetPosition( monster.Position() + m_Vec3( pos_delta, 0.0f ) );
+			}
+		}
 
-			monster.SetPosition( monster.Position() + m_Vec3( pos_delta, 0.0f ) );
+		// Process death for monster.
+		// TODO - make death zone intersection calculation correct, like with wind zones.
+		if( monster_x >= 0 && monster_x < int(MapData::c_map_size) &&
+			monster_y >= 0 && monster_y < int(MapData::c_map_size) )
+		{
+			const DamageFiledCell& cell= death_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
+			if( cell.damage > 0u && death_ticks > 0u )
+			{
+				// TODO - select correct monster height
+				if( !( monster.Position().z > float(cell.z_top) / 64u ||
+					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
+					monster.Hit( int( cell.damage * death_ticks ), *this, monster_value.first, current_time );
+			}
 		}
 	}
 
@@ -1400,9 +1421,9 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
 			}
 		}
 		else if( command.id == Command::Wind )
-		{
 			ProcessWind( command, true );
-		}
+		else if( command.id == Command::Death )
+			ProcessDeathZone( command, true );
 		else if( command.id == Command::Explode )
 		{
 			const unsigned int x= static_cast<unsigned int>( command.args[0] );
@@ -1435,6 +1456,8 @@ void Map::DoProcedureDeactivationCommands( const MapData::Procedure& procedure )
 	{
 		if( command.id == Command::Wind )
 			ProcessWind( command, false );
+		else if( command.id == Command::Death )
+			ProcessDeathZone( command, false );
 	}
 }
 
@@ -1460,6 +1483,33 @@ void Map::ProcessWind( const MapData::Procedure::ActionCommand& command, bool ac
 		}
 		else
 			cell[0]= cell[1]= 0;
+	}
+}
+
+void Map::ProcessDeathZone( const MapData::Procedure::ActionCommand& command, const bool activate )
+{
+	PC_ASSERT( command.id == MapData::Procedure::ActionCommandId::Death );
+
+	const unsigned int x0= static_cast<unsigned int>( command.args[0] );
+	const unsigned int y0= static_cast<unsigned int>( command.args[1] );
+	const unsigned int x1= static_cast<unsigned int>( command.args[2] );
+	const unsigned int y1= static_cast<unsigned int>( command.args[3] );
+	const int z_0= static_cast<int>( command.args[4] );
+	const int z_1= static_cast<int>( command.args[5] );
+	const unsigned char damage= static_cast<unsigned char>( command.args[6] );
+
+	for( unsigned int y= y0; y <= y1 && y < MapData::c_map_size; y++ )
+	for( unsigned int x= x0; x <= x1 && x < MapData::c_map_size; x++ )
+	{
+		DamageFiledCell& cell= death_field_[ x + y * MapData::c_map_size ];
+		if( activate )
+		{
+			cell.damage= damage;
+			cell.z_bottom= std::max( std::min( z_0, 255 ), 0 );
+			cell.z_top   = std::max( std::min( z_1, 255 ), 0 );
+		}
+		else
+			cell.damage= 0u;
 	}
 }
 
