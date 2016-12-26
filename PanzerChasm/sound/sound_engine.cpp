@@ -337,6 +337,9 @@ void SoundEngine::ForceStopAllChannels()
 		channel.is_active= false;
 
 	driver_.UnlockChannels();
+
+	for( Source& source : sources_ )
+		source.is_free= true;
 }
 
 } // namespace Sound
