@@ -536,7 +536,6 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 	std::istringstream stream( std::string( start, end ) );
 
 	char line[ 512 ];
-	stream.getline( line, sizeof(line), '\n' );
 
 	while( !stream.eof() )
 	{
