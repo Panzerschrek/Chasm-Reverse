@@ -677,7 +677,7 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.mortal;
 		else if( StringEquals( thing, "LightRemap" ) )
 			line_stream >> procedure.light_remap;
-		else if( StringEquals( thing, "Lock" ) )
+		else if( StringEquals( thing, "Lock" ) && !has_action ) // Distinguish property "lock" and action command "lock".
 			procedure.locked= true;
 		else if( StringEquals( thing, "OnMessage" ) )
 			line_stream >> procedure.on_message_number;
