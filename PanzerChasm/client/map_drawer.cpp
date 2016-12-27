@@ -209,7 +209,8 @@ MapDrawer::MapDrawer(
 
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
-	LoadSprites();
+	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
+	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
 	PrepareSkyGeometry();
 
 	// Items
@@ -299,6 +300,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( 1, &weapons_textures_array_id_ );
 
 	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
+	glDeleteTextures( bmp_objects_sprites_textures_arrays_.size(), bmp_objects_sprites_textures_arrays_.data() );
 }
 
 void MapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -469,17 +471,17 @@ void MapDrawer::DrawWeapon(
 	glDepthRange( 0.0f, 1.0f );
 }
 
-void MapDrawer::LoadSprites()
+void MapDrawer::LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures )
 {
 	const Palette& palette= game_resources_->palette;
 
 	std::vector<unsigned char> data_rgba;
 
-	sprites_textures_arrays_.resize( game_resources_->effects_sprites.size() );
-	glGenTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
-	for( unsigned int i= 0u; i < sprites_textures_arrays_.size(); i++ )
+	out_textures.resize( sprites.size() );
+	glGenTextures( out_textures.size(), out_textures.data() );
+	for( unsigned int i= 0u; i < out_textures.size(); i++ )
 	{
-		const ObjSprite& sprite= game_resources_->effects_sprites[i];
+		const ObjSprite& sprite= sprites[i];
 
 		data_rgba.clear();
 		data_rgba.resize( sprite.data.size() * 4u, 0u );
@@ -496,7 +498,7 @@ void MapDrawer::LoadSprites()
 			dst[3]= color_index == 255u ? 0u : 255u;
 		}
 
-		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[i] );
+		glBindTexture( GL_TEXTURE_2D_ARRAY, out_textures[i] );
 		glTexImage3D(
 			GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
 			sprite.size[0], sprite.size[1], sprite.frame_count,

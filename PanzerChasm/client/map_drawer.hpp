@@ -59,7 +59,7 @@ private:
 	};
 
 private:
-	void LoadSprites();
+	void LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures );
 	void PrepareSkyGeometry();
 
 	void LoadFloorsTextures( const MapData& map_data );
@@ -130,6 +130,7 @@ private:
 	GLuint weapons_textures_array_id_= ~0;
 
 	std::vector<GLuint> sprites_textures_arrays_;
+	std::vector<GLuint> bmp_objects_sprites_textures_arrays_;
 
 	r_GLSLProgram floors_shader_;
 	r_PolygonBuffer floors_geometry_;
