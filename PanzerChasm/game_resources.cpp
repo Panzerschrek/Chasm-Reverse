@@ -144,6 +144,47 @@ static void LoadSpriteEffectsDescription(
 	}
 }
 
+static void LoadBMPObjectsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	const char* const bmp_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[BMP_OBJECTS]" );
+	const char* const bmp_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( bmp_start, bmp_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	unsigned int bmp_count= 0u;
+	stream >> bmp_count;
+	stream.getline( line, sizeof(line), '\n' );
+
+	game_resources.bmp_objects_description.resize( bmp_count );
+
+	for( unsigned int i= 0u; i < bmp_count; )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( line[0] == ';' )
+			continue;
+
+		std::istringstream line_stream{ std::string( line ) };
+
+		GameResources::BMPObjectDescription& description= game_resources.bmp_objects_description[i];
+		line_stream >> description.light;
+		line_stream >> description.glass;
+		line_stream >> description.half;
+
+		int zero;
+		line_stream >> zero; line_stream >> zero; line_stream >> zero;
+
+		line_stream >> description.sprite_file_name;
+
+		i++;
+	}
+}
+
 static void LoadWeaponsDescription(
 	const Vfs::FileContent& inf_file,
 	GameResources& game_resources )
@@ -413,6 +454,22 @@ static void LoadEffectsSprites(
 	}
 }
 
+static void LoadBMPObjectsSprites(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.bmp_objects_sprites.resize( game_resources.bmp_objects_description.size() );
+
+	Vfs::FileContent file_content;
+
+	for( unsigned int i= 0u; i < game_resources.bmp_objects_sprites.size(); i++ )
+	{
+		vfs.ReadFile( game_resources.bmp_objects_description[i].sprite_file_name, file_content );
+		LoadObjSprite( file_content, game_resources.bmp_objects_sprites[i] );
+	}
+}
+
+
 static void LoadWeaponsModels(
 	const Vfs& vfs,
 	GameResources& game_resources )
@@ -489,6 +546,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadItemsDescription( inf_file, *result );
 	LoadMonstersDescription( inf_file, *result );
 	LoadSpriteEffectsDescription( inf_file, *result );
+	LoadBMPObjectsDescription( inf_file, *result );
 	LoadWeaponsDescription( inf_file, *result );
 	LoadRocketsDescription( inf_file, *result );
 	LoadSoundsDescription( inf_file, *result );
@@ -496,6 +554,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadItemsModels( *vfs, *result );
 	LoadMonstersModels( *vfs, *result );
 	LoadEffectsSprites( *vfs, *result );
+	LoadBMPObjectsSprites( *vfs, *result );
 	LoadWeaponsModels( *vfs, *result );
 	LoadRocketsModels( *vfs, *result );
 
