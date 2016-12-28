@@ -1398,7 +1398,9 @@ void MapDrawer::DrawBMPObjectsSprites(
 		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_z * shift_mat * view_matrix );
 		sprites_shader_.Uniform( "tex", int(0) );
 
-		const unsigned int frame= static_cast<unsigned int>( sprites_frame ) % sprite_picture.frame_count;
+		// Generate pseudo-random animation phase for sprite, because synchronous animation of nearby sprites looks ugly.
+		const unsigned int phase= static_cast<unsigned int>( pos.x * 13.0f + pos.y * 19.0f + model.angle * 29.0f );
+		const unsigned int frame= static_cast<unsigned int>( sprites_frame + phase ) % sprite_picture.frame_count;
 		sprites_shader_.Uniform( "frame", float(frame) );
 
 		// Force fullbright. Fetch light, as with outher sprites, if this needed.
