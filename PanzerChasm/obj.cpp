@@ -10,7 +10,7 @@ namespace PanzerChasm
 struct FrameHeader
 {
 	unsigned short size[2];
-	unsigned short unknown;
+	unsigned short x_center;
 };
 
 SIZE_ASSERT( FrameHeader, 6 );
@@ -28,7 +28,7 @@ void LoadObjSprite( const Vfs::FileContent& obj_file, ObjSprite& out_sprite )
 		for( unsigned int f= 0u; f < frame_count; f++ )
 		{
 			const FrameHeader* const header= reinterpret_cast<const FrameHeader*>(ptr);
-			max_size[0]= std::max( max_size[0], (unsigned int) header->size[0] );
+			max_size[0]= std::max( max_size[0], std::max( (unsigned int) header->size[0], (unsigned int) header->x_center * 2u ) );
 			max_size[1]= std::max( max_size[1], (unsigned int) header->size[1] );
 			ptr+= sizeof(FrameHeader) + header->size[0] * header->size[1];
 		}
@@ -45,8 +45,11 @@ void LoadObjSprite( const Vfs::FileContent& obj_file, ObjSprite& out_sprite )
 		const FrameHeader* const header= reinterpret_cast<const FrameHeader*>(ptr);
 
 		// Shift this frame to center
-		const unsigned int x_offset= ( out_sprite.size[0] - header->size[0] ) >> 1u;
-		const unsigned int y_offset= ( out_sprite.size[1] - header->size[1] ) >> 1u;
+		const unsigned int x_offset= out_sprite.size[0] / 2u - header->x_center;
+		const unsigned int y_offset= 0u;
+		PC_ASSERT( out_sprite.size[0] / 2u >= header->x_center );
+		PC_ASSERT( x_offset + header->size[0] <= out_sprite.size[0] );
+		PC_ASSERT( y_offset + header->size[1] <= out_sprite.size[1] );
 
 		const unsigned char* const src= ptr + sizeof(FrameHeader);
 		unsigned char* const dst= out_sprite.data.data() + out_sprite.size[0] * out_sprite.size[1] * f;
