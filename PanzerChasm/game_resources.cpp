@@ -174,7 +174,7 @@ static void LoadBMPObjectsDescription(
 		GameResources::BMPObjectDescription& description= game_resources.bmp_objects_description[i];
 		line_stream >> description.light;
 		line_stream >> description.glass;
-		line_stream >> description.half;
+		line_stream >> description.half_size;
 
 		int zero;
 		line_stream >> zero; line_stream >> zero; line_stream >> zero;

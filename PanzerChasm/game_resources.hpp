@@ -70,7 +70,7 @@ public:
 		char sprite_file_name[ c_max_file_name_size ];
 		bool light;
 		bool glass;
-		bool half;
+		bool half_size;
 	};
 
 	struct WeaponDescription

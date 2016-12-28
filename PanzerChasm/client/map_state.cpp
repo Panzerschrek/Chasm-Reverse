@@ -92,6 +92,11 @@ const MapState::RocketsContainer& MapState::GetRockets() const
 	return rockets_;
 }
 
+float MapState::GetSpritesFrame() const
+{
+	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
+}
+
 void MapState::Tick( const Time current_time )
 {
 	const float time_since_map_start_s= ( current_time - map_start_time_ ).ToSeconds();

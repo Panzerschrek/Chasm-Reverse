@@ -399,9 +399,9 @@ void MapDrawer::Draw(
 	DrawRockets( map_state, view_matrix, true );
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
-	DrawSprites( map_state, view_matrix, camera_position );
+	DrawBMPObjectsSprites( map_state, view_matrix, camera_position );
+	DrawEffectsSprites( map_state, view_matrix, camera_position );
 }
-
 
 void MapDrawer::DrawWeapon(
 	const WeaponState& weapon_state,
@@ -1352,7 +1352,64 @@ void MapDrawer::DrawRockets(
 	}
 }
 
-void MapDrawer::DrawSprites(
+void MapDrawer::DrawBMPObjectsSprites(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position )
+{
+	const float sprites_frame= map_state.GetSpritesFrame();
+
+	sprites_shader_.Bind();
+	glActiveTexture( GL_TEXTURE0 + 0 );
+
+	for( const MapState::StaticModel& model : map_state.GetStaticModels() )
+	{
+		if( model.model_id >= current_map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= current_map_data_->models_description[ model.model_id ];
+		const int bmp_obj_id= model_description.bobj - 1u;
+		if( bmp_obj_id < 0 || bmp_obj_id > static_cast<int>( game_resources_->bmp_objects_description.size() ) )
+			continue;
+
+		const GameResources::BMPObjectDescription& bmp_description= game_resources_->bmp_objects_description[ bmp_obj_id ];
+		const ObjSprite& sprite_picture= game_resources_->bmp_objects_sprites[ bmp_obj_id ];
+
+		glBindTexture( GL_TEXTURE_2D_ARRAY, bmp_objects_sprites_textures_arrays_[ bmp_obj_id ] );
+
+		const float additional_scale= ( bmp_description.half_size ? 0.5f : 1.0f ) / 128.0f;
+		const m_Vec3 scale_vec(
+			float(sprite_picture.size[0]) * additional_scale,
+			1.0f,
+			float(sprite_picture.size[1]) * additional_scale );
+
+		m_Vec3 pos= model.pos;
+		pos.z+= float( model_description.bmpz ) / 64.0f + scale_vec.z;
+
+		const m_Vec3 vec_to_sprite= pos - camera_position;
+		float sprite_angles[2];
+		VecToAngles( vec_to_sprite, sprite_angles );
+
+		m_Mat4 rotate_z, shift_mat, scale_mat;
+		rotate_z.RotateZ( sprite_angles[0] - Constants::half_pi );
+		shift_mat.Translate( pos );
+		scale_mat.Scale( scale_vec );
+
+		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_z * shift_mat * view_matrix );
+		sprites_shader_.Uniform( "tex", int(0) );
+
+		const unsigned int frame= static_cast<unsigned int>( sprites_frame ) % sprite_picture.frame_count;
+		sprites_shader_.Uniform( "frame", float(frame) );
+
+		// Force fullbright. Fetch light, as with outher sprites, if this needed.
+		float light= 1.0f;
+		sprites_shader_.Uniform( "light", light );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+}
+
+void MapDrawer::DrawEffectsSprites(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const m_Vec3& camera_position )

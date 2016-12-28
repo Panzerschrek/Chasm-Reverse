@@ -106,7 +106,12 @@ private:
 		const m_Mat4& view_matrix,
 		bool transparent );
 
-	void DrawSprites(
+	void DrawBMPObjectsSprites(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position );
+
+	void DrawEffectsSprites(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
 		const m_Vec3& camera_position );
