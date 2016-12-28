@@ -54,10 +54,11 @@ void LoadObjSprite( const Vfs::FileContent& obj_file, ObjSprite& out_sprite )
 		const unsigned char* const src= ptr + sizeof(FrameHeader);
 		unsigned char* const dst= out_sprite.data.data() + out_sprite.size[0] * out_sprite.size[1] * f;
 
+		// Copy and flip
 		for( unsigned int y= 0u; y < header->size[1]; y++ )
 		for( unsigned int x= 0u; x < header->size[0]; x++ )
 			dst[ x_offset + x + ( y + y_offset ) * out_sprite.size[0] ]=
-				src[ y + x * header->size[1] ];
+				src[ ( header->size[1] - 1u - y ) + x * header->size[1] ];
 
 		ptr+= sizeof(FrameHeader) + header->size[0] * header->size[1];
 	}
