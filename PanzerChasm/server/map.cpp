@@ -421,6 +421,8 @@ void Map::ProcessPlayerPosition(
 		{
 			if( link.type == MapData::Link::Floor && link.x == x && link.y == y )
 				TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+			else if( link.type == MapData::Link::ReturnFloor && link.x == x && link.y == y )
+				ReturnProcedure( link.proc_id, current_time );
 		}
 	}
 
@@ -451,6 +453,8 @@ void Map::ProcessPlayerPosition(
 				{
 					if( link.type == MapData::Link::Link_ )
 						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+					else if( link.type == MapData::Link::Return )
+						ReturnProcedure( link.proc_id, current_time );
 				} );
 		}
 	}
@@ -484,6 +488,8 @@ void Map::ProcessPlayerPosition(
 				{
 					if( link.type == MapData::Link::Link_ )
 						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+					else if( link.type == MapData::Link::Return )
+						ReturnProcedure( link.proc_id, current_time );
 				} );
 		}
 	}
@@ -519,6 +525,8 @@ void Map::ProcessPlayerPosition(
 				{
 					if( link.type == MapData::Link::Link_ )
 						TryActivateProcedure( link.proc_id, current_time, player, messages_sender );
+					else if( link.type == MapData::Link::Return )
+						ReturnProcedure( link.proc_id, current_time );
 				} );
 		}
 	}
@@ -622,7 +630,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		const Time time_since_last_state_change= current_time - procedure_state.last_state_change_time;
 		const float new_stage=
 			procedure.speed > 0.0f
-				? ( time_since_last_state_change.ToSeconds() * procedure.speed / 10.0f )
+				? ( time_since_last_state_change.ToSeconds() * procedure.speed * GameConstants::procedures_speed_scale )
 				: 1.0f;
 
 		// Check map end
@@ -1459,6 +1467,46 @@ void Map::DoProcedureDeactivationCommands( const MapData::Procedure& procedure )
 		else if( command.id == Command::Death )
 			ProcessDeathZone( command, false );
 	}
+}
+
+void Map::ReturnProcedure( const unsigned int procedure_number, const Time current_time )
+{
+	PC_ASSERT( procedure_number < map_data_->procedures.size() );
+
+	const MapData::Procedure& procededure= map_data_->procedures[ procedure_number ];
+	ProcedureState& procedure_state= procedures_[ procedure_number ];
+
+	switch( procedure_state.movement_state )
+	{
+	case ProcedureState::MovementState::None:
+	case ProcedureState::MovementState::ReverseMovement:
+		break;
+
+	case ProcedureState::MovementState::StartWait:
+		procedure_state.movement_state= ProcedureState::MovementState::None;
+		break;
+
+	case ProcedureState::MovementState::Movement:
+	{
+		procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
+		float dt_s;
+		if( procededure.speed > 0.0f )
+			dt_s=
+				std::max(
+					1.0f / ( procededure.speed * GameConstants::procedures_speed_scale ) -
+					( current_time - procedure_state.last_state_change_time ).ToSeconds(),
+					0.0f );
+		else
+			dt_s= 0.0f;
+		procedure_state.last_state_change_time= current_time - Time::FromSeconds(dt_s);
+	}
+		break;
+
+	case ProcedureState::MovementState::BackWait:
+		procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
+		procedure_state.last_state_change_time= current_time;
+		break;
+	};
 }
 
 void Map::ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate )

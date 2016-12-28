@@ -193,6 +193,7 @@ private:
 	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time );
 	void DoProcedureImmediateCommands( const MapData::Procedure& procedure );
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
+	void ReturnProcedure( unsigned int procedure_number, Time current_time );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
 	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );

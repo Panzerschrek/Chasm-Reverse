@@ -219,6 +219,7 @@ public:
 			Floor,
 			Shoot,
 			Return,
+			ReturnFloor,
 			Destroy,
 		} type= None;
 		unsigned char proc_id= 0u;
