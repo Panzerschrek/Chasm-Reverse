@@ -75,7 +75,6 @@ private:
 			ReverseMovement,
 		};
 
-		bool alive= true;
 		bool locked= false;
 		bool first_message_printed= false;
 
@@ -83,8 +82,6 @@ private:
 		unsigned int movement_loop_iteration= 0u;
 		float movement_stage= 0.0f; // stage of current movement state [0; 1]
 		Time last_state_change_time= Time::FromSeconds(0);
-
-		Time last_change_time= Time::FromSeconds(0);
 	};
 
 	struct DynamicWall
