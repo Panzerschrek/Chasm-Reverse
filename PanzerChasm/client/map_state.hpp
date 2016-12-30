@@ -92,6 +92,8 @@ public:
 	const MonstersContainer& GetMonsters() const;
 	const RocketsContainer& GetRockets() const;
 
+	float GetSpritesFrame() const;
+
 	void Tick( Time current_time );
 
 	void ProcessMessage( const Messages::MonsterState& message );

@@ -65,6 +65,14 @@ public:
 		bool light_on;
 	};
 
+	struct BMPObjectDescription
+	{
+		char sprite_file_name[ c_max_file_name_size ];
+		bool light;
+		bool glass;
+		bool half_size;
+	};
+
 	struct WeaponDescription
 	{
 		char model_file_name[ c_max_file_name_size ];
@@ -136,6 +144,9 @@ public:
 
 	std::vector<SpriteEffectDescription> sprites_effects_description;
 	std::vector<ObjSprite> effects_sprites;
+
+	std::vector<BMPObjectDescription> bmp_objects_description;
+	std::vector<ObjSprite> bmp_objects_sprites;
 
 	std::vector<WeaponDescription> weapons_description;
 	std::vector<Model> weapons_models;
