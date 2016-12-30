@@ -353,7 +353,9 @@ void Client::TrySwitchWeaponOnOutOfAmmo()
 {
 	for( unsigned int i= 1u; i < GameConstants::weapon_count; i++ )
 	{
-		if( player_state_.ammo[i] != 0u )
+		if(
+			( player_state_.weapons_mask & ( 1u << i ) ) != 0u &&
+			player_state_.ammo[i] != 0u )
 		{
 			requested_weapon_index_= i;
 			return;
