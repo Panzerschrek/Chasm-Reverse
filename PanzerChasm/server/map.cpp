@@ -8,6 +8,7 @@
 #include "../sound/sound_id.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
+#include "collision_index.inl"
 #include "monster.hpp"
 #include "player.hpp"
 
@@ -74,6 +75,7 @@ Map::Map(
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
 	, random_generator_( std::make_shared<LongRand>() )
+	, collision_index_( map_data )
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
@@ -276,25 +278,33 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 	const float z_top= z_bottom + height;
 	float new_z= in_pos.z;
 
-	// Static walls
-	for( const MapData::Wall& wall : map_data_->static_walls )
-	{
-		if( wall.vert_pos[0] == wall.vert_pos[1] )
-			continue;
-
-		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-		if( tex.gso[0] )
-			continue;
-
-		m_Vec2 new_pos;
-		if( CollideCircleWithLineSegment(
-				wall.vert_pos[0], wall.vert_pos[1],
-				pos, radius,
-				new_pos ) )
+	collision_index_.ProcessElementsInRadius(
+		pos, radius,
+		[&]( const MapData::IndexElement& index_element )
 		{
-			pos= new_pos;
-		}
-	}
+			if( index_element.type == MapData::IndexElement::StaticWall )
+			{
+				PC_ASSERT( index_element.index < map_data_->static_walls.size() );
+				const MapData::Wall& wall= map_data_->static_walls[ index_element.index ];
+
+				const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+				if( !tex.gso[0] )
+				{
+					m_Vec2 new_pos;
+					if( CollideCircleWithLineSegment(
+							wall.vert_pos[0], wall.vert_pos[1],
+							pos, radius,
+							new_pos ) )
+					{
+						pos= new_pos;
+					}
+				}
+			}
+			else
+			{
+				// TODO
+			}
+		} );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )

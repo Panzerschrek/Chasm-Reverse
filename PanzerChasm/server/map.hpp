@@ -5,6 +5,7 @@
 #include "../messages_sender.hpp"
 #include "../particles.hpp"
 #include "../time.hpp"
+#include "collision_index.hpp"
 #include "fwd.hpp"
 #include "rand.hpp"
 
@@ -252,9 +253,13 @@ private:
 	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
 	std::vector<Messages::MonsterSound> monsters_sounds_messages_;
 
+	// Put large objects here.
+
 	// TODO - compress this fields
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 	DamageFiledCell death_field_[ MapData::c_map_size * MapData::c_map_size ];
+
+	const CollisionIndex collision_index_;
 };
 
 } // PanzerChasm

@@ -52,6 +52,7 @@ SOURCES+= \
 	obj.cpp \
 	rand.cpp \
 	server/collisions.cpp \
+	server/collision_index.cpp \
 	server/map.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
@@ -103,6 +104,8 @@ HEADERS+= \
 	rendering_context.hpp \
 	server/a_code.hpp \
 	server/collisions.hpp \
+	server/collision_index.hpp \
+	server/collision_index.inl \
 	server/fwd.hpp \
 	server/map.hpp \
 	server/monster.hpp \
