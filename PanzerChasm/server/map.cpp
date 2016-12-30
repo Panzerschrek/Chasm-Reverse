@@ -278,33 +278,74 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 	const float z_top= z_bottom + height;
 	float new_z= in_pos.z;
 
+	const auto elements_process_func=
+	[&]( const MapData::IndexElement& index_element )
+	{
+		if( index_element.type == MapData::IndexElement::StaticWall )
+		{
+			PC_ASSERT( index_element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ index_element.index ];
+
+			const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+			if( tex.gso[0] )
+				goto end;
+
+			m_Vec2 new_pos;
+			if( CollideCircleWithLineSegment(
+					wall.vert_pos[0], wall.vert_pos[1],
+					pos, radius,
+					new_pos ) )
+			{
+				pos= new_pos;
+			}
+		}
+		else if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			const StaticModel& model= static_models_[ index_element.index ];
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_geometry= map_data_->models[ model.model_id ];
+
+			const float model_z_min= model_geometry.z_min + model.pos.z;
+			const float model_z_max= model_geometry.z_max + model.pos.z;
+			if( z_top < model_z_min || z_bottom > model_z_max )
+				goto end;
+
+			const float min_distance= radius + model_description.radius;
+
+			const m_Vec2 vec_to_pos= pos - model.pos.xy();
+			const float square_distance= vec_to_pos.SquareLength();
+
+			if( square_distance <= min_distance * min_distance )
+			{
+				// Pull up or down player.
+				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
+				{
+					new_z= std::max( new_z, model_z_max );
+					out_on_floor= true;
+				}
+				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
+					new_z= std::min( new_z, model_z_min - height );
+				// Push sideways.
+				else
+					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+			}
+		}
+		else
+		{
+			// TODO
+		}
+		end:;
+	};
+
 	collision_index_.ProcessElementsInRadius(
 		pos, radius,
-		[&]( const MapData::IndexElement& index_element )
-		{
-			if( index_element.type == MapData::IndexElement::StaticWall )
-			{
-				PC_ASSERT( index_element.index < map_data_->static_walls.size() );
-				const MapData::Wall& wall= map_data_->static_walls[ index_element.index ];
-
-				const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-				if( !tex.gso[0] )
-				{
-					m_Vec2 new_pos;
-					if( CollideCircleWithLineSegment(
-							wall.vert_pos[0], wall.vert_pos[1],
-							pos, radius,
-							new_pos ) )
-					{
-						pos= new_pos;
-					}
-				}
-			}
-			else
-			{
-				// TODO
-			}
-		} );
+		elements_process_func );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
@@ -329,45 +370,6 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 				new_pos ) )
 		{
 			pos= new_pos;
-		}
-	}
-
-	// Models
-	for( unsigned int m= 0u; m < static_models_.size(); m++ )
-	{
-		const StaticModel& model= static_models_[m];
-		if( model.model_id >= map_data_->models_description.size() )
-			continue;
-
-		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const Model& model_geometry= map_data_->models[ model.model_id ];
-
-		const float model_z_min= model_geometry.z_min + model.pos.z;
-		const float model_z_max= model_geometry.z_max + model.pos.z;
-		if( z_top < model_z_min || z_bottom > model_z_max )
-			continue;
-
-		const float min_distance= radius + model_description.radius;
-
-		const m_Vec2 vec_to_pos= pos - model.pos.xy();
-		const float square_distance= vec_to_pos.SquareLength();
-
-		if( square_distance <= min_distance * min_distance )
-		{
-			// Pull up or down player.
-			if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
-			{
-				new_z= std::max( new_z, model_z_max );
-				out_on_floor= true;
-			}
-			else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
-				new_z= std::min( new_z, model_z_min - height );
-			// Push sideways.
-			else
-				pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
 		}
 	}
 

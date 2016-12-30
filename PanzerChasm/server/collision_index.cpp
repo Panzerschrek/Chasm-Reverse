@@ -89,6 +89,43 @@ CollisionIndex::CollisionIndex( const MapDataConstPtr& map_data )
 			}
 		}
 	} // for static walls
+
+	const auto add_model_to_dynamics_list=
+	[&]( const MapData::StaticModel& model )
+	{
+		dynamic_models_indeces_.emplace_back( &model - map_data->static_models.data() );
+	};
+
+	for( const MapData::StaticModel& model : map_data->static_models )
+	{
+		if( model.is_dynamic ||
+			model.model_id >= map_data->models_description.size() )
+		{
+			add_model_to_dynamics_list( model );
+			continue;
+		}
+
+		const MapData::ModelDescription& description= map_data->models_description[ model.model_id ];
+		if( description.blow_effect != 0 ) // Breakable - do not add to index.
+		{
+			add_model_to_dynamics_list( model );
+			continue;
+		}
+
+		MapData::IndexElement model_index_element;
+		model_index_element.type= MapData::IndexElement::StaticModel;
+		model_index_element.index= &model - map_data->static_models.data();
+
+		const int x_start= std::max( static_cast<int>( std::floor( model.pos.x - description.radius ) ), 0 );
+		const int x_end  = std::min( static_cast<int>( std::floor( model.pos.x + description.radius ) ), int(MapData::c_map_size - 1u) );
+		const int y_start= std::max( static_cast<int>( std::floor( model.pos.y - description.radius ) ), 0 );
+		const int y_end  = std::min( static_cast<int>( std::floor( model.pos.y + description.radius ) ), int(MapData::c_map_size - 1u) );
+
+		// TODO - use circle, not quad.
+		for( int y= y_start; y <= y_end; y++ )
+		for( int x= x_start; x <= x_end; x++ )
+			AddElementToIndex( x, y, model_index_element );
+	} // for models
 }
 
 CollisionIndex::~CollisionIndex()

@@ -4,6 +4,10 @@
 namespace PanzerChasm
 {
 
+// Class for collisions calculations optimization.
+// It can fast fetch only potential-collidable objects.
+// Supported only "static walls" and "models" from map data.
+// Dynamic walls not supported.
 class CollisionIndex final
 {
 public:
@@ -35,6 +39,9 @@ private:
 private:
 	// Linked lists data.
 	std::vector<IndexElement> index_elements_;
+
+	// Indeces of models, which can`t be placed in index - dynamic, breakable, etc.
+	std::vector<unsigned short> dynamic_models_indeces_;
 
 	// Linked lists heads.
 	unsigned short index_field_[ MapData::c_map_size * MapData::c_map_size ];

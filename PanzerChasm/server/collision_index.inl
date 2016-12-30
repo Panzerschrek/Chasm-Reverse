@@ -29,6 +29,15 @@ void CollisionIndex::ProcessElementsInRadius(
 			i= element.next;
 		}
 	}
+
+	// Process dynamic models without any optimizations
+	for( const unsigned short dynamic_model_index : dynamic_models_indeces_ )
+	{
+		MapData::IndexElement element;
+		element.type= MapData::IndexElement::StaticModel;
+		element.index= dynamic_model_index;
+		func( element );
+	}
 }
 
 } // namespace PanzerChasm
