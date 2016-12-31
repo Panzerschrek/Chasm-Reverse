@@ -4,8 +4,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [IGROVAJA LOGIKA]
-* Obrabotka "link" tipa "return".
-* Sozdanije zon smerti po komande "death" proçedury.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj".
@@ -14,8 +12,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
   ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
-* Optimizaçija rascötov stolknovenij monstrov s urovnem i polötov raket.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
+* Uron ot vzryvov snarädov, a ne toljko pri prämom popadanii.
 * Miny.
 * Rakety s otskokom ot pola.
 * Samonavodäscijesä rakety.
@@ -28,6 +26,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Dorabotka urovnej složnosti. Sokrytije nenužnyh dlä konkretnogo urovnä
   složnosti modelej. Issledovanije vlijanija urovnej složnosti na uron.
 * Sohranenije i zagruzka igry.
+* Vypadenije rançev iz nekotoryh mostrov, igrokov, bossov. Issledovanije togo,
+  is kogo cto vypadajet i vypadajet li.
 * Otryvanije castej tela monstram.
 * Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
   monstrov pri popadanii rakety ili puli.
@@ -47,7 +47,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Graficeskij effekt pri vystrele iz "Mega-destroyer".
 * Risovanije minikarty. Risovanije toljko vidennyh sten.
 * Otsecenije objektov po piramide vidimosti.
-* Çvetokorrekçija.
+* Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
 * Sglaživanije.
 * Risovanije modelej igrokov raznym çvetom.
 
