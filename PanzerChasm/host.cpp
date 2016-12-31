@@ -66,6 +66,7 @@ Host::Host()
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, drawers ) );
 
+	Log::Info( "Initialize sound subsystem" );
 	sound_engine_= std::make_shared<Sound::SoundEngine>( game_resources_ );
 
 	Log::Info( "Initialize menu" );
