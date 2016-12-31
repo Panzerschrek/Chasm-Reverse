@@ -18,11 +18,13 @@ Client::Client(
 	const LoopbackBufferPtr& loopback_buffer,
 	const RenderingContext& rendering_context,
 	const DrawersPtr& drawers,
-	const Sound::SoundEnginePtr& sound_engine )
+	const Sound::SoundEnginePtr& sound_engine,
+	const DrawLoadingCallback& draw_loading_callback )
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, loopback_buffer_(loopback_buffer)
 	, sound_engine_(sound_engine)
+	, draw_loading_callback_(draw_loading_callback)
 	, current_tick_time_( Time::CurrentTime() )
 	, camera_controller_(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
@@ -287,6 +289,15 @@ void Client::operator()( const Messages::MonsterSound& message )
 
 void Client::operator()( const Messages::MapChange& message )
 {
+	const auto show_progress=
+	[&]( const float progress )
+	{
+		if( draw_loading_callback_ != nullptr )
+			draw_loading_callback_( progress, "Client" );
+	};
+
+	show_progress( 0.0f );
+
 	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
 	if( map_data == nullptr )
 	{
@@ -295,13 +306,19 @@ void Client::operator()( const Messages::MapChange& message )
 		return;
 	}
 
+	show_progress( 0.333f );
 	map_drawer_.SetMap( map_data );
+
+	show_progress( 0.666f );
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 
+	show_progress( 0.8f );
 	if( sound_engine_ != nullptr )
 		sound_engine_->SetMap( map_data );
 
 	current_map_data_= map_data;
+
+	show_progress( 1.0f );
 }
 
 void Client::operator()( const Messages::MonsterBirth& message )

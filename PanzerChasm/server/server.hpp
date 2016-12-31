@@ -17,7 +17,8 @@ public:
 		CommandsProcessor& commands_processor,
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
-		const IConnectionsListenerPtr& connections_listener );
+		const IConnectionsListenerPtr& connections_listener,
+		const DrawLoadingCallback& draw_loading_callback );
 	~Server();
 
 	void Loop();
@@ -63,6 +64,7 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const IConnectionsListenerPtr connections_listener_;
+	const DrawLoadingCallback draw_loading_callback_;
 
 	CommandsMapConstPtr commands_;
 

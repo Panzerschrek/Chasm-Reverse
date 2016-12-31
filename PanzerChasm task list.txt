@@ -36,7 +36,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [GRAFIKA]
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
-* Pokazyvanije kartinki "Loading" pri zagruzke urovnej.
 * Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
@@ -71,6 +70,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Menü nastrojek.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Menü "save" i "load".
+* Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
+  mašine.
 
 
 [SETJ]

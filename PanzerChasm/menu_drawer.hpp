@@ -50,6 +50,7 @@ public:
 		unsigned int scale );
 
 	void DrawConsoleBackground( float console_pos );
+	void DrawLoading( float progress );
 
 private:
 	struct Vertex
@@ -63,6 +64,7 @@ private:
 
 	r_GLSLProgram menu_background_shader_;
 	r_Texture tiles_texture_;
+	r_Texture loading_texture_;
 
 	r_GLSLProgram menu_picture_shader_;
 	r_Texture menu_pictures_[ size_t(MenuPicture::PicturesCount) ];

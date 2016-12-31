@@ -1,10 +1,13 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 // Forward declarations, basic typedefs here.
 
 namespace PanzerChasm
 {
+
+typedef std::function< void( float progress, const char* caption ) > DrawLoadingCallback;
 
 class IConnection;
 typedef std::shared_ptr<IConnection> IConnectionPtr;

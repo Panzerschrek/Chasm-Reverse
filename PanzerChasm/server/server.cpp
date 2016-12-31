@@ -22,10 +22,12 @@ Server::Server(
 	CommandsProcessor& commands_processor,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
-	const IConnectionsListenerPtr& connections_listener )
+	const IConnectionsListenerPtr& connections_listener,
+	const DrawLoadingCallback& draw_loading_callback )
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
+	, draw_loading_callback_(draw_loading_callback)
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
 	, last_tick_duration_( Time::FromSeconds(0) )
@@ -151,6 +153,14 @@ void Server::Loop()
 
 void Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty )
 {
+	const auto show_progress=
+	[&]( const float progress )
+	{
+		if( draw_loading_callback_ != nullptr )
+			draw_loading_callback_( progress, "Server" );
+	};
+
+	show_progress( 0.0f );
 	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
 
 	if( map_data == nullptr )
@@ -159,6 +169,7 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 		return;
 	}
 
+	show_progress( 0.5f );
 	current_map_number_= map_number;
 	current_map_data_= map_data;
 	map_.reset(
@@ -179,6 +190,7 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 			map_->SpawnPlayer( connected_player->player );
 	}
 
+	show_progress( 0.666f );
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		Messages::MapChange message;
@@ -196,6 +208,8 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 
 		messages_sender.Flush();
 	}
+
+	show_progress( 1.0f );
 }
 
 void Server::operator()( const Messages::MessageBase& message )

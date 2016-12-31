@@ -47,31 +47,39 @@ MenuDrawer::MenuDrawer(
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
 {
-	{ // Tiles texture
-		const Vfs::FileContent tiles_texture_file= game_resources.vfs->ReadFile( "M_TILE1.CEL" );
+	std::vector<unsigned char> textures_data_rgba;
+
+	const auto load_texture=
+	[&]( const char* const file_name, r_Texture& out_texture )
+	{
+		const Vfs::FileContent texture_file= game_resources.vfs->ReadFile( file_name );
 		const CelTextureHeader* const cel_header=
-			reinterpret_cast<const CelTextureHeader*>( tiles_texture_file.data() );
+			reinterpret_cast<const CelTextureHeader*>( texture_file.data() );
 
 		const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
-		std::vector<unsigned char> tiles_texture_data_rgba( 4u * pixel_count );
+		textures_data_rgba.resize( 4u * pixel_count );
 
 		ConvertToRGBA(
 			pixel_count,
-			tiles_texture_file.data() + sizeof(CelTextureHeader),
+			texture_file.data() + sizeof(CelTextureHeader),
 			game_resources.palette,
-			tiles_texture_data_rgba.data() );
+			textures_data_rgba.data() );
 
-		tiles_texture_=
+		out_texture=
 			r_Texture(
 				r_Texture::PixelFormat::RGBA8,
 				cel_header->size[0],
 				cel_header->size[1],
-				tiles_texture_data_rgba.data() );
+				textures_data_rgba.data() );
 
-		tiles_texture_.SetFiltration(
+		out_texture.SetFiltration(
 			r_Texture::Filtration::Nearest,
 			r_Texture::Filtration::Nearest );
-	}
+	};
+
+	load_texture( "M_TILE1.CEL", tiles_texture_ );
+	load_texture( "LOADING.CEL", loading_texture_ );
+
 	{ // Menu pictures
 		Vfs::FileContent picture_file;
 		std::vector<unsigned char> picture_data_shifted;
@@ -491,6 +499,81 @@ void MenuDrawer::DrawConsoleBackground( float console_pos )
 			1.0f / float(console_background_texture_.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawer::DrawLoading( const float progress )
+{
+	const float progress_corrected= std::min( std::max( progress, 0.0f ), 1.0f );
+
+	Vertex vertices[ 8u ];
+
+	const int scale= 2; // TODO - select this
+	const int x0= ( int(viewport_size_.Width ()) - int(loading_texture_.Width()) * scale ) / 2;
+	const int mid_tc= int( std::round( float(loading_texture_.Width()) * progress_corrected ) );
+	const int x1= x0 + scale * mid_tc;
+	const int y= ( int(viewport_size_.Height()) - int(loading_texture_.Height()) / 2 * scale ) / 2;
+
+	vertices[0].xy[0]= x0;
+	vertices[0].xy[1]= y;
+	vertices[0].tex_coord[0]= 0;
+	vertices[0].tex_coord[1]= loading_texture_.Height ();
+
+	vertices[1].xy[0]= x1;
+	vertices[1].xy[1]= y;
+	vertices[1].tex_coord[0]= mid_tc;
+	vertices[1].tex_coord[1]= loading_texture_.Height();
+
+	vertices[2].xy[0]= x1;
+	vertices[2].xy[1]= y + int(loading_texture_.Height() >> 1u) * scale;
+	vertices[2].tex_coord[0]= mid_tc;
+	vertices[2].tex_coord[1]= loading_texture_.Height () >> 1u;
+
+	vertices[3].xy[0]= x0;
+	vertices[3].xy[1]= y + int(loading_texture_.Height() >> 1u) * scale;
+	vertices[3].tex_coord[0]= 0;
+	vertices[3].tex_coord[1]= loading_texture_.Height () >> 1u;
+
+	vertices[4].xy[0]= x1;
+	vertices[4].xy[1]= y;
+	vertices[4].tex_coord[0]= mid_tc;
+	vertices[4].tex_coord[1]= loading_texture_.Height () >> 1u;
+
+	vertices[5].xy[0]= x0 + int(loading_texture_.Width()) * scale;
+	vertices[5].xy[1]= y;
+	vertices[5].tex_coord[0]= loading_texture_.Width ();
+	vertices[5].tex_coord[1]= loading_texture_.Height() >> 1u;
+
+	vertices[6].xy[0]= x0 + int(loading_texture_.Width()) * scale;
+	vertices[6].xy[1]= y + int(loading_texture_.Height() >> 1u) * scale;
+	vertices[6].tex_coord[0]= loading_texture_.Width ();
+	vertices[6].tex_coord[1]= 0;
+
+	vertices[7].xy[0]= x1;
+	vertices[7].xy[1]= y + int(loading_texture_.Height() >> 1u) * scale;
+	vertices[7].tex_coord[0]= mid_tc;
+	vertices[7].tex_coord[1]= 0;
+
+	polygon_buffer_.VertexSubData( vertices , sizeof(vertices), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
+	menu_picture_shader_.Bind();
+
+	loading_texture_.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(loading_texture_.Width ()),
+			1.0f / float(loading_texture_.Height()) ) );
+
+	glDrawElements( GL_TRIANGLES, 2u * 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
 } // namespace PanzerChasm

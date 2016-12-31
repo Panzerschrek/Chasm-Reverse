@@ -30,6 +30,8 @@ private:
 	void NewGameCommand( const CommandsArguments& args );
 	void RunLevel( const CommandsArguments& args );
 
+	void DrawLoadingFrame( float progress, const char* caption );
+
 private:
 	// Put members here in reverse deinitialization order.
 
@@ -46,6 +48,7 @@ private:
 
 	Sound::SoundEnginePtr sound_engine_;
 
+	DrawersPtr drawers_;
 	std::unique_ptr<Console> console_;
 	std::unique_ptr<Menu> menu_;
 

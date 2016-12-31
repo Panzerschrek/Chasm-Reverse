@@ -61,10 +61,10 @@ Host::Host()
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
 	rendering_context.viewport_size= system_window_->GetViewportSize();
 
-	const DrawersPtr drawers= std::make_shared<Drawers>( rendering_context, *game_resources_ );
+	drawers_= std::make_shared<Drawers>( rendering_context, *game_resources_ );
 
 	Log::Info( "Initialize console" );
-	console_.reset( new Console( commands_processor_, drawers ) );
+	console_.reset( new Console( commands_processor_, drawers_ ) );
 
 	Log::Info( "Initialize sound subsystem" );
 	sound_engine_= std::make_shared<Sound::SoundEngine>( game_resources_ );
@@ -73,7 +73,7 @@ Host::Host()
 	menu_.reset(
 		new Menu(
 			*this,
-			drawers,
+			drawers_,
 			sound_engine_ ) );
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
@@ -81,8 +81,17 @@ Host::Host()
 	Log::Info( "Create loopback buffer" );
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
 
+	const DrawLoadingCallback draw_loading_callback=
+		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
+
 	Log::Info( "Create local server" );
-	local_server_.reset( new Server( commands_processor_, game_resources_, map_loader_, loopback_buffer_ ) );
+	local_server_.reset(
+		new Server(
+			commands_processor_,
+			game_resources_,
+			map_loader_,
+			loopback_buffer_,
+			draw_loading_callback ) );
 
 	loopback_buffer_->RequestConnect();
 	local_server_->ChangeMap( 1, Difficulty::Normal );
@@ -94,8 +103,9 @@ Host::Host()
 			map_loader_,
 			loopback_buffer_,
 			rendering_context,
-			drawers,
-			sound_engine_ ) );
+			drawers_,
+			sound_engine_,
+			draw_loading_callback ) );
 }
 
 Host::~Host()
@@ -207,6 +217,18 @@ void Host::RunLevel( const CommandsArguments& args )
 
 	if( local_server_ != nullptr )
 		local_server_->ChangeMap( map_number, difficulty );
+}
+
+void Host::DrawLoadingFrame( const float progress, const char* const caption )
+{
+	// TODO - use this.
+	PC_UNUSED( caption );
+
+	if( system_window_ != nullptr && drawers_ != nullptr )
+	{
+		drawers_->menu.DrawLoading( progress );
+		system_window_->SwapBuffers();
+	}
 }
 
 } // namespace PanzerChasm

@@ -22,7 +22,8 @@ public:
 		const LoopbackBufferPtr& loopback_buffer,
 		const RenderingContext& rendering_context,
 		const DrawersPtr& drawers,
-		const Sound::SoundEnginePtr& sound_engine );
+		const Sound::SoundEnginePtr& sound_engine,
+		const DrawLoadingCallback& draw_loading_callback );
 
 	~Client();
 
@@ -62,6 +63,7 @@ private:
 	const MapLoaderPtr map_loader_;
 	const LoopbackBufferPtr loopback_buffer_;
 	const Sound::SoundEnginePtr sound_engine_;
+	const DrawLoadingCallback draw_loading_callback_;
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 
