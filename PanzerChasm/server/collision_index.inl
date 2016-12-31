@@ -87,7 +87,7 @@ void CollisionIndex::RayCast(
 	int prev_y= std::numeric_limits<int>::max();
 
 	const unsigned int max_distance_xy_i= static_cast<unsigned int>( std::ceil( end_distance_xy ) );
-	for( unsigned int i= 0u; i < max_distance_xy_i; i++ )
+	for( unsigned int i= 0u; i <= max_distance_xy_i; i++ )
 	{
 		const m_Vec2 sample_pos= pos.xy() + dir_xy * float(i);
 		const int x= static_cast<int>( std::floor( sample_pos.x ) );
