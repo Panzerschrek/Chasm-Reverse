@@ -47,8 +47,10 @@ CollisionIndex::CollisionIndex( const MapDataConstPtr& map_data )
 				const float cell_x_start= std::max( float(x  ), v[0].x );
 				const float cell_x_end  = std::min( float(x+1), v[1].x );
 
-				const float cell_y_start= v[0].y + dy_dx * ( cell_x_start - v[0].x );
-				const float cell_y_end  = v[0].y + dy_dx * ( cell_x_end   - v[0].x );
+				float cell_y_start= v[0].y + dy_dx * ( cell_x_start - v[0].x );
+				float cell_y_end  = v[0].y + dy_dx * ( cell_x_end   - v[0].x );
+				if( cell_y_start > cell_y_end ) std::swap( cell_y_start, cell_y_end );
+
 				const int cell_y_start_i= std::max( static_cast<int>( std::floor( cell_y_start ) ), 0 );
 				const int cell_y_end_i  = std::min( static_cast<int>( std::floor( cell_y_end   ) ), int(MapData::c_map_size - 1u) );
 				for( int y= cell_y_start_i; y <= cell_y_end_i; y++ )
@@ -80,8 +82,10 @@ CollisionIndex::CollisionIndex( const MapDataConstPtr& map_data )
 				const float cell_y_start= std::max( float(y  ), v[0].y );
 				const float cell_y_end  = std::min( float(y+1), v[1].y );
 
-				const float cell_x_start= v[0].x + dx_dy * ( cell_y_start - v[0].y );
-				const float cell_x_end  = v[0].x + dx_dy * ( cell_y_end   - v[0].y );
+				float cell_x_start= v[0].x + dx_dy * ( cell_y_start - v[0].y );
+				float cell_x_end  = v[0].x + dx_dy * ( cell_y_end   - v[0].y );
+				if( cell_x_start > cell_x_end ) std::swap( cell_x_start, cell_x_end );
+
 				const int cell_x_start_i= std::max( static_cast<int>( std::floor( cell_x_start ) ), 0 );
 				const int cell_x_end_i  = std::min( static_cast<int>( std::floor( cell_x_end   ) ), int(MapData::c_map_size - 1u) );
 				for( int x= cell_x_start_i; x <= cell_x_end_i; x++ )
