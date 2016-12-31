@@ -880,9 +880,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		HitResult hit_result;
 
 		if( has_infinite_speed )
-			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction, rocket.owner_id );
+			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction, Constants::max_float, rocket.owner_id );
 		else
 		{
+			const float c_length_eps= 1.0f / 64.0f;
 			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
 			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
@@ -893,18 +894,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
 
 			m_Vec3 dir= new_pos - rocket.previous_position;
+			const float max_distance= dir.Length() + c_length_eps;
 			dir.Normalize();
 
-			hit_result= ProcessShot( rocket.previous_position, dir, rocket.owner_id );
-
-			if( hit_result.object_type != HitResult::ObjectType::None )
-			{
-				const float hit_pos_vecs_dot=
-					( new_pos - hit_result.pos ) * ( rocket.previous_position - hit_result.pos );
-
-				if( hit_pos_vecs_dot > 0.0f )
-					hit_result.object_type= HitResult::ObjectType::None; // Really, not hited
-			}
+			hit_result= ProcessShot( rocket.previous_position, dir, max_distance, rocket.owner_id );
 
 			// Emit smoke trail
 			const unsigned int sprite_effect_id=
@@ -1867,10 +1860,11 @@ void Map::MoveMapObjects( const bool active )
 Map::HitResult Map::ProcessShot(
 	const m_Vec3& shot_start_point,
 	const m_Vec3& shot_direction_normalized,
+	const float max_distance,
 	const EntityId skip_monster_id ) const
 {
 	HitResult result;
-	float nearest_shot_point_square_distance= Constants::max_float;
+	float nearest_shot_point_square_distance= max_distance * max_distance;
 
 	const auto process_candidate_shot_pos=
 	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const unsigned int object_index )
@@ -1945,7 +1939,8 @@ Map::HitResult Map::ProcessShot(
 
 	collision_index_.RayCast(
 		shot_start_point, shot_direction_normalized,
-		func );
+		func,
+		max_distance );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )

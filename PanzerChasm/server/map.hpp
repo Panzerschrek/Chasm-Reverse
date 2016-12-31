@@ -208,6 +208,7 @@ private:
 	HitResult ProcessShot(
 		const m_Vec3& shot_start_point,
 		const m_Vec3& shot_direction_normalized,
+		float max_distance,
 		EntityId skip_monster_id ) const;
 
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
