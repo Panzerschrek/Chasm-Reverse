@@ -19,6 +19,12 @@ public:
 		const m_Vec2& pos, float radius,
 		const Func& func ) const;
 
+	// Func must return true, if need abort.
+	template<class Func>
+	void RayCast(
+		const m_Vec3& pos, const m_Vec3& dir_normalized,
+		const Func& func ) const;
+
 private:
 	void AddElementToIndex( unsigned int x, unsigned int y, const MapData::IndexElement& element );
 

@@ -1795,7 +1795,7 @@ Map::HitResult Map::ProcessShot(
 	};
 
 	// Static walls
-	for( const MapData::Wall& wall : map_data_->static_walls )
+	/*for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
 		if( wall_texture.gso[1] )
@@ -1810,7 +1810,67 @@ Map::HitResult Map::ProcessShot(
 		{
 			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
 		}
-	}
+	}*/
+	const auto func=
+	[&]( const MapData::IndexElement& element ) -> bool
+	{
+		if( element.type == MapData::IndexElement::StaticWall )
+		{
+			PC_ASSERT( element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ element.index ];
+
+			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+			if( wall_texture.gso[1] )
+				goto end;
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					0.0f, 2.0f,
+					shot_start_point, shot_direction_normalized,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
+			}
+		}
+		else if( element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( element.index < static_models_.size() );
+			const StaticModel& model= static_models_[ element.index ];
+
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_data= map_data_->models[ model.model_id ];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectCylinder(
+					model.pos.xy(), model_description.radius,
+					model_data.z_min + model.pos.z,
+					model_data.z_max + model.pos.z,
+					shot_start_point, shot_direction_normalized,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Model, &model - static_models_.data() );
+			}
+		}
+		else
+		{
+			// TODO
+		}
+
+		end:
+		// TODO - return true, sometimes.
+		return false;
+	};
+
+	collision_index_.RayCast(
+		shot_start_point, shot_direction_normalized,
+		func );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
@@ -1830,30 +1890,6 @@ Map::HitResult Map::ProcessShot(
 				candidate_pos ) )
 		{
 			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::DynamicWall, w );
-		}
-	}
-
-	// Models
-	for( const StaticModel& model : static_models_ )
-	{
-		if( model.model_id >= map_data_->models_description.size() )
-			continue;
-
-		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const Model& model_data= map_data_->models[ model.model_id ];
-
-		m_Vec3 candidate_pos;
-		if( RayIntersectCylinder(
-				model.pos.xy(), model_description.radius,
-				model_data.z_min + model.pos.z,
-				model_data.z_max + model.pos.z,
-				shot_start_point, shot_direction_normalized,
-				candidate_pos ) )
-		{
-			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Model, &model - static_models_.data() );
 		}
 	}
 
