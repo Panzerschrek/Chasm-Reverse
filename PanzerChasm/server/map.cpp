@@ -390,13 +390,105 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 		return true;
 
 	m_Vec3 direction= to - from;
+	const float max_see_distance= direction.Length();
 	direction.Normalize();
 
-	const HitResult hit_result= ProcessShot( from, direction, 0u );
+	bool can_see= true;
+	const auto try_set_occluder=
+	[&]( const m_Vec3& intersection_point ) -> bool
+	{
+		if( ( intersection_point - from ).SquareLength() <= max_see_distance * max_see_distance )
+		{
+			can_see= false;
+			return true;
+		}
+		return false;
+	};
 
-	return
-		hit_result.object_type == HitResult::ObjectType::None ||
-		hit_result.object_type == HitResult::ObjectType::Monster;
+	const auto element_process_func=
+	[&]( const MapData::IndexElement& element ) -> bool
+	{
+		if( element.type == MapData::IndexElement::StaticWall )
+		{
+			PC_ASSERT( element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ element.index ];
+
+			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+			if( wall_texture.gso[1] )
+				goto end;
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					0.0f, 2.0f,
+					from, direction,
+					candidate_pos ) )
+			{
+				if( try_set_occluder( candidate_pos ) )
+					return true;
+			}
+		}
+		else if( element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( element.index < static_models_.size() );
+			const StaticModel& model= static_models_[ element.index ];
+
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_data= map_data_->models[ model.model_id ];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectCylinder(
+					model.pos.xy(), model_description.radius,
+					model_data.z_min + model.pos.z,
+					model_data.z_max + model.pos.z,
+					from, direction,
+					candidate_pos ) )
+			{
+				if( try_set_occluder( candidate_pos ) )
+					return true;
+			}
+		}
+		else
+		{
+			PC_ASSERT( false );
+		}
+
+		end:
+		return false;
+	};
+
+	// Static walls and map models.
+	collision_index_.RayCast(
+		from, direction,
+		element_process_func,
+		max_see_distance );
+
+	// Dynamic walls.
+	for( const DynamicWall& wall : dynamic_walls_ )
+	{
+		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+		if( wall_texture.gso[1] )
+			continue;
+
+		m_Vec3 candidate_pos;
+		if( RayIntersectWall(
+				wall.vert_pos[0], wall.vert_pos[1],
+				wall.z, wall.z + 2.0f,
+				from, direction,
+				candidate_pos ) )
+		{
+			if( try_set_occluder( candidate_pos ) )
+				break;
+		}
+	}
+
+	return can_see;
 }
 
 const Map::PlayersContainer& Map::GetPlayers() const
@@ -1794,23 +1886,6 @@ Map::HitResult Map::ProcessShot(
 		}
 	};
 
-	// Static walls
-	/*for( const MapData::Wall& wall : map_data_->static_walls )
-	{
-		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
-		if( wall_texture.gso[1] )
-			continue;
-
-		m_Vec3 candidate_pos;
-		if( RayIntersectWall(
-				wall.vert_pos[0], wall.vert_pos[1],
-				0.0f, 2.0f,
-				shot_start_point, shot_direction_normalized,
-				candidate_pos ) )
-		{
-			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
-		}
-	}*/
 	const auto func=
 	[&]( const MapData::IndexElement& element ) -> bool
 	{

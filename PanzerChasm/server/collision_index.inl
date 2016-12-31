@@ -46,11 +46,15 @@ void CollisionIndex::ProcessElementsInRadius(
 template<class Func>
 void CollisionIndex::RayCast(
 	const m_Vec3& pos, const m_Vec3& dir_normalized,
-	const Func& func ) const
+	const Func& func,
+	const float max_cast_distance ) const
 {
 	unsigned int walls_checked= 0u;
 
-	float end_distance_xy= float( MapData::c_map_size * 2u );
+	float end_distance_xy=
+		std::min(
+			max_cast_distance * dir_normalized.xy().Length(),
+			float( MapData::c_map_size * 2u ) );
 
 	if( pos.z >= 0.0f && pos.z <= GameConstants::walls_height )
 	{
@@ -88,17 +92,17 @@ void CollisionIndex::RayCast(
 	for( unsigned int i= 0u; i < max_distance_xy_i; i++ )
 	{
 		const m_Vec2 sample_pos= pos.xy() + dir_xy * float(i);
-		int x= static_cast<int>( std::floor( sample_pos.x ) );
-		int y= static_cast<int>( std::floor( sample_pos.y ) );
+		const int x= static_cast<int>( std::floor( sample_pos.x ) );
+		const int y= static_cast<int>( std::floor( sample_pos.y ) );
 
 		if( x == prev_x && y == prev_y )
 		{
-			// Nothing to do - alrady checked.
+			// Nothing to do - already checked.
 		}
 		else if( x != prev_x && y != prev_y && i != 0u )
 		{
 			// Check this and neighbor cells.
-			int cells[6]= { x, y,   prev_x, y,  x, prev_y };
+			const int cells[6]= { x, y,   prev_x, y,  x, prev_y };
 
 			for( unsigned int c= 0u; c < 6u; c+= 2u )
 			{

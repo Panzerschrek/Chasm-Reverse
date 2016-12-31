@@ -1,5 +1,6 @@
 #pragma once
 #include "../map_loader.hpp"
+#include "../math_utils.hpp"
 
 namespace PanzerChasm
 {
@@ -23,7 +24,8 @@ public:
 	template<class Func>
 	void RayCast(
 		const m_Vec3& pos, const m_Vec3& dir_normalized,
-		const Func& func ) const;
+		const Func& func,
+		float max_cast_distance= Constants::max_float ) const;
 
 private:
 	void AddElementToIndex( unsigned int x, unsigned int y, const MapData::IndexElement& element );
