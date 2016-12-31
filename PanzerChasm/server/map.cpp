@@ -8,6 +8,7 @@
 #include "../sound/sound_id.hpp"
 #include "a_code.hpp"
 #include "collisions.hpp"
+#include "collision_index.inl"
 #include "monster.hpp"
 #include "player.hpp"
 
@@ -74,6 +75,7 @@ Map::Map(
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
 	, random_generator_( std::make_shared<LongRand>() )
+	, collision_index_( map_data )
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
@@ -276,25 +278,74 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 	const float z_top= z_bottom + height;
 	float new_z= in_pos.z;
 
-	// Static walls
-	for( const MapData::Wall& wall : map_data_->static_walls )
+	const auto elements_process_func=
+	[&]( const MapData::IndexElement& index_element )
 	{
-		if( wall.vert_pos[0] == wall.vert_pos[1] )
-			continue;
-
-		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
-		if( tex.gso[0] )
-			continue;
-
-		m_Vec2 new_pos;
-		if( CollideCircleWithLineSegment(
-				wall.vert_pos[0], wall.vert_pos[1],
-				pos, radius,
-				new_pos ) )
+		if( index_element.type == MapData::IndexElement::StaticWall )
 		{
-			pos= new_pos;
+			PC_ASSERT( index_element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ index_element.index ];
+
+			const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
+			if( tex.gso[0] )
+				goto end;
+
+			m_Vec2 new_pos;
+			if( CollideCircleWithLineSegment(
+					wall.vert_pos[0], wall.vert_pos[1],
+					pos, radius,
+					new_pos ) )
+			{
+				pos= new_pos;
+			}
 		}
-	}
+		else if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			const StaticModel& model= static_models_[ index_element.index ];
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_geometry= map_data_->models[ model.model_id ];
+
+			const float model_z_min= model_geometry.z_min + model.pos.z;
+			const float model_z_max= model_geometry.z_max + model.pos.z;
+			if( z_top < model_z_min || z_bottom > model_z_max )
+				goto end;
+
+			const float min_distance= radius + model_description.radius;
+
+			const m_Vec2 vec_to_pos= pos - model.pos.xy();
+			const float square_distance= vec_to_pos.SquareLength();
+
+			if( square_distance <= min_distance * min_distance )
+			{
+				// Pull up or down player.
+				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
+				{
+					new_z= std::max( new_z, model_z_max );
+					out_on_floor= true;
+				}
+				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
+					new_z= std::min( new_z, model_z_min - height );
+				// Push sideways.
+				else
+					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+			}
+		}
+		else
+		{
+			// TODO
+		}
+		end:;
+	};
+
+	collision_index_.ProcessElementsInRadius(
+		pos, radius,
+		elements_process_func );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
@@ -322,45 +373,6 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 		}
 	}
 
-	// Models
-	for( unsigned int m= 0u; m < static_models_.size(); m++ )
-	{
-		const StaticModel& model= static_models_[m];
-		if( model.model_id >= map_data_->models_description.size() )
-			continue;
-
-		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const Model& model_geometry= map_data_->models[ model.model_id ];
-
-		const float model_z_min= model_geometry.z_min + model.pos.z;
-		const float model_z_max= model_geometry.z_max + model.pos.z;
-		if( z_top < model_z_min || z_bottom > model_z_max )
-			continue;
-
-		const float min_distance= radius + model_description.radius;
-
-		const m_Vec2 vec_to_pos= pos - model.pos.xy();
-		const float square_distance= vec_to_pos.SquareLength();
-
-		if( square_distance <= min_distance * min_distance )
-		{
-			// Pull up or down player.
-			if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
-			{
-				new_z= std::max( new_z, model_z_max );
-				out_on_floor= true;
-			}
-			else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
-				new_z= std::min( new_z, model_z_min - height );
-			// Push sideways.
-			else
-				pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
-		}
-	}
-
 	if( new_z <= 0.0f )
 	{
 		out_on_floor= true;
@@ -378,13 +390,105 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 		return true;
 
 	m_Vec3 direction= to - from;
+	const float max_see_distance= direction.Length();
 	direction.Normalize();
 
-	const HitResult hit_result= ProcessShot( from, direction, 0u );
+	bool can_see= true;
+	const auto try_set_occluder=
+	[&]( const m_Vec3& intersection_point ) -> bool
+	{
+		if( ( intersection_point - from ).SquareLength() <= max_see_distance * max_see_distance )
+		{
+			can_see= false;
+			return true;
+		}
+		return false;
+	};
 
-	return
-		hit_result.object_type == HitResult::ObjectType::None ||
-		hit_result.object_type == HitResult::ObjectType::Monster;
+	const auto element_process_func=
+	[&]( const MapData::IndexElement& element ) -> bool
+	{
+		if( element.type == MapData::IndexElement::StaticWall )
+		{
+			PC_ASSERT( element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ element.index ];
+
+			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+			if( wall_texture.gso[1] )
+				goto end;
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					0.0f, 2.0f,
+					from, direction,
+					candidate_pos ) )
+			{
+				if( try_set_occluder( candidate_pos ) )
+					return true;
+			}
+		}
+		else if( element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( element.index < static_models_.size() );
+			const StaticModel& model= static_models_[ element.index ];
+
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_data= map_data_->models[ model.model_id ];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectCylinder(
+					model.pos.xy(), model_description.radius,
+					model_data.z_min + model.pos.z,
+					model_data.z_max + model.pos.z,
+					from, direction,
+					candidate_pos ) )
+			{
+				if( try_set_occluder( candidate_pos ) )
+					return true;
+			}
+		}
+		else
+		{
+			PC_ASSERT( false );
+		}
+
+		end:
+		return false;
+	};
+
+	// Static walls and map models.
+	collision_index_.RayCast(
+		from, direction,
+		element_process_func,
+		max_see_distance );
+
+	// Dynamic walls.
+	for( const DynamicWall& wall : dynamic_walls_ )
+	{
+		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+		if( wall_texture.gso[1] )
+			continue;
+
+		m_Vec3 candidate_pos;
+		if( RayIntersectWall(
+				wall.vert_pos[0], wall.vert_pos[1],
+				wall.z, wall.z + 2.0f,
+				from, direction,
+				candidate_pos ) )
+		{
+			if( try_set_occluder( candidate_pos ) )
+				break;
+		}
+	}
+
+	return can_see;
 }
 
 const Map::PlayersContainer& Map::GetPlayers() const
@@ -776,9 +880,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		HitResult hit_result;
 
 		if( has_infinite_speed )
-			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction, rocket.owner_id );
+			hit_result= ProcessShot( rocket.start_point, rocket.normalized_direction, Constants::max_float, rocket.owner_id );
 		else
 		{
+			const float c_length_eps= 1.0f / 64.0f;
 			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
 			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
@@ -789,18 +894,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
 
 			m_Vec3 dir= new_pos - rocket.previous_position;
+			const float max_distance= dir.Length() + c_length_eps;
 			dir.Normalize();
 
-			hit_result= ProcessShot( rocket.previous_position, dir, rocket.owner_id );
-
-			if( hit_result.object_type != HitResult::ObjectType::None )
-			{
-				const float hit_pos_vecs_dot=
-					( new_pos - hit_result.pos ) * ( rocket.previous_position - hit_result.pos );
-
-				if( hit_pos_vecs_dot > 0.0f )
-					hit_result.object_type= HitResult::ObjectType::None; // Really, not hited
-			}
+			hit_result= ProcessShot( rocket.previous_position, dir, max_distance, rocket.owner_id );
 
 			// Emit smoke trail
 			const unsigned int sprite_effect_id=
@@ -1763,10 +1860,11 @@ void Map::MoveMapObjects( const bool active )
 Map::HitResult Map::ProcessShot(
 	const m_Vec3& shot_start_point,
 	const m_Vec3& shot_direction_normalized,
+	const float max_distance,
 	const EntityId skip_monster_id ) const
 {
 	HitResult result;
-	float nearest_shot_point_square_distance= Constants::max_float;
+	float nearest_shot_point_square_distance= max_distance * max_distance;
 
 	const auto process_candidate_shot_pos=
 	[&]( const m_Vec3& candidate_pos, const HitResult::ObjectType object_type, const unsigned int object_index )
@@ -1782,23 +1880,67 @@ Map::HitResult Map::ProcessShot(
 		}
 	};
 
-	// Static walls
-	for( const MapData::Wall& wall : map_data_->static_walls )
+	const auto func=
+	[&]( const MapData::IndexElement& element ) -> bool
 	{
-		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
-		if( wall_texture.gso[1] )
-			continue;
-
-		m_Vec3 candidate_pos;
-		if( RayIntersectWall(
-				wall.vert_pos[0], wall.vert_pos[1],
-				0.0f, 2.0f,
-				shot_start_point, shot_direction_normalized,
-				candidate_pos ) )
+		if( element.type == MapData::IndexElement::StaticWall )
 		{
-			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
+			PC_ASSERT( element.index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ element.index ];
+
+			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
+			if( wall_texture.gso[1] )
+				goto end;
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectWall(
+					wall.vert_pos[0], wall.vert_pos[1],
+					0.0f, 2.0f,
+					shot_start_point, shot_direction_normalized,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::StaticWall, &wall - map_data_->static_walls.data() );
+			}
 		}
-	}
+		else if( element.type == MapData::IndexElement::StaticModel )
+		{
+			PC_ASSERT( element.index < static_models_.size() );
+			const StaticModel& model= static_models_[ element.index ];
+
+			if( model.model_id >= map_data_->models_description.size() )
+				goto end;
+
+			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+			if( model_description.radius <= 0.0f )
+				goto end;
+
+			const Model& model_data= map_data_->models[ model.model_id ];
+
+			m_Vec3 candidate_pos;
+			if( RayIntersectCylinder(
+					model.pos.xy(), model_description.radius,
+					model_data.z_min + model.pos.z,
+					model_data.z_max + model.pos.z,
+					shot_start_point, shot_direction_normalized,
+					candidate_pos ) )
+			{
+				process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Model, &model - static_models_.data() );
+			}
+		}
+		else
+		{
+			// TODO
+		}
+
+		end:
+		// TODO - return true, sometimes.
+		return false;
+	};
+
+	collision_index_.RayCast(
+		shot_start_point, shot_direction_normalized,
+		func,
+		max_distance );
 
 	// Dynamic walls
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
@@ -1818,30 +1960,6 @@ Map::HitResult Map::ProcessShot(
 				candidate_pos ) )
 		{
 			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::DynamicWall, w );
-		}
-	}
-
-	// Models
-	for( const StaticModel& model : static_models_ )
-	{
-		if( model.model_id >= map_data_->models_description.size() )
-			continue;
-
-		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
-		if( model_description.radius <= 0.0f )
-			continue;
-
-		const Model& model_data= map_data_->models[ model.model_id ];
-
-		m_Vec3 candidate_pos;
-		if( RayIntersectCylinder(
-				model.pos.xy(), model_description.radius,
-				model_data.z_min + model.pos.z,
-				model_data.z_max + model.pos.z,
-				shot_start_point, shot_direction_normalized,
-				candidate_pos ) )
-		{
-			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::Model, &model - static_models_.data() );
 		}
 	}
 

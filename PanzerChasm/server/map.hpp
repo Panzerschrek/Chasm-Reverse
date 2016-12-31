@@ -5,6 +5,7 @@
 #include "../messages_sender.hpp"
 #include "../particles.hpp"
 #include "../time.hpp"
+#include "collision_index.hpp"
 #include "fwd.hpp"
 #include "rand.hpp"
 
@@ -207,6 +208,7 @@ private:
 	HitResult ProcessShot(
 		const m_Vec3& shot_start_point,
 		const m_Vec3& shot_direction_normalized,
+		float max_distance,
 		EntityId skip_monster_id ) const;
 
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
@@ -252,9 +254,13 @@ private:
 	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
 	std::vector<Messages::MonsterSound> monsters_sounds_messages_;
 
+	// Put large objects here.
+
 	// TODO - compress this fields
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
 	DamageFiledCell death_field_[ MapData::c_map_size * MapData::c_map_size ];
+
+	const CollisionIndex collision_index_;
 };
 
 } // PanzerChasm
