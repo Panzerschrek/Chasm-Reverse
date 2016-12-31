@@ -49,8 +49,6 @@ void CollisionIndex::RayCast(
 	const Func& func,
 	const float max_cast_distance ) const
 {
-	unsigned int walls_checked= 0u;
-
 	float end_distance_xy=
 		std::min(
 			max_cast_distance * dir_normalized.xy().Length(),
@@ -119,8 +117,6 @@ void CollisionIndex::RayCast(
 							return;
 
 						index= element.next;
-
-						walls_checked++;
 					}
 				}
 			}
@@ -141,8 +137,6 @@ void CollisionIndex::RayCast(
 						return;
 
 					index= element.next;
-
-					walls_checked++;
 				}
 			}
 		}
