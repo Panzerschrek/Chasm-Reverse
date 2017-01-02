@@ -61,6 +61,19 @@ static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture 
 	out_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 }
 
+static unsigned int CalculateHudScale( const Size2& viewport_size )
+{
+	// Status bu must have size 10% of screen height or smaller.
+	const float c_y_relative_statusbar_size= 1.0f / 10.0f;
+
+	float scale_f=
+		std::min(
+			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
+			float( viewport_size.Height() ) / ( float(g_hud_line_height) / c_y_relative_statusbar_size ) );
+
+	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
+}
+
 HudDrawer::HudDrawer(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context,
@@ -68,6 +81,7 @@ HudDrawer::HudDrawer(
 	: game_resources_(game_resources)
 	, viewport_size_( rendering_context.viewport_size )
 	, drawers_(drawers)
+	, scale_( CalculateHudScale( rendering_context.viewport_size ) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( drawers_ != nullptr );
@@ -134,7 +148,7 @@ void HudDrawer::SetPlayerState( const Messages::PlayerState& player_state, const
 	current_weapon_number_= current_weapon_number;
 }
 
-void HudDrawer::DrawCrosshair( const unsigned int scale )
+void HudDrawer::DrawCrosshair()
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -142,25 +156,25 @@ void HudDrawer::DrawCrosshair( const unsigned int scale )
 	const Size2 viewport_center( viewport_size_.xy[0] >> 1u, viewport_size_.xy[1] >> 1u );
 
 	// In original game real view center shifted to upper crosshair bar start.
-	const int y_shift= int(scale) * g_cross_offset;
+	const int y_shift= int(scale_) * g_cross_offset;
 
-	v[0].xy[0]= int( viewport_center.xy[0] - scale * crosshair_texture_.Width () / 2u );
-	v[0].xy[1]= int( viewport_center.xy[1] - scale * crosshair_texture_.Height() / 2u ) - y_shift;
+	v[0].xy[0]= int( viewport_center.xy[0] - scale_ * crosshair_texture_.Width () / 2u );
+	v[0].xy[1]= int( viewport_center.xy[1] - scale_ * crosshair_texture_.Height() / 2u ) - y_shift;
 	v[0].tex_coord[0]= 0;
 	v[0].tex_coord[1]= 0;
 
-	v[1].xy[0]= v[0].xy[0] + int( scale * crosshair_texture_.Width () );
+	v[1].xy[0]= v[0].xy[0] + int( scale_ * crosshair_texture_.Width () );
 	v[1].xy[1]= v[0].xy[1];
 	v[1].tex_coord[0]= int( crosshair_texture_.Width () );
 	v[1].tex_coord[1]= 0;
 
-	v[2].xy[0]= v[0].xy[0] + int( scale * crosshair_texture_.Width () );
-	v[2].xy[1]= v[0].xy[1] + int( scale * crosshair_texture_.Height() );
+	v[2].xy[0]= v[0].xy[0] + int( scale_ * crosshair_texture_.Width () );
+	v[2].xy[1]= v[0].xy[1] + int( scale_ * crosshair_texture_.Height() );
 	v[2].tex_coord[0]= int( crosshair_texture_.Width () );
 	v[2].tex_coord[1]= int( crosshair_texture_.Height() );
 
 	v[3].xy[0]= v[0].xy[0];
-	v[3].xy[1]= v[0].xy[1] + int( scale * crosshair_texture_.Height() );
+	v[3].xy[1]= v[0].xy[1] + int( scale_ * crosshair_texture_.Height() );
 	v[3].tex_coord[0]= 0;
 	v[3].tex_coord[1]= int( crosshair_texture_.Height() );
 	v+= 4u;
@@ -190,7 +204,7 @@ void HudDrawer::DrawCrosshair( const unsigned int scale )
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void HudDrawer::DrawCurrentMessage( const unsigned int scale, const Time current_time )
+void HudDrawer::DrawCurrentMessage( const Time current_time )
 {
 	if( current_message_time_.ToSeconds() == 0.0f )
 		return;
@@ -210,26 +224,26 @@ void HudDrawer::DrawCurrentMessage( const unsigned int scale, const Time current
 		}
 		else
 		{
-			x= text.x * scale;
+			x= text.x * scale_;
 			alignemnt= TextDraw::Alignment::Left;
 		}
 
 		drawers_->text.Print(
-			x, text.y * scale,
+			x, text.y * scale_,
 			text.data.c_str(),
-			scale,
+			scale_,
 			TextDraw::FontColor::YellowGreen, alignemnt );
 	}
 }
 
-void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
+void HudDrawer::DrawHud( const bool draw_second_hud )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
 
 	const unsigned int first_hud_bg_quad= ( v - vertices ) / 4u;
 
-	const unsigned int hud_x= viewport_size_.Width() / 2u - hud_background_texture_.Width() * scale / 2u;
+	const unsigned int hud_x= viewport_size_.Width() / 2u - hud_background_texture_.Width() * scale_ / 2u;
 
 	{ // Hud background
 		const unsigned int tc_y= g_net_hud_line_height + ( draw_second_hud ? g_hud_line_height : 0u );
@@ -239,18 +253,18 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 		v[0].tex_coord[0]= 0;
 		v[0].tex_coord[1]= tc_y + g_hud_line_height;
 
-		v[1].xy[0]= hud_x + hud_background_texture_.Width() * scale;
+		v[1].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
 		v[1].xy[1]= 0;
 		v[1].tex_coord[0]= hud_background_texture_.Width();
-		v[1].tex_coord[1]= tc_y + g_hud_line_height;;
+		v[1].tex_coord[1]= tc_y + g_hud_line_height;
 
-		v[2].xy[0]= hud_x + hud_background_texture_.Width() * scale;
-		v[2].xy[1]= g_hud_line_height * scale;
+		v[2].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
+		v[2].xy[1]= g_hud_line_height * scale_;
 		v[2].tex_coord[0]= hud_background_texture_.Width();
 		v[2].tex_coord[1]= tc_y;
 
 		v[3].xy[0]= hud_x;
-		v[3].xy[1]= g_hud_line_height * scale;
+		v[3].xy[1]= g_hud_line_height * scale_;
 		v[3].tex_coord[0]= 0;
 		v[3].tex_coord[1]= tc_y;
 		v+= 4u;
@@ -262,31 +276,31 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 	if( !draw_second_hud ) // Weapon icon
 	{
 		const int c_border= 1;
-		const int border= int(scale) * c_border;
+		const int border= int(scale_) * c_border;
 		const unsigned int icon_width = weapon_icons_texture_.Width() / 8u;
 		const unsigned int icon_height= weapon_icons_texture_.Height();
 		const unsigned int tc_x= current_weapon_number_ * icon_width;
-		const unsigned int y= 4u * scale;
+		const unsigned int y= 4u * scale_;
 
-		const unsigned int icon_x= hud_x + 105u * scale;
+		const unsigned int icon_x= hud_x + 105u * scale_;
 
 		v[0].xy[0]= icon_x + border;
 		v[0].xy[1]= y + border;
 		v[0].tex_coord[0]= tc_x + border;
 		v[0].tex_coord[1]= icon_height - border;
 
-		v[1].xy[0]= icon_x + icon_width * scale - border;
+		v[1].xy[0]= icon_x + icon_width * scale_ - border;
 		v[1].xy[1]= y + border;
 		v[1].tex_coord[0]= tc_x + icon_width - border;
 		v[1].tex_coord[1]= icon_height - border;
 
-		v[2].xy[0]= icon_x + icon_width * scale - border;
-		v[2].xy[1]= y + icon_height * scale - border;
+		v[2].xy[0]= icon_x + icon_width * scale_ - border;
+		v[2].xy[1]= y + icon_height * scale_ - border;
 		v[2].tex_coord[0]= tc_x + icon_width - border;
 		v[2].tex_coord[1]= border;
 
 		v[3].xy[0]= icon_x + border;
-		v[3].xy[1]= y + icon_height * scale - border;
+		v[3].xy[1]= y + icon_height * scale_ - border;
 		v[3].tex_coord[0]= tc_x + border;
 		v[3].tex_coord[1]= border;
 		v+= 4u;
@@ -302,31 +316,31 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 
 		const unsigned int digit_width = hud_numbers_texture_.Width() / 10u;
 		const unsigned int digit_height= ( hud_numbers_texture_.Height() - 1u ) / 2u;
-		const unsigned int y= ( g_hud_line_height - digit_height ) / 2u * scale;
+		const unsigned int y= ( g_hud_line_height - digit_height ) / 2u * scale_;
 		const unsigned int tc_y= number >= red_value ? 0u : digit_height + 1u ;
 
 		for( unsigned int d= 0u; d < digit_count; d++ )
 		{
 			const unsigned int tc_x= ( digits[d] - '0' ) * digit_width;
-			const unsigned int digit_x= x_end - scale * digit_width * ( digit_count - d );
+			const unsigned int digit_x= x_end - scale_ * digit_width * ( digit_count - d );
 
 			v[0].xy[0]= digit_x;
 			v[0].xy[1]= y;
 			v[0].tex_coord[0]= tc_x;
 			v[0].tex_coord[1]= tc_y + digit_height;
 
-			v[1].xy[0]= digit_x + ( digit_width - 1u ) * scale;
+			v[1].xy[0]= digit_x + ( digit_width - 1u ) * scale_;
 			v[1].xy[1]= y;
 			v[1].tex_coord[0]= tc_x + digit_width - 1u;
 			v[1].tex_coord[1]= tc_y + digit_height;
 
-			v[2].xy[0]= digit_x + ( digit_width - 1u ) * scale;
-			v[2].xy[1]= y + digit_height * scale;
+			v[2].xy[0]= digit_x + ( digit_width - 1u ) * scale_;
+			v[2].xy[1]= y + digit_height * scale_;
 			v[2].tex_coord[0]= tc_x + digit_width - 1u;
 			v[2].tex_coord[1]= tc_y;
 
 			v[3].xy[0]= digit_x;
-			v[3].xy[1]= y + digit_height * scale;
+			v[3].xy[1]= y + digit_height * scale_;
 			v[3].tex_coord[0]= tc_x;
 			v[3].tex_coord[1]= tc_y;
 			v+= 4u;
@@ -335,12 +349,12 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 
 	const unsigned int numbers_first_quad= ( v - vertices ) / 4u;
 
-	gen_number( hud_x + scale * 104u, player_state_.health, 25u );
+	gen_number( hud_x + scale_ * 104u, player_state_.health, 25u );
 	if( !draw_second_hud )
 	{
 		if( current_weapon_number_ != 0u )
-			gen_number( hud_x + scale * 205u, player_state_.ammo[ current_weapon_number_ ], 10u );
-		gen_number( hud_x + scale * 315u, player_state_.armor, 10u );
+			gen_number( hud_x + scale_ * 205u, player_state_.ammo[ current_weapon_number_ ], 10u );
+		gen_number( hud_x + scale_ * 315u, player_state_.armor, 10u );
 	}
 
 	const unsigned int numbers_quad_count= ( v - vertices ) / 4u - numbers_first_quad;
@@ -388,13 +402,13 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const unsigned int scale )
 		const unsigned int c_bottom_y= 14u;
 
 		if( ( player_state_.keys_mask & 1u ) != 0u )
-			drawers_->text.Print( hud_x + scale * c_left_x , viewport_size_.Height() - c_top_y    * scale, "\4", scale );
+			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_top_y    * scale_, "\4", scale_ );
 		if( ( player_state_.keys_mask & 2u ) != 0u )
-			drawers_->text.Print( hud_x + scale * c_right_x, viewport_size_.Height() - c_top_y    * scale, "\5", scale );
+			drawers_->text.Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_top_y    * scale_, "\5", scale_ );
 		if( ( player_state_.keys_mask & 4u ) != 0u )
-			drawers_->text.Print( hud_x + scale * c_left_x , viewport_size_.Height() - c_bottom_y * scale, "\6", scale );
+			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_bottom_y * scale_, "\6", scale_ );
 		if( ( player_state_.keys_mask & 8u ) != 0u )
-			drawers_->text.Print( hud_x + scale * c_right_x, viewport_size_.Height() - c_bottom_y * scale, "\7", scale );
+			drawers_->text.Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_bottom_y * scale_, "\7", scale_ );
 	}
 }
 

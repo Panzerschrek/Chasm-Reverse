@@ -24,9 +24,9 @@ public:
 	void AddMessage( const MapData::Message& message, Time current_time );
 	void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number );
 
-	void DrawCrosshair( unsigned int scale= 1u );
-	void DrawCurrentMessage( unsigned int scale, Time current_time );
-	void DrawHud( bool draw_second_hud, unsigned int scale );
+	void DrawCrosshair();
+	void DrawCurrentMessage( Time current_time );
+	void DrawHud( bool draw_second_hud );
 
 private:
 	struct Vertex
@@ -42,6 +42,7 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const Size2 viewport_size_;
 	const DrawersPtr drawers_;
+	const unsigned int scale_;
 
 	r_GLSLProgram hud_shader_;
 	r_PolygonBuffer quad_buffer_;

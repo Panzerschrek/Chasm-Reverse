@@ -174,9 +174,9 @@ void Client::Draw()
 			weapon_shift_matrix * projection_matrix,
 			pos );
 
-		hud_drawer_.DrawCrosshair(2u);
-		hud_drawer_.DrawCurrentMessage( 2u, current_tick_time_ );
-		hud_drawer_.DrawHud( map_mode_, 2u );
+		hud_drawer_.DrawCrosshair();
+		hud_drawer_.DrawCurrentMessage( current_tick_time_ );
+		hud_drawer_.DrawHud( map_mode_ );
 	}
 }
 
