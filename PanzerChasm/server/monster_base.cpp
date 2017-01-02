@@ -73,6 +73,29 @@ unsigned int MonsterBase::CurrentAnimationFrame() const
 	return current_animation_frame_;
 }
 
+unsigned char MonsterBase::GetBodyPartsMask() const
+{
+	unsigned char mask= BodyPartsMask::Body;
+	mask|= have_left_hand_  ? BodyPartsMask::LeftHand  : BodyPartsMask::LeftHandSeparated ;
+	mask|= have_right_hand_ ? BodyPartsMask::RightHand : BodyPartsMask::RightHandSeparated;
+	mask|= have_head_ ? BodyPartsMask::Head : BodyPartsMask::HeadSeparated;
+
+	if( int(current_animation_) == GetAnimation( AnimationId::RemoteAttack ) )
+	{
+		PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );
+		PC_ASSERT( current_animation_ < game_resources_->monsters_models[ monster_id_ ].animations.size() );
+
+		const unsigned int frame_count= game_resources_->monsters_models[ monster_id_ ].animations[ current_animation_ ].frame_count;
+		const unsigned int middle_frame= frame_count / 2u;
+
+		// Draw weapon fire at middle of attack animation.
+		if( std::abs( int(current_animation_frame_) - int(middle_frame) ) <= 2 )
+			mask|= BodyPartsMask::WeaponFire;
+	}
+
+	return mask;
+}
+
 bool MonsterBase::TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const
 {
 	if( health_ <= 0 )

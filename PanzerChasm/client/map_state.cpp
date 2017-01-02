@@ -192,6 +192,7 @@ void MapState::ProcessMessage( const Messages::MonsterState& message )
 	MessagePositionToPosition( message.xyz, monster.pos );
 	monster.angle= MessageAngleToAngle( message.angle );
 	monster.monster_id= message.monster_type;
+	monster.body_parts_mask= message.body_parts_mask;
 	monster.animation= message.animation;
 	monster.animation_frame= message.animation_frame;
 }

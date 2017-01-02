@@ -45,6 +45,7 @@ struct MonsterState : public MessageBase
 	CoordType xyz[3];
 	AngleType angle;
 	unsigned char monster_type;
+	unsigned char body_parts_mask;
 	unsigned short animation;
 	unsigned short animation_frame;
 };

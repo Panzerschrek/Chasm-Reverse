@@ -1289,7 +1289,7 @@ void MapDrawer::DrawMonsters(
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
-		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
+		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );

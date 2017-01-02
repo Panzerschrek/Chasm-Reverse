@@ -59,6 +59,7 @@ public:
 		m_Vec3 pos;
 		float angle;
 		unsigned char monster_id;
+		unsigned char body_parts_mask;
 		unsigned int animation;
 		unsigned int animation_frame;
 	};

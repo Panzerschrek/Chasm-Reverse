@@ -2060,6 +2060,7 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );
 	message.monster_type= monster.MonsterId();
+	message.body_parts_mask= monster.GetBodyPartsMask();
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
 }
