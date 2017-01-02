@@ -93,14 +93,41 @@ void Monster::Tick(
 
 	case State::MoveToTarget:
 	{
+		// Try melee attack.
 		if( target != nullptr &&
 			distance_for_melee_attack <= description.attack_radius )
 		{
-			state_= State::MeleeAttack;
-			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
-			attack_was_done_= false;
+			int possible_animations[3];
+			int possible_animation_count= 0u;
+
+			const int  left_hand_animation= GetAnimation( AnimationId::MeleeAttackLeftHand  );
+			const int right_hand_animation= GetAnimation( AnimationId::MeleeAttackRightHand );
+			const int head_animation= GetAnimation( AnimationId::MeleeAttackHead );
+			if(  have_left_hand_ &&  left_hand_animation >= 0 )
+			{
+				possible_animations[ possible_animation_count ]=  left_hand_animation;
+				possible_animation_count++;
+			}
+			if( have_right_hand_ && right_hand_animation >= 0 )
+			{
+				possible_animations[ possible_animation_count ]= right_hand_animation;
+				possible_animation_count++;
+			}
+			if( have_head_ && head_animation >= 0 )
+			{
+				possible_animations[ possible_animation_count ]= head_animation;
+				possible_animation_count++;
+			}
+
+			// TODO - know, can we not select any attack animation?
+			if( possible_animation_count > 0 )
+			{
+				state_= State::MeleeAttack;
+				current_animation_= possible_animations[ random_generator_->Rand() % possible_animation_count ];
+				current_animation_start_time_= current_time;
+				current_animation_frame_= 0u;
+				attack_was_done_= false;
+			}
 		}
 		else
 		{	if( current_time >= target_change_time_ )
