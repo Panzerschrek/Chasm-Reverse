@@ -269,6 +269,7 @@ void Monster::Hit(
 					const int pain_animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
 					const int  left_hand_lost_animation= GetAnimation( AnimationId:: LeftHandLost );
 					const int right_hand_lost_animation= GetAnimation( AnimationId::RightHandLost );
+					const int head_lost_animation= GetAnimation( AnimationId::HeadLost );
 
 					if( pain_animation >= 0 )
 					{
@@ -285,6 +286,11 @@ void Monster::Hit(
 						possible_animations[ possible_animation_count ]= right_hand_lost_animation;
 						possible_animation_count++;
 					}
+					if( have_head_ && head_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]= head_lost_animation;
+						possible_animation_count++;
+					}
 
 					if( possible_animation_count > 0 )
 					{
@@ -293,6 +299,8 @@ void Monster::Hit(
 							have_left_hand_ = false;
 						if( selected_animation == right_hand_lost_animation )
 							have_right_hand_= false;
+						if( selected_animation == head_lost_animation )
+							have_head_= false;
 
 						state_= State::PainShock;
 						current_animation_= static_cast<unsigned int>( selected_animation );
