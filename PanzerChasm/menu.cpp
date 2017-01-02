@@ -95,14 +95,13 @@ void NewGameMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::New );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
-	const unsigned int scale= 3u;
+	const int scale= int( menu_drawer.GetMenuScale() );
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * pic_size.xy[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * pic_size.xy[1] ) >> 1 );
 
 	menu_drawer.DrawMenuBackground(
 		x, y,
-		pic_size.xy[0] * scale, pic_size.xy[1] * scale,
-		scale );
+		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
 	MenuDrawer::PictureColor colors[3]=
 	{
@@ -121,7 +120,7 @@ void NewGameMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 
 	menu_drawer.DrawMenuPicture(
 		x, y,
-		MenuDrawer::MenuPicture::New, colors, scale );
+		MenuDrawer::MenuPicture::New, colors );
 }
 
 MenuBase* NewGameMenu::ProcessEvent( const SystemEvent& event )
@@ -186,13 +185,13 @@ void QuitMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
-	const unsigned int scale= 3u;
+	const int scale= int( menu_drawer.GetMenuScale() );
 	const unsigned int size[2]= { 140u, text_draw.GetLineHeight() * 3u };
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
 
-	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale, scale );
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
 
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
@@ -260,14 +259,13 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::Main );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
-	const unsigned int scale= 3u;
+	const int scale= int( menu_drawer.GetMenuScale() );
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * pic_size.xy[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * pic_size.xy[1] ) >> 1 );
 
 	menu_drawer.DrawMenuBackground(
 		x, y,
-		pic_size.xy[0] * scale, pic_size.xy[1] * scale,
-		scale );
+		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
 	MenuDrawer::PictureColor colors[6]=
 	{
@@ -290,7 +288,7 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 
 	menu_drawer.DrawMenuPicture(
 		x, y,
-		MenuDrawer::MenuPicture::Main, colors, scale );
+		MenuDrawer::MenuPicture::Main, colors );
 }
 
 MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )

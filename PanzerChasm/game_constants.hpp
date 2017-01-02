@@ -7,6 +7,10 @@ namespace PanzerChasm
 namespace GameConstants
 {
 
+// Screen sizeo fo original game.
+constexpr unsigned int min_screen_width = 320u;
+constexpr unsigned int min_screen_height= 200u;
+
 constexpr unsigned int weapon_count= 8u;
 
 constexpr float player_eyes_level= 0.75f; // From ground

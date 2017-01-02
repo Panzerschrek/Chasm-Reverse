@@ -36,18 +36,19 @@ public:
 	~MenuDrawer();
 
 	Size2 GetViewportSize() const;
+	unsigned int GetMenuScale() const;
+	unsigned int GetConsoleScale() const;
+
 	Size2 GetPictureSize( MenuPicture picture ) const;
 
 	void DrawMenuBackground(
 		int x, int y,
-		unsigned int width, unsigned int height,
-		unsigned int scale );
+		unsigned int width, unsigned int height );
 
 	void DrawMenuPicture(
 		int x, int y,
 		MenuPicture picture,
-		const PictureColor* rows_colors,
-		unsigned int scale );
+		const PictureColor* rows_colors );
 
 	void DrawConsoleBackground( float console_pos );
 	void DrawLoading( float progress );
@@ -61,6 +62,8 @@ private:
 
 private:
 	const Size2 viewport_size_;
+	const unsigned int menu_scale_;
+	const unsigned int console_scale_;
 
 	r_GLSLProgram menu_background_shader_;
 	r_Texture tiles_texture_;

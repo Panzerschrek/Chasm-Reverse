@@ -3,6 +3,7 @@
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
+#include "game_constants.hpp"
 #include "game_resources.hpp"
 #include "menu_drawer.hpp"
 #include "vfs.hpp"
@@ -42,10 +43,46 @@ static const r_OGLState g_gl_state(
 	false, false, false, false,
 	g_gl_state_blend_func );
 
+static unsigned int CalculateMenuScale( const Size2& viewport_size )
+{
+	float scale_f=
+		std::min(
+			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
+			float( viewport_size.Height() ) / float( GameConstants::min_screen_height ) );
+
+	 // Do not scale menu too height.
+	if( scale_f > 3.0f )
+		scale_f*= 1.0f - 0.25f * std::max( scale_f - 3.0f, 1.0f );
+
+	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
+}
+
+static unsigned int CalculateConsoleScale( const Size2& viewport_size )
+{
+	float scale_f=
+		std::min(
+			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
+			float( viewport_size.Height() ) / float( GameConstants::min_screen_height ) );
+
+	scale_f*= 0.75f; // Do not scale console too height
+
+	const unsigned int scale_i= std::max( 1u, static_cast<unsigned int>( scale_f ) );
+
+	// Find nearest powert of two scale, lowest, then scale_i.
+	unsigned int scale_log2= 0u;
+	while( scale_i >= ( 1u << scale_log2 ) )
+		scale_log2++;
+	scale_log2--;
+
+	return 1u << scale_log2;
+}
+
 MenuDrawer::MenuDrawer(
 	const RenderingContext& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
+	, menu_scale_( CalculateMenuScale( rendering_context.viewport_size ) )
+	, console_scale_( CalculateConsoleScale( rendering_context.viewport_size ) )
 {
 	std::vector<unsigned char> textures_data_rgba;
 
@@ -221,16 +258,23 @@ MenuDrawer::MenuDrawer(
 	}
 	{ // Console background
 		std::vector<unsigned char> texture_data_rgba;
+
+		const Size2 console_size(
+			viewport_size_.Width () / console_scale_,
+			viewport_size_.Height() / console_scale_ );
+
 		CreateConsoleBackground(
-			viewport_size_, *game_resources.vfs, game_resources.palette, texture_data_rgba );
+			console_size, *game_resources.vfs, game_resources.palette, texture_data_rgba );
 
 		console_background_texture_=
 			r_Texture(
 				r_Texture::PixelFormat::RGBA8,
-				viewport_size_.Width(), viewport_size_.Height(),
+				console_size.Width(), console_size.Height(),
 				texture_data_rgba.data() );
 
-		console_background_texture_.BuildMips();
+		console_background_texture_.SetFiltration(
+			r_Texture::Filtration::Nearest,
+			r_Texture::Filtration::Nearest );
 	}
 
 	// Polygon buffer
@@ -285,6 +329,16 @@ Size2 MenuDrawer::GetViewportSize() const
 	return viewport_size_;
 }
 
+unsigned int MenuDrawer::GetMenuScale() const
+{
+	return menu_scale_;
+}
+
+unsigned int MenuDrawer::GetConsoleScale() const
+{
+	return console_scale_;
+}
+
 Size2 MenuDrawer::GetPictureSize( MenuPicture picture ) const
 {
 	const r_Texture& tex= menu_pictures_[ size_t(picture) ];
@@ -293,25 +347,24 @@ Size2 MenuDrawer::GetPictureSize( MenuPicture picture ) const
 
 void MenuDrawer::DrawMenuBackground(
 	const int x, const int y,
-	const unsigned int width, const unsigned int height,
-	const unsigned int scale )
+	const unsigned int width, const unsigned int height )
 {
 	// Gen quads
 	Vertex vertices[ g_max_quads * 4u ];
 
 	const int quad_x[4]=
 	{
-		x - int( g_menu_border * scale ),
+		x - int( g_menu_border * menu_scale_ ),
 		x,
 		x + int( width ),
-		x + int( width + g_menu_border * scale ),
+		x + int( width + g_menu_border * menu_scale_ ),
 	};
 	const int quad_y[4]=
 	{
-		y - int( g_menu_border * scale ),
+		y - int( g_menu_border * menu_scale_ ),
 		y,
 		y + int( height ),
-		y + int( height + ( g_menu_border + g_menu_caption ) * scale ),
+		y + int( height + ( g_menu_border + g_menu_caption ) * menu_scale_ ),
 	};
 
 	Vertex* v= vertices;
@@ -367,7 +420,7 @@ void MenuDrawer::DrawMenuBackground(
 		"inv_tile_texture_size",
 		 m_Vec2(
 			1.0f / float(tiles_texture_.Width()),
-			1.0f / float(tiles_texture_.Height()) ) / float(scale) );
+			1.0f / float(tiles_texture_.Height()) ) / float(menu_scale_) );
 
 	menu_background_shader_.Uniform(
 		"inv_framing_texture_size",
@@ -381,8 +434,7 @@ void MenuDrawer::DrawMenuBackground(
 void MenuDrawer::DrawMenuPicture(
 	const int x, const int y0,
 	const MenuPicture pic,
-	const PictureColor* const rows_colors,
-	const unsigned int scale )
+	const PictureColor* const rows_colors )
 {
 	const r_Texture& picture= menu_pictures_[ size_t(pic) ];
 
@@ -390,7 +442,7 @@ void MenuDrawer::DrawMenuPicture(
 	Vertex vertices[ g_max_quads * 4u ];
 
 	const int height= int( picture.Height() / g_menu_pictures_shifts_count );
-	const int scale_i= int(scale);
+	const int scale_i= int(menu_scale_);
 	const int raw_height= int(g_menu_picture_row_height);
 
 	const unsigned int row_count= picture.Height() / ( g_menu_picture_row_height * g_menu_pictures_shifts_count );
@@ -471,12 +523,12 @@ void MenuDrawer::DrawConsoleBackground( float console_pos )
 	vertices[2].xy[0]= viewport_size_.Width();
 	vertices[2].xy[1]= viewport_size_.Height();
 	vertices[2].tex_coord[0]= console_background_texture_.Width();
-	vertices[2].tex_coord[1]= tc_top;
+	vertices[2].tex_coord[1]= tc_top / int(console_scale_);
 
 	vertices[3].xy[0]= 0;
 	vertices[3].xy[1]= viewport_size_.Height();
 	vertices[3].tex_coord[0]= 0;
-	vertices[3].tex_coord[1]= tc_top;
+	vertices[3].tex_coord[1]= tc_top / int(console_scale_);
 
 	polygon_buffer_.VertexSubData( vertices, sizeof(vertices), 0u );
 
@@ -507,7 +559,7 @@ void MenuDrawer::DrawLoading( const float progress )
 
 	Vertex vertices[ 8u ];
 
-	const int scale= 2; // TODO - select this
+	const int scale= int( menu_scale_ );
 	const int x0= ( int(viewport_size_.Width ()) - int(loading_texture_.Width()) * scale ) / 2;
 	const int mid_tc= int( std::round( float(loading_texture_.Width()) * progress_corrected ) );
 	const int x1= x0 + scale * mid_tc;

@@ -142,11 +142,12 @@ void Console::Draw()
 	drawers_->menu.DrawConsoleBackground( position_ );
 
 	const int letter_height= int( drawers_->text.GetLineHeight() );
+	const int scale= int( drawers_->menu.GetConsoleScale() );
 
 	const unsigned int c_x_offset= 5u;
 	int y= static_cast<int>(
 		position_ * float( drawers_->menu.GetViewportSize().Height() / 2u ) -
-		float( letter_height ) ) - 4u;
+		float( letter_height * scale ) ) - 4 * scale;
 
 	const bool draw_cursor= ( int( current_time.ToSeconds() * 3.0f ) & 1u ) != 0u;
 
@@ -154,10 +155,10 @@ void Console::Draw()
 	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? ">%s_" : ">%s", input_line_ );
 
 	drawers_->text.Print(
-		c_x_offset, y,
-		line_with_cursor, 1,
+		scale * c_x_offset, y,
+		line_with_cursor, scale,
 		TextDraw::FontColor::Golden, TextDraw::Alignment::Left );
-	y-= letter_height + 2u;
+	y-= ( letter_height + 2 ) * scale;
 
 	if( lines_position_ > 0u )
 	{
@@ -165,24 +166,24 @@ void Console::Draw()
 		"  ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^  ";
 
 		drawers_->text.Print(
-			c_x_offset, y,
-			str, 1,
+			scale * c_x_offset, y,
+			str, scale,
 			TextDraw::FontColor::White, TextDraw::Alignment::Left );
-		y-= letter_height;
+		y-= letter_height * scale;
 	}
 
 	auto it= lines_.rbegin();
 	it= std::next( it, std::min( lines_position_, static_cast<unsigned int>(lines_.size()) ) );
 	for( ; it != lines_.rend(); ++it )
 	{
-		if( y < -letter_height )
+		if( y < -letter_height * scale )
 			break;
 
 		drawers_->text.Print(
-			c_x_offset, y,
-			it->c_str(), 1,
+			scale * c_x_offset, y,
+			it->c_str(), scale,
 			TextDraw::FontColor::White, TextDraw::Alignment::Left );
-		y-= letter_height;
+		y-= letter_height * scale;
 	}
 }
 
