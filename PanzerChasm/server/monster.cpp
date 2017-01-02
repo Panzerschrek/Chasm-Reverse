@@ -227,18 +227,47 @@ void Monster::Hit(
 
 		if( health_ > 0 )
 		{
+			// TODO - know, in what states monsters can be in pain and lost body parts.
 			if( state_ != State::PainShock &&
-				state_ != State::MeleeAttack && state_ != State::RemoteAttack )
+				state_ != State::MeleeAttack /*&& state_ != State::RemoteAttack*/ )
 			{
 				// Pain chance - proportianal do relative damage.
 				const unsigned int max_health= game_resources_->monsters_description[ monster_id_ ].life;
 				if( random_generator_->RandBool( std::min( damage * 3u, max_health ), max_health ) )
 				{
-					const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
-					if( animation >= 0 )
+					// Try select pain animation.
+					int possible_animations[4];
+					unsigned int possible_animation_count= 0u;
+					const int pain_animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
+					const int  left_hand_lost_animation= GetAnimation( AnimationId:: LeftHandLost );
+					const int right_hand_lost_animation= GetAnimation( AnimationId::RightHandLost );
+
+					if( pain_animation >= 0 )
 					{
+						possible_animations[ possible_animation_count ]= pain_animation;
+						possible_animation_count++;
+					}
+					if(  have_left_hand_ &&  left_hand_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]=  left_hand_lost_animation;
+						possible_animation_count++;
+					}
+					if( have_right_hand_ && right_hand_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]= right_hand_lost_animation;
+						possible_animation_count++;
+					}
+
+					if( possible_animation_count > 0 )
+					{
+						const int selected_animation= possible_animations[ random_generator_->Rand() % possible_animation_count ];
+						if( selected_animation == left_hand_lost_animation  )
+							have_left_hand_ = false;
+						if( selected_animation == right_hand_lost_animation )
+							have_right_hand_= false;
+
 						state_= State::PainShock;
-						current_animation_= static_cast<unsigned int>(animation);
+						current_animation_= static_cast<unsigned int>( selected_animation );
 						current_animation_start_time_= current_time;
 						map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
 					}
