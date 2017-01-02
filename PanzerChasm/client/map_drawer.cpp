@@ -1341,8 +1341,8 @@ void MapDrawer::DrawRockets(
 
 		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
 
-		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
-		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
 
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			fullbright_lightmap_dummy_.Bind(1);
