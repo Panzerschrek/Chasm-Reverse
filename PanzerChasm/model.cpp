@@ -105,6 +105,12 @@ static void CalculateModelZ( Model& model, const Vertex_o3* const vertices, cons
 	}
 }
 
+static unsigned char GroupIdToGroupsMask( const unsigned char group_id )
+{
+	// 64 is unsused. Map to it "zero".
+	return group_id == 0 ? 64u : group_id;
+}
+
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	ClearModel( out_model );
@@ -339,6 +345,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
 			const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+			const unsigned char groups_mask= GroupIdToGroupsMask( polygon.group_id );
 
 			const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
 			unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
@@ -362,6 +369,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 						vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
 
 					vertex.alpha_test_mask= alpha_test_mask;
+					vertex.groups_mask= groups_mask;
 				}
 			}
 

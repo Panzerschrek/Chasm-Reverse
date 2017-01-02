@@ -281,6 +281,7 @@ MapDrawer::MapDrawer(
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
 	monsters_shader_.SetAttribLocation( "alpha_test_mask", 3u );
+	monsters_shader_.SetAttribLocation( "groups_mask", 4u );
 	monsters_shader_.Create();
 
 	sky_shader_.ShaderSource(
@@ -1100,6 +1101,10 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 	buffer.VertexAttribPointer(
 		3, 1, GL_UNSIGNED_BYTE, true,
 		((char*)&v.alpha_test_mask) - ((char*)&v) );
+
+	buffer.VertexAttribPointerInt(
+		4, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.groups_mask) - ((char*)&v) );
 }
 
 void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
@@ -1284,6 +1289,7 @@ void MapDrawer::DrawMonsters(
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
