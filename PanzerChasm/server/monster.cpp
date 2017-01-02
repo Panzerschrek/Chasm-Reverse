@@ -106,6 +106,7 @@ void Monster::Tick(
 		{	if( current_time >= target_change_time_ )
 			{
 				if( description.rock >= 0 && target != nullptr &&
+					have_right_hand_ && // Monster hold weapon in right hand
 					map.CanSee( pos_ + g_see_point_delta, target->Position() + g_see_point_delta ) )
 				{
 					state_= State::RemoteAttack;
