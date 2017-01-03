@@ -188,7 +188,10 @@ void MapState::Tick( const Time current_time )
 		PC_ASSERT( part.monster_type < game_resources_->monsters_models.size() );
 		unsigned int model_frame_count= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ].animations[ part.animation ].frame_count;
 
-		part.animation_frame= std::min( frame, model_frame_count );
+		if( model_frame_count > 0u )
+			part.animation_frame= std::min( frame, model_frame_count - 1u );
+		else
+			part.animation_frame= 0u;
 
 		p++;
 	}
