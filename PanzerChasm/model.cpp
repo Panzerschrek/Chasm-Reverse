@@ -428,6 +428,13 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		out_model.texture_data.size() +
 		out_model.frame_count * sizeof(Vertex_o3) * vertex_count;
 
+	out_model.submodels.resize(3u);
+	for( Submodel& submodel : out_model.submodels )
+	{
+		submodel.frame_count= 0u;
+		submodel.z_min= submodel.z_max= 0.0f;
+	}
+
 	for( unsigned int i= 0u; i < 3u; i++ )
 	{
 		const unsigned int c_animation_data_offset= 0x4806u;
@@ -438,8 +445,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		if( submodel_animation_data_size == 0u )
 			continue;
 
-		out_model.submodels.emplace_back();
-		Submodel& submodel= out_model.submodels.back();
+		Submodel& submodel= out_model.submodels[i];
 
 		std::memcpy( &vertex_count, model_file.data() + submodels_offset + 0x4800u, sizeof(unsigned short) );
 		std::memcpy( &polygon_count, model_file.data() + submodels_offset + 0x4802u, sizeof(unsigned short) );
@@ -455,6 +461,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 		// Setup animations.
 		// Each submodel have up to 2 animations.
+		unsigned int first_submodel_animation_frame= 0u;
 		for( unsigned int a= 0u; a < 2u; a++ )
 		{
 			const unsigned int animation_frame_count=
@@ -466,8 +473,9 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			Submodel::Animation& anim= submodel.animations.back();
 
 			anim.id= i;
-			anim.first_frame= submodel.frame_count; // TODO - fix this.
+			anim.first_frame= first_submodel_animation_frame;
 			anim.frame_count= animation_frame_count;
+			first_submodel_animation_frame+= anim.frame_count;
 		}
 
 		submodels_offset+= c_animation_data_offset + submodel_animation_data_size;

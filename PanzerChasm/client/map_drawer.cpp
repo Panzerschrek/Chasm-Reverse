@@ -981,40 +981,49 @@ void MapDrawer::LoadMonstersModels()
 		out_model.texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
 		out_model.texture.BuildMips();
 
-		// Copy vertices.
-		const unsigned int first_vertex_index= vertices.size();
-		vertices.resize( vertices.size() + in_model.vertices.size() );
-		std::memcpy(
-			vertices.data() + first_vertex_index,
-			in_model.vertices.data(),
-			in_model.vertices.size() * sizeof(Model::Vertex) );
+		const auto prepare_geometry=
+		[&]( const Submodel& submodel, ModelGeometry& model_geometry )
+		{
+			// Copy vertices.
+			const unsigned int first_vertex_index= vertices.size();
+			vertices.resize( vertices.size() + submodel.vertices.size() );
+			std::memcpy(
+				vertices.data() + first_vertex_index,
+				submodel.vertices.data(),
+				submodel.vertices.size() * sizeof(Model::Vertex) );
 
-		// Copy indeces.
-		const unsigned int first_index= indeces.size();
-		indeces.resize( indeces.size() + in_model.regular_triangles_indeces.size() + in_model.transparent_triangles_indeces.size() );
-		unsigned short* const ind= indeces.data() + first_index;
+			// Copy indeces.
+			const unsigned int first_index= indeces.size();
+			indeces.resize( indeces.size() + submodel.regular_triangles_indeces.size() + submodel.transparent_triangles_indeces.size() );
+			unsigned short* const ind= indeces.data() + first_index;
 
-		std::memcpy(
-			ind,
-			in_model.regular_triangles_indeces.data(),
-			in_model.regular_triangles_indeces.size() * sizeof(unsigned short) );
+			std::memcpy(
+				ind,
+				submodel.regular_triangles_indeces.data(),
+				submodel.regular_triangles_indeces.size() * sizeof(unsigned short) );
 
-		std::memcpy(
-			ind + in_model.regular_triangles_indeces.size(),
-			in_model.transparent_triangles_indeces.data(),
-			in_model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
+			std::memcpy(
+				ind + submodel.regular_triangles_indeces.size(),
+				submodel.transparent_triangles_indeces.data(),
+				submodel.transparent_triangles_indeces.size() * sizeof(unsigned short) );
 
-		// Setup geometry info.
-		ModelGeometry& model_geometry= out_model.geometry_description;
-		model_geometry.frame_count= in_model.frame_count;
-		model_geometry.vertex_count= in_model.vertices.size() / in_model.frame_count;
-		model_geometry.first_vertex_index= first_vertex_index;
+			// Setup geometry info.
+			model_geometry.frame_count= submodel.frame_count;
+			model_geometry.vertex_count= submodel.frame_count == 0u ? 0u : submodel.vertices.size() / submodel.frame_count;
+			model_geometry.first_vertex_index= first_vertex_index;
 
-		model_geometry.first_index= first_index;
-		model_geometry.index_count= in_model.regular_triangles_indeces.size();
+			model_geometry.first_index= first_index;
+			model_geometry.index_count= submodel.regular_triangles_indeces.size();
 
-		model_geometry.first_transparent_index= first_index + in_model.regular_triangles_indeces.size();
-		model_geometry.transparent_index_count= in_model.transparent_triangles_indeces.size();
+			model_geometry.first_transparent_index= first_index + submodel.regular_triangles_indeces.size();
+			model_geometry.transparent_index_count= submodel.transparent_triangles_indeces.size();
+		};
+
+		prepare_geometry( in_model, out_model.geometry_description );
+
+		PC_ASSERT( in_model.submodels.size() == 3u );
+		for( unsigned int s= 0u; s < 3u; s++ )
+			prepare_geometry( in_model.submodels[s], out_model.submodels_geometry_description[s] );
 	}
 
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );

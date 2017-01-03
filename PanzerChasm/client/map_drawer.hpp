@@ -55,6 +55,8 @@ private:
 	struct MonsterModel
 	{
 		ModelGeometry geometry_description;
+		ModelGeometry submodels_geometry_description[3];
+
 		r_Texture texture;
 	};
 
