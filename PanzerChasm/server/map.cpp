@@ -247,6 +247,20 @@ void Map::Shoot(
 	}
 }
 
+void Map::SpawnMonsterBodyPart(
+	const unsigned char monster_type_id, const unsigned char body_part_id,
+	const m_Vec3& pos, float angle )
+{
+	monsters_parts_birth_messages_.emplace_back();
+	Messages::MonsterPartBirth& message= monsters_parts_birth_messages_.back();
+
+	message.monster_type= monster_type_id;
+	message.part_id= body_part_id;
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.angle= AngleToMessageAngle( angle );
+}
+
 void Map::PlayMonsterLinkedSound(
 	const EntityId monster_id,
 	const unsigned int sound_id )
@@ -1305,6 +1319,10 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::MonsterPartBirth& message : monsters_parts_birth_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 	for( const Messages::MapEventSound& message : map_events_sounds_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1340,6 +1358,7 @@ void Map::ClearUpdateEvents()
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
 	particles_effects_messages_.clear();
+	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();
 	monster_linked_sounds_messages_.clear();
 	monsters_sounds_messages_.clear();

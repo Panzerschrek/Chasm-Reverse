@@ -144,6 +144,16 @@ struct ParticleEffectBirth : public MessageBase
 	unsigned char effect_id;
 };
 
+struct MonsterPartBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterPartBirth)
+
+	CoordType xyz[3];
+	AngleType angle;
+	unsigned char monster_type;
+	unsigned char part_id;
+};
+
 struct MapEventSound : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(MapEventSound)

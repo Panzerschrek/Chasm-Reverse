@@ -90,6 +90,16 @@ protected:
 		};
 	};
 
+	struct BodyPartSubmodelId
+	{
+		enum : unsigned char
+		{
+			RightHand= 0u,
+			 LeftHand= 1u,
+			Head= 2u,
+		};
+	};
+
 protected:
 	// returns -1 if not found
 	int GetAnimation( AnimationId id ) const;

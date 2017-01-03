@@ -40,6 +40,10 @@ public:
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
+	void SpawnMonsterBodyPart(
+		unsigned char monster_type_id, unsigned char body_part_id,
+		const m_Vec3& pos, float angle );
+
 	void PlayMonsterLinkedSound(
 		EntityId monster_id,
 		unsigned int sound_id );
@@ -250,6 +254,7 @@ private:
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
+	std::vector<Messages::MonsterPartBirth> monsters_parts_birth_messages_;
 	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
 	std::vector<Messages::MonsterLinkedSound> monster_linked_sounds_messages_;
 	std::vector<Messages::MonsterSound> monsters_sounds_messages_;

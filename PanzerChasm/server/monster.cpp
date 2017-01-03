@@ -275,11 +275,20 @@ void Monster::Hit(
 					{
 						const int selected_animation= possible_animations[ random_generator_->Rand() % possible_animation_count ];
 						if( selected_animation == left_hand_lost_animation  )
+						{
 							have_left_hand_ = false;
+							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId:: LeftHand, pos_, angle_ );
+						}
 						if( selected_animation == right_hand_lost_animation )
+						{
 							have_right_hand_= false;
+							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId::RightHand, pos_, angle_ );
+						}
 						if( selected_animation == head_lost_animation )
+						{
 							have_head_= false;
+							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId::Head, pos_, angle_ );
+						}
 
 						state_= State::PainShock;
 						current_animation_= static_cast<unsigned int>( selected_animation );

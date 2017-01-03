@@ -385,6 +385,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, false );
 	DrawItems( map_state, view_matrix, false );
 	DrawMonsters( map_state, view_matrix, false );
+	DrawMonstersBodyParts( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
 
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
@@ -397,6 +398,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, true );
 	DrawItems( map_state, view_matrix, true );
 	DrawMonsters( map_state, view_matrix, true );
+	DrawMonstersBodyParts( map_state, view_matrix, true );
 	DrawRockets( map_state, view_matrix, true );
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
@@ -1299,6 +1301,57 @@ void MapDrawer::DrawMonsters(
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
+
+		monster_model.texture.Bind(0);
+		monsters_shader_.Uniform( "tex", int(0) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawMonstersBodyParts(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	monsters_shader_.Bind();
+	monsters_geometry_data_.Bind();
+
+	lightmap_.Bind(1);
+	monsters_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
+	{
+		if( part.monster_type >= monsters_models_.size() || part.body_part_id >= 3u )
+			continue;
+
+		const MonsterModel& monster_model= monsters_models_[ part.monster_type ];
+		const ModelGeometry& model_geometry= monster_model.submodels_geometry_description[ part.body_part_id ];
+		const Submodel& model= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ];
+
+		const unsigned int frame= model.animations[ part.animation ].first_frame + part.animation_frame;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( part.pos, part.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+
+		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );

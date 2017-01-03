@@ -245,6 +245,12 @@ void Client::operator()( const Messages::ParticleEffectBirth& message )
 		map_state_->ProcessMessage( message );
 }
 
+void Client::operator()( const Messages::MonsterPartBirth& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 void Client::operator()( const Messages::MapEventSound& message )
 {
 	if( sound_engine_ != nullptr )

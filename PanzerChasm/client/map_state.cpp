@@ -82,6 +82,11 @@ const MapState::SpriteEffects& MapState::GetSpriteEffects() const
 	return sprite_effects_;
 }
 
+const MapState::MonstersBodyParts& MapState::GetMonstersBodyParts() const
+{
+	return monsters_body_parts_;
+}
+
 const MapState::MonstersContainer& MapState::GetMonsters() const
 {
 	return monsters_;
@@ -162,6 +167,30 @@ void MapState::Tick( const Time current_time )
 			effect.frame= std::fmod( effect.frame, sprite_frame_count );
 			i++;
 		}
+	}
+
+	for( unsigned int p= 0u; p < monsters_body_parts_.size(); )
+	{
+		MonsterBodyPart& part= monsters_body_parts_[p];
+		const float time_delta_s= ( current_time - part.start_time ).ToSeconds();
+
+		if( time_delta_s > 20.0f ) // Kill old part
+		{
+			if( &part != &monsters_body_parts_.back() )
+				part= monsters_body_parts_.back();
+			monsters_body_parts_.pop_back();
+
+			continue;
+		}
+
+		const unsigned int frame= static_cast<unsigned int>( std::round( time_delta_s * GameConstants::animations_frames_per_second ) );
+
+		PC_ASSERT( part.monster_type < game_resources_->monsters_models.size() );
+		unsigned int model_frame_count= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ].animations[ part.animation ].frame_count;
+
+		part.animation_frame= std::min( frame, model_frame_count );
+
+		p++;
 	}
 
 	for( RocketsContainer::value_type& rocket_value : rockets_ )
@@ -417,6 +446,23 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 		}
 		break;
 	};
+}
+
+void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )
+{
+	monsters_body_parts_.emplace_back();
+	MonsterBodyPart& part= monsters_body_parts_.back();
+
+	part.monster_type= message.monster_type;
+	part.body_part_id= message.part_id;
+
+	part.angle= MessageAngleToAngle( message.angle );
+	MessagePositionToPosition( message.xyz, part.pos );
+
+	part.animation= 0u;
+	part.animation_frame= 0u;
+
+	part.start_time= last_tick_time_;
 }
 
 void MapState::ProcessMessage( const Messages::MonsterBirth& message )

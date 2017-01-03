@@ -103,6 +103,11 @@ private:
 		const m_Mat4& view_matrix,
 		bool transparent );
 
+	void DrawMonstersBodyParts(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
 	void DrawRockets(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
