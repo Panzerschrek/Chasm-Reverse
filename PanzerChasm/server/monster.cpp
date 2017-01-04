@@ -277,17 +277,17 @@ void Monster::Hit(
 						if( selected_animation == left_hand_lost_animation  )
 						{
 							have_left_hand_ = false;
-							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId:: LeftHand, pos_, angle_ );
+							SpawnBodyPart( map, BodyPartSubmodelId:: LeftHand );
 						}
 						if( selected_animation == right_hand_lost_animation )
 						{
 							have_right_hand_= false;
-							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId::RightHand, pos_, angle_ );
+							SpawnBodyPart( map, BodyPartSubmodelId::RightHand );
 						}
 						if( selected_animation == head_lost_animation )
 						{
 							have_head_= false;
-							map.SpawnMonsterBodyPart( monster_id_, BodyPartSubmodelId::Head, pos_, angle_ );
+							SpawnBodyPart( map, BodyPartSubmodelId::Head );
 						}
 
 						state_= State::PainShock;
@@ -502,6 +502,47 @@ int Monster::SelectMeleeAttackAnimation()
 		return -1;
 
 	return possible_animations[ random_generator_->Rand() % possible_animation_count ];
+}
+
+void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
+{
+	/* Select position for parts spawn.
+	 * Each part must be spawned at specific point of monster body.
+	 *
+	 * This code is experimental. I don`t know, how original game does this.
+	 * All constatns are exeprimental.
+	 */
+
+	const float c_relative_hands_level= 0.65f;
+	const float c_hands_radius= 0.2f;
+
+	const m_Vec2 z_minmax= GetZMinMax();
+	m_Vec3 pos= pos_;
+
+	switch( part_id )
+	{
+	case BodyPartSubmodelId:: LeftHand:
+		pos.x+= c_hands_radius * std::cos( angle_ + Constants::half_pi );
+		pos.y+= c_hands_radius * std::sin( angle_ + Constants::half_pi );
+		pos.z+= z_minmax.x * c_relative_hands_level + z_minmax.y * ( 1.0f - c_relative_hands_level );
+		break;
+
+	case BodyPartSubmodelId::RightHand:
+		pos.x+= c_hands_radius * std::cos( angle_ - Constants::half_pi );
+		pos.y+= c_hands_radius * std::sin( angle_ - Constants::half_pi );
+		pos.z+= z_minmax.x * c_relative_hands_level + z_minmax.y * ( 1.0f - c_relative_hands_level );
+		break;
+
+	case BodyPartSubmodelId::Head:
+		pos.z+= z_minmax.y;
+		break;
+
+	default:
+		PC_ASSERT(false);
+		break;
+	};
+
+	map.SpawnMonsterBodyPart( monster_id_, part_id, pos, angle_ );
 }
 
 } // namespace PanzerChasm

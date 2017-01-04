@@ -58,6 +58,7 @@ private:
 	void RotateToTarget( float time_delta_s );
 	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
 	int SelectMeleeAttackAnimation();
+	void SpawnBodyPart( Map& map, unsigned char part_id );
 
 private:
 	LongRandPtr random_generator_;
