@@ -281,6 +281,7 @@ MapDrawer::MapDrawer(
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
 	monsters_shader_.SetAttribLocation( "alpha_test_mask", 3u );
+	monsters_shader_.SetAttribLocation( "groups_mask", 4u );
 	monsters_shader_.Create();
 
 	sky_shader_.ShaderSource(
@@ -384,6 +385,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, false );
 	DrawItems( map_state, view_matrix, false );
 	DrawMonsters( map_state, view_matrix, false );
+	DrawMonstersBodyParts( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
 
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
@@ -396,6 +398,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, true );
 	DrawItems( map_state, view_matrix, true );
 	DrawMonsters( map_state, view_matrix, true );
+	DrawMonstersBodyParts( map_state, view_matrix, true );
 	DrawRockets( map_state, view_matrix, true );
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
@@ -980,40 +983,49 @@ void MapDrawer::LoadMonstersModels()
 		out_model.texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
 		out_model.texture.BuildMips();
 
-		// Copy vertices.
-		const unsigned int first_vertex_index= vertices.size();
-		vertices.resize( vertices.size() + in_model.vertices.size() );
-		std::memcpy(
-			vertices.data() + first_vertex_index,
-			in_model.vertices.data(),
-			in_model.vertices.size() * sizeof(Model::Vertex) );
+		const auto prepare_geometry=
+		[&]( const Submodel& submodel, ModelGeometry& model_geometry )
+		{
+			// Copy vertices.
+			const unsigned int first_vertex_index= vertices.size();
+			vertices.resize( vertices.size() + submodel.vertices.size() );
+			std::memcpy(
+				vertices.data() + first_vertex_index,
+				submodel.vertices.data(),
+				submodel.vertices.size() * sizeof(Model::Vertex) );
 
-		// Copy indeces.
-		const unsigned int first_index= indeces.size();
-		indeces.resize( indeces.size() + in_model.regular_triangles_indeces.size() + in_model.transparent_triangles_indeces.size() );
-		unsigned short* const ind= indeces.data() + first_index;
+			// Copy indeces.
+			const unsigned int first_index= indeces.size();
+			indeces.resize( indeces.size() + submodel.regular_triangles_indeces.size() + submodel.transparent_triangles_indeces.size() );
+			unsigned short* const ind= indeces.data() + first_index;
 
-		std::memcpy(
-			ind,
-			in_model.regular_triangles_indeces.data(),
-			in_model.regular_triangles_indeces.size() * sizeof(unsigned short) );
+			std::memcpy(
+				ind,
+				submodel.regular_triangles_indeces.data(),
+				submodel.regular_triangles_indeces.size() * sizeof(unsigned short) );
 
-		std::memcpy(
-			ind + in_model.regular_triangles_indeces.size(),
-			in_model.transparent_triangles_indeces.data(),
-			in_model.transparent_triangles_indeces.size() * sizeof(unsigned short) );
+			std::memcpy(
+				ind + submodel.regular_triangles_indeces.size(),
+				submodel.transparent_triangles_indeces.data(),
+				submodel.transparent_triangles_indeces.size() * sizeof(unsigned short) );
 
-		// Setup geometry info.
-		ModelGeometry& model_geometry= out_model.geometry_description;
-		model_geometry.frame_count= in_model.frame_count;
-		model_geometry.vertex_count= in_model.vertices.size() / in_model.frame_count;
-		model_geometry.first_vertex_index= first_vertex_index;
+			// Setup geometry info.
+			model_geometry.frame_count= submodel.frame_count;
+			model_geometry.vertex_count= submodel.frame_count == 0u ? 0u : submodel.vertices.size() / submodel.frame_count;
+			model_geometry.first_vertex_index= first_vertex_index;
 
-		model_geometry.first_index= first_index;
-		model_geometry.index_count= in_model.regular_triangles_indeces.size();
+			model_geometry.first_index= first_index;
+			model_geometry.index_count= submodel.regular_triangles_indeces.size();
 
-		model_geometry.first_transparent_index= first_index + in_model.regular_triangles_indeces.size();
-		model_geometry.transparent_index_count= in_model.transparent_triangles_indeces.size();
+			model_geometry.first_transparent_index= first_index + submodel.regular_triangles_indeces.size();
+			model_geometry.transparent_index_count= submodel.transparent_triangles_indeces.size();
+		};
+
+		prepare_geometry( in_model, out_model.geometry_description );
+
+		PC_ASSERT( in_model.submodels.size() == 3u );
+		for( unsigned int s= 0u; s < 3u; s++ )
+			prepare_geometry( in_model.submodels[s], out_model.submodels_geometry_description[s] );
 	}
 
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );
@@ -1100,6 +1112,10 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 	buffer.VertexAttribPointer(
 		3, 1, GL_UNSIGNED_BYTE, true,
 		((char*)&v.alpha_test_mask) - ((char*)&v) );
+
+	buffer.VertexAttribPointerInt(
+		4, 1, GL_UNSIGNED_BYTE,
+		((char*)&v.groups_mask) - ((char*)&v) );
 }
 
 void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
@@ -1284,6 +1300,58 @@ void MapDrawer::DrawMonsters(
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
+
+		monster_model.texture.Bind(0);
+		monsters_shader_.Uniform( "tex", int(0) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawMonstersBodyParts(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	monsters_shader_.Bind();
+	monsters_geometry_data_.Bind();
+
+	lightmap_.Bind(1);
+	monsters_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
+	{
+		if( part.monster_type >= monsters_models_.size() || part.body_part_id >= 3u )
+			continue;
+
+		const MonsterModel& monster_model= monsters_models_[ part.monster_type ];
+		const ModelGeometry& model_geometry= monster_model.submodels_geometry_description[ part.body_part_id ];
+		const Submodel& model= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ];
+
+		const unsigned int frame= model.animations[ part.animation ].first_frame + part.animation_frame;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( part.pos, part.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+
+		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
@@ -1335,8 +1403,8 @@ void MapDrawer::DrawRockets(
 
 		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
 
-		monsters_shader_.Uniform( "view_matrix", model_mat * view_matrix );
-		monsters_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
 
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			fullbright_lightmap_dummy_.Bind(1);

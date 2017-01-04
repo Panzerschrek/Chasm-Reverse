@@ -32,6 +32,7 @@ public:
 
 	unsigned int CurrentAnimation() const;
 	unsigned int CurrentAnimationFrame() const;
+	unsigned char GetBodyPartsMask() const;
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
 
@@ -74,6 +75,31 @@ protected:
 		Death3= 17u,
 	};
 
+	struct BodyPartsMask
+	{
+		enum : unsigned char
+		{
+			 LeftHand= 1u << 0u,
+			 LeftHandSeparated= 1u << 1u,
+			RightHand= 1u << 2u,
+			RightHandSeparated= 1u << 3u,
+			Head= 1u << 4u,
+			HeadSeparated= 1u << 5u,
+			Body= 1u << 6u,
+			WeaponFire= 1u << 7u,
+		};
+	};
+
+	struct BodyPartSubmodelId
+	{
+		enum : unsigned char
+		{
+			RightHand= 0u,
+			 LeftHand= 1u,
+			Head= 2u,
+		};
+	};
+
 protected:
 	// returns -1 if not found
 	int GetAnimation( AnimationId id ) const;
@@ -82,6 +108,10 @@ protected:
 protected:
 	const GameResourcesConstPtr game_resources_;
 	const unsigned char monster_id_;
+
+	bool have_left_hand_= true;
+	bool have_right_hand_= true;
+	bool have_head_= true;
 
 	m_Vec3 pos_;
 	float angle_; // [ 0; 2 * pi )

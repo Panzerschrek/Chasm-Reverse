@@ -93,19 +93,26 @@ void Monster::Tick(
 
 	case State::MoveToTarget:
 	{
+		// Try melee attack.
 		if( target != nullptr &&
 			distance_for_melee_attack <= description.attack_radius )
 		{
-			state_= State::MeleeAttack;
-			current_animation_= GetAnyAnimation( { AnimationId::MeleeAttackLeftHand, AnimationId::MeleeAttackRightHand, AnimationId::MeleeAttackHead } );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
-			attack_was_done_= false;
+			const int animation= SelectMeleeAttackAnimation();
+			if( animation >= 0 )
+			{
+				state_= State::MeleeAttack;
+				current_animation_= animation;
+				current_animation_start_time_= current_time;
+				current_animation_frame_= 0u;
+				attack_was_done_= false;
+			}
 		}
-		else
-		{	if( current_time >= target_change_time_ )
+		if( state_ == State::MoveToTarget )
+		{
+			if( current_time >= target_change_time_ )
 			{
 				if( description.rock >= 0 && target != nullptr &&
+					have_right_hand_ && // Monster hold weapon in right hand
 					map.CanSee( pos_ + g_see_point_delta, target->Position() + g_see_point_delta ) )
 				{
 					state_= State::RemoteAttack;
@@ -227,18 +234,64 @@ void Monster::Hit(
 
 		if( health_ > 0 )
 		{
+			// TODO - know, in what states monsters can be in pain and lost body parts.
 			if( state_ != State::PainShock &&
-				state_ != State::MeleeAttack && state_ != State::RemoteAttack )
+				state_ != State::MeleeAttack /*&& state_ != State::RemoteAttack*/ )
 			{
 				// Pain chance - proportianal do relative damage.
 				const unsigned int max_health= game_resources_->monsters_description[ monster_id_ ].life;
 				if( random_generator_->RandBool( std::min( damage * 3u, max_health ), max_health ) )
 				{
-					const int animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
-					if( animation >= 0 )
+					// Try select pain animation.
+					int possible_animations[4];
+					unsigned int possible_animation_count= 0u;
+					const int pain_animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
+					const int  left_hand_lost_animation= GetAnimation( AnimationId:: LeftHandLost );
+					const int right_hand_lost_animation= GetAnimation( AnimationId::RightHandLost );
+					const int head_lost_animation= GetAnimation( AnimationId::HeadLost );
+
+					if( pain_animation >= 0 )
 					{
+						possible_animations[ possible_animation_count ]= pain_animation;
+						possible_animation_count++;
+					}
+					if(  have_left_hand_ &&  left_hand_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]=  left_hand_lost_animation;
+						possible_animation_count++;
+					}
+					if( have_right_hand_ && right_hand_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]= right_hand_lost_animation;
+						possible_animation_count++;
+					}
+					if( have_head_ && head_lost_animation >= 0 )
+					{
+						possible_animations[ possible_animation_count ]= head_lost_animation;
+						possible_animation_count++;
+					}
+
+					if( possible_animation_count > 0 )
+					{
+						const int selected_animation= possible_animations[ random_generator_->Rand() % possible_animation_count ];
+						if( selected_animation == left_hand_lost_animation  )
+						{
+							have_left_hand_ = false;
+							SpawnBodyPart( map, BodyPartSubmodelId:: LeftHand );
+						}
+						if( selected_animation == right_hand_lost_animation )
+						{
+							have_right_hand_= false;
+							SpawnBodyPart( map, BodyPartSubmodelId::RightHand );
+						}
+						if( selected_animation == head_lost_animation )
+						{
+							have_head_= false;
+							SpawnBodyPart( map, BodyPartSubmodelId::Head );
+						}
+
 						state_= State::PainShock;
-						current_animation_= static_cast<unsigned int>(animation);
+						current_animation_= static_cast<unsigned int>( selected_animation );
 						current_animation_start_time_= current_time;
 						map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
 					}
@@ -419,6 +472,77 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 
 		return false;
 	}
+}
+
+int Monster::SelectMeleeAttackAnimation()
+{
+	int possible_animations[3];
+	int possible_animation_count= 0u;
+
+	const int  left_hand_animation= GetAnimation( AnimationId::MeleeAttackLeftHand  );
+	const int right_hand_animation= GetAnimation( AnimationId::MeleeAttackRightHand );
+	const int head_animation= GetAnimation( AnimationId::MeleeAttackHead );
+	if(  have_left_hand_ &&  left_hand_animation >= 0 )
+	{
+		possible_animations[ possible_animation_count ]=  left_hand_animation;
+		possible_animation_count++;
+	}
+	if( have_right_hand_ && right_hand_animation >= 0 )
+	{
+		possible_animations[ possible_animation_count ]= right_hand_animation;
+		possible_animation_count++;
+	}
+	if( have_head_ && head_animation >= 0 )
+	{
+		possible_animations[ possible_animation_count ]= head_animation;
+		possible_animation_count++;
+	}
+
+	if( possible_animation_count == 0u )
+		return -1;
+
+	return possible_animations[ random_generator_->Rand() % possible_animation_count ];
+}
+
+void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
+{
+	/* Select position for parts spawn.
+	 * Each part must be spawned at specific point of monster body.
+	 *
+	 * This code is experimental. I don`t know, how original game does this.
+	 * All constatns are exeprimental.
+	 */
+
+	const float c_relative_hands_level= 0.65f;
+	const float c_hands_radius= 0.2f;
+
+	const m_Vec2 z_minmax= GetZMinMax();
+	m_Vec3 pos= pos_;
+
+	switch( part_id )
+	{
+	case BodyPartSubmodelId:: LeftHand:
+		pos.x+= c_hands_radius * std::cos( angle_ + Constants::half_pi );
+		pos.y+= c_hands_radius * std::sin( angle_ + Constants::half_pi );
+		pos.z+= z_minmax.x * c_relative_hands_level + z_minmax.y * ( 1.0f - c_relative_hands_level );
+		break;
+
+	case BodyPartSubmodelId::RightHand:
+		pos.x+= c_hands_radius * std::cos( angle_ - Constants::half_pi );
+		pos.y+= c_hands_radius * std::sin( angle_ - Constants::half_pi );
+		pos.z+= z_minmax.x * c_relative_hands_level + z_minmax.y * ( 1.0f - c_relative_hands_level );
+		break;
+
+	case BodyPartSubmodelId::Head:
+		pos.z+= z_minmax.y;
+		break;
+
+	default:
+		PC_ASSERT(false);
+		break;
+	};
+
+	map.SpawnMonsterBodyPart( monster_id_, part_id, pos, angle_ );
 }
 
 } // namespace PanzerChasm

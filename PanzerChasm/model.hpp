@@ -14,6 +14,7 @@ struct Submodel
 		float tex_coord[2];
 		unsigned char texture_id;
 		unsigned char alpha_test_mask; // Zero for regular polygons, 255 - for alpha-tested
+		unsigned char groups_mask; // Mask for groups. Valid only for .car models.
 	};
 
 	typedef std::vector<Vertex> Vertices;

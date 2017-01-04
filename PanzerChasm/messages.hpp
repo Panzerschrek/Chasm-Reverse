@@ -45,6 +45,7 @@ struct MonsterState : public MessageBase
 	CoordType xyz[3];
 	AngleType angle;
 	unsigned char monster_type;
+	unsigned char body_parts_mask;
 	unsigned short animation;
 	unsigned short animation_frame;
 };
@@ -141,6 +142,16 @@ struct ParticleEffectBirth : public MessageBase
 
 	CoordType xyz[3];
 	unsigned char effect_id;
+};
+
+struct MonsterPartBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(MonsterPartBirth)
+
+	CoordType xyz[3];
+	AngleType angle;
+	unsigned char monster_type;
+	unsigned char part_id;
 };
 
 struct MapEventSound : public MessageBase

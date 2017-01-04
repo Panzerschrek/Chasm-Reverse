@@ -54,11 +54,28 @@ public:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
+	struct MonsterBodyPart
+	{
+		m_Vec3 pos;
+		float angle;
+		unsigned char monster_type;
+		unsigned char body_part_id;
+
+		Time start_time= Time::FromSeconds(0);
+		m_Vec3 speed;
+
+		unsigned int animation;
+		unsigned int animation_frame;
+	};
+
+	typedef std::vector<MonsterBodyPart> MonstersBodyParts;
+
 	struct Monster
 	{
 		m_Vec3 pos;
 		float angle;
 		unsigned char monster_id;
+		unsigned char body_parts_mask;
 		unsigned int animation;
 		unsigned int animation_frame;
 	};
@@ -89,6 +106,7 @@ public:
 	const StaticModels& GetStaticModels() const;
 	const Items& GetItems() const;
 	const SpriteEffects& GetSpriteEffects() const;
+	const MonstersBodyParts& GetMonstersBodyParts() const;
 	const MonstersContainer& GetMonsters() const;
 	const RocketsContainer& GetRockets() const;
 
@@ -102,6 +120,7 @@ public:
 	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
 	void ProcessMessage( const Messages::ParticleEffectBirth& message );
+	void ProcessMessage( const Messages::MonsterPartBirth& message );
 	void ProcessMessage( const Messages::MonsterBirth& message );
 	void ProcessMessage( const Messages::MonsterDeath& message );
 	void ProcessMessage( const Messages::RocketState& message );
@@ -120,6 +139,7 @@ private:
 	StaticModels static_models_;
 	Items items_;
 	SpriteEffects sprite_effects_;
+	MonstersBodyParts monsters_body_parts_;
 	MonstersContainer monsters_;
 	RocketsContainer rockets_;
 };

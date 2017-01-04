@@ -105,6 +105,12 @@ static void CalculateModelZ( Model& model, const Vertex_o3* const vertices, cons
 	}
 }
 
+static unsigned char GroupIdToGroupsMask( const unsigned char group_id )
+{
+	// 64 is unsused. Map to it "zero".
+	return group_id == 0 ? 64u : group_id;
+}
+
 void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& animation_file, Model& out_model )
 {
 	ClearModel( out_model );
@@ -339,6 +345,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
 			const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+			const unsigned char groups_mask= GroupIdToGroupsMask( polygon.group_id );
 
 			const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
 			unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
@@ -362,6 +369,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 						vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
 
 					vertex.alpha_test_mask= alpha_test_mask;
+					vertex.groups_mask= groups_mask;
 				}
 			}
 
@@ -420,6 +428,13 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		out_model.texture_data.size() +
 		out_model.frame_count * sizeof(Vertex_o3) * vertex_count;
 
+	out_model.submodels.resize(3u);
+	for( Submodel& submodel : out_model.submodels )
+	{
+		submodel.frame_count= 0u;
+		submodel.z_min= submodel.z_max= 0.0f;
+	}
+
 	for( unsigned int i= 0u; i < 3u; i++ )
 	{
 		const unsigned int c_animation_data_offset= 0x4806u;
@@ -430,8 +445,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		if( submodel_animation_data_size == 0u )
 			continue;
 
-		out_model.submodels.emplace_back();
-		Submodel& submodel= out_model.submodels.back();
+		Submodel& submodel= out_model.submodels[i];
 
 		std::memcpy( &vertex_count, model_file.data() + submodels_offset + 0x4800u, sizeof(unsigned short) );
 		std::memcpy( &polygon_count, model_file.data() + submodels_offset + 0x4802u, sizeof(unsigned short) );
@@ -447,6 +461,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 		// Setup animations.
 		// Each submodel have up to 2 animations.
+		unsigned int first_submodel_animation_frame= 0u;
 		for( unsigned int a= 0u; a < 2u; a++ )
 		{
 			const unsigned int animation_frame_count=
@@ -458,8 +473,9 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			Submodel::Animation& anim= submodel.animations.back();
 
 			anim.id= i;
-			anim.first_frame= submodel.frame_count; // TODO - fix this.
+			anim.first_frame= first_submodel_animation_frame;
 			anim.frame_count= animation_frame_count;
+			first_submodel_animation_frame+= anim.frame_count;
 		}
 
 		submodels_offset+= c_animation_data_offset + submodel_animation_data_size;

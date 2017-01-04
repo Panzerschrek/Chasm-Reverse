@@ -55,6 +55,8 @@ private:
 	struct MonsterModel
 	{
 		ModelGeometry geometry_description;
+		ModelGeometry submodels_geometry_description[3];
+
 		r_Texture texture;
 	};
 
@@ -97,6 +99,11 @@ private:
 		bool transparent );
 
 	void DrawMonsters(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
+	void DrawMonstersBodyParts(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
 		bool transparent );
