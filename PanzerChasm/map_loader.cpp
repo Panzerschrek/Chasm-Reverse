@@ -561,18 +561,21 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 		}
 		else if( std::strncmp( thing_type, "#proc", std::strlen("#proc" ) ) == 0 )
 		{
+			const unsigned int c_max_procedure_number= 1000;
+
 			// catch something, like #proc42
 			if( std::strlen( thing_type ) > std::strlen( "#proc" ) )
 			{
-				const unsigned int procedure_number= std::atoi( thing_type + std::strlen( "#proc" ) );
-				if( procedure_number != 0u && procedure_number < 1000 )
+				const char* const num_str= thing_type + std::strlen( "#proc" );
+				const unsigned int procedure_number= std::atoi( num_str );
+				if( std::isdigit(*num_str) && procedure_number < c_max_procedure_number )
 					LoadProcedure( procedure_number, stream, map_data );
 			}
 			else
 			{
-				unsigned int procedure_number= 0;
+				unsigned int procedure_number;
 				line_stream >> procedure_number;
-				if( !line_stream.fail() && procedure_number != 0 )
+				if( !line_stream.fail() && procedure_number < c_max_procedure_number )
 					LoadProcedure( procedure_number, stream, map_data );
 			}
 		}

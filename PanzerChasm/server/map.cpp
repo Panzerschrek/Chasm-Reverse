@@ -1377,9 +1377,6 @@ void Map::TryActivateProcedure(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	if( procedure_number == 0u )
-		return;
-
 	if( !player.TryActivateProcedure( procedure_number, current_time ) )
 		return;
 

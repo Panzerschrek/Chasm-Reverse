@@ -267,8 +267,6 @@ void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 
 bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
 {
-	PC_ASSERT( proc_number != 0u );
-
 	if( proc_number == last_activated_procedure_ )
 	{
 		// Activate again only after delay.
