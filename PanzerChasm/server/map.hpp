@@ -1,6 +1,8 @@
 #pragma once
 #include <unordered_map>
 
+#include <matrix.hpp>
+
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
 #include "../particles.hpp"
@@ -89,8 +91,19 @@ private:
 		Time last_state_change_time= Time::FromSeconds(0);
 	};
 
+	// Structure for accumulationg of walls and models transformations from procedures.
+	struct Transformation
+	{
+		m_Mat3 mat;
+		float d_z;
+
+		void Clear(){ mat.Identity(); d_z= 0.0f; }
+	};
+
 	struct DynamicWall
 	{
+		Transformation transformation;
+
 		m_Vec2 vert_pos[2];
 		float z;
 		unsigned char texture_id;
@@ -100,6 +113,9 @@ private:
 
 	struct StaticModel
 	{
+		Transformation transformation;
+		float transformation_angle_delta;
+
 		m_Vec3 pos;
 		float baze_z;
 		float angle;
@@ -201,7 +217,7 @@ private:
 	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
 
-	void MoveMapObjects( bool active );
+	void MoveMapObjects();
 
 	template<class Func>
 	void ProcessElementLinks(
