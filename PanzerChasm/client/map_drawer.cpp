@@ -1180,7 +1180,8 @@ void MapDrawer::DrawModels(
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
-		if( static_model.model_id >= models_geometry_.size() )
+		if( static_model.model_id >= models_geometry_.size() ||
+			!static_model.visible )
 			continue;
 
 		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];

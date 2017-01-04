@@ -656,21 +656,21 @@ void Map::ProcessPlayerPosition(
 		StaticModel& model= static_models_[m];
 		const MapData::StaticModel& map_model= map_data_->static_models[m];
 
-		if( model.pos.z < 0.0f ||
-			map_model.model_id >= map_data_->models_description.size() )
+		if( map_model.model_id >= map_data_->models_description.size() )
 			continue;
 
 		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
 
 		const ACode a_code= static_cast<ACode>( model_description.ac );
-		if( a_code >= ACode::RedKey && a_code <= ACode::BlueKey )
+		if( ! model.picked && a_code >= ACode::RedKey && a_code <= ACode::BlueKey )
 		{
 			const m_Vec2 vec_to_player_pos= pos - model.pos.xy();
 			const float square_distance= vec_to_player_pos.SquareLength();
 			const float min_length= GameConstants::player_radius + model_description.radius;
 			if( square_distance <= min_length * min_length )
 			{
-				model.pos.z= -2.0f; // HACK. TODO - hide models
+				model.picked= true;
+
 				if( a_code == ACode::RedKey )
 					player.GiveRedKey();
 				if( a_code == ACode::GreenKey )
@@ -1267,6 +1267,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		model_message.animation_frame= model.current_animation_frame;
 		model_message.animation_playing= model.animation_state == StaticModel::AnimationState::Animation;
 		model_message.model_id= model.model_id;
+		model_message.visible= !model.picked;
 
 		PositionToMessagePosition( model.pos, model_message.xyz );
 		model_message.angle= AngleToMessageAngle( model.angle );

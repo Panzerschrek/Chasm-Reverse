@@ -295,6 +295,8 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 	static_model.model_id= message.model_id;
 
 	static_model.animation_frame= message.animation_frame;
+
+	static_model.visible= message.visible;
 }
 
 void MapState::ProcessMessage( const Messages::SpriteEffectBirth& message )

@@ -136,6 +136,8 @@ private:
 		unsigned int animation_start_frame;
 
 		unsigned int current_animation_frame;
+
+		bool picked= false; // For keys.
 	};
 
 	typedef std::vector<StaticModel> StaticModels;

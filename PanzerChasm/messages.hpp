@@ -120,6 +120,7 @@ struct StaticModelState : public MessageBase
 	CoordType xyz[3];
 	AngleType angle;
 	unsigned short animation_frame;
+	bool visible;
 
 	// If true, client must play looped animation starts from frame.
 	// If false - only one model frame drawn.

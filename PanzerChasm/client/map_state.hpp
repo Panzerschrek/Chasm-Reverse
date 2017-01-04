@@ -28,6 +28,7 @@ public:
 		float angle;
 		unsigned int model_id;
 		unsigned int animation_frame;
+		bool visible;
 	};
 
 	typedef std::vector<StaticModel> StaticModels;
