@@ -62,6 +62,8 @@ public:
 		unsigned char body_part_id;
 
 		Time start_time= Time::FromSeconds(0);
+		m_Vec3 speed;
+
 		unsigned int animation;
 		unsigned int animation_frame;
 	};

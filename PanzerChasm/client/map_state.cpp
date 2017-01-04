@@ -183,15 +183,46 @@ void MapState::Tick( const Time current_time )
 			continue;
 		}
 
-		const unsigned int frame= static_cast<unsigned int>( std::round( time_delta_s * GameConstants::animations_frames_per_second ) );
+		// Animate part.
 
 		PC_ASSERT( part.monster_type < game_resources_->monsters_models.size() );
-		unsigned int model_frame_count= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ].animations[ part.animation ].frame_count;
+		const auto& animations= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ].animations;
+		PC_ASSERT( animations.size() >= 2u );
 
-		if( model_frame_count > 0u )
-			part.animation_frame= std::min( frame, model_frame_count - 1u );
+		const unsigned int frame_count_0= animations[0].frame_count;
+		const unsigned int frame_count_1= animations[1].frame_count;
+		const unsigned int frame= static_cast<unsigned int>( std::round( time_delta_s * GameConstants::animations_frames_per_second ) );
+
+		// Play animation 0, then play animation 1, then stop.
+		if( frame < frame_count_0 )
+		{
+			part.animation= 0u;
+			part.animation_frame= frame;
+		}
 		else
-			part.animation_frame= 0u;
+		{
+			part.animation= 1u;
+			if( frame_count_1 > 0u )
+				part.animation_frame= std::min( frame - frame_count_0, frame_count_1 - 1u );
+			else
+				part.animation_frame= 0u;
+		}
+
+		// Move part.
+		part.speed.z+= GameConstants::vertical_acceleration * tick_delta_s;
+		part.pos+= part.speed * tick_delta_s;
+
+		if( part.pos.z < 0.0f )
+		{
+			part.pos.z= 0.0f;
+			part.speed.z= std::abs( part.speed.z );
+
+			const float c_speed_scale= 0.8f;
+			part.speed*= c_speed_scale;
+		}
+
+		if( part.speed.xy().SquareLength() < 0.05f * 0.05f )
+			part.speed.x= part.speed.y= 0.0f;
 
 		p++;
 	}
@@ -464,6 +495,11 @@ void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )
 
 	part.animation= 0u;
 	part.animation_frame= 0u;
+
+	const float rand_speed= random_generator_.RandValue( 0.3f, 0.6f );
+	part.speed.x= std::cos( -part.angle ) * rand_speed;
+	part.speed.y= std::sin( -part.angle ) * rand_speed;
+	part.speed.z= 0.0f;
 
 	part.start_time= last_tick_time_;
 }
