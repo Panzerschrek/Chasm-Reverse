@@ -906,6 +906,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		{
 			const float c_length_eps= 1.0f / 64.0f;
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
+			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 
 			m_Vec3 new_pos;
 			if( rocket_description.reflect )
@@ -922,9 +923,31 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				rocket.normalized_direction= rocket.speed;
 				rocket.normalized_direction.Normalize();
 			}
+			else if( rocket_description.Auto2 )
+			{
+				m_Vec3 target_pos;
+				if( FindNearestPlayerPos( rocket.previous_position, target_pos ) )
+				{
+					m_Vec3 dir_to_target= target_pos - rocket.previous_position;
+					dir_to_target.Normalize();
+
+					m_Vec3 rot_axis= mVec3Cross( rocket.normalized_direction, dir_to_target );
+					const float rot_axis_square_length= rot_axis.SquareLength();
+					if( rot_axis_square_length < 0.001f * 0.001f )
+						rot_axis= m_Vec3( 0.0f, 0.0f, 1.0f );
+
+					const float c_rot_speed= Constants::half_pi;
+					m_Mat4 mat;
+					mat.Rotate( rot_axis, last_tick_delta_s * c_rot_speed );
+
+					rocket.normalized_direction= rocket.normalized_direction * mat;
+					rocket.normalized_direction.Normalize();
+				}
+
+				new_pos= rocket.previous_position + rocket.normalized_direction * speed * last_tick_delta_s;
+			}
 			else
 			{
-				const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 				new_pos=
 					rocket.start_point +
 					rocket.normalized_direction * ( time_delta_s * speed ) +
@@ -2069,6 +2092,34 @@ Map::HitResult Map::ProcessShot(
 	}
 
 	return result;
+}
+
+bool Map::FindNearestPlayerPos( const m_Vec3& pos, m_Vec3& out_pos ) const
+{
+	if( players_.empty() )
+		return false;
+
+	float min_square_distance= Constants::max_float;
+	m_Vec3 nearest_player_pos;
+
+	const m_Vec2 z_minmax= players_.begin()->second->GetZMinMax();
+	const float dz= ( z_minmax.x + z_minmax.y ) * 0.5f;
+
+	for( const PlayersContainer::value_type& player_value : players_ )
+	{
+		const Player& player= *player_value.second;
+		const m_Vec3 player_pos_corrected= m_Vec3( player.Position().x, player.Position().y, player.Position().z + dz );
+
+		const float square_distance= ( player_pos_corrected - pos ).SquareLength();
+		if( square_distance < min_square_distance )
+		{
+			nearest_player_pos= player_pos_corrected;
+			min_square_distance= square_distance;
+		}
+	}
+
+	out_pos= nearest_player_pos;
+	return true;
 }
 
 float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
