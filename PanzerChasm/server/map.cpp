@@ -1144,18 +1144,32 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		// Process wind for monster
 		// TODO - select more correct way to do this.
-		// Calculate intersection between monster circle and wind field cells.
-		const int monster_x= static_cast<int>( monster.Position().x );
-		const int monster_y= static_cast<int>( monster.Position().y );
-		if( monster_x >= 0 && monster_x < int(MapData::c_map_size) &&
-			monster_y >= 0 && monster_y < int(MapData::c_map_size) )
+		const int wind_x= static_cast<int>( monster.Position().x - 0.5f );
+		const int wind_y= static_cast<int>( monster.Position().y - 0.5f );
+		if( wind_x >= 0 && wind_x < int(MapData::c_map_size - 1u) &&
+			wind_y >= 0 && wind_y < int(MapData::c_map_size - 1u) )
 		{
-			const char* const wind_cell= wind_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
-			if( !( wind_cell[0] == 0 && wind_cell[1] == 0 ) )
+			// Find interpolated value of wind in 4 cells, nearest to monster center.
+			const auto wind_fetch=
+			[&]( int x, int y )
+			{
+				const char* const wind_cell= wind_field_[ x + y * int(MapData::c_map_size) ];
+				return m_Vec2( wind_cell[0], wind_cell[1] );
+			};
+			const float dx= monster.Position().x - 0.5f - float(wind_x);
+			const float dy= monster.Position().y - 0.5f - float(wind_y);
+
+			const m_Vec2 wind_vec=
+				wind_fetch(wind_x  , wind_y  ) * (1.0f - dx) * (1.0f - dy) +
+				wind_fetch(wind_x  , wind_y+1) * (1.0f - dx) *         dy  +
+				wind_fetch(wind_x+1, wind_y  ) *         dx  * (1.0f - dy) +
+				wind_fetch(wind_x+1, wind_y+1) *         dx  *         dy;
+
+			if( wind_vec.SquareLength() > 0.0f )
 			{
 				const float time_delta_s= last_tick_delta_s;
 				const float c_wind_power_scale= 0.5f;
-				const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * m_Vec2( float(wind_cell[0]), float(wind_cell[1]) );
+				const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * wind_vec;
 
 				monster.SetPosition( monster.Position() + m_Vec3( pos_delta, 0.0f ) );
 			}
@@ -1163,6 +1177,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		// Process death for monster.
 		// TODO - make death zone intersection calculation correct, like with wind zones.
+		const int monster_x= static_cast<int>( monster.Position().x );
+		const int monster_y= static_cast<int>( monster.Position().y );
 		if( monster_x >= 0 && monster_x < int(MapData::c_map_size) &&
 			monster_y >= 0 && monster_y < int(MapData::c_map_size) )
 		{
