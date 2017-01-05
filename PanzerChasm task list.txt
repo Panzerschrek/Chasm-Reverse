@@ -15,8 +15,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
 * Uron ot vzryvov snarädov, a ne toljko pri prämom popadanii.
 * Miny.
-* Rakety s otskokom ot pola.
-* Samonavodäscijesä rakety.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
 * Dorabotka bossov.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
@@ -28,7 +26,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sohranenije i zagruzka igry.
 * Vypadenije rançev iz nekotoryh mostrov, igrokov, bossov. Issledovanije togo,
   is kogo cto vypadajet i vypadajet li.
-* Otryvanije castej tela monstram.
+* Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
+  rabotajet v originale.
 * Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
   monstrov pri popadanii rakety ili puli.
 * Skriptovyje sçeny meždu urovnämi.
@@ -40,8 +39,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
 * Boleje ekonomnoje hranenije animaçij modelej.
-* Risovanije monstrov s otorvannymi castämi tela. Korrektnoje risovanije vspyšek
-  oružija monstrov, kogda oni streläjut.
 * Plavnyje animaçii, po krajnej mere casti objektov.
 * Graficeskij effekt pri vystrele iz "Mega-destroyer".
 * Risovanije minikarty. Risovanije toljko vidennyh sten.
