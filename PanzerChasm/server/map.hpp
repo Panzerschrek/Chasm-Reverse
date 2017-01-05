@@ -173,6 +173,8 @@ private:
 
 		m_Vec3 previous_position;
 		float track_length;
+
+		m_Vec3 speed; // For reflecting rockets.
 	};
 
 	typedef std::vector<Rocket> Rockets;
@@ -195,7 +197,11 @@ private:
 		};
 
 		ObjectType object_type= ObjectType::None;
-		unsigned int object_index; // monster_id for monster
+
+		// monster_id for monsters, 0 for floors, 1 for ceilings, model number
+		// for map models, wall number for walls.
+		unsigned int object_index;
+
 		m_Vec3 pos;
 	};
 
