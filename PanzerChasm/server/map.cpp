@@ -1655,6 +1655,9 @@ void Map::ReturnProcedure( const unsigned int procedure_number, const Time curre
 	const MapData::Procedure& procededure= map_data_->procedures[ procedure_number ];
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
 
+	if( procedure_state.locked )
+		return;
+
 	switch( procedure_state.movement_state )
 	{
 	case ProcedureState::MovementState::None:
