@@ -228,7 +228,7 @@ void Map::Shoot(
 	rockets_.emplace_back( next_rocket_id_, owner_id, rocket_id, from, normalized_direction, current_time );
 	next_rocket_id_++;
 
-	const Rocket& rocket= rockets_.back();
+	Rocket& rocket= rockets_.back();
 	if( !rocket.HasInfiniteSpeed( *game_resources_ ) )
 	{
 		Messages::RocketBirth message;
@@ -244,6 +244,14 @@ void Map::Shoot(
 			message.angle[j]= AngleToMessageAngle( angle[j] );
 
 		rockets_birth_messages_.emplace_back( message );
+	}
+
+	// Set initial speed for jumping rockets.
+	const GameResources::RocketDescription& description= game_resources_->rockets_description[ rocket.rocket_type_id ];
+	if( description.reflect )
+	{
+		const float speed= description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
+		rocket.speed= rocket.normalized_direction * speed;
 	}
 }
 
@@ -739,6 +747,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		static_cast<unsigned int>( GameConstants::death_ticks_per_second * current_time  .ToSeconds() ) -
 		static_cast<unsigned int>( GameConstants::death_ticks_per_second * prev_tick_time.ToSeconds() );
 
+	const float last_tick_delta_s= last_tick_delta.ToSeconds();
+
 	// Update state of procedures
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
 	{
@@ -895,20 +905,64 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		else
 		{
 			const float c_length_eps= 1.0f / 64.0f;
-			// TODO - process rockets with nontrivial trajectories - reflecting, autoaim.
 			const float gravity_force= GameConstants::rockets_gravity_scale * float( rocket_description.gravity_force );
 			const float speed= rocket_description.fast ? GameConstants::fast_rockets_speed : GameConstants::rockets_speed;
 
-			const m_Vec3 new_pos=
-				rocket.start_point +
-				rocket.normalized_direction * ( time_delta_s * speed ) +
-				m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
+			m_Vec3 new_pos;
+			if( rocket_description.reflect )
+			{
+				rocket.speed.z-= gravity_force * last_tick_delta_s;
+				new_pos= rocket.previous_position + rocket.speed * last_tick_delta_s;
+
+				if( new_pos.z < 0.0f ) // Reflect.
+				{
+					new_pos.z= 0.0f;
+					rocket.speed.z= std::abs( rocket.speed.z );
+				}
+
+				rocket.normalized_direction= rocket.speed;
+				rocket.normalized_direction.Normalize();
+			}
+			else if( rocket_description.Auto2 )
+			{
+				m_Vec3 target_pos;
+				if( FindNearestPlayerPos( rocket.previous_position, target_pos ) )
+				{
+					m_Vec3 dir_to_target= target_pos - rocket.previous_position;
+					dir_to_target.Normalize();
+
+					m_Vec3 rot_axis= mVec3Cross( rocket.normalized_direction, dir_to_target );
+					const float rot_axis_square_length= rot_axis.SquareLength();
+					if( rot_axis_square_length < 0.001f * 0.001f )
+						rot_axis= m_Vec3( 0.0f, 0.0f, 1.0f );
+
+					const float c_rot_speed= Constants::half_pi;
+					m_Mat4 mat;
+					mat.Rotate( rot_axis, last_tick_delta_s * c_rot_speed );
+
+					rocket.normalized_direction= rocket.normalized_direction * mat;
+					rocket.normalized_direction.Normalize();
+				}
+
+				new_pos= rocket.previous_position + rocket.normalized_direction * speed * last_tick_delta_s;
+			}
+			else
+			{
+				new_pos=
+					rocket.start_point +
+					rocket.normalized_direction * ( time_delta_s * speed ) +
+					m_Vec3( 0.0f, 0.0f, -1.0f ) * ( gravity_force * time_delta_s * time_delta_s * 0.5f );
+			}
 
 			m_Vec3 dir= new_pos - rocket.previous_position;
 			const float max_distance= dir.Length() + c_length_eps;
 			dir.Normalize();
 
 			hit_result= ProcessShot( rocket.previous_position, dir, max_distance, rocket.owner_id );
+
+			if( rocket_description.reflect &&
+				hit_result.object_type == HitResult::ObjectType::Floor && hit_result.object_index == 0u )
+				hit_result.object_type= HitResult::ObjectType::None; // Reflecting rockets does not hit floors.
 
 			// Emit smoke trail
 			const unsigned int sprite_effect_id=
@@ -1101,7 +1155,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			const char* const wind_cell= wind_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
 			if( !( wind_cell[0] == 0 && wind_cell[1] == 0 ) )
 			{
-				const float time_delta_s= last_tick_delta.ToSeconds();
+				const float time_delta_s= last_tick_delta_s;
 				const float c_wind_power_scale= 0.5f;
 				const m_Vec2 pos_delta= time_delta_s * c_wind_power_scale * m_Vec2( float(wind_cell[0]), float(wind_cell[1]) );
 
@@ -2038,6 +2092,34 @@ Map::HitResult Map::ProcessShot(
 	}
 
 	return result;
+}
+
+bool Map::FindNearestPlayerPos( const m_Vec3& pos, m_Vec3& out_pos ) const
+{
+	if( players_.empty() )
+		return false;
+
+	float min_square_distance= Constants::max_float;
+	m_Vec3 nearest_player_pos;
+
+	const m_Vec2 z_minmax= players_.begin()->second->GetZMinMax();
+	const float dz= ( z_minmax.x + z_minmax.y ) * 0.5f;
+
+	for( const PlayersContainer::value_type& player_value : players_ )
+	{
+		const Player& player= *player_value.second;
+		const m_Vec3 player_pos_corrected= m_Vec3( player.Position().x, player.Position().y, player.Position().z + dz );
+
+		const float square_distance= ( player_pos_corrected - pos ).SquareLength();
+		if( square_distance < min_square_distance )
+		{
+			nearest_player_pos= player_pos_corrected;
+			min_square_distance= square_distance;
+		}
+	}
+
+	out_pos= nearest_player_pos;
+	return true;
 }
 
 float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
