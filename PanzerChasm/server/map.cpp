@@ -1116,16 +1116,14 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		// Process teleports for monster
 		MonsterBase& monster= *monster_value.second;
-		const bool is_player= monster.MonsterId() == 0u;;
 
-		const float monster_radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
-		const float teleport_radius= monster_radius + 0.1f;
+		const float c_teleport_radius= 0.4f;
 
 		for( const MapData::Teleport& teleport : map_data_->teleports )
 		{
 			const m_Vec2 tele_pos( float(teleport.from[0]) + 0.5f, float(teleport.from[1]) + 0.5f );
 
-			if( ( tele_pos - monster.Position().xy() ).SquareLength() >= teleport_radius * teleport_radius )
+			if( ( tele_pos - monster.Position().xy() ).SquareLength() >= c_teleport_radius * c_teleport_radius )
 				continue;
 
 			m_Vec2 dst;
