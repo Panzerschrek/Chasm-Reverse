@@ -47,6 +47,7 @@ public:
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
 	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const; // returns tru, if newly-spawned
 
+	void OnMapChange();
 	void UpdateMovement( const Messages::PlayerMove& move_message );
 
 	void SetNoclip( bool noclip );

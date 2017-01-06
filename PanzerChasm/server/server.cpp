@@ -186,6 +186,8 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
+		connected_player->player->OnMapChange();
+
 		connected_player->player_monster_id=
 			map_->SpawnPlayer( connected_player->player );
 	}

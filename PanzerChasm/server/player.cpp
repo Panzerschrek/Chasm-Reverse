@@ -417,6 +417,12 @@ bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const
 	return true;
 }
 
+void Player::OnMapChange()
+{
+	have_red_key_= have_green_key_= have_blue_key_= false;
+	last_activated_procedure_= ~0u;
+}
+
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
 	angle_= MessageAngleToAngle( move_message.view_direction );
