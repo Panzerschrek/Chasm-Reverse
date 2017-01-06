@@ -273,6 +273,8 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	message.item_id= mine.id;
 	message.item_type_id= 30u; // id of mine item
 	PositionToMessagePosition( mine.pos, message.xyz );
+
+	PlayMapEventSound( mine.pos, Sound::SoundId::MineOn );
 }
 
 void Map::SpawnMonsterBodyPart(
@@ -309,6 +311,15 @@ void Map::PlayMonsterSound(
 
 	message.monster_id= monster_id;
 	message.monster_sound_id= monster_sound_id;
+}
+
+void Map::PlayMapEventSound( const m_Vec3& pos, const unsigned int sound_id )
+{
+	map_events_sounds_messages_.emplace_back();
+	Messages::MapEventSound& message= map_events_sounds_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.sound_id= sound_id;
 }
 
 m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
@@ -2296,13 +2307,7 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
 
 	if( description.break_sfx_number != 0 )
-	{
-		map_events_sounds_messages_.emplace_back();
-		Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
-
-		PositionToMessagePosition( pos, sound_message.xyz );
-		sound_message.sound_id= description.break_sfx_number;
-	}
+		PlayMapEventSound( pos, description.break_sfx_number );
 }
 
 void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
@@ -2356,11 +2361,7 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 	if( message != nullptr )
 		PositionToMessagePosition( pos, message->xyz );
 
-	// Emit sound message
-	map_events_sounds_messages_.emplace_back();
-	Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
-	PositionToMessagePosition( pos, sound_message.xyz );
-	sound_message.sound_id= Sound::SoundId::FirstRocketHit + rocket_type_id;
+	PlayMapEventSound( pos, Sound::SoundId::FirstRocketHit + rocket_type_id );
 }
 
 } // PanzerChasm

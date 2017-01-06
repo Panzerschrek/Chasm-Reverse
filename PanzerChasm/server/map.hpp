@@ -56,6 +56,8 @@ public:
 		EntityId monster_id,
 		unsigned int monster_sound_id );
 
+	void PlayMapEventSound( const m_Vec3& pos, unsigned int sound_id );
+
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
 		bool& out_on_floor ) const;
