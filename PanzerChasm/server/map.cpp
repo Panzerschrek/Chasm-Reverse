@@ -1144,34 +1144,40 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		bool need_kill= false;
 
-		if( time_delta_s < GameConstants::mines_preparation_time_s )
-			goto loop_end;
 		if( time_delta_s > 30.0f ) // Kill too old mines
 			need_kill= true;
-
-		// Try activate mine.
-		for( const MonstersContainer::value_type& monster_value : monsters_ )
+		else if( time_delta_s >= GameConstants::mines_preparation_time_s )
 		{
-			MonsterBase& monster= *monster_value.second;
-
-			const float square_distance= ( monster.Position().xy() - mine.pos.xy() ).SquareLength();
-			if( square_distance > 8.0f * 8.0f ) // Too far, early reject.
-				continue;
-
-			const float monster_radius=
-				monster.MonsterId() == 0u
-					? GameConstants::player_radius :
-					game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
-
-			const float activation_distance= GameConstants::mines_activation_radius + monster_radius;
-			if( square_distance < activation_distance * activation_distance )
+			// Try activate mine.
+			bool activated= false;
+			for( const MonstersContainer::value_type& monster_value : monsters_ )
 			{
-				// TODO - hit monsters.
+				MonsterBase& monster= *monster_value.second;
+
+				const float square_distance= ( monster.Position().xy() - mine.pos.xy() ).SquareLength();
+				if( square_distance > 8.0f * 8.0f ) // Too far, early reject.
+					continue;
+
+				const float monster_radius=
+					monster.MonsterId() == 0u
+						? GameConstants::player_radius :
+						game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+
+				const float activation_distance= GameConstants::mines_activation_radius + monster_radius;
+				if( square_distance < activation_distance * activation_distance )
+					activated= true;
+			}
+
+			if( activated )
+			{
 				need_kill= true;
+				// TODO  hit mosnters here
+
+				// TODO - emit effects, like for grenade launcher rocket blast.
+				PlayMapEventSound( mine.pos, 40u );
 			}
 		}
 
-		loop_end:
 		if( need_kill )
 		{
 			dynamic_items_death_messages_.emplace_back();
