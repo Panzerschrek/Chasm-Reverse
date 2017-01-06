@@ -1,0 +1,6 @@
+﻿* Monstry s otorvannoj pravoj rukoj ne mogut strelätj. V tom cisle daže Wing-Man.
+* Skelet, u kotorogo otorvalo obe ruki i golovu, ne možet atakovatj.
+* Detali daljnej ataki zašity v kod. Tocka ispuskanija snaräda zavisit ot poziçii opisanija monstra v CHASM.INF.
+  Kolicestvo ispuskajemyh snarädov takže zašito v kod originaljnoj igry.
+* Vypadenije rükzakov zašito v kod.
+* Radius stolknovenija monstra s igrokom jestj radius ataki (a ne w_radius).

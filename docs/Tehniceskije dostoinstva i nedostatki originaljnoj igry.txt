@@ -1,0 +1,54 @@
+﻿V proçesse razbora formatov dannyh igry i mehanizmov jejo raboty složilosj obsceje ponimanije tehniceskih aspektov.
+Byli vyjavleny tehniceskije dostoinstva i nedostatki.
+
+------NEDOSTATKI------
+
+*) Neekonomnostj dannyh igry.
+ o) Modeli soderžat mesto pod opredelönnoje kolicestvo veršin i poligonov.
+    Jesli veršin i poligonov menjše, cem maksimum, prostranstvo v fajle ne ispoljzujetsä.
+ o) Dannyje urovnej hranätsä v vide tabliç. V takoj forme hranätsä poly i potolki, steny, predmety.
+    V vide spiskov hranätsä toljko istocniki sveta i monstry.
+    Jesli by hotä-by steny hranilisj v vide spiskov, objom urovnej byl by siljno menjše.
+ o) Tekstury polov i potolkov hranätsä kak nabor iz 64-h izobraženij na urovenj.
+    Mesto pod neispljzujemyje tekstury prosto zalito cörnym çvetom.
+    Možno bylo by sokratitj razmer dannyh urovnä, jesli hranitj toljko nužnyje tekstury, ili voobsce,
+    imetj obscije s drugimi urovnämi tekstury.
+ o) Každaja tekstura v formate .CEL soderžit v sebe palitru. Po faktu ona tam ne nužna, t. k.
+    palitra v igre odna na vse izobraženija. Možno bylo by smelo vybrositj po 768 bajt na teksturu.
+ o) V igre podbirajemyje predmety vrode oružija i broni vrascajutsä. Vrascenije sdelano kak animaçija,
+    sostojascaja iz množestva kadrov. Možno bylo by voobsce ne hranitj animaçij dlä dannyh modelej,
+    a pvorot delatj pri ih risovanii.
+
+*) Ogranicennostj formata urovnej i modelej
+ o) Urovni v igre dvuhmernyje po svojej strukture. Maksimaljnyje razmery urovnä - 64x64 kletki.
+    Steny ne mogut bytj vyše 2-h kletok. Iz-za ogranicennoj vysoty urovnej stradajet dizajn - 
+    v pomescenijah i neboljših komnatah cuvstvuješj sebä karlikom, a na uliçe - gigantom.
+    Poniženije potolka i povyšenije pola posredstvom modelej sglaživajet situaçiju - no ne polnostju.
+    Daže takim sposobom pocti cto neljzä sozdatj hotä by dvuhurovnevoje prostranstvo.
+ o) Tekstury modelej imejut fiksirovannuju širinu - 64 pikselä. Gde-to ona izbytocna, a gde-to jejo ne hvatajet
+    i prihoditsä razrezatj teksturnuju razvörtku.
+
+*) Problemy v kacestve dizajna
+ o) Hotj igra i pozvoläjet delath koridory pod lübym uglom, boljšaja castj každogo urovnä strogo vyrovnena po stronam sveta.
+    V igre "Doom", naprimer, forma urovnej byla gorazdo raznoobrazneje pri shožih ogranicenijah.
+ o) Tam gde ne dolžno bytj pola i potolka - vo vnutrennostäh sten, oni prisutstvujut.
+ o) Neopravdanno boljšije razmery tekstur predmetov. Malenjkij klücj imejet ocenj detaljnuju teksturu.
+    Tekstura predmeta "scit" predstavläjet soboj polnuju kopiju tekstury monstra "viking" iz kotoroj ospoljzujetsä
+    toljko castj so scitom. Nekotoryje raznyje, no sväzannyje modeli imejut odnu i tu že teksturu, castj kotoroj risujetsä
+    toljko na odnoj modeli, a castj - na drugoj. Primer takih tekstur - razlicnyje vyklücateli.
+ o) Castyj "Z-fighting" pri naloženii modelej i sten. Reže pri naloženii sten drug na druga.
+
+
+------DOSTOINSTVA------
+
+*) Razdelenije .o3 modelej i ih animaçij po otdelnym fajlam. Blagodarä etomu,
+   naprimer, fajl animaçii na vse modeli klücej odin.
+
+*) Otnositeljno gibkaja sistema skriptovanija urovnej.
+
+*) Otryvanije konecnostej. Sdelan otnositeljno prostoj mehanizm risovanija modelej
+   s poteränymi konecnostämi.
+
+*) 16-bit na komponent koordinaty veršin modelej. V Quake bylo toljko 8 bit.
+
+
