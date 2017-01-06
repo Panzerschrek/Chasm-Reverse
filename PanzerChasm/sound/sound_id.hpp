@@ -29,6 +29,7 @@ struct SoundId
 		BreakGlass0= 68u,
 		BreakGlass1= 69u,
 		BreakGlass2= 70u,
+		MineOn= 72u,
 	};
 };
 

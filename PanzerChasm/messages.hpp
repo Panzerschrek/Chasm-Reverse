@@ -202,6 +202,22 @@ struct RocketDeath : public MessageBase
 	EntityId rocket_id;
 };
 
+struct DynamicItemBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemBirth)
+
+	EntityId item_id;
+	unsigned char item_type_id;
+	CoordType xyz[3];
+};
+
+struct DynamicItemDeath : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemDeath)
+
+	EntityId item_id;
+};
+
 struct MapChange : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(MapChange)

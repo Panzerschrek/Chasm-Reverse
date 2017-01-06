@@ -98,6 +98,11 @@ private:
 		const m_Mat4& view_matrix,
 		bool transparent );
 
+	void DrawDynamicItems(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		bool transparent );
+
 	void DrawMonsters(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,

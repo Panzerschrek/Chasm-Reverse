@@ -258,6 +258,22 @@ void Map::Shoot(
 	}
 }
 
+void Map::PlantMine( const m_Vec3& pos, const Time current_time )
+{
+	mines_.emplace_back();
+	Mine& mine= mines_.back();
+	mine.pos= pos;
+	mine.planting_time= current_time;
+	mine.id= next_rocket_id_;
+	next_rocket_id_++;
+
+	dynamic_items_birth_messages_.emplace_back();
+	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
+	message.item_id= mine.id;
+	message.item_type_id= 30u; // id of mine item
+	PositionToMessagePosition( mine.pos, message.xyz );
+}
+
 void Map::SpawnMonsterBodyPart(
 	const unsigned char monster_type_id, const unsigned char body_part_id,
 	const m_Vec3& pos, float angle )
@@ -1108,6 +1124,30 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			r++;
 	} // for rockets
 
+	// Process mines
+	for( unsigned int m= 0u; m < mines_.size(); )
+	{
+		Mine& mine= mines_[m];
+		const float time_delta_s= ( current_time - mine.planting_time ).ToSeconds();
+
+		bool need_kill= false;
+
+		if( time_delta_s > 30.0f ) // Kill too old mines
+			need_kill= true;
+
+		if( need_kill )
+		{
+			dynamic_items_death_messages_.emplace_back();
+			dynamic_items_death_messages_.back().item_id= mine.id;
+
+			if( m != mines_.size() - 1u )
+				mine= mines_.back();
+			mines_.pop_back();
+		}
+		else
+			m++;
+	}
+
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
@@ -1380,6 +1420,14 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::DynamicItemBirth& message : dynamic_items_birth_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::DynamicItemDeath& message : dynamic_items_death_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1422,6 +1470,8 @@ void Map::ClearUpdateEvents()
 	sprite_effects_.clear();
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
+	dynamic_items_birth_messages_.clear();
+	dynamic_items_death_messages_.clear();
 	particles_effects_messages_.clear();
 	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();

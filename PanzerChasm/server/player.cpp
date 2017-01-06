@@ -37,6 +37,9 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	// Give rifle
 	ammo_[0]= game_resources_->weapons_description[0].limit;
 	have_weapon_[0]= true;
+
+	// give mines fake weapon.
+	have_weapon_[ GameConstants::mine_weapon_number ]= true;
 }
 
 Player::~Player()
@@ -128,44 +131,52 @@ void Player::Tick(
 		if( weapon_state_ == WeaponState::Idle && shoot_pressed_ &&
 			( ammo_[ current_weapon_index_ ] > 0u || current_weapon_index_ == 0 ) )
 		{
-			const GameResources::WeaponDescription& description= game_resources_->weapons_description[ current_weapon_index_ ];
-
-			const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
-
-			m_Mat4 x_rotate, z_rotate, rotate;
-			x_rotate.RotateX( view_angle_x_ );
-			z_rotate.RotateZ( view_angle_z_ );
-			rotate= x_rotate * z_rotate;
-
-			const m_Vec3 view_vec_rotated= view_vec * rotate;
-
-			// TODO - check and calibrate
-			const m_Vec3 shoot_point_delta(
-				1.0f / 16.0f,
-				0.0f,
-				-float(description.r_z0) / 2048.0f );
-
-			const m_Vec3 final_shoot_pos=
-				pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate;
-
-			for( unsigned int i= 0u; i < static_cast<unsigned int>(description.r_count); i++ )
+			if( current_weapon_index_ == GameConstants::mine_weapon_number )
 			{
-				m_Vec3 final_view_dir_vec;
-				if( description.r_count > 1 && random_generator_ != nullptr )
-				{
-					final_view_dir_vec= view_vec_rotated + random_generator_->RandPointInSphere( 1.0f / 24.0f );
-					final_view_dir_vec.Normalize();
-				}
-				else
-					final_view_dir_vec= view_vec_rotated;
-
-				map.Shoot(
-					monster_id, description.r_type,
-					final_shoot_pos, final_view_dir_vec,
-					current_time );
+				map.PlantMine( pos_, current_time );
+				map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::MineOn );
 			}
+			else
+			{
+				const GameResources::WeaponDescription& description= game_resources_->weapons_description[ current_weapon_index_ ];
 
-			map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::FirstWeaponFire + current_weapon_index_ );
+				const m_Vec3 view_vec( 0.0f, 1.0f, 0.0f );
+
+				m_Mat4 x_rotate, z_rotate, rotate;
+				x_rotate.RotateX( view_angle_x_ );
+				z_rotate.RotateZ( view_angle_z_ );
+				rotate= x_rotate * z_rotate;
+
+				const m_Vec3 view_vec_rotated= view_vec * rotate;
+
+				// TODO - check and calibrate
+				const m_Vec3 shoot_point_delta(
+					1.0f / 16.0f,
+					0.0f,
+					-float(description.r_z0) / 2048.0f );
+
+				const m_Vec3 final_shoot_pos=
+					pos_ + m_Vec3( 0.0f, 0.0f, GameConstants::player_eyes_level ) + shoot_point_delta * rotate;
+
+				for( unsigned int i= 0u; i < static_cast<unsigned int>(description.r_count); i++ )
+				{
+					m_Vec3 final_view_dir_vec;
+					if( description.r_count > 1 && random_generator_ != nullptr )
+					{
+						final_view_dir_vec= view_vec_rotated + random_generator_->RandPointInSphere( 1.0f / 24.0f );
+						final_view_dir_vec.Normalize();
+					}
+					else
+						final_view_dir_vec= view_vec_rotated;
+
+					map.Shoot(
+						monster_id, description.r_type,
+						final_shoot_pos, final_view_dir_vec,
+						current_time );
+				}
+
+				map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::FirstWeaponFire + current_weapon_index_ );
+			}
 
 			if( current_weapon_index_ != 0u )
 				ammo_[ current_weapon_index_ ]--;
@@ -173,6 +184,7 @@ void Player::Tick(
 			last_shoot_time_= current_time;
 			weapon_state_= WeaponState::Reloading;
 		}
+
 	}
 
 	{ // Weapon anination

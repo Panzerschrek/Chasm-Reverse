@@ -97,6 +97,11 @@ const MapState::RocketsContainer& MapState::GetRockets() const
 	return rockets_;
 }
 
+const MapState::DynamicItemsContainer& MapState::GetDynamicItems() const
+{
+	return dynamic_items_;
+}
+
 float MapState::GetSpritesFrame() const
 {
 	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
@@ -241,6 +246,19 @@ void MapState::Tick( const Time current_time )
 			rocket.frame= static_cast<unsigned int>( std::round( frame ) ) % model_frame_count;
 		else
 			rocket.frame= 0u;
+	}
+
+	for( DynamicItemsContainer::value_type& item_value : dynamic_items_ )
+	{
+		DynamicItem& item= item_value.second;
+
+		const unsigned int animation_frame=
+			static_cast<unsigned int>( std::round( GameConstants::animations_frames_per_second * time_since_map_start_s ) );
+
+		if( item.item_type_id < game_resources_->items_models.size() )
+			item.frame= animation_frame % game_resources_->items_models[ item.item_type_id ].frame_count;
+		else
+			item.frame= 0u;
 	}
 }
 
@@ -552,6 +570,25 @@ void MapState::ProcessMessage( const Messages::RocketBirth& message )
 void MapState::ProcessMessage( const Messages::RocketDeath& message )
 {
 	rockets_.erase( message.rocket_id );
+}
+
+void MapState::ProcessMessage( const Messages::DynamicItemBirth& message )
+{
+	const auto it= dynamic_items_.find( message.item_id );
+	if( it != dynamic_items_.end() )
+		return;
+
+	DynamicItem& item= dynamic_items_.emplace( message.item_id, DynamicItem() ).first->second;
+
+	MessagePositionToPosition( message.xyz, item.pos );
+	item.birth_time= last_tick_time_;
+	item.frame= 0u;
+	item.item_type_id= message.item_type_id;
+}
+
+void MapState::ProcessMessage( const Messages::DynamicItemDeath& message )
+{
+	dynamic_items_.erase( message.item_id );
 }
 
 } // namespace PanzerChasm

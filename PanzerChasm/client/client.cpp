@@ -374,6 +374,18 @@ void Client::operator()( const Messages::RocketDeath& message )
 		map_state_->ProcessMessage( message );
 }
 
+void Client::operator()( const Messages::DynamicItemBirth& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::DynamicItemDeath& message )
+{
+	if( map_state_ != nullptr )
+		map_state_->ProcessMessage( message );
+}
+
 void Client::TrySwitchWeaponOnOutOfAmmo()
 {
 	for( unsigned int i= 1u; i < GameConstants::weapon_count; i++ )

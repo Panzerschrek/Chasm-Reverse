@@ -12,6 +12,7 @@ constexpr unsigned int min_screen_width = 320u;
 constexpr unsigned int min_screen_height= 200u;
 
 constexpr unsigned int weapon_count= 8u;
+constexpr unsigned int mine_weapon_number= 6u;
 
 constexpr float player_eyes_level= 0.75f; // From ground
 constexpr float player_height= 0.9f;

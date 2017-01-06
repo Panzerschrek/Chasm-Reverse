@@ -96,6 +96,16 @@ public:
 
 	typedef std::unordered_map< EntityId, Rocket > RocketsContainer;
 
+	struct DynamicItem
+	{
+		m_Vec3 pos;
+		Time birth_time= Time::FromSeconds(0); // TODO - does this need?
+		unsigned int frame;
+		unsigned char item_type_id;
+	};
+
+	typedef std::unordered_map< EntityId, DynamicItem > DynamicItemsContainer;
+
 public:
 	MapState(
 		const MapDataConstPtr& map,
@@ -110,6 +120,7 @@ public:
 	const MonstersBodyParts& GetMonstersBodyParts() const;
 	const MonstersContainer& GetMonsters() const;
 	const RocketsContainer& GetRockets() const;
+	const DynamicItemsContainer& GetDynamicItems() const;
 
 	float GetSpritesFrame() const;
 
@@ -127,6 +138,8 @@ public:
 	void ProcessMessage( const Messages::RocketState& message );
 	void ProcessMessage( const Messages::RocketBirth& message );
 	void ProcessMessage( const Messages::RocketDeath& message );
+	void ProcessMessage( const Messages::DynamicItemBirth& message );
+	void ProcessMessage( const Messages::DynamicItemDeath& message );
 
 private:
 	const MapDataConstPtr map_data_;
@@ -143,6 +156,7 @@ private:
 	MonstersBodyParts monsters_body_parts_;
 	MonstersContainer monsters_;
 	RocketsContainer rockets_;
+	DynamicItemsContainer dynamic_items_;
 };
 
 } // namespace PanzerChasm

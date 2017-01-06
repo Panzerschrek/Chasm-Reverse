@@ -42,6 +42,8 @@ public:
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
+	void PlantMine( const m_Vec3& pos, Time current_time );
+
 	void SpawnMonsterBodyPart(
 		unsigned char monster_type_id, unsigned char body_part_id,
 		const m_Vec3& pos, float angle );
@@ -179,6 +181,15 @@ private:
 
 	typedef std::vector<Rocket> Rockets;
 
+	struct Mine
+	{
+		Time planting_time= Time::FromSeconds(0);
+		m_Vec3 pos;
+		EntityId id;
+	};
+
+	typedef std::vector<Mine> Mines;
+
 	struct SpriteEffect
 	{
 		m_Vec3 pos;
@@ -269,7 +280,8 @@ private:
 	Items items_;
 
 	Rockets rockets_;
-	EntityId next_rocket_id_= 1u;
+	Mines mines_;
+	EntityId next_rocket_id_= 1u; // Common id for rockets, mines, backpacks, etc.
 
 	SpriteEffects sprite_effects_;
 
@@ -279,6 +291,8 @@ private:
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
+	std::vector<Messages::DynamicItemBirth> dynamic_items_birth_messages_;
+	std::vector<Messages::DynamicItemDeath> dynamic_items_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
 	std::vector<Messages::MonsterPartBirth> monsters_parts_birth_messages_;
 	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
