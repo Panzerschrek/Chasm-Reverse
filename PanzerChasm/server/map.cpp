@@ -1034,19 +1034,17 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 
-			if( model_description.blow_effect == 0 )
-			{
-				// Not breakable - process shot.
-				ProcessElementLinks(
-					MapData::IndexElement::StaticModel,
-					hit_result.object_index,
-					[&]( const MapData::Link& link )
-					{
-						if( link.type == MapData::Link::Shoot )
-							ProcedureProcessShoot( link.proc_id, current_time );
-					} );
-			}
-			else
+			// Process shot even if model is breakable. TODO - check this.
+			ProcessElementLinks(
+				MapData::IndexElement::StaticModel,
+				hit_result.object_index,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Shoot )
+						ProcedureProcessShoot( link.proc_id, current_time );
+				} );
+
+			if( model_description.blow_effect != 0 )
 			{
 				model.health-= int(rocket_description.power);
 				if( model.health <= 0 )
