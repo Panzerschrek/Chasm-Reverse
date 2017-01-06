@@ -373,15 +373,12 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 		elements_process_func );
 
 	// Dynamic walls
-	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	for( const DynamicWall& wall : dynamic_walls_ )
 	{
-		const DynamicWall& wall= dynamic_walls_[w];
-		const MapData::Wall& map_wall= map_data_->dynamic_walls[w];
-
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
 			continue;
 
-		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ map_wall.texture_id ];
+		const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
 		if( tex.gso[0] )
 			continue;
 
@@ -559,7 +556,7 @@ void Map::ProcessPlayerPosition(
 	const float z_bottom= player.Position().z;
 	const float z_top= player.Position().z + GameConstants::player_height;
 
-	// Static walls lonks.
+	// Static walls links.
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
 		if( wall.vert_pos[0] == wall.vert_pos[1] )
@@ -2052,14 +2049,11 @@ Map::HitResult Map::ProcessShot(
 		max_distance );
 
 	// Dynamic walls
-	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
+	for( const DynamicWall& wall : dynamic_walls_ )
 	{
-		const MapData::WallTextureDescription& wall_texture=
-			map_data_->walls_textures[ map_data_->dynamic_walls[w].texture_id ];
+		const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
 		if( wall_texture.gso[1] )
 			continue;
-
-		const DynamicWall& wall= dynamic_walls_[w];
 
 		m_Vec3 candidate_pos;
 		if( RayIntersectWall(
@@ -2068,7 +2062,7 @@ Map::HitResult Map::ProcessShot(
 				shot_start_point, shot_direction_normalized,
 				candidate_pos ) )
 		{
-			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::DynamicWall, w );
+			process_candidate_shot_pos( candidate_pos, HitResult::ObjectType::DynamicWall, &wall - dynamic_walls_.data() );
 		}
 	}
 
