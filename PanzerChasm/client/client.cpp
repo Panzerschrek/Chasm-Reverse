@@ -322,6 +322,8 @@ void Client::operator()( const Messages::MapChange& message )
 	if( sound_engine_ != nullptr )
 		sound_engine_->SetMap( map_data );
 
+	hud_drawer_.ResetMessage();
+
 	current_map_data_= map_data;
 
 	show_progress( 1.0f );

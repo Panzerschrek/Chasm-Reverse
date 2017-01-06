@@ -22,6 +22,7 @@ public:
 	~HudDrawer();
 
 	void AddMessage( const MapData::Message& message, Time current_time );
+	void ResetMessage();
 	void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number );
 
 	void DrawCrosshair();
@@ -55,7 +56,7 @@ private:
 	// State
 
 	MapData::Message current_message_;
-	Time current_message_time_= Time::FromSeconds(0);
+	Time current_message_time_= Time::FromSeconds(0); // 0 means no active message.
 
 	unsigned int current_weapon_number_= 0u;
 	Messages::PlayerState player_state_;

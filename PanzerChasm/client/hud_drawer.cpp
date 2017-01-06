@@ -142,6 +142,11 @@ void HudDrawer::AddMessage( const MapData::Message& message, const Time current_
 	current_message_time_= current_time;
 }
 
+void HudDrawer::ResetMessage()
+{
+	current_message_time_= Time::FromSeconds(0);
+}
+
 void HudDrawer::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
 {
 	player_state_= player_state;
