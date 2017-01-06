@@ -1030,6 +1030,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				goto end_loop;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+
 			if( model_description.blow_effect == 0 )
 			{
 				// Not breakable - process shot.
@@ -1503,7 +1504,13 @@ void Map::ProcedureProcessDestroy( const unsigned int procedure_number, const Ti
 
 void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time current_time )
 {
-	if( procedures_[ procedure_number ].movement_state != ProcedureState::MovementState::None )
+	PC_ASSERT( procedure_number < procedures_.size() );
+	const ProcedureState& procedure_state= procedures_[ procedure_number ];
+	if( procedure_state.movement_state != ProcedureState::MovementState::None )
+		return;
+
+	// TODO - did this really need?
+	if( procedure_state.locked )
 		return;
 
 	ActivateProcedure( procedure_number, current_time );
