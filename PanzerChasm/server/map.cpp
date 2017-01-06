@@ -138,17 +138,20 @@ Map::Map(
 	// Pull up items, which placed atop of models
 	for( Item& item : items_ )
 	{
-		item.pos.z= GetFloorLevel( item.pos.xy() );
+		item.pos.z= GetFloorLevel( item.pos.xy(), GameConstants::player_interact_radius );
 	}
 	for( StaticModel& model : static_models_ )
 	{
 		if( model.model_id >= map_data_->models_description.size() )
 			continue;
 
-		if( map_data_->models_description[ model.model_id ].ac == 0u )
+		const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
+		if( description.ac == 0u )
 			continue;
 
-		model.pos.z= model.baze_z= GetFloorLevel( model.pos.xy() );
+		// HACK for keys. Use nonzero radius.
+		const float radius= std::max( description.radius, GameConstants::player_interact_radius);
+		model.pos.z= model.baze_z= GetFloorLevel( model.pos.xy(), radius );
 	}
 
 	// Spawn monsters
