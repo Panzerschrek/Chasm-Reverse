@@ -263,6 +263,7 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	mines_.emplace_back();
 	Mine& mine= mines_.back();
 	mine.pos= pos;
+	mine.pos.z= GetFloorLevel( pos.xy(), 0.2f/* TODO - select correct radius*/ );
 	mine.planting_time= current_time;
 	mine.id= next_rocket_id_;
 	next_rocket_id_++;
