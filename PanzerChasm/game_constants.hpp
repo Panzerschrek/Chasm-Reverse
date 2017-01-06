@@ -14,6 +14,9 @@ constexpr unsigned int min_screen_height= 200u;
 constexpr unsigned int weapon_count= 8u;
 constexpr unsigned int mine_weapon_number= 6u;
 
+constexpr float mines_activation_radius= 0.5f;
+constexpr float mines_preparation_time_s= 2.0f;
+
 constexpr float player_eyes_level= 0.75f; // From ground
 constexpr float player_height= 0.9f;
 constexpr float player_radius= 60.0f / 256.0f;
