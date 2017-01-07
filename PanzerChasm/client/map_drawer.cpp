@@ -1269,7 +1269,6 @@ void MapDrawer::DrawDynamicItems(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
-	lightmap_.Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1294,6 +1293,8 @@ void MapDrawer::DrawDynamicItems(
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		( item.fullbright ? fullbright_lightmap_dummy_ : lightmap_ ).Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,

@@ -252,13 +252,25 @@ void MapState::Tick( const Time current_time )
 	{
 		DynamicItem& item= item_value.second;
 
+		const float time_delta_s= ( current_time - item.birth_time ).ToSeconds();
+
 		const unsigned int animation_frame=
-			static_cast<unsigned int>( std::round( GameConstants::animations_frames_per_second * time_since_map_start_s ) );
+			static_cast<unsigned int>( std::round( GameConstants::animations_frames_per_second * time_delta_s ) );
 
 		if( item.item_type_id < game_resources_->items_models.size() )
 			item.frame= animation_frame % game_resources_->items_models[ item.item_type_id ].frame_count;
 		else
 			item.frame= 0u;
+
+		if( item.item_type_id == GameConstants::mine_item_id &&
+			time_delta_s > GameConstants::mines_preparation_time_s )
+		{
+			// Make mines flashing.
+			// TODO - also, change active polygons groups for model.
+			item.fullbright= ( ( animation_frame / 10u ) & 1u ) != 0u;
+		}
+		else
+			item.fullbright= false;
 	}
 }
 

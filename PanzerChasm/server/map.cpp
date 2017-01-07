@@ -271,7 +271,7 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	dynamic_items_birth_messages_.emplace_back();
 	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
 	message.item_id= mine.id;
-	message.item_type_id= 30u; // id of mine item
+	message.item_type_id= GameConstants::mine_item_id;
 	PositionToMessagePosition( mine.pos, message.xyz );
 }
 
