@@ -1,5 +1,6 @@
 #pragma once
 
+#include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
@@ -66,6 +67,7 @@ private:
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
+	void BuildHDLightmap( const MapData& map_data );
 
 	void LoadFloors( const MapData& map_data );
 	void LoadWalls( const MapData& map_data );
@@ -139,6 +141,8 @@ private:
 	r_Texture lightmap_;
 	r_Texture fullbright_lightmap_dummy_;
 
+	r_Framebuffer hd_lightmap_framebuffer_;
+
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
 	GLuint models_textures_array_id_= ~0;
@@ -184,6 +188,8 @@ private:
 	r_GLSLProgram sky_shader_;
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;
+
+	r_GLSLProgram hd_light_pass_shader_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

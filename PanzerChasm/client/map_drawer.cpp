@@ -47,6 +47,18 @@ const r_OGLState g_sky_gl_state(
 	false, false, true, false,
 	g_gl_state_blend_func );
 
+const float g_lightmap_clear_color[4u]= { 0.0f, 0.0f, 0.0f, 0.0f };
+
+const r_OGLState g_lightmap_clear_state(
+	false, false, false, false,
+	g_gl_state_blend_func,
+	g_lightmap_clear_color );
+
+const GLenum g_light_pass_blend_func[2]= { GL_ONE, GL_ONE };
+const r_OGLState g_light_pass_state(
+	true, false, false, false,
+	g_light_pass_blend_func );
+
 } // namespace
 
 struct FloorVertex
@@ -209,6 +221,12 @@ MapDrawer::MapDrawer(
 
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
+	const unsigned int c_hd_lightmap_scale= 4u;
+	hd_lightmap_framebuffer_=
+		r_Framebuffer(
+			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
 	PrepareSkyGeometry();
@@ -289,6 +307,11 @@ MapDrawer::MapDrawer(
 		rLoadShader( "sky_v.glsl", rendering_context.glsl_version ) );
 	sky_shader_.SetAttribLocation( "pos", 0u );
 	sky_shader_.Create();
+
+	hd_light_pass_shader_.ShaderSource(
+		rLoadShader( "light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "light_v.glsl", rendering_context.glsl_version ) );
+	hd_light_pass_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -358,6 +381,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
+
+	BuildHDLightmap( *map_data );
 }
 
 void MapDrawer::Draw(
@@ -653,6 +678,52 @@ void MapDrawer::LoadWallsTextures( const MapData& map_data )
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+}
+
+void MapDrawer::BuildHDLightmap( const MapData& map_data )
+{
+	hd_lightmap_framebuffer_.Bind();
+
+	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+	glClear( GL_COLOR_BUFFER_BIT );
+
+	r_OGLStateManager::UpdateState( g_light_pass_state );
+
+	hd_light_pass_shader_.Bind();
+
+	for( const MapData::Light& light : map_data.lights )
+	{
+		if( light.power <= 1.0f )
+			continue;
+
+		const float lightmap_texel_size= float( MapData::c_map_size ) / float( hd_lightmap_framebuffer_.Width() );
+		const float extended_radius= light.outer_radius + lightmap_texel_size;
+		const float half_map_size= 0.5f * float(MapData::c_map_size);
+
+		m_Mat4 world_scale_mat, viewport_scale_mat, world_shift_mat, viewport_shift_mat, world_mat, viewport_mat;
+		world_scale_mat.Scale( extended_radius );
+		viewport_scale_mat.Scale( extended_radius / half_map_size );
+
+		world_shift_mat.Translate( m_Vec3( light.pos, 0.0f ) );
+		viewport_shift_mat.Translate(
+			m_Vec3(
+				( light.pos - m_Vec2( half_map_size, half_map_size ) ) / half_map_size,
+				0.0f ) );
+
+		world_mat= world_scale_mat * world_shift_mat;
+		viewport_mat= viewport_scale_mat * viewport_shift_mat;
+
+		hd_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
+		hd_light_pass_shader_.Uniform( "world_matrix", world_mat );
+		hd_light_pass_shader_.Uniform( "light_pos", light.pos );
+		hd_light_pass_shader_.Uniform( "light_power", light.power / 256.0f );
+		hd_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+		hd_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
+	r_Framebuffer::BindScreenFramebuffer();
 }
 
 void MapDrawer::LoadFloors( const MapData& map_data )
