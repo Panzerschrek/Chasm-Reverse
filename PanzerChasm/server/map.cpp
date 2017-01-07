@@ -1171,9 +1171,14 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( activated )
 			{
 				need_kill= true;
+
 				// TODO  hit mosnters here
 
-				// TODO - emit effects, like for grenade launcher rocket blast.
+				particles_effects_messages_.emplace_back();
+				Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+				message.effect_id= static_cast<unsigned char>(ParticleEffect::Explosion);
+				PositionToMessagePosition( mine.pos, message.xyz );
+
 				PlayMapEventSound( mine.pos, 40u );
 			}
 		}
