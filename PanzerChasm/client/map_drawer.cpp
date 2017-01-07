@@ -383,6 +383,9 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	}
 
 	BuildHDLightmap( *map_data );
+
+	// Use dynamic hd lightmap.
+	active_lightmap_= &hd_lightmap_framebuffer_.GetTextures().front();
 }
 
 void MapDrawer::Draw(
@@ -448,7 +451,7 @@ void MapDrawer::DrawWeapon(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, weapons_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -697,8 +700,8 @@ void MapDrawer::BuildHDLightmap( const MapData& map_data )
 			continue;
 
 		const float lightmap_texel_size= float( MapData::c_map_size ) / float( hd_lightmap_framebuffer_.Width() );
-		const float extended_radius= light.outer_radius + lightmap_texel_size;
 		const float half_map_size= 0.5f * float(MapData::c_map_size);
+		const float extended_radius= light.outer_radius + lightmap_texel_size;
 
 		m_Mat4 world_scale_mat, viewport_scale_mat, world_shift_mat, viewport_shift_mat, world_mat, viewport_mat;
 		world_scale_mat.Scale( extended_radius );
@@ -1197,7 +1200,7 @@ void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 
 	walls_shader_.Uniform( "tex", int(0) );
 	walls_shader_.Uniform( "lightmap", int(1) );
@@ -1219,7 +1222,7 @@ void MapDrawer::DrawFloors( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 
 	floors_shader_.Uniform( "tex", int(0) );
 	floors_shader_.Uniform( "lightmap", int(1) );
@@ -1247,7 +1250,7 @@ void MapDrawer::DrawModels(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1294,7 +1297,7 @@ void MapDrawer::DrawItems(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1384,7 +1387,7 @@ void MapDrawer::DrawMonsters(
 	monsters_shader_.Bind();
 	monsters_geometry_data_.Bind();
 
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -1442,7 +1445,7 @@ void MapDrawer::DrawMonstersBodyParts(
 	monsters_shader_.Bind();
 	monsters_geometry_data_.Bind();
 
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
 
 	for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
@@ -1495,7 +1498,7 @@ void MapDrawer::DrawRockets(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1529,7 +1532,7 @@ void MapDrawer::DrawRockets(
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			fullbright_lightmap_dummy_.Bind(1);
 		else
-			lightmap_.Bind(1);
+			active_lightmap_->Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
