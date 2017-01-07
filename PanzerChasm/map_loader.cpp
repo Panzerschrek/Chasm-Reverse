@@ -34,9 +34,10 @@ SIZE_ASSERT( MapWall, 11 );
 struct MapLight
 {
 	unsigned short position[2u];
-	unsigned short r0;
-	unsigned short r1;
-	unsigned char unknown[4u];
+	unsigned short light_power; // x4 value from editor.
+	unsigned short r0; // x4 inner radius from editor.
+	unsigned short r1; // x4 outer radius from editor.
+	unsigned short bm; // x4 bm from editor + 32.
 };
 
 SIZE_ASSERT( MapLight, 12 );
