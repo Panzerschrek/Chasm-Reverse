@@ -367,6 +367,19 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 	unsigned short lights_count;
 	std::memcpy( &lights_count, map_file.data() + c_lights_count_offset, sizeof(unsigned short) );
 
+	map_data.lights.resize( lights_count );
+	for( unsigned int l= 0u; l < lights_count; l++ )
+	{
+		const MapLight& in_light= reinterpret_cast<const MapLight*>( map_file.data() + c_lights_offset )[l];
+		MapData::Light& out_light= map_data.lights[l];
+
+		out_light.pos.x= float(in_light.position[0]) * g_map_coords_scale;
+		out_light.pos.y= float(in_light.position[1]) * g_map_coords_scale;
+		out_light.inner_radius= float(in_light.r0) * g_map_coords_scale;
+		out_light.outer_radius= float(in_light.r1) * g_map_coords_scale;
+		out_light.power= float(in_light.light_power);
+	}
+
 	const unsigned int monsters_count_offset= c_lights_offset + sizeof(MapLight) * lights_count;
 	const unsigned int monsters_offset= monsters_count_offset + 2u;
 	const MapMonster* map_monsters= reinterpret_cast<const MapMonster*>( map_file.data() + monsters_offset );

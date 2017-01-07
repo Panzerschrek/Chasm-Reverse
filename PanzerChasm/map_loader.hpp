@@ -70,6 +70,13 @@ public:
 		unsigned int difficulty_flags; // For player - numebr of spawn
 	};
 
+	struct Light
+	{
+		m_Vec2 pos;
+		float inner_radius, outer_radius;
+		float power; // [ 0 - 128 ]
+	};
+
 	struct WallTextureDescription
 	{
 		char file_path[ c_max_file_path_size ]; // if empty - wall does not exists
@@ -239,6 +246,7 @@ public:
 	std::vector<StaticModel> static_models;
 	std::vector<Item> items;
 	std::vector<Monster> monsters;
+	std::vector<Light> lights;
 
 	std::vector<ModelDescription> models_description;
 	std::vector<Model> models;
