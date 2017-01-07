@@ -2249,36 +2249,45 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 
 	const float c_max_floor_level= 1.2f;
 
-	for( unsigned int m= 0u; m < static_models_.size(); m++ )
+	const auto func=
+	[&]( const MapData::IndexElement& index_element ) -> bool
 	{
-		const MapData::StaticModel& map_model= map_data_->static_models[m];
-		if( map_model.is_dynamic )
-			continue;
+		if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
+			if( map_model.is_dynamic )
+				goto end;
 
-		if( map_model.model_id >= map_data_->models_description.size() )
-			continue;
+			if( map_model.model_id >= map_data_->models_description.size() )
+				goto end;
 
-		const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
-		if( model_description.ac != 0u )
-			continue;
+			const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
+			if( model_description.ac != 0u )
+				goto end;
 
-		const float model_radius= model_description.radius;
-		if( model_radius <= 0.0f )
-			continue;
+			const float model_radius= model_description.radius;
+			if( model_radius <= 0.0f )
+				goto end;
 
-		const float square_distance= ( pos - map_model.pos ).SquareLength();
-		const float collision_distance= model_radius + radius;
-		if( square_distance > collision_distance * collision_distance )
-			continue;
+			const float square_distance= ( pos - map_model.pos ).SquareLength();
+			const float collision_distance= model_radius + radius;
+			if( square_distance > collision_distance * collision_distance )
+				goto end;
 
-		// Hit here
-		const Model& model= map_data_->models[ map_model.model_id ];
+			// Hit here
+			const Model& model= map_data_->models[ map_model.model_id ];
 
-		if( model.z_max >= c_max_floor_level )
-			continue;
+			if( model.z_max >= c_max_floor_level )
+				goto end;
 
-		max_dz= std::max( max_dz, model.z_max );
-	}
+			max_dz= std::max( max_dz, model.z_max );
+		}
+
+		end:
+		return false;
+	};
+
+	collision_index_.ProcessElementsInRadius( pos, radius, func );
 
 	return max_dz;
 }
