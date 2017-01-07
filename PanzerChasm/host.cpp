@@ -56,6 +56,7 @@ Host::Host()
 		rSetShaderLoadingLogCallback( shaders_log_callback );
 		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
 	}
+	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
 
 	RenderingContext rendering_context;
 	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
