@@ -384,6 +384,7 @@ void MapDrawer::Draw(
 	r_OGLStateManager::UpdateState( g_models_gl_state );
 	DrawModels( map_state, view_matrix, false );
 	DrawItems( map_state, view_matrix, false );
+	DrawDynamicItems( map_state, view_matrix, false );
 	DrawMonsters( map_state, view_matrix, false );
 	DrawMonstersBodyParts( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
@@ -397,6 +398,7 @@ void MapDrawer::Draw(
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
 	DrawModels( map_state, view_matrix, true );
 	DrawItems( map_state, view_matrix, true );
+	DrawDynamicItems( map_state, view_matrix, true );
 	DrawMonsters( map_state, view_matrix, true );
 	DrawMonstersBodyParts( map_state, view_matrix, true );
 	DrawRockets( map_state, view_matrix, true );
@@ -1247,6 +1249,52 @@ void MapDrawer::DrawItems(
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			first_vertex );
+	}
+}
+
+void MapDrawer::DrawDynamicItems(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const bool transparent )
+{
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	for( const MapState::DynamicItemsContainer::value_type& item_value : map_state.GetDynamicItems() )
+	{
+		const MapState::DynamicItem& item= item_value.second;
+
+		const ModelGeometry& model_geometry= items_geometry_[ item.item_type_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_vertex=
+			model_geometry.first_vertex_index +
+			item.frame * model_geometry.vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( item.pos, 0.0f, model_matrix, lightmap_matrix );
+
+		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+
+		( item.fullbright ? fullbright_lightmap_dummy_ : lightmap_ ).Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,

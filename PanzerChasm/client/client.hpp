@@ -55,6 +55,8 @@ public: // Messages handlers
 	void operator()( const Messages::RocketState& message );
 	void operator()( const Messages::RocketBirth& message );
 	void operator()( const Messages::RocketDeath& message );
+	void operator()( const Messages::DynamicItemBirth& message );
+	void operator()( const Messages::DynamicItemDeath& message );
 
 private:
 	void TrySwitchWeaponOnOutOfAmmo();

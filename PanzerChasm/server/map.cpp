@@ -258,6 +258,23 @@ void Map::Shoot(
 	}
 }
 
+void Map::PlantMine( const m_Vec3& pos, const Time current_time )
+{
+	mines_.emplace_back();
+	Mine& mine= mines_.back();
+	mine.pos= pos;
+	mine.pos.z= GetFloorLevel( pos.xy(), 0.2f/* TODO - select correct radius*/ );
+	mine.planting_time= current_time;
+	mine.id= next_rocket_id_;
+	next_rocket_id_++;
+
+	dynamic_items_birth_messages_.emplace_back();
+	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
+	message.item_id= mine.id;
+	message.item_type_id= GameConstants::mine_item_id;
+	PositionToMessagePosition( mine.pos, message.xyz );
+}
+
 void Map::SpawnMonsterBodyPart(
 	const unsigned char monster_type_id, const unsigned char body_part_id,
 	const m_Vec3& pos, float angle )
@@ -292,6 +309,15 @@ void Map::PlayMonsterSound(
 
 	message.monster_id= monster_id;
 	message.monster_sound_id= monster_sound_id;
+}
+
+void Map::PlayMapEventSound( const m_Vec3& pos, const unsigned int sound_id )
+{
+	map_events_sounds_messages_.emplace_back();
+	Messages::MapEventSound& message= map_events_sounds_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.sound_id= sound_id;
 }
 
 m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
@@ -1108,6 +1134,72 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			r++;
 	} // for rockets
 
+	// Process mines
+	for( unsigned int m= 0u; m < mines_.size(); )
+	{
+		Mine& mine= mines_[m];
+		const float time_delta_s= ( current_time - mine.planting_time ).ToSeconds();
+
+		bool need_kill= false;
+
+		if( time_delta_s > 30.0f ) // Kill too old mines
+			need_kill= true;
+		else if( time_delta_s >= GameConstants::mines_preparation_time_s )
+		{
+			if( !mine.turned_on )
+			{
+				mine.turned_on= true;
+				PlayMapEventSound( mine.pos, Sound::SoundId::MineOn );
+			}
+
+			// Try activate mine.
+			bool activated= false;
+			for( const MonstersContainer::value_type& monster_value : monsters_ )
+			{
+				MonsterBase& monster= *monster_value.second;
+
+				const float square_distance= ( monster.Position().xy() - mine.pos.xy() ).SquareLength();
+				if( square_distance > 8.0f * 8.0f ) // Too far, early reject.
+					continue;
+
+				const float monster_radius=
+					monster.MonsterId() == 0u
+						? GameConstants::player_radius :
+						game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+
+				const float activation_distance= GameConstants::mines_activation_radius + monster_radius;
+				if( square_distance < activation_distance * activation_distance )
+					activated= true;
+			}
+
+			if( activated )
+			{
+				need_kill= true;
+
+				// TODO  hit mosnters here
+
+				particles_effects_messages_.emplace_back();
+				Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+				message.effect_id= static_cast<unsigned char>(ParticleEffect::Explosion);
+				PositionToMessagePosition( mine.pos, message.xyz );
+
+				PlayMapEventSound( mine.pos, 40u );
+			}
+		}
+
+		if( need_kill )
+		{
+			dynamic_items_death_messages_.emplace_back();
+			dynamic_items_death_messages_.back().item_id= mine.id;
+
+			if( m != mines_.size() - 1u )
+				mine= mines_.back();
+			mines_.pop_back();
+		}
+		else
+			m++;
+	}
+
 	// Process monsters
 	for( MonstersContainer::value_type& monster_value : monsters_ )
 	{
@@ -1380,6 +1472,14 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::DynamicItemBirth& message : dynamic_items_birth_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
+	for( const Messages::DynamicItemDeath& message : dynamic_items_death_messages_ )
+	{
+		messages_sender.SendUnreliableMessage( message );
+	}
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1422,6 +1522,8 @@ void Map::ClearUpdateEvents()
 	sprite_effects_.clear();
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
+	dynamic_items_birth_messages_.clear();
+	dynamic_items_death_messages_.clear();
 	particles_effects_messages_.clear();
 	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();
@@ -2220,13 +2322,7 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 	message.effect_id= static_cast<unsigned char>( ParticleEffect::FirstBlowEffect ) + blow_effect_id;
 
 	if( description.break_sfx_number != 0 )
-	{
-		map_events_sounds_messages_.emplace_back();
-		Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
-
-		PositionToMessagePosition( pos, sound_message.xyz );
-		sound_message.sound_id= description.break_sfx_number;
-	}
+		PlayMapEventSound( pos, description.break_sfx_number );
 }
 
 void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
@@ -2280,11 +2376,7 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 	if( message != nullptr )
 		PositionToMessagePosition( pos, message->xyz );
 
-	// Emit sound message
-	map_events_sounds_messages_.emplace_back();
-	Messages::MapEventSound& sound_message= map_events_sounds_messages_.back();
-	PositionToMessagePosition( pos, sound_message.xyz );
-	sound_message.sound_id= Sound::SoundId::FirstRocketHit + rocket_type_id;
+	PlayMapEventSound( pos, Sound::SoundId::FirstRocketHit + rocket_type_id );
 }
 
 } // PanzerChasm
