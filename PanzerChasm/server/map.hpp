@@ -188,6 +188,7 @@ private:
 		Time planting_time= Time::FromSeconds(0);
 		m_Vec3 pos;
 		EntityId id;
+		bool turned_on= false;
 	};
 
 	typedef std::vector<Mine> Mines;

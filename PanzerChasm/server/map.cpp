@@ -273,8 +273,6 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	message.item_id= mine.id;
 	message.item_type_id= 30u; // id of mine item
 	PositionToMessagePosition( mine.pos, message.xyz );
-
-	PlayMapEventSound( mine.pos, Sound::SoundId::MineOn );
 }
 
 void Map::SpawnMonsterBodyPart(
@@ -1148,6 +1146,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			need_kill= true;
 		else if( time_delta_s >= GameConstants::mines_preparation_time_s )
 		{
+			if( !mine.turned_on )
+			{
+				mine.turned_on= true;
+				PlayMapEventSound( mine.pos, Sound::SoundId::MineOn );
+			}
+
 			// Try activate mine.
 			bool activated= false;
 			for( const MonstersContainer::value_type& monster_value : monsters_ )
