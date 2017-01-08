@@ -206,6 +206,7 @@ MapDrawer::MapDrawer(
 	const RenderingContext& rendering_context )
 	: game_resources_(std::move(game_resources))
 	, rendering_context_(rendering_context)
+	, use_hd_lightmap_( false ) // TODO - make dynamic lighting better, use it.
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -221,16 +222,19 @@ MapDrawer::MapDrawer(
 
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
 
-	const unsigned int c_hd_lightmap_scale= 4u;
-	hd_lightmap_framebuffer_=
-		r_Framebuffer(
-			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
-			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+	if( use_hd_lightmap_ )
+	{
+		const unsigned int c_hd_lightmap_scale= 4u;
+		hd_lightmap_framebuffer_=
+			r_Framebuffer(
+				{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+				c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
 
-	hd_lightmap_shadowmap_framebuffer_=
-		r_Framebuffer(
-			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
-			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+		hd_lightmap_shadowmap_framebuffer_=
+			r_Framebuffer(
+				{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+				c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+	}
 
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
@@ -399,10 +403,13 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
 
-	BuildHDLightmap( *map_data );
-
-	// Use dynamic hd lightmap.
-	active_lightmap_= &hd_lightmap_framebuffer_.GetTextures().front();
+	if( use_hd_lightmap_ )
+	{
+		BuildHDLightmap( *map_data );
+		active_lightmap_= &hd_lightmap_framebuffer_.GetTextures().front();
+	}
+	else
+		active_lightmap_= &lightmap_;
 }
 
 void MapDrawer::Draw(
