@@ -191,6 +191,7 @@ private:
 	r_PolygonBuffer sky_geometry_data_;
 
 	r_GLSLProgram hd_light_pass_shader_;
+	r_GLSLProgram hd_ambient_light_pass_shader_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

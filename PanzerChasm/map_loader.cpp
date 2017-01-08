@@ -216,6 +216,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadLightmap( map_file_content,*result );
 	LoadWalls( map_file_content, *result, dynamic_walls_mask );
 	LoadFloorsAndCeilings( map_file_content,*result );
+	LoadAmbientLight( map_file_content,*result );
 	LoadMonsters( map_file_content, *result );
 
 	// Scan resource file
@@ -357,6 +358,20 @@ void MapLoader::LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData
 			const unsigned char texture_number= in_data[ x * MapData::c_map_size + y ];
 			out_data[ x + y * MapData::c_map_size ]= texture_number;
 		}
+	}
+}
+
+void MapLoader::LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data )
+{
+	const unsigned int c_ambient_lightmap_offset= 0x23001u + MapData::c_map_size * MapData::c_map_size * 2u;
+
+	const unsigned char* in_ambient_lightmap_data= map_file.data() + c_ambient_lightmap_offset;
+	for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+	{
+		// Convert "darkeness" into light.
+		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 14;
+		map_data.ambient_lightmap[ x + y * MapData::c_map_size ]= static_cast<unsigned char>(l);
 	}
 }
 

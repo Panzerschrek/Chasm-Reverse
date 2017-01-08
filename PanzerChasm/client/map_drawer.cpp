@@ -312,6 +312,12 @@ MapDrawer::MapDrawer(
 		rLoadShader( "light_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "light_v.glsl", rendering_context.glsl_version ) );
 	hd_light_pass_shader_.Create();
+
+
+	hd_ambient_light_pass_shader_.ShaderSource(
+		rLoadShader( "ambient_light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "ambient_light_v.glsl", rendering_context.glsl_version ) );
+	hd_ambient_light_pass_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -724,6 +730,22 @@ void MapDrawer::BuildHDLightmap( const MapData& map_data )
 		hd_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
+	{ // Ambient light, drawn manually in map editor.
+		r_Texture ambient_lightmap_texture(
+			r_Texture::PixelFormat::R8,
+			MapData::c_map_size, MapData::c_map_size,
+			map_data.ambient_lightmap );
+		ambient_lightmap_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+		ambient_lightmap_texture.Bind(0);
+
+		hd_ambient_light_pass_shader_.Bind();
+		hd_ambient_light_pass_shader_.Uniform( "tex", 0 );
+
+		glBlendEquation( GL_MAX );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+		glBlendEquation( GL_FUNC_ADD );
 	}
 
 	r_Framebuffer::BindScreenFramebuffer();
