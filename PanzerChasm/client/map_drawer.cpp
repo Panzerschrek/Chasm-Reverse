@@ -227,6 +227,11 @@ MapDrawer::MapDrawer(
 			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
 			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
 
+	hd_lightmap_shadowmap_framebuffer_=
+		r_Framebuffer(
+			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
 	PrepareSkyGeometry();
@@ -313,11 +318,17 @@ MapDrawer::MapDrawer(
 		rLoadShader( "light_v.glsl", rendering_context.glsl_version ) );
 	hd_light_pass_shader_.Create();
 
-
 	hd_ambient_light_pass_shader_.ShaderSource(
 		rLoadShader( "ambient_light_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "ambient_light_v.glsl", rendering_context.glsl_version ) );
 	hd_ambient_light_pass_shader_.Create();
+
+	hd_lightmap_shadowmap_shader_.ShaderSource(
+		rLoadShader( "shadowmap_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "shadowmap_v.glsl", rendering_context.glsl_version ),
+		rLoadShader( "shadowmap_g.glsl", rendering_context.glsl_version ) );
+	hd_lightmap_shadowmap_shader_.SetAttribLocation( "pos", 0u );
+	hd_lightmap_shadowmap_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -691,19 +702,71 @@ void MapDrawer::LoadWallsTextures( const MapData& map_data )
 
 void MapDrawer::BuildHDLightmap( const MapData& map_data )
 {
-	hd_lightmap_framebuffer_.Bind();
+	r_PolygonBuffer walls_buffer;
+	{
+		std::vector<short> vertices;
 
+		for( const MapData::Wall& wall : map_data.static_walls )
+		{
+			if( wall.texture_id >= 87u )
+				continue;
+			if( map_data.walls_textures[ wall.texture_id ].file_path[0] == '\0' )
+				continue;
+
+			vertices.resize( vertices.size() + 4u );
+			short* const v= vertices.data() + vertices.size() - 4u;
+
+			v[0]= static_cast<short>( wall.vert_pos[0].x * 256.0f );
+			v[1]= static_cast<short>( wall.vert_pos[0].y * 256.0f );
+			v[2]= static_cast<short>( wall.vert_pos[1].x * 256.0f );
+			v[3]= static_cast<short>( wall.vert_pos[1].y * 256.0f );
+		}
+
+		walls_buffer.VertexData( vertices.data(), vertices.size() * sizeof(short), sizeof(short) * 2u );
+		walls_buffer.VertexAttribPointer( 0, 2, GL_SHORT, false, 0 );
+		walls_buffer.SetPrimitiveType( GL_LINES );
+	}
+
+	hd_lightmap_framebuffer_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
 	glClear( GL_COLOR_BUFFER_BIT );
-
-	r_OGLStateManager::UpdateState( g_light_pass_state );
-
-	hd_light_pass_shader_.Bind();
 
 	for( const MapData::Light& light : map_data.lights )
 	{
 		if( light.power <= 1.0f )
 			continue;
+
+		// Bind and clear shadowmam.
+		hd_lightmap_shadowmap_framebuffer_.Bind();
+		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+		glClear( GL_COLOR_BUFFER_BIT );
+
+		// Draw walls into shadowmap.
+		hd_lightmap_shadowmap_shader_.Bind();
+
+		m_Mat4 shadow_scale_mat, shadow_shift_mat, shadow_view_mat, shadow_vertices_scale_mat;
+		shadow_scale_mat.Scale( 2.0f / float(MapData::c_map_size) );
+		shadow_shift_mat.Translate( m_Vec3( -1.0f, -1.0f, 0.0f ) );
+		shadow_vertices_scale_mat.Scale( 1.0f / 256.0f );
+
+		shadow_view_mat= shadow_scale_mat * shadow_shift_mat;
+
+		hd_lightmap_shadowmap_shader_.Uniform( "view_matrix", shadow_vertices_scale_mat * shadow_view_mat );
+		hd_lightmap_shadowmap_shader_.Uniform( "light_pos", ( m_Vec3( light.pos, 0.0f ) * shadow_view_mat ).xy() );
+
+		const float shadowmap_texel_size= 2.0f / float( hd_lightmap_shadowmap_framebuffer_.GetTextures().front().Width() );
+		hd_lightmap_shadowmap_shader_.Uniform( "offset", shadowmap_texel_size * 1.5f );
+
+		// TODO - use scissor test for speed.
+		walls_buffer.Draw();
+
+		// Build lightmap.
+		hd_lightmap_framebuffer_.Bind();
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		hd_light_pass_shader_.Bind();
+
+		// Make light pass.
+		hd_lightmap_shadowmap_framebuffer_.GetTextures().front().Bind(0);
 
 		const float lightmap_texel_size= float( MapData::c_map_size ) / float( hd_lightmap_framebuffer_.Width() );
 		const float half_map_size= 0.5f * float(MapData::c_map_size);
@@ -722,6 +785,7 @@ void MapDrawer::BuildHDLightmap( const MapData& map_data )
 		world_mat= world_scale_mat * world_shift_mat;
 		viewport_mat= viewport_scale_mat * viewport_shift_mat;
 
+		hd_light_pass_shader_.Uniform( "shadowmap", int(0) );
 		hd_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
 		hd_light_pass_shader_.Uniform( "world_matrix", world_mat );
 		hd_light_pass_shader_.Uniform( "light_pos", light.pos );

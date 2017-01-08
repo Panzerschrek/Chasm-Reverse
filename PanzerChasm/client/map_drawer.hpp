@@ -143,6 +143,7 @@ private:
 	r_Texture fullbright_lightmap_dummy_;
 
 	r_Framebuffer hd_lightmap_framebuffer_;
+	r_Framebuffer hd_lightmap_shadowmap_framebuffer_;
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
@@ -192,6 +193,7 @@ private:
 
 	r_GLSLProgram hd_light_pass_shader_;
 	r_GLSLProgram hd_ambient_light_pass_shader_;
+	r_GLSLProgram hd_lightmap_shadowmap_shader_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;
