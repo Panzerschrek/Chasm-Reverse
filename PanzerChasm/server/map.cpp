@@ -1184,7 +1184,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				need_kill= true;
 
-				// TODO  hit mosnters here
+				DoExplosionDamage( mine.pos, GameConstants::mines_explosion_radius, GameConstants::mines_damage, current_time );
 
 				particles_effects_messages_.emplace_back();
 				Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
