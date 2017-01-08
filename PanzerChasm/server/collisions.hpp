@@ -38,4 +38,9 @@ bool RayIntersectCylinder(
 	const m_Vec3& ray_direction_normalized,
 	m_Vec3& out_pos );
 
+float DistanceToCylinder(
+	const m_Vec2& cylinder_center, float cylinder_radius,
+	float cylinder_bottom, float cylinder_top,
+	const m_Vec3& pos );
+
 } // namespace PanzerChasm

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "../assert.hpp"
 #include "../math_utils.hpp"
 
@@ -270,6 +272,35 @@ bool RayIntersectCylinder(
 	}
 
 	return min_square_distance_to_candidate < Constants::max_float;
+}
+
+float DistanceToCylinder(
+	const m_Vec2& cylinder_center, const float cylinder_radius,
+	const float cylinder_bottom, const float cylinder_top,
+	const m_Vec3& pos )
+{
+	const float distance_to_cylinder_edge_xy= ( cylinder_center - pos.xy() ).Length() - cylinder_radius;
+
+	if( pos.z >= cylinder_top )
+	{
+		if( distance_to_cylinder_edge_xy <= 0.0f )
+			return pos.z - cylinder_top;
+
+		const m_Vec2 vec_to_circle( distance_to_cylinder_edge_xy, pos.z - cylinder_top );
+		return vec_to_circle.Length();
+	}
+	else if( pos.z <= cylinder_bottom )
+	{
+		if( distance_to_cylinder_edge_xy <= 0.0f )
+			return cylinder_bottom - pos.z;
+
+		const m_Vec2 vec_to_circle( distance_to_cylinder_edge_xy, cylinder_bottom - pos.z );
+		return vec_to_circle.Length();
+	}
+	else
+	{
+		return std::max( distance_to_cylinder_edge_xy, 0.0f );
+	}
 }
 
 } // namespace PanzerChasm
