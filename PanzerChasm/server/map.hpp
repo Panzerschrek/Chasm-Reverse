@@ -238,6 +238,7 @@ private:
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
 	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
+	void DoExplosionDamage( const m_Vec3& explosion_center, float explosion_radius, int base_damage, Time current_time );
 
 	void MoveMapObjects();
 

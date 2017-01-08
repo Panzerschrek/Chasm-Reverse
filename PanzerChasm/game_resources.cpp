@@ -304,7 +304,7 @@ static void LoadRocketsDescription(
 
 		line_stream >> rocket_description.blow_effect; // BW
 		line_stream >> rocket_description.gravity_force; // GF
-		line_stream >> rocket_description.Ard; // Ard
+		line_stream >> rocket_description.explosion_radius; // Ard
 		line_stream >> rocket_description.CRd; // CRd
 		line_stream >> rocket_description.power; // Pwr
 
@@ -317,6 +317,8 @@ static void LoadRocketsDescription(
 		line_stream >> rocket_description.smoke_trail_effect_id; // Smoke
 
 		stream.getline( line, sizeof(line), '\n' );
+
+		rocket_description.explosion_radius /= 256.0f;
 	}
 }
 

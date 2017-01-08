@@ -17,7 +17,10 @@ constexpr unsigned int mine_weapon_number= 6u;
 constexpr unsigned int backpack_item_id= 0u;
 constexpr unsigned int mine_item_id= 30u;
 
+// TODO - calibrate mines parameters.
 constexpr float mines_activation_radius= 0.5f;
+constexpr float mines_explosion_radius= 2.3f;
+constexpr int mines_damage= 140;
 constexpr float mines_preparation_time_s= 1.5f;
 
 constexpr float player_eyes_level= 0.75f; // From ground
