@@ -1016,6 +1016,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			rocket.previous_position= new_pos;
 		}
 
+		const bool process_explosion= !has_infinite_speed;
+		if( process_explosion )
+			DoExplosionDamage( hit_result.pos, rocket_description.explosion_radius, rocket_description.power, current_time );
+
 		// Gen hit effect
 		const float c_walls_effect_offset= 1.0f / 32.0f;
 		if( hit_result.object_type == HitResult::ObjectType::StaticWall )
@@ -1067,7 +1071,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 						ProcedureProcessShoot( link.proc_id, current_time );
 				} );
 
-			if( model_description.blow_effect != 0 )
+			if( !process_explosion &&
+				model_description.blow_effect != 0 )
 			{
 				model.health-= int(rocket_description.power);
 				if( model.health <= 0 )
@@ -1106,12 +1111,15 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
-			auto it= monsters_.find( hit_result.object_index );
-			PC_ASSERT( it != monsters_.end() );
+			if( !process_explosion )
+			{
+				auto it= monsters_.find( hit_result.object_index );
+				PC_ASSERT( it != monsters_.end() );
 
-			const MonsterBasePtr& monster= it->second;
-			PC_ASSERT( monster != nullptr );
-			monster->Hit( rocket_description.power, *this, hit_result.object_index ,current_time );
+				const MonsterBasePtr& monster= it->second;
+				PC_ASSERT( monster != nullptr );
+				monster->Hit( rocket_description.power, *this, hit_result.object_index ,current_time );
+			}
 		}
 
 	end_loop:
@@ -1862,6 +1870,84 @@ void Map::DestroyModel( const unsigned int model_index )
 		model.health= map_data_->models_description[ model.model_id ].break_limit;
 	else
 		model.health= 0;
+}
+
+void Map::DoExplosionDamage(
+	const m_Vec3& explosion_center,
+	const float explosion_radius,
+	const int base_damage,
+	const Time current_time )
+{
+	const auto distance_to_damage=
+	[&] ( const float distance ) -> int
+	{
+		return std::round( float(base_damage) * ( 1.0f - distance / explosion_radius ) );
+	};
+
+	for( MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		MonsterBase& monster= *monster_value.second;
+		const float monster_radius=
+			monster.MonsterId() == 0u
+			? GameConstants::player_radius
+			: game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+
+		const m_Vec2 monster_z_minmax= monster.GetZMinMax();
+
+		const float distance=
+			DistanceToCylinder(
+				monster.Position().xy(), monster_radius,
+				monster.Position().z + monster_z_minmax.x, monster.Position().z + monster_z_minmax.y,
+				explosion_center );
+
+		if( distance > explosion_radius )
+			continue;
+
+		const int damage= distance_to_damage(distance);
+		if( damage > 0 )
+			monster.Hit( damage, *this, monster_value.first, current_time );
+	}
+
+	for( StaticModel& model : static_models_ )
+	{
+		if( model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& description= map_data_->models_description[ model.model_id ];
+		if( description.radius <= 0.0f || description.blow_effect == 0 ) // Not explodable.
+			continue;
+
+		const Model& model_geometry= map_data_->models[ model.model_id ];
+
+		const float distance=
+			DistanceToCylinder(
+				model.pos.xy(), description.radius,
+				model.pos.z + model_geometry.z_min, model.pos.z + model_geometry.z_max,
+				explosion_center );
+
+		if( distance > explosion_radius )
+			continue;
+
+		const int damage= distance_to_damage(distance);
+		if( damage <= 0 )
+			continue;
+
+		model.health-= damage;
+		if( model.health <= 0 )
+		{
+			const unsigned int model_index= &model - static_models_.data();
+			DestroyModel( model_index );
+
+			ProcessElementLinks(
+				MapData::IndexElement::StaticModel,
+				model_index,
+				[&]( const MapData::Link& link )
+				{
+					if( link.type == MapData::Link::Destroy )
+						ProcedureProcessDestroy( link.proc_id, current_time );
+				} );
+		}
+	}
 }
 
 void Map::MoveMapObjects()

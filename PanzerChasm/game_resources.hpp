@@ -111,7 +111,7 @@ public:
 		int blow_effect;
 
 		int gravity_force; // gravity. 0 - fly straight.
-		int Ard; // Attack radius ( explosion damage distance )
+		float explosion_radius; // Attack radius ( explosion damage distance )
 		int CRd; // Unknown - always 42
 		int power;
 
