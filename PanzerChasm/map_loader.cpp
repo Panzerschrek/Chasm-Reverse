@@ -378,6 +378,13 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 		out_light.inner_radius= float(in_light.r0) * g_map_coords_scale;
 		out_light.outer_radius= float(in_light.r1) * g_map_coords_scale;
 		out_light.power= float(in_light.light_power);
+
+		// I original game and editor if r0 == r1, light source is like with r0=0.
+		if( out_light.inner_radius >= out_light.outer_radius )
+			out_light.inner_radius= 0.0f;
+
+		// Make just a bit biger
+		out_light.outer_radius+= 0.125f;
 	}
 
 	const unsigned int monsters_count_offset= c_lights_offset + sizeof(MapLight) * lights_count;
