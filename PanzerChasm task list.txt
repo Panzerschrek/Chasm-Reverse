@@ -13,8 +13,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
-* Uron ot vzryvov snarädov, a ne toljko pri prämom popadanii.
-* Miny.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
 * Dorabotka bossov.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
