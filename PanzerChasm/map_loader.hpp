@@ -70,6 +70,14 @@ public:
 		unsigned int difficulty_flags; // For player - numebr of spawn
 	};
 
+	struct Light
+	{
+		m_Vec2 pos;
+		float inner_radius, outer_radius;
+		float power; // [ 0 - 128 ]
+		float max_light_level; // [ 0 - 128 ]
+	};
+
 	struct WallTextureDescription
 	{
 		char file_path[ c_max_file_path_size ]; // if empty - wall does not exists
@@ -239,6 +247,7 @@ public:
 	std::vector<StaticModel> static_models;
 	std::vector<Item> items;
 	std::vector<Monster> monsters;
+	std::vector<Light> lights;
 
 	std::vector<ModelDescription> models_description;
 	std::vector<Model> models;
@@ -262,6 +271,7 @@ public:
 
 	unsigned char floor_textures[ c_map_size * c_map_size ];
 	unsigned char ceiling_textures[ c_map_size * c_map_size ];
+	unsigned char ambient_lightmap[ c_map_size * c_map_size ];
 
 	unsigned char lightmap[ c_lightmap_size * c_lightmap_size ];
 
@@ -283,6 +293,7 @@ private:
 	void LoadLightmap( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask );
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
+	void LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );

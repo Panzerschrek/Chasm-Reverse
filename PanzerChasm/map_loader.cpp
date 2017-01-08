@@ -216,6 +216,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadLightmap( map_file_content,*result );
 	LoadWalls( map_file_content, *result, dynamic_walls_mask );
 	LoadFloorsAndCeilings( map_file_content,*result );
+	LoadAmbientLight( map_file_content,*result );
 	LoadMonsters( map_file_content, *result );
 
 	// Scan resource file
@@ -360,12 +361,48 @@ void MapLoader::LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData
 	}
 }
 
+void MapLoader::LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data )
+{
+	const unsigned int c_ambient_lightmap_offset= 0x23001u + MapData::c_map_size * MapData::c_map_size * 2u;
+
+	const unsigned char* in_ambient_lightmap_data= map_file.data() + c_ambient_lightmap_offset;
+	for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+	{
+		// Convert "darkeness" into light.
+		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 14;
+		map_data.ambient_lightmap[ x + y * MapData::c_map_size ]= static_cast<unsigned char>(l);
+	}
+}
+
 void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data )
 {
 	const unsigned int c_lights_count_offset= 0x27001u;
 	const unsigned int c_lights_offset= 0x27003u;
 	unsigned short lights_count;
 	std::memcpy( &lights_count, map_file.data() + c_lights_count_offset, sizeof(unsigned short) );
+
+	map_data.lights.resize( lights_count );
+	for( unsigned int l= 0u; l < lights_count; l++ )
+	{
+		const MapLight& in_light= reinterpret_cast<const MapLight*>( map_file.data() + c_lights_offset )[l];
+		MapData::Light& out_light= map_data.lights[l];
+
+		out_light.pos.x= float(in_light.position[0]) * g_map_coords_scale;
+		out_light.pos.y= float(in_light.position[1]) * g_map_coords_scale;
+		out_light.inner_radius= float(in_light.r0) * g_map_coords_scale;
+		out_light.outer_radius= float(in_light.r1) * g_map_coords_scale;
+		out_light.power= float(in_light.light_power);
+
+		out_light.max_light_level= 128.0f - float( in_light.bm );
+
+		// In original game and editor if r0 == r1, light source is like with r0=0.
+		if( out_light.inner_radius >= out_light.outer_radius )
+			out_light.inner_radius= 0.0f;
+
+		// Make just a bit biger
+		out_light.outer_radius+= 0.125f;
+	}
 
 	const unsigned int monsters_count_offset= c_lights_offset + sizeof(MapLight) * lights_count;
 	const unsigned int monsters_offset= monsters_count_offset + 2u;

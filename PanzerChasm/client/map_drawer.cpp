@@ -47,6 +47,18 @@ const r_OGLState g_sky_gl_state(
 	false, false, true, false,
 	g_gl_state_blend_func );
 
+const float g_lightmap_clear_color[4u]= { 0.0f, 0.0f, 0.0f, 0.0f };
+
+const r_OGLState g_lightmap_clear_state(
+	false, false, false, false,
+	g_gl_state_blend_func,
+	g_lightmap_clear_color );
+
+const GLenum g_light_pass_blend_func[2]= { GL_ONE, GL_ONE };
+const r_OGLState g_light_pass_state(
+	true, false, false, false,
+	g_light_pass_blend_func );
+
 } // namespace
 
 struct FloorVertex
@@ -194,6 +206,7 @@ MapDrawer::MapDrawer(
 	const RenderingContext& rendering_context )
 	: game_resources_(std::move(game_resources))
 	, rendering_context_(rendering_context)
+	, use_hd_lightmap_( false ) // TODO - make dynamic lighting better, use it.
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -208,6 +221,20 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &weapons_textures_array_id_ );
 
 	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
+
+	if( use_hd_lightmap_ )
+	{
+		const unsigned int c_hd_lightmap_scale= 4u;
+		hd_lightmap_framebuffer_=
+			r_Framebuffer(
+				{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+				c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+
+		hd_lightmap_shadowmap_framebuffer_=
+			r_Framebuffer(
+				{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+				c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+	}
 
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
@@ -289,6 +316,23 @@ MapDrawer::MapDrawer(
 		rLoadShader( "sky_v.glsl", rendering_context.glsl_version ) );
 	sky_shader_.SetAttribLocation( "pos", 0u );
 	sky_shader_.Create();
+
+	hd_light_pass_shader_.ShaderSource(
+		rLoadShader( "light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "light_v.glsl", rendering_context.glsl_version ) );
+	hd_light_pass_shader_.Create();
+
+	hd_ambient_light_pass_shader_.ShaderSource(
+		rLoadShader( "ambient_light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "ambient_light_v.glsl", rendering_context.glsl_version ) );
+	hd_ambient_light_pass_shader_.Create();
+
+	hd_lightmap_shadowmap_shader_.ShaderSource(
+		rLoadShader( "shadowmap_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "shadowmap_v.glsl", rendering_context.glsl_version ),
+		rLoadShader( "shadowmap_g.glsl", rendering_context.glsl_version ) );
+	hd_lightmap_shadowmap_shader_.SetAttribLocation( "pos", 0u );
+	hd_lightmap_shadowmap_shader_.Create();
 }
 
 MapDrawer::~MapDrawer()
@@ -358,6 +402,14 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
+
+	if( use_hd_lightmap_ )
+	{
+		BuildHDLightmap( *map_data );
+		active_lightmap_= &hd_lightmap_framebuffer_.GetTextures().front();
+	}
+	else
+		active_lightmap_= &lightmap_;
 }
 
 void MapDrawer::Draw(
@@ -423,7 +475,7 @@ void MapDrawer::DrawWeapon(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, weapons_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -653,6 +705,122 @@ void MapDrawer::LoadWallsTextures( const MapData& map_data )
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
+}
+
+void MapDrawer::BuildHDLightmap( const MapData& map_data )
+{
+	r_PolygonBuffer walls_buffer;
+	{
+		std::vector<short> vertices;
+
+		for( const MapData::Wall& wall : map_data.static_walls )
+		{
+			if( wall.texture_id >= 87u )
+				continue;
+			if( map_data.walls_textures[ wall.texture_id ].file_path[0] == '\0' )
+				continue;
+
+			vertices.resize( vertices.size() + 4u );
+			short* const v= vertices.data() + vertices.size() - 4u;
+
+			v[0]= static_cast<short>( wall.vert_pos[0].x * 256.0f );
+			v[1]= static_cast<short>( wall.vert_pos[0].y * 256.0f );
+			v[2]= static_cast<short>( wall.vert_pos[1].x * 256.0f );
+			v[3]= static_cast<short>( wall.vert_pos[1].y * 256.0f );
+		}
+
+		walls_buffer.VertexData( vertices.data(), vertices.size() * sizeof(short), sizeof(short) * 2u );
+		walls_buffer.VertexAttribPointer( 0, 2, GL_SHORT, false, 0 );
+		walls_buffer.SetPrimitiveType( GL_LINES );
+	}
+
+	hd_lightmap_framebuffer_.Bind();
+	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+	glClear( GL_COLOR_BUFFER_BIT );
+
+	for( const MapData::Light& light : map_data.lights )
+	{
+		if( light.power <= 1.0f )
+			continue;
+
+		// Bind and clear shadowmam.
+		hd_lightmap_shadowmap_framebuffer_.Bind();
+		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+		glClear( GL_COLOR_BUFFER_BIT );
+
+		// Draw walls into shadowmap.
+		hd_lightmap_shadowmap_shader_.Bind();
+
+		m_Mat4 shadow_scale_mat, shadow_shift_mat, shadow_view_mat, shadow_vertices_scale_mat;
+		shadow_scale_mat.Scale( 2.0f / float(MapData::c_map_size) );
+		shadow_shift_mat.Translate( m_Vec3( -1.0f, -1.0f, 0.0f ) );
+		shadow_vertices_scale_mat.Scale( 1.0f / 256.0f );
+
+		shadow_view_mat= shadow_scale_mat * shadow_shift_mat;
+
+		hd_lightmap_shadowmap_shader_.Uniform( "view_matrix", shadow_vertices_scale_mat * shadow_view_mat );
+		hd_lightmap_shadowmap_shader_.Uniform( "light_pos", ( m_Vec3( light.pos, 0.0f ) * shadow_view_mat ).xy() );
+
+		const float shadowmap_texel_size= 2.0f / float( hd_lightmap_shadowmap_framebuffer_.GetTextures().front().Width() );
+		hd_lightmap_shadowmap_shader_.Uniform( "offset", shadowmap_texel_size * 1.5f );
+
+		// TODO - use scissor test for speed.
+		walls_buffer.Draw();
+
+		// Build lightmap.
+		hd_lightmap_framebuffer_.Bind();
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		hd_light_pass_shader_.Bind();
+
+		// Make light pass.
+		hd_lightmap_shadowmap_framebuffer_.GetTextures().front().Bind(0);
+
+		const float lightmap_texel_size= float( MapData::c_map_size ) / float( hd_lightmap_framebuffer_.Width() );
+		const float half_map_size= 0.5f * float(MapData::c_map_size);
+		const float extended_radius= light.outer_radius + lightmap_texel_size;
+
+		m_Mat4 world_scale_mat, viewport_scale_mat, world_shift_mat, viewport_shift_mat, world_mat, viewport_mat;
+		world_scale_mat.Scale( extended_radius );
+		viewport_scale_mat.Scale( extended_radius / half_map_size );
+
+		world_shift_mat.Translate( m_Vec3( light.pos, 0.0f ) );
+		viewport_shift_mat.Translate(
+			m_Vec3(
+				( light.pos - m_Vec2( half_map_size, half_map_size ) ) / half_map_size,
+				0.0f ) );
+
+		world_mat= world_scale_mat * world_shift_mat;
+		viewport_mat= viewport_scale_mat * viewport_shift_mat;
+
+		hd_light_pass_shader_.Uniform( "shadowmap", int(0) );
+		hd_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
+		hd_light_pass_shader_.Uniform( "world_matrix", world_mat );
+		hd_light_pass_shader_.Uniform( "light_pos", light.pos );
+		hd_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
+		hd_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
+		hd_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+		hd_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
+	{ // Ambient light, drawn manually in map editor.
+		r_Texture ambient_lightmap_texture(
+			r_Texture::PixelFormat::R8,
+			MapData::c_map_size, MapData::c_map_size,
+			map_data.ambient_lightmap );
+		ambient_lightmap_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+		ambient_lightmap_texture.Bind(0);
+
+		hd_ambient_light_pass_shader_.Bind();
+		hd_ambient_light_pass_shader_.Uniform( "tex", 0 );
+
+		glBlendEquation( GL_MAX );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+		glBlendEquation( GL_FUNC_ADD );
+	}
+
+	r_Framebuffer::BindScreenFramebuffer();
 }
 
 void MapDrawer::LoadFloors( const MapData& map_data )
@@ -1126,7 +1294,7 @@ void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 
 	walls_shader_.Uniform( "tex", int(0) );
 	walls_shader_.Uniform( "lightmap", int(1) );
@@ -1148,7 +1316,7 @@ void MapDrawer::DrawFloors( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, floor_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 
 	floors_shader_.Uniform( "tex", int(0) );
 	floors_shader_.Uniform( "lightmap", int(1) );
@@ -1176,7 +1344,7 @@ void MapDrawer::DrawModels(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1223,7 +1391,7 @@ void MapDrawer::DrawItems(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1313,7 +1481,7 @@ void MapDrawer::DrawMonsters(
 	monsters_shader_.Bind();
 	monsters_geometry_data_.Bind();
 
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -1371,7 +1539,7 @@ void MapDrawer::DrawMonstersBodyParts(
 	monsters_shader_.Bind();
 	monsters_geometry_data_.Bind();
 
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
 
 	for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
@@ -1424,7 +1592,7 @@ void MapDrawer::DrawRockets(
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, rockets_textures_array_id_ );
-	lightmap_.Bind(1);
+	active_lightmap_->Bind(1);
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
@@ -1458,7 +1626,7 @@ void MapDrawer::DrawRockets(
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			fullbright_lightmap_dummy_.Bind(1);
 		else
-			lightmap_.Bind(1);
+			active_lightmap_->Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
