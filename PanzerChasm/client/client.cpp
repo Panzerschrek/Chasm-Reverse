@@ -186,23 +186,11 @@ void Client::operator()( const Messages::MessageBase& message )
 	Log::Warning( "Unknown message for server: ", int(message.message_id) );
 }
 
-void Client::operator()( const Messages::MonsterState& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
 void Client::operator()( const Messages::PlayerSpawn& message )
 {
 	MessagePositionToPosition( message.xyz, player_position_ );
 	camera_controller_.SetAngles( MessageAngleToAngle( message.direction ), 0.0f );
 	player_monster_id_= message.player_monster_id;
-}
-
-void Client::operator()( const Messages::WallPosition& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
 }
 
 void Client::operator()( const Messages::PlayerPosition& message )
@@ -219,36 +207,6 @@ void Client::operator()( const Messages::PlayerState& message )
 void Client::operator()( const Messages::PlayerWeapon& message )
 {
 	weapon_state_.ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::ItemState& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::StaticModelState& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::SpriteEffectBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::ParticleEffectBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::MonsterPartBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
 }
 
 void Client::operator()( const Messages::MapEventSound& message )
@@ -329,18 +287,6 @@ void Client::operator()( const Messages::MapChange& message )
 	show_progress( 1.0f );
 }
 
-void Client::operator()( const Messages::MonsterBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::MonsterDeath& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
 void Client::operator()( const Messages::TextMessage& message )
 {
 	if( current_map_data_ != nullptr )
@@ -354,36 +300,6 @@ void Client::operator()( const Messages::TextMessage& message )
 				sound_engine_->PlayHeadSound( Sound::SoundId::Message );
 		}
 	}
-}
-
-void Client::operator()( const Messages::RocketState& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::RocketBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::RocketDeath& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::DynamicItemBirth& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
-}
-
-void Client::operator()( const Messages::DynamicItemDeath& message )
-{
-	if( map_state_ != nullptr )
-		map_state_->ProcessMessage( message );
 }
 
 void Client::TrySwitchWeaponOnOutOfAmmo()

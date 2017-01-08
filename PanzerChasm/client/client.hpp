@@ -33,30 +33,30 @@ public:
 	void Draw();
 
 public: // Messages handlers
+
+	// Default handler for non-client messages.
 	void operator()( const Messages::MessageBase& message );
-	void operator()( const Messages::MonsterState& message );
-	void operator()( const Messages::WallPosition& message );
+
+	// Handler for messages, that can be simply transfered to "MapState".
+	template<
+		class MessageType,
+		// Check for appropriate "ProcessMessage" member of "MapState" class.
+		class= decltype( std::declval<MapState>().ProcessMessage( MessageType() ) ) >
+	void operator()( const MessageType& message )
+	{
+		if( map_state_ != nullptr )
+			map_state_->ProcessMessage( message );
+	}
+
 	void operator()( const Messages::PlayerSpawn& message );
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::PlayerState& message );
 	void operator()( const Messages::PlayerWeapon& message );
-	void operator()( const Messages::ItemState& message );
-	void operator()( const Messages::StaticModelState& message );
-	void operator()( const Messages::SpriteEffectBirth& message );
-	void operator()( const Messages::ParticleEffectBirth& message );
-	void operator()( const Messages::MonsterPartBirth& message );
 	void operator()( const Messages::MapEventSound& message );
 	void operator()( const Messages::MonsterLinkedSound& message );
 	void operator()( const Messages::MonsterSound& message );
 	void operator()( const Messages::MapChange& message );
-	void operator()( const Messages::MonsterBirth& message );
-	void operator()( const Messages::MonsterDeath& message );
 	void operator()( const Messages::TextMessage& message );
-	void operator()( const Messages::RocketState& message );
-	void operator()( const Messages::RocketBirth& message );
-	void operator()( const Messages::RocketDeath& message );
-	void operator()( const Messages::DynamicItemBirth& message );
-	void operator()( const Messages::DynamicItemDeath& message );
 
 private:
 	void TrySwitchWeaponOnOutOfAmmo();
