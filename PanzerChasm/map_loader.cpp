@@ -394,7 +394,9 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 		out_light.outer_radius= float(in_light.r1) * g_map_coords_scale;
 		out_light.power= float(in_light.light_power);
 
-		// I original game and editor if r0 == r1, light source is like with r0=0.
+		out_light.max_light_level= 128.0f - float( in_light.bm );
+
+		// In original game and editor if r0 == r1, light source is like with r0=0.
 		if( out_light.inner_radius >= out_light.outer_radius )
 			out_light.inner_radius= 0.0f;
 

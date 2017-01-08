@@ -725,7 +725,8 @@ void MapDrawer::BuildHDLightmap( const MapData& map_data )
 		hd_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
 		hd_light_pass_shader_.Uniform( "world_matrix", world_mat );
 		hd_light_pass_shader_.Uniform( "light_pos", light.pos );
-		hd_light_pass_shader_.Uniform( "light_power", light.power / 256.0f );
+		hd_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
+		hd_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
 		hd_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
 		hd_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 

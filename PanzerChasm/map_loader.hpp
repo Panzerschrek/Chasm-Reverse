@@ -75,6 +75,7 @@ public:
 		m_Vec2 pos;
 		float inner_radius, outer_radius;
 		float power; // [ 0 - 128 ]
+		float max_light_level; // [ 0 - 128 ]
 	};
 
 	struct WallTextureDescription
