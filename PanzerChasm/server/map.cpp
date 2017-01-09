@@ -1017,7 +1017,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}
 
 		const bool process_explosion= !has_infinite_speed;
-		if( process_explosion )
+		if( hit_result.object_type != HitResult::ObjectType::None && process_explosion )
 			DoExplosionDamage( hit_result.pos, rocket_description.explosion_radius, rocket_description.power, current_time );
 
 		// Gen hit effect
