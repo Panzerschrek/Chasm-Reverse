@@ -103,6 +103,7 @@ HEADERS+= \
 	rand.hpp \
 	rendering_context.hpp \
 	server/a_code.hpp \
+	server/backpack.hpp \
 	server/collisions.hpp \
 	server/collision_index.hpp \
 	server/collision_index.inl \

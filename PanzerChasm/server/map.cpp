@@ -275,6 +275,21 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	PositionToMessagePosition( mine.pos, message.xyz );
 }
 
+void Map::SpawnBackpack( BackpackConstPtr backpack )
+{
+	const EntityId id= next_rocket_id_;
+	next_rocket_id_++;
+
+	const Backpack& inserted_backpack=
+		*backpacks_.emplace( id, std::move(backpack) ).first->second;
+
+	dynamic_items_birth_messages_.emplace_back();
+	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
+	message.item_id= id;
+	message.item_type_id= GameConstants::backpack_item_id;
+	PositionToMessagePosition( inserted_backpack.pos, message.xyz );
+}
+
 void Map::SpawnMonsterBodyPart(
 	const unsigned char monster_type_id, const unsigned char body_part_id,
 	const m_Vec3& pos, float angle )
