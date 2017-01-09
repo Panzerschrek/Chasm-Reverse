@@ -4,6 +4,8 @@
 namespace PanzerChasm
 {
 
+struct Backpack;
+
 class Map;
 
 class MonsterBase;

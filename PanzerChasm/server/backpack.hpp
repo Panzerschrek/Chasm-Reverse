@@ -11,17 +11,16 @@ namespace PanzerChasm
 struct Backpack final
 {
 	m_Vec3 pos;
-	float angle;
 
 	// Backpack content
-	bool weapon[ GameConstants::weapon_count ];
-	unsigned char ammo[ GameConstants::weapon_count ];
+	bool weapon[ GameConstants::weapon_count ]= { false };
+	unsigned char ammo[ GameConstants::weapon_count ]= { 0 };
 
 	bool red_key  = false;
 	bool green_key= false;
 	bool blue_key = false;
 
-	unsigned char armor;
+	unsigned char armor= 0;
 };
 
 typedef std::unique_ptr<Backpack> BackpackPtr;

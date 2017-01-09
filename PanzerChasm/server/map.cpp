@@ -779,6 +779,28 @@ void Map::ProcessPlayerPosition(
 			}
 		}
 	}
+
+	// Process backpacks
+	auto backpack_it= backpacks_.begin();
+	while( backpack_it != backpacks_.end() )
+	{
+		const Backpack& backpack= *backpack_it->second;
+
+		const float square_distance= ( backpack.pos.xy() - pos ).SquareLength();
+		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
+		{
+			if( player.TryPickupBackpack( backpack ) )
+			{
+				dynamic_items_death_messages_.emplace_back();
+				dynamic_items_death_messages_.back().item_id= backpack_it->first;
+
+				backpack_it= backpacks_.erase( backpack_it );
+				continue;
+			}
+		}
+
+		++backpack_it;
+	}
 }
 
 void Map::Tick( const Time current_time, const Time last_tick_delta )
