@@ -263,15 +263,22 @@ void MapState::Tick( const Time current_time )
 		else
 			item.frame= 0u;
 
-		if( item.item_type_id == GameConstants::mine_item_id &&
-			time_delta_s > GameConstants::mines_preparation_time_s )
+		if( item.item_type_id == GameConstants::mine_item_id )
 		{
 			// Make mines flashing.
 			// TODO - also, change active polygons groups for model.
-			item.fullbright= ( ( animation_frame / 10u ) & 1u ) != 0u;
+			if( time_delta_s > GameConstants::mines_preparation_time_s )
+				item.fullbright= ( ( animation_frame / 10u ) & 1u ) != 0u;
+			else
+				item.fullbright= false;
 		}
 		else
 			item.fullbright= false;
+
+		if( item.item_type_id == GameConstants::backpack_item_id )
+			item.angle= Constants::pi * time_delta_s;
+		else
+			item.angle= 0.0f;
 	}
 }
 
@@ -597,6 +604,8 @@ void MapState::ProcessMessage( const Messages::DynamicItemBirth& message )
 	item.birth_time= last_tick_time_;
 	item.frame= 0u;
 	item.item_type_id= message.item_type_id;
+	item.angle= 0.0f;
+	item.fullbright= false;
 }
 
 void MapState::ProcessMessage( const Messages::DynamicItemDeath& message )

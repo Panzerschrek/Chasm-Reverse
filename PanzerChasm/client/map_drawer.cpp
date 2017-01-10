@@ -1457,7 +1457,7 @@ void MapDrawer::DrawDynamicItems(
 
 		m_Mat4 model_matrix;
 		m_Mat3 lightmap_matrix;
-		CreateModelMatrices( item.pos, 0.0f, model_matrix, lightmap_matrix );
+		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );

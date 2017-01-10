@@ -99,10 +99,11 @@ public:
 	struct DynamicItem
 	{
 		m_Vec3 pos;
+		float angle;
 		Time birth_time= Time::FromSeconds(0); // TODO - does this need?
 		unsigned int frame;
 		unsigned char item_type_id;
-		bool fullbright= false;
+		bool fullbright;
 	};
 
 	typedef std::unordered_map< EntityId, DynamicItem > DynamicItemsContainer;
