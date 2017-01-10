@@ -319,8 +319,20 @@ void Monster::Hit(
 				backpack.reset( new Backpack );
 				backpack->red_key= backpack->green_key= backpack->blue_key= true;
 			}
-			else
-			{}
+			else if( monster_id_ == 3u || monster_id_ == 6u )
+			{
+				// Wing-Man and MongF drop shotgun shells and armor.
+				backpack.reset( new Backpack );
+				backpack->ammo[1u]= 5u;
+				backpack->armor= 2u;
+			}
+			else if( monster_id_ == 7u )
+			{
+				// Faust drops armor and grenades.
+				backpack.reset( new Backpack );
+				backpack->ammo[5u]= 3u;
+				backpack->armor= 2u;
+			}
 
 			if( backpack != nullptr )
 			{
