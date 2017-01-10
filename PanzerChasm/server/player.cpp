@@ -386,7 +386,7 @@ bool Player::TryPickupBackpack( const Backpack& backpack )
 	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
 	{
 		have_weapon_[i]= have_weapon_[i] || backpack.weapon[i];
-		ammo_[i]= std::max( int( ammo_[i] + backpack.ammo[i] ), game_resources_->weapons_description[i].limit );
+		ammo_[i]= std::min( int( ammo_[i] + backpack.ammo[i] ), game_resources_->weapons_description[i].limit );
 	}
 
 	have_red_key_  = have_red_key_   || backpack.red_key  ;
@@ -395,7 +395,6 @@ bool Player::TryPickupBackpack( const Backpack& backpack )
 
 	armor_+= backpack.armor;
 	if( armor_ > 200 ) armor_= 200;
-
 
 	// TODO - return if really something new picked.
 	return true;
