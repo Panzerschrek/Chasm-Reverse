@@ -791,6 +791,8 @@ void Map::ProcessPlayerPosition(
 		{
 			if( player.TryPickupBackpack( backpack ) )
 			{
+				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
+
 				dynamic_items_death_messages_.emplace_back();
 				dynamic_items_death_messages_.back().item_id= backpack_it->first;
 
