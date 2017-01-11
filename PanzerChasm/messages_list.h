@@ -21,6 +21,7 @@ MESSAGE_FUNC(RocketState)
 MESSAGE_FUNC(RocketBirth)
 MESSAGE_FUNC(RocketDeath)
 MESSAGE_FUNC(DynamicItemBirth)
+MESSAGE_FUNC(DynamicItemUpdate)
 MESSAGE_FUNC(DynamicItemDeath)
 
 // Reliable server to client

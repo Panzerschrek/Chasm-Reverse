@@ -336,7 +336,9 @@ void Monster::Hit(
 
 			if( backpack != nullptr )
 			{
+				const m_Vec2 z_minmax= GetZMinMax();
 				backpack->pos= pos_;
+				backpack->pos.z+= ( z_minmax.x + z_minmax.y ) * 0.5f;
 				map.SpawnBackpack( std::move( backpack ) );
 			}
 		}

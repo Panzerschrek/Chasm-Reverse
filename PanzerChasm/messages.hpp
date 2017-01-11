@@ -211,6 +211,14 @@ struct DynamicItemBirth : public MessageBase
 	CoordType xyz[3];
 };
 
+struct DynamicItemUpdate : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemUpdate)
+
+	EntityId item_id;
+	CoordType xyz[3];
+};
+
 struct DynamicItemDeath : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemDeath)

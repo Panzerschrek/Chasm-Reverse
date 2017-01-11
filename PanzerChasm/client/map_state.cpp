@@ -608,6 +608,15 @@ void MapState::ProcessMessage( const Messages::DynamicItemBirth& message )
 	item.fullbright= false;
 }
 
+void MapState::ProcessMessage( const Messages::DynamicItemUpdate& message )
+{
+	const auto it= dynamic_items_.find( message.item_id );
+	if( it == dynamic_items_.end() )
+		return;
+
+	MessagePositionToPosition( message.xyz, it->second.pos );
+}
+
 void MapState::ProcessMessage( const Messages::DynamicItemDeath& message )
 {
 	dynamic_items_.erase( message.item_id );

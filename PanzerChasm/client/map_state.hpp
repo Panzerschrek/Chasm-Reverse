@@ -141,6 +141,7 @@ public:
 	void ProcessMessage( const Messages::RocketBirth& message );
 	void ProcessMessage( const Messages::RocketDeath& message );
 	void ProcessMessage( const Messages::DynamicItemBirth& message );
+	void ProcessMessage( const Messages::DynamicItemUpdate& message );
 	void ProcessMessage( const Messages::DynamicItemDeath& message );
 
 private:

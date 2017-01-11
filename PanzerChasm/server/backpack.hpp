@@ -11,6 +11,8 @@ namespace PanzerChasm
 struct Backpack final
 {
 	m_Vec3 pos;
+	float vertical_speed;
+	float min_z;
 
 	// Backpack content
 	bool weapon[ GameConstants::weapon_count ]= { false };
