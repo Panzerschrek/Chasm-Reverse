@@ -381,6 +381,25 @@ bool Player::TryPickupItem( const unsigned int item_id )
 	return false;
 }
 
+bool Player::TryPickupBackpack( const Backpack& backpack )
+{
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+	{
+		have_weapon_[i]= have_weapon_[i] || backpack.weapon[i];
+		ammo_[i]= std::min( int( ammo_[i] + backpack.ammo[i] ), game_resources_->weapons_description[i].limit );
+	}
+
+	have_red_key_  = have_red_key_   || backpack.red_key  ;
+	have_green_key_= have_green_key_ || backpack.green_key;
+	have_blue_key_ = have_blue_key_  || backpack.blue_key ;
+
+	armor_+= backpack.armor;
+	if( armor_ > 200 ) armor_= 200;
+
+	// TODO - return if really something new picked.
+	return true;
+}
+
 void Player::BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const
 {
 	PositionToMessagePosition( pos_, out_position_message.xyz );

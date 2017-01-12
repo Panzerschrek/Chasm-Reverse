@@ -305,11 +305,42 @@ void Monster::Hit(
 			state_= State::DeathAnimation;
 			current_animation_start_time_= current_time;
 
-			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0 } );
+			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0,AnimationId::Idle0 } );
 			PC_ASSERT( animation >= 0 );
 			current_animation_= static_cast<unsigned int>(animation);
 
 			map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Death );
+
+			BackpackPtr backpack;
+
+			if( IsBoss() )
+			{
+				// Bosses drops packs with keys.
+				backpack.reset( new Backpack );
+				backpack->red_key= backpack->green_key= backpack->blue_key= true;
+			}
+			else if( monster_id_ == 3u || monster_id_ == 6u )
+			{
+				// Wing-Man and MongF drop shotgun shells and armor.
+				backpack.reset( new Backpack );
+				backpack->ammo[1u]= 5u;
+				backpack->armor= 2u;
+			}
+			else if( monster_id_ == 7u )
+			{
+				// Faust drops armor and grenades.
+				backpack.reset( new Backpack );
+				backpack->ammo[5u]= 3u;
+				backpack->armor= 2u;
+			}
+
+			if( backpack != nullptr )
+			{
+				const m_Vec2 z_minmax= GetZMinMax();
+				backpack->pos= pos_;
+				backpack->pos.z+= ( z_minmax.x + z_minmax.y ) * 0.5f;
+				map.SpawnBackpack( std::move( backpack ) );
+			}
 		}
 	}
 }
@@ -336,6 +367,22 @@ void Monster::Teleport( const m_Vec3& pos, const float angle )
 	pos_= pos;
 	angle_= angle;
 	vertical_speed_= 0.0f;
+}
+
+bool Monster::IsBoss() const
+{
+	// Bosses have hardcoded id.
+	// TODO - check, how bosses works in original game.
+	static const unsigned char c_bosses_id[]=
+	{
+		9u, 18u, 19u, 20u
+	};
+
+	for( const unsigned char boss_id : c_bosses_id )
+		if( monster_id_ == boss_id )
+			return true;
+
+	return false;
 }
 
 void Monster::FallDown( const float time_delta_s )

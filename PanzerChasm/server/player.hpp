@@ -41,6 +41,7 @@ public:
 	void ResetActivatedProcedure();
 
 	bool TryPickupItem( unsigned int item_id );
+	bool TryPickupBackpack( const Backpack& backpack );
 
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;

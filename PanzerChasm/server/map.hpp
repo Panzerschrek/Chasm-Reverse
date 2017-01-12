@@ -6,10 +6,11 @@
 #include "../map_loader.hpp"
 #include "../messages_sender.hpp"
 #include "../particles.hpp"
+#include "../rand.hpp"
 #include "../time.hpp"
 #include "collision_index.hpp"
+#include "backpack.hpp"
 #include "fwd.hpp"
-#include "rand.hpp"
 
 namespace PanzerChasm
 {
@@ -43,6 +44,7 @@ public:
 		Time current_time );
 
 	void PlantMine( const m_Vec3& pos, Time current_time );
+	void SpawnBackpack( BackpackPtr backpack );
 
 	void SpawnMonsterBodyPart(
 		unsigned char monster_type_id, unsigned char body_part_id,
@@ -285,6 +287,7 @@ private:
 
 	Rockets rockets_;
 	Mines mines_;
+	std::unordered_map<EntityId, BackpackPtr> backpacks_;
 	EntityId next_rocket_id_= 1u; // Common id for rockets, mines, backpacks, etc.
 
 	SpriteEffects sprite_effects_;

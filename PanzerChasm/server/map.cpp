@@ -275,6 +275,26 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	PositionToMessagePosition( mine.pos, message.xyz );
 }
 
+void Map::SpawnBackpack( BackpackPtr backpack )
+{
+	const EntityId id= next_rocket_id_;
+	next_rocket_id_++;
+
+	Backpack& inserted_backpack=
+		*backpacks_.emplace( id, std::move(backpack) ).first->second;
+
+	inserted_backpack.min_z= GetFloorLevel( inserted_backpack.pos.xy(), 0.2f/* TODO - select correct radius*/ );
+
+	// Let backpacks jump up after spawn.
+	inserted_backpack.vertical_speed= GameConstants::vertical_acceleration * -0.2f;
+
+	dynamic_items_birth_messages_.emplace_back();
+	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
+	message.item_id= id;
+	message.item_type_id= GameConstants::backpack_item_id;
+	PositionToMessagePosition( inserted_backpack.pos, message.xyz );
+}
+
 void Map::SpawnMonsterBodyPart(
 	const unsigned char monster_type_id, const unsigned char body_part_id,
 	const m_Vec3& pos, float angle )
@@ -763,6 +783,30 @@ void Map::ProcessPlayerPosition(
 					} );
 			}
 		}
+	}
+
+	// Try pickup backpacks.
+	auto backpack_it= backpacks_.begin();
+	while( backpack_it != backpacks_.end() )
+	{
+		const Backpack& backpack= *backpack_it->second;
+
+		const float square_distance= ( backpack.pos.xy() - pos ).SquareLength();
+		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
+		{
+			if( player.TryPickupBackpack( backpack ) )
+			{
+				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
+
+				dynamic_items_death_messages_.emplace_back();
+				dynamic_items_death_messages_.back().item_id= backpack_it->first;
+
+				backpack_it= backpacks_.erase( backpack_it );
+				continue;
+			}
+		}
+
+		++backpack_it;
 	}
 }
 
@@ -1383,6 +1427,16 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}
 	}
 
+	// Process backpacks
+	for( auto& backpack_value : backpacks_ )
+	{
+		Backpack& backpack= *backpack_value.second;
+
+		backpack.vertical_speed+= GameConstants::vertical_acceleration * last_tick_delta_s;
+		backpack.pos.z+= backpack.vertical_speed * last_tick_delta_s;
+		backpack.pos.z= std::max( backpack.pos.z, backpack.min_z );
+	}
+
 	// At end of this procedure, report about map change, if this needed.
 	// Do it here, because map can be desctructed at callback call.
 	if( map_end_triggered_ &&
@@ -1522,6 +1576,15 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 			rocket_message.angle[j]= AngleToMessageAngle( angle[j] );
 
 		messages_sender.SendUnreliableMessage( rocket_message );
+	}
+
+	for( const auto& backpack_value : backpacks_ )
+	{
+		Messages::DynamicItemUpdate message;
+		message.item_id= backpack_value.first;
+		PositionToMessagePosition( backpack_value.second->pos, message.xyz );
+
+		messages_sender.SendUnreliableMessage( message );
 	}
 }
 
