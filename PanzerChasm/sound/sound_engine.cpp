@@ -96,6 +96,7 @@ void SoundEngine::Tick()
 			if( !channel.is_active )
 			{
 				channel.is_active= true;
+				channel.looped= source.looped;
 				channel.position_samples= 0u;
 				channel.src_sound_data= sounds_[ source.sound_id ].get();
 			}
@@ -103,7 +104,7 @@ void SoundEngine::Tick()
 			// Source is over
 			if( channel.is_active &&
 				channel.src_sound_data != nullptr &&
-				channel.position_samples >= channel.src_sound_data->sample_count_ )
+				( !channel.looped && channel.position_samples >= channel.src_sound_data->sample_count_ ) )
 			{
 				source.is_free= true;
 				channel.is_active= false;
@@ -196,6 +197,7 @@ void SoundEngine::PlayWorldSound(
 		return;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -217,6 +219,7 @@ void SoundEngine::PlayMonsterLinkedSound(
 	const MapState::Monster& monster= monster_value.second;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -243,6 +246,7 @@ void SoundEngine::PlayMonsterSound(
 		monster.monster_id * c_max_monster_sounds + monster_sound_id;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -263,6 +267,7 @@ void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 		return;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= true;

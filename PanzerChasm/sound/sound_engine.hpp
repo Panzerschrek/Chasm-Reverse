@@ -49,6 +49,7 @@ private:
 	{
 		bool is_free= true;
 
+		bool looped;
 		unsigned int sound_id;
 		unsigned int pos_samples;
 		bool is_head_relative;
