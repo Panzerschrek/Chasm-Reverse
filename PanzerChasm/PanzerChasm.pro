@@ -59,6 +59,7 @@ SOURCES+= \
 	server/player.cpp \
 	server/server.cpp \
 	sound/driver.cpp \
+	sound/ambient_sound_processor.cpp \
 	sound/sound_engine.cpp \
 	sound/sounds_loader.cpp \
 	system_window.cpp \
@@ -114,6 +115,7 @@ HEADERS+= \
 	server/player.hpp \
 	server/server.hpp \
 	size.hpp \
+	sound/ambient_sound_processor.hpp \
 	sound/channel.hpp \
 	sound/driver.hpp \
 	sound/sound_engine.hpp \
