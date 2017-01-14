@@ -145,33 +145,37 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 {
 	ForceStopAllChannels();
 
-	current_map_data_= map_data;
-
-	if( current_map_data_ != nullptr )
+	// Reload sounds only if map changed.
+	if( map_data != current_map_data_ )
 	{
-		// TODO reuse old sounds
-		for( unsigned int s= 0u; s < MapData::c_max_map_sounds; s++ )
+		current_map_data_= map_data;
+
+		if( current_map_data_ != nullptr )
 		{
-			ISoundDataConstPtr& sound= sounds_[ c_first_map_sound + s ];
-			sound= nullptr; // remove old
+			// TODO reuse old sounds
+			for( unsigned int s= 0u; s < MapData::c_max_map_sounds; s++ )
+			{
+				ISoundDataConstPtr& sound= sounds_[ c_first_map_sound + s ];
+				sound= nullptr; // remove old
 
-			const GameResources::SoundDescription& sound_description= map_data->map_sounds[s];
-			if( sound_description.file_name[0] == '\0' )
-				continue;
+				const GameResources::SoundDescription& sound_description= map_data->map_sounds[s];
+				if( sound_description.file_name[0] == '\0' )
+					continue;
 
-			sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
-		}
+				sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
+			}
 
-		for( unsigned int s= 0u; s < MapData::c_max_map_ambients; s++ )
-		{
-			ISoundDataConstPtr& sound= sounds_[ c_first_map_ambient_sound + s ];
-			sound= nullptr; // remove old
+			for( unsigned int s= 0u; s < MapData::c_max_map_ambients; s++ )
+			{
+				ISoundDataConstPtr& sound= sounds_[ c_first_map_ambient_sound + s ];
+				sound= nullptr; // remove old
 
-			const GameResources::SoundDescription& sound_description= map_data->ambients[s];
-			if( sound_description.file_name[0] == '\0' )
-				continue;
+				const GameResources::SoundDescription& sound_description= map_data->ambients[s];
+				if( sound_description.file_name[0] == '\0' )
+					continue;
 
-			sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
+				sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
+			}
 		}
 	}
 
