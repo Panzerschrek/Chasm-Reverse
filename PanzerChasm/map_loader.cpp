@@ -305,11 +305,12 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 			else if( map_wall.texture_id >= c_first_item )
 			{
 				map_data.items.emplace_back();
-				MapData::Item& model= map_data.items.back();
-				model.pos.x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
-				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
-				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
-				model.item_id=  map_wall.texture_id - c_first_item;
+				MapData::Item& item= map_data.items.back();
+				item.pos.x= float(map_wall.vert_coord[0][0]) * g_map_coords_scale;
+				item.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
+				item.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
+				item.item_id=  map_wall.texture_id - c_first_item;
+				item.difficulty_flags= map_wall.vert_coord[1][0];
 
 				index_element.type= MapData::IndexElement::Item;
 				index_element.index= map_data.items.size() - 1u;

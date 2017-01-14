@@ -157,6 +157,7 @@ Map::Map(
 		out_item.item_id= in_item.item_id;
 		out_item.pos= m_Vec3( in_item.pos, 0.0f );
 		out_item.picked_up= false;
+		out_item.enabled= ( in_item.difficulty_flags & difficulty_ ) != 0u;
 	}
 
 	// Pull up items, which placed atop of models
@@ -773,7 +774,7 @@ void Map::ProcessPlayerPosition(
 	//Process items
 	for( Item& item : items_ )
 	{
-		if( item.picked_up )
+		if( item.picked_up || !item.enabled )
 			continue;
 
 		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
@@ -1539,7 +1540,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		Messages::ItemState message;
 		message.item_index= &item - items_.data();
 		message.z= CoordToMessageCoord( item.pos.z );
-		message.picked= item.picked_up;
+		message.picked= item.picked_up || !item.enabled; // TODO - transfer enabled flag separately.
 
 		messages_sender.SendUnreliableMessage( message );
 	}

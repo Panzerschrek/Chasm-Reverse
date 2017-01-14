@@ -59,6 +59,7 @@ public:
 		m_Vec2 pos;
 		float angle;
 		unsigned char item_id;
+		unsigned char difficulty_flags;
 	};
 
 	struct Monster

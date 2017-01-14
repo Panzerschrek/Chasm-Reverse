@@ -153,6 +153,7 @@ private:
 		m_Vec3 pos;
 		unsigned char item_id;
 		bool picked_up;
+		bool enabled; // Enabled for current difficulty.
 	};
 
 	typedef std::vector<Item> Items;
