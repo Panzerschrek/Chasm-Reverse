@@ -217,6 +217,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadWalls( map_file_content, *result, dynamic_walls_mask );
 	LoadFloorsAndCeilings( map_file_content,*result );
 	LoadAmbientLight( map_file_content,*result );
+	LoadAmbientSoundsMap( map_file_content,*result );
 	LoadMonsters( map_file_content, *result );
 
 	// Scan resource file
@@ -373,6 +374,16 @@ void MapLoader::LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map
 		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 14;
 		map_data.ambient_lightmap[ x + y * MapData::c_map_size ]= static_cast<unsigned char>(l);
 	}
+}
+
+void MapLoader::LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data )
+{
+	const unsigned int c_offset= 0x23001u + MapData::c_map_size * MapData::c_map_size * 3u;
+
+	const unsigned char* in_data= map_file.data() + c_offset;
+	for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+		map_data.ambient_sounds_map[ x + y * MapData::c_map_size ]= in_data[ x * MapData::c_map_size + y ];
 }
 
 void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data )

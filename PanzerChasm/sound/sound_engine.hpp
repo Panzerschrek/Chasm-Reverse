@@ -1,12 +1,13 @@
 #pragma once
 #include <vec.hpp>
 
-#include "../client/map_state.hpp"
 #include "../fwd.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "ambient_sound_processor.hpp"
 #include "channel.hpp"
 #include "driver.hpp"
+#include  "objects_sounds_processor.hpp"
 #include "sounds_loader.hpp"
 
 namespace PanzerChasm
@@ -22,7 +23,7 @@ public:
 	~SoundEngine();
 
 	void Tick();
-	void UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters );
+	void UpdateMapState( const MapState& map_state );
 
 	void SetMap( const MapDataConstPtr& map_data );
 
@@ -49,6 +50,7 @@ private:
 	{
 		bool is_free= true;
 
+		bool looped;
 		unsigned int sound_id;
 		unsigned int pos_samples;
 		bool is_head_relative;
@@ -59,7 +61,10 @@ private:
 	};
 
 private:
+
 	Source* GetFreeSource();
+	void UpdateAmbientSoundState();
+	void UpdateObjectSoundState();
 	void CalculateSourcesVolume();
 	void ForceStopAllChannels();
 
@@ -68,6 +73,10 @@ private:
 	static constexpr unsigned int c_max_monsters= 24u;
 	static constexpr unsigned int c_max_monster_sounds= 8u;
 	static constexpr unsigned int c_max_total_monsters_sounds= c_max_monsters * c_max_monster_sounds;
+
+	static constexpr unsigned int c_first_map_sound= GameResources::c_max_global_sounds;
+	static constexpr unsigned int c_first_map_ambient_sound= c_first_map_sound + MapData::c_max_map_sounds;
+	static constexpr unsigned int c_first_monster_sound= c_first_map_ambient_sound + MapData::c_max_map_ambients;
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -78,13 +87,21 @@ private:
 
 	std::array<
 		ISoundDataConstPtr,
-		GameResources::c_max_global_sounds + MapData::c_max_map_sounds + c_max_total_monsters_sounds >
+		GameResources::c_max_global_sounds +
+			MapData::c_max_map_sounds + MapData::c_max_map_ambients +
+			c_max_total_monsters_sounds >
 		sounds_;
 
 	Source sources_[ Channel::c_max_channels ];
 
 	m_Vec3 head_position_;
 	m_Vec3 ears_vectors_[2];
+
+	AmbientSoundProcessor ambient_sound_processor_;
+	Source* ambient_sound_source_= nullptr;
+
+	ObjectsSoundsProcessor objects_sounds_processor_;
+	Source* object_sound_source_= nullptr;
 };
 
 } // namespace Sound

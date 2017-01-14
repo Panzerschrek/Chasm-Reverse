@@ -116,7 +116,7 @@ void Client::Loop()
 			camera_controller_.GetViewAngleX() );
 
 		if( map_state_ != nullptr )
-		sound_engine_->UpdateMonstersSourcesPosition( map_state_->GetMonsters() );
+			sound_engine_->UpdateMapState( *map_state_ );
 	}
 
 	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );

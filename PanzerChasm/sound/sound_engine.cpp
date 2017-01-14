@@ -1,6 +1,7 @@
 #include <matrix.hpp>
 
 #include "../assert.hpp"
+#include "../client/map_state.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
 
@@ -19,9 +20,11 @@ static const float g_min_ear_volume= 0.1f;
 static const float g_ears_angle= 160.0f * Constants::to_rad;
 static const float g_ears_half_angle= 0.5f * g_ears_angle;
 static const float g_volume_oversaturation_level= 1.4f;
+static const float g_ambient_sounds_volume_scale= 0.6f;
 
 SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
+	, objects_sounds_processor_( game_resources )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -47,7 +50,7 @@ SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 
 	for( unsigned int i= 0u; i < game_resources_->monsters_models.size() && i < c_max_monsters; i++ )
 	{
-		const unsigned int first_monster_sound= GameResources::c_max_global_sounds + MapData::c_max_map_sounds + i * c_max_monster_sounds;
+		const unsigned int first_monster_sound= c_first_monster_sound + i * c_max_monster_sounds;
 		const Model& model= game_resources_->monsters_models[i];
 
 		for( unsigned int j= 0; j < model.sounds.size() && j < c_max_monster_sounds; j++ )
@@ -74,6 +77,8 @@ SoundEngine::~SoundEngine()
 
 void SoundEngine::Tick()
 {
+	UpdateAmbientSoundState();
+	UpdateObjectSoundState();
 	CalculateSourcesVolume();
 
 	driver_.LockChannels();
@@ -92,18 +97,17 @@ void SoundEngine::Tick()
 			channel.volume[0]= source.volume[0];
 			channel.volume[1]= source.volume[1];
 
-			// Channel not active - fill data for channel
 			if( !channel.is_active )
-			{
-				channel.is_active= true;
 				channel.position_samples= 0u;
-				channel.src_sound_data= sounds_[ source.sound_id ].get();
-			}
+
+			channel.is_active= true;
+			channel.looped= source.looped;
+			channel.src_sound_data= sounds_[ source.sound_id ].get();
 
 			// Source is over
 			if( channel.is_active &&
 				channel.src_sound_data != nullptr &&
-				channel.position_samples >= channel.src_sound_data->sample_count_ )
+				( !channel.looped && channel.position_samples >= channel.src_sound_data->sample_count_ ) )
 			{
 				source.is_free= true;
 				channel.is_active= false;
@@ -114,8 +118,10 @@ void SoundEngine::Tick()
 	driver_.UnlockChannels();
 }
 
-void SoundEngine::UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters )
+void SoundEngine::UpdateMapState( const MapState& map_state )
 {
+	// Update sounds, linked with mosnters
+	const MapState::MonstersContainer& monsters= map_state.GetMonsters();
 	for( Source& source : sources_ )
 	{
 		if( source.is_free )
@@ -131,6 +137,8 @@ void SoundEngine::UpdateMonstersSourcesPosition( const MapState::MonstersContain
 			}
 		}
 	}
+
+	objects_sounds_processor_.Update( map_state, head_position_ );
 }
 
 void SoundEngine::SetMap( const MapDataConstPtr& map_data )
@@ -144,7 +152,7 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 		// TODO reuse old sounds
 		for( unsigned int s= 0u; s < MapData::c_max_map_sounds; s++ )
 		{
-			ISoundDataConstPtr& sound= sounds_[ GameResources::c_max_global_sounds + s ];
+			ISoundDataConstPtr& sound= sounds_[ c_first_map_sound + s ];
 			sound= nullptr; // remove old
 
 			const GameResources::SoundDescription& sound_description= map_data->map_sounds[s];
@@ -153,7 +161,22 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 
 			sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
 		}
+
+		for( unsigned int s= 0u; s < MapData::c_max_map_ambients; s++ )
+		{
+			ISoundDataConstPtr& sound= sounds_[ c_first_map_ambient_sound + s ];
+			sound= nullptr; // remove old
+
+			const GameResources::SoundDescription& sound_description= map_data->ambients[s];
+			if( sound_description.file_name[0] == '\0' )
+				continue;
+
+			sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
+		}
 	}
+
+	ambient_sound_processor_.SetMap( map_data );
+	objects_sounds_processor_.SetMap( map_data );
 }
 
 void SoundEngine::SetHeadPosition(
@@ -179,6 +202,8 @@ void SoundEngine::SetHeadPosition(
 
 	for( unsigned int j= 0u; j < 2u; j++ )
 		ears_vectors_[j]= vectors[j] * rotate;
+
+	ambient_sound_processor_.UpdatePosition( position.xy() );
 }
 
 void SoundEngine::PlayWorldSound(
@@ -196,6 +221,7 @@ void SoundEngine::PlayWorldSound(
 		return;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -217,6 +243,7 @@ void SoundEngine::PlayMonsterLinkedSound(
 	const MapState::Monster& monster= monster_value.second;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -239,10 +266,11 @@ void SoundEngine::PlayMonsterSound(
 		return;
 
 	const unsigned int sound_number=
-		GameResources::c_max_global_sounds + MapData::c_max_map_sounds +
+		c_first_monster_sound +
 		monster.monster_id * c_max_monster_sounds + monster_sound_id;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= false;
@@ -263,6 +291,7 @@ void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 		return;
 
 	source->is_free= false;
+	source->looped= false;
 	source->sound_id= sound_number;
 	source->pos_samples= 0u;
 	source->is_head_relative= true;
@@ -280,6 +309,84 @@ SoundEngine::Source* SoundEngine::GetFreeSource()
 	return nullptr;
 }
 
+void SoundEngine::UpdateAmbientSoundState()
+{
+	const unsigned int sound_number= c_first_map_ambient_sound + ambient_sound_processor_.GetCurrentSoundNumber();
+	if( sound_number == c_first_map_ambient_sound )
+	{
+		if( ambient_sound_source_ != nullptr )
+		{
+			ambient_sound_source_->is_free= true;
+			ambient_sound_source_= nullptr;
+		}
+	}
+	else
+	{
+		if( ambient_sound_source_ == nullptr )
+		{
+			ambient_sound_source_= GetFreeSource();
+			if( ambient_sound_source_ != nullptr )
+			{
+				ambient_sound_source_->is_free= false;
+
+				ambient_sound_source_->looped= true;
+				ambient_sound_source_->is_head_relative= true;
+				ambient_sound_source_->pos_samples= 0u;
+				ambient_sound_source_->sound_id= sound_number;
+				ambient_sound_source_->monster_id= 0u;
+			}
+		}
+		else
+		{
+			if( ambient_sound_source_->sound_id != sound_number )
+			{
+				ambient_sound_source_->sound_id= sound_number;
+				ambient_sound_source_->pos_samples= 0u;
+			}
+		}
+	}
+}
+
+void SoundEngine::UpdateObjectSoundState()
+{
+	const unsigned int sound_number= c_first_map_ambient_sound + objects_sounds_processor_.GetCurrentSoundNumber();
+	if( sound_number == c_first_map_ambient_sound )
+	{
+		if( object_sound_source_ != nullptr )
+		{
+			object_sound_source_->is_free= true;
+			object_sound_source_= nullptr;
+		}
+	}
+	else
+	{
+		if( object_sound_source_ == nullptr )
+		{
+			object_sound_source_= GetFreeSource();
+			if( object_sound_source_ != nullptr )
+			{
+				object_sound_source_->is_free= false;
+
+				object_sound_source_->looped= true;
+				object_sound_source_->is_head_relative= false;
+				object_sound_source_->pos_samples= 0u;
+				object_sound_source_->pos= objects_sounds_processor_.GetCurrentSoundPosition();
+				object_sound_source_->sound_id= sound_number;
+				object_sound_source_->monster_id= 0u;
+			}
+		}
+		else
+		{
+			if( object_sound_source_->sound_id != sound_number )
+			{
+				object_sound_source_->sound_id= sound_number;
+				object_sound_source_->pos_samples= 0u;
+			}
+			object_sound_source_->pos= objects_sounds_processor_.GetCurrentSoundPosition();
+		}
+	}
+}
+
 void SoundEngine::CalculateSourcesVolume()
 {
 	for( Source& source : sources_ )
@@ -287,15 +394,16 @@ void SoundEngine::CalculateSourcesVolume()
 		if( source.is_free )
 			continue;
 
-		unsigned char base_sound_volume_value;
+		unsigned char base_sound_volume_value= GameResources::SoundDescription::c_max_volume;
 		if( source.sound_id < GameResources::c_max_global_sounds )
 			base_sound_volume_value= game_resources_->sounds[ source.sound_id ].volume;
-		else if(
-			current_map_data_ != nullptr &&
-			source.sound_id - GameResources::c_max_global_sounds < MapData::c_max_map_sounds )
-			base_sound_volume_value= current_map_data_->map_sounds[ source.sound_id - GameResources::c_max_global_sounds ].volume;
-		else
-			base_sound_volume_value= GameResources::SoundDescription::c_max_volume;
+		else if( current_map_data_ != nullptr )
+		{
+			if( source.sound_id - c_first_map_sound < MapData::c_max_map_sounds )
+				base_sound_volume_value= current_map_data_->map_sounds[ source.sound_id - c_first_map_sound ].volume;
+			else if( source.sound_id - c_first_map_ambient_sound < MapData::c_max_map_ambients )
+				base_sound_volume_value= current_map_data_->ambients[ source.sound_id - c_first_map_ambient_sound ].volume;
+		}
 
 		const float base_sound_volume=
 			float( base_sound_volume_value ) / float( GameResources::SoundDescription::c_max_volume );
@@ -323,10 +431,27 @@ void SoundEngine::CalculateSourcesVolume()
 			}
 		}
 	}
+
+	if( ambient_sound_source_ != nullptr )
+	{
+		const float volume_scale= g_ambient_sounds_volume_scale * ambient_sound_processor_.GetCurrentSoundVolume();
+		ambient_sound_source_->volume[0]*= volume_scale;
+		ambient_sound_source_->volume[1]*= volume_scale;
+	}
+
+	if( object_sound_source_ != nullptr )
+	{
+		const float volume_scale= g_ambient_sounds_volume_scale * objects_sounds_processor_.GetCurrentSoundVolume();
+		object_sound_source_->volume[0]*= volume_scale;
+		object_sound_source_->volume[1]*= volume_scale;
+	}
 }
 
 void SoundEngine::ForceStopAllChannels()
 {
+	ambient_sound_source_= nullptr;
+	object_sound_source_= nullptr;
+
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
 

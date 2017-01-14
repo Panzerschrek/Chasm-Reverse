@@ -21,6 +21,7 @@ struct Channel
 	float volume[2]; // right/left volume
 
 	unsigned int position_samples;
+	bool looped;
 
 	ISoundData* src_sound_data= nullptr;
 };
