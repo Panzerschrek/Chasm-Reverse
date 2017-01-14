@@ -304,8 +304,8 @@ SoundEngine::Source* SoundEngine::GetFreeSource()
 
 void SoundEngine::UpdateAmbientSoundState()
 {
-	const unsigned int ambient_sound_number= ambient_sound_processor_.GetCurrentSoundNumber();
-	if( ambient_sound_number == 0u )
+	const unsigned int sound_number= c_first_map_ambient_sound + ambient_sound_processor_.GetCurrentSoundNumber();
+	if( sound_number == c_first_map_ambient_sound )
 	{
 		if( ambient_sound_source_ != nullptr )
 		{
@@ -325,14 +325,14 @@ void SoundEngine::UpdateAmbientSoundState()
 				ambient_sound_source_->looped= true;
 				ambient_sound_source_->is_head_relative= true;
 				ambient_sound_source_->pos_samples= 0u;
-				ambient_sound_source_->sound_id= c_first_map_ambient_sound + ambient_sound_number;
+				ambient_sound_source_->sound_id= sound_number;
 			}
 		}
 		else
 		{
-			if( ambient_sound_source_->sound_id != ambient_sound_number )
+			if( ambient_sound_source_->sound_id != sound_number )
 			{
-				ambient_sound_source_->sound_id= c_first_map_ambient_sound + ambient_sound_number;
+				ambient_sound_source_->sound_id= sound_number;
 				ambient_sound_source_->pos_samples= 0u;
 			}
 		}
