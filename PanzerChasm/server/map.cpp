@@ -922,7 +922,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		}; // switch state
 	} // for procedures
 
-	MoveMapObjects();
+	MoveMapObjects( current_time );
 
 	// Process static models
 	for( StaticModel& model : static_models_ )
@@ -1461,6 +1461,20 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		backpack.pos.z= std::max( backpack.pos.z, backpack.min_z );
 	}
 
+	// Process rotating lights.
+	for( unsigned int l= 0u; l < rotating_lights_.size(); )
+	{
+		RotatingLightEffect& light= rotating_lights_[l];
+		if( current_time >= light.end_time )
+		{
+			if( l != rotating_lights_.size() - 1u )
+				light= rotating_lights_.back();
+			rotating_lights_.pop_back();
+		}
+		else
+			l++;
+	}
+
 	// At end of this procedure, report about map change, if this needed.
 	// Do it here, because map can be desctructed at callback call.
 	if( map_end_triggered_ &&
@@ -1844,6 +1858,26 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 					DestroyModel( index_element.index );
 			}
 		}
+		else if( command.id == Command::Light )
+		{
+			const unsigned char x= static_cast<unsigned char>(command.args[0]);
+			const unsigned char y= static_cast<unsigned char>(command.args[1]);
+			if( x < MapData::c_map_size && y < MapData::c_map_size )
+			{
+				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+				if( index_element.type == MapData::IndexElement::StaticModel )
+				{
+					rotating_lights_.emplace_back();
+					RotatingLightEffect& light= rotating_lights_.back();
+					light.coord[0]= x; light.coord[1]= y;
+					light.start_time= current_time;
+					light.end_time= light.start_time + Time::FromSeconds( command.args[2] );
+
+					light.radius= command.args[3];
+					light.brightness= command.args[4];
+				}
+			}
+		}
 		// TODO - process other commands
 		else
 		{}
@@ -2056,7 +2090,7 @@ void Map::DoExplosionDamage(
 	}
 }
 
-void Map::MoveMapObjects()
+void Map::MoveMapObjects( const Time current_time )
 {
 	// Zero objects transformations.
 	for( DynamicWall& wall : dynamic_walls_ )
@@ -2230,6 +2264,20 @@ void Map::MoveMapObjects()
 			}
 		} // for action commands
 	} // for procedures
+
+	// Rotating lights effect models. Models rotating together with their lights.
+	for( const RotatingLightEffect& light : rotating_lights_ )
+	{
+		const float c_speed= Constants::two_pi; // TODO - check speeed. Maybe it depends on light source parameters.
+		const float angle_delta= c_speed * ( current_time - light.start_time ).ToSeconds();
+
+		const MapData::IndexElement& index_element= map_data_->map_index[ light.coord[0] + light.coord[1] * MapData::c_map_size ];
+		if( index_element.type == MapData::IndexElement::StaticModel )
+		{
+			StaticModel& model= static_models_[ index_element.index ];
+			model.transformation_angle_delta+= angle_delta;
+		}
+	}
 
 	// Apply objects transformations.
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )

@@ -205,6 +205,15 @@ private:
 
 	typedef std::unordered_map< EntityId, MonsterBasePtr > MonstersContainer;
 
+	struct RotatingLightEffect
+	{
+		unsigned char coord[2];
+		Time start_time= Time::FromSeconds(0);
+		Time end_time= Time::FromSeconds(0);
+		float radius;
+		float brightness;
+	};
+
 	struct HitResult
 	{
 		enum class ObjectType
@@ -242,7 +251,7 @@ private:
 	void DestroyModel( unsigned int model_index );
 	void DoExplosionDamage( const m_Vec3& explosion_center, float explosion_radius, int base_damage, Time current_time );
 
-	void MoveMapObjects();
+	void MoveMapObjects( Time current_time );
 
 	template<class Func>
 	void ProcessElementLinks(
@@ -295,6 +304,8 @@ private:
 	PlayersContainer players_;
 	MonstersContainer monsters_; // + players
 	EntityId next_monster_id_= 1u;
+
+	std::vector<RotatingLightEffect> rotating_lights_;
 
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
