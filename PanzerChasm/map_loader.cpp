@@ -622,7 +622,10 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 		else if( StringEquals( thing_type, "#teleports" ) )
 			LoadTeleports( stream, map_data );
 		else if( StringEquals( thing_type, "#stopani" ) )
-		{ /* TODO */ }
+		{
+			map_data.stopani_commands.emplace_back();
+			line_stream >> map_data.stopani_commands.back();
+		}
 
 	} // for file
 }

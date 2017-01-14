@@ -252,6 +252,7 @@ public:
 	std::vector<ModelDescription> models_description;
 	std::vector<Model> models;
 
+	std::vector<unsigned short> stopani_commands; // Animations numbers to stop on map start.
 	std::vector<Message> messages;
 	std::vector<Procedure> procedures;
 	std::vector<Link> links;

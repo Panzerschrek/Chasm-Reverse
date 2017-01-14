@@ -19,6 +19,15 @@ namespace PanzerChasm
 
 static const float g_commands_coords_scale= 1.0f / 256.0f;
 
+static unsigned int AnimationNumberToModelNumber( const unsigned int animation_number )
+{
+	// Animations for models starts with 33. But, sometimes, animation number bigger, then total amount of models on map.
+	// Sometimes, animation_number is 1. TODO - know, what means 1.
+	if( animation_number < 33u )
+		return ~0u;
+	return animation_number - 33u;
+}
+
 template<class Wall>
 static m_Vec3 GetNormalForWall( const Wall& wall )
 {
@@ -122,6 +131,21 @@ Map::Map(
 
 		out_model.animation_start_time= map_start_time;
 		out_model.animation_start_frame= 0u;
+	}
+
+	// Stop some models on map start.
+	for( const unsigned short stop_animation : map_data_->stopani_commands )
+	{
+		unsigned int model_id = AnimationNumberToModelNumber( stop_animation );
+		for( StaticModel& model : static_models_ )
+		{
+			if( model.model_id == model_id )
+			{
+				model.animation_state= StaticModel::AnimationState::SingleFrame;
+				model.animation_start_time= map_start_time;
+				model.animation_start_frame= 0u;
+			}
+		}
 	}
 
 	items_.resize( map_data_->items.size() );
@@ -846,7 +870,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( time_since_last_state_change.ToSeconds() >= procedure.start_delay_s )
 			{
 				ActivateProcedureSwitches( procedure, false, current_time );
-				DoProcedureImmediateCommands( procedure );
+				DoProcedureImmediateCommands( procedure, current_time );
 				procedure_state.movement_state= ProcedureState::MovementState::Movement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -1722,7 +1746,7 @@ void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const 
 	}
 }
 
-void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
+void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, const Time current_time )
 {
 	// Do immediate commands
 	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
@@ -1742,11 +1766,30 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure )
 
 			procedures_[ proc_number ].locked= false;
 		}
-		// TODO - know, how animation commands works
 		else if( command.id == Command::PlayAnimation )
-		{}
+		{
+			const unsigned int model_id = AnimationNumberToModelNumber( static_cast<unsigned int>(command.args[0]) );
+			for( StaticModel& model : static_models_ )
+			{
+				if( model.model_id == model_id )
+				{
+					model.animation_state= StaticModel::AnimationState::Animation;
+					model.animation_start_time= current_time;
+					model.animation_start_frame= 0u;
+				}
+			}
+		}
 		else if( command.id == Command::StopAnimation )
-		{}
+		{
+			const unsigned int model_id = AnimationNumberToModelNumber( static_cast<unsigned int>(command.args[0]) );
+			for( StaticModel& model : static_models_ )
+			{
+				if( model.model_id == model_id )
+				{
+					model.animation_state= StaticModel::AnimationState::SingleFrame;
+				}
+			}
+		}
 		else if( command.id == Command::Change )
 		{
 			const unsigned int x= static_cast<unsigned int>( command.args[0] );
