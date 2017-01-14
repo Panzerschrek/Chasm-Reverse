@@ -19,7 +19,6 @@ void AmbientSoundProcessor::SetMap( const MapDataConstPtr& map_data )
 {
 	map_data_= map_data;
 
-	state_= State::NoSound;
 	current_sound_= 0u;
 	volume_= 0u;
 }
@@ -42,54 +41,24 @@ void AmbientSoundProcessor::UpdatePosition( const m_Vec2& pos )
 			next_sound_id= map_data_->ambient_sounds_map[ x + y * MapData::c_map_size ];
 	}
 
-	switch( state_ )
+	const float abs_volume_change= tick_delta_s / c_change_time_s;
+	if( next_sound_id != current_sound_ )
 	{
-	case State::NoSound:
-	{
-		if( next_sound_id != 0u )
+		volume_-= abs_volume_change;
+		if( volume_ <= 0.0f )
 		{
-			state_= State::VolumeChange;
 			current_sound_= next_sound_id;
 			volume_= 0.0f;
 		}
 	}
-		break;
-
-	case State::Playing:
+	else
 	{
-		if( next_sound_id != current_sound_ )
-			state_= State::VolumeChange;
-		volume_= 1.0f;
-	}
-		break;
-
-	case State::VolumeChange:
-	{
-		const float abs_volume_change= tick_delta_s / c_change_time_s;
-		if( next_sound_id != current_sound_ )
+		volume_+= abs_volume_change;
+		if( volume_ >= 1.0f )
 		{
-			volume_-= abs_volume_change;
-			if( volume_ <= 0.0f )
-			{
-				if( next_sound_id == 0u )
-					state_= State::NoSound;
-				current_sound_= next_sound_id;
-				volume_= 0.0f;
-			}
-		}
-		else
-		{
-			volume_+= abs_volume_change;
-			if( volume_ >= 1.0f )
-			{
-				state_= State::Playing;
-				volume_= 1.0f;
-			}
+			volume_= 1.0f;
 		}
 	}
-	break;
-
-	}; // switch state_
 }
 
 unsigned int AmbientSoundProcessor::GetCurrentSoundNumber() const

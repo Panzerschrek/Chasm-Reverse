@@ -23,20 +23,12 @@ public:
 	unsigned int GetCurrentSoundNumber() const; // 0 - means no sound.
 	float GetCurrentSoundVolume() const; // [ 0; 1 ]
 
-private:
-	enum class State
-	{
-		NoSound,
-		VolumeChange,
-		Playing,
-	};
 
 private:
 	MapDataConstPtr map_data_;
 
 	Time prev_tick_time_;
 
-	State state_= State::NoSound;
 	float volume_= 0.0f; // [ 0.0 ; 1.0 ]
 	unsigned int current_sound_= 0u;
 };
