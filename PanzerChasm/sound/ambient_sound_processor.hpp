@@ -23,7 +23,6 @@ public:
 	unsigned int GetCurrentSoundNumber() const; // 0 - means no sound.
 	float GetCurrentSoundVolume() const; // [ 0; 1 ]
 
-
 private:
 	MapDataConstPtr map_data_;
 

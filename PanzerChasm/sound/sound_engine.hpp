@@ -1,13 +1,13 @@
 #pragma once
 #include <vec.hpp>
 
-#include "../client/map_state.hpp"
 #include "../fwd.hpp"
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
 #include "ambient_sound_processor.hpp"
 #include "channel.hpp"
 #include "driver.hpp"
+#include  "objects_sounds_processor.hpp"
 #include "sounds_loader.hpp"
 
 namespace PanzerChasm
@@ -23,7 +23,7 @@ public:
 	~SoundEngine();
 
 	void Tick();
-	void UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters );
+	void UpdateMapState( const MapState& map_state );
 
 	void SetMap( const MapDataConstPtr& map_data );
 
@@ -64,6 +64,7 @@ private:
 
 	Source* GetFreeSource();
 	void UpdateAmbientSoundState();
+	void UpdateObjectSoundState();
 	void CalculateSourcesVolume();
 	void ForceStopAllChannels();
 
@@ -98,6 +99,9 @@ private:
 
 	AmbientSoundProcessor ambient_sound_processor_;
 	Source* ambient_sound_source_= nullptr;
+
+	ObjectsSoundsProcessor objects_sounds_processor_;
+	Source* object_sound_source_= nullptr;
 };
 
 } // namespace Sound

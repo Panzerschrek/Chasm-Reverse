@@ -1,6 +1,7 @@
 #include <matrix.hpp>
 
 #include "../assert.hpp"
+#include "../client/map_state.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
 
@@ -22,6 +23,7 @@ static const float g_volume_oversaturation_level= 1.4f;
 
 SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
+	, objects_sounds_processor_( game_resources )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -75,6 +77,7 @@ SoundEngine::~SoundEngine()
 void SoundEngine::Tick()
 {
 	UpdateAmbientSoundState();
+	UpdateObjectSoundState();
 	CalculateSourcesVolume();
 
 	driver_.LockChannels();
@@ -114,8 +117,10 @@ void SoundEngine::Tick()
 	driver_.UnlockChannels();
 }
 
-void SoundEngine::UpdateMonstersSourcesPosition( const MapState::MonstersContainer& monsters )
+void SoundEngine::UpdateMapState( const MapState& map_state )
 {
+	// Update sounds, linked with mosnters
+	const MapState::MonstersContainer& monsters= map_state.GetMonsters();
 	for( Source& source : sources_ )
 	{
 		if( source.is_free )
@@ -131,6 +136,8 @@ void SoundEngine::UpdateMonstersSourcesPosition( const MapState::MonstersContain
 			}
 		}
 	}
+
+	objects_sounds_processor_.Update( map_state, head_position_ );
 }
 
 void SoundEngine::SetMap( const MapDataConstPtr& map_data )
@@ -168,6 +175,7 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 	}
 
 	ambient_sound_processor_.SetMap( map_data );
+	objects_sounds_processor_.SetMap( map_data );
 }
 
 void SoundEngine::SetHeadPosition(
@@ -324,6 +332,7 @@ void SoundEngine::UpdateAmbientSoundState()
 				ambient_sound_source_->is_head_relative= true;
 				ambient_sound_source_->pos_samples= 0u;
 				ambient_sound_source_->sound_id= sound_number;
+				ambient_sound_source_->monster_id= 0u;
 			}
 		}
 		else
@@ -333,6 +342,46 @@ void SoundEngine::UpdateAmbientSoundState()
 				ambient_sound_source_->sound_id= sound_number;
 				ambient_sound_source_->pos_samples= 0u;
 			}
+		}
+	}
+}
+
+void SoundEngine::UpdateObjectSoundState()
+{
+	const unsigned int sound_number= c_first_map_ambient_sound + objects_sounds_processor_.GetCurrentSoundNumber();
+	if( sound_number == c_first_map_ambient_sound )
+	{
+		if( object_sound_source_ != nullptr )
+		{
+			object_sound_source_->is_free= true;
+			object_sound_source_= nullptr;
+		}
+	}
+	else
+	{
+		if( object_sound_source_ == nullptr )
+		{
+			object_sound_source_= GetFreeSource();
+			if( object_sound_source_ != nullptr )
+			{
+				object_sound_source_->is_free= false;
+
+				object_sound_source_->looped= true;
+				object_sound_source_->is_head_relative= false;
+				object_sound_source_->pos_samples= 0u;
+				object_sound_source_->pos= objects_sounds_processor_.GetCurrentSoundPosition();
+				object_sound_source_->sound_id= sound_number;
+				object_sound_source_->monster_id= 0u;
+			}
+		}
+		else
+		{
+			if( object_sound_source_->sound_id != sound_number )
+			{
+				object_sound_source_->sound_id= sound_number;
+				object_sound_source_->pos_samples= 0u;
+			}
+			object_sound_source_->pos= objects_sounds_processor_.GetCurrentSoundPosition();
 		}
 	}
 }
@@ -390,11 +439,18 @@ void SoundEngine::CalculateSourcesVolume()
 		ambient_sound_source_->volume[0]*= volume_scale;
 		ambient_sound_source_->volume[1]*= volume_scale;
 	}
+
+	if( object_sound_source_ != nullptr )
+	{
+		object_sound_source_->volume[0]*= objects_sounds_processor_.GetCurrentSoundVolume();
+		object_sound_source_->volume[1]*= objects_sounds_processor_.GetCurrentSoundVolume();
+	}
 }
 
 void SoundEngine::ForceStopAllChannels()
 {
 	ambient_sound_source_= nullptr;
+	object_sound_source_= nullptr;
 
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
