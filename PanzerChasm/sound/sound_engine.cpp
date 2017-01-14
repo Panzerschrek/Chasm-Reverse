@@ -93,14 +93,12 @@ void SoundEngine::Tick()
 			channel.volume[0]= source.volume[0];
 			channel.volume[1]= source.volume[1];
 
-			// Channel not active - fill data for channel
 			if( !channel.is_active )
-			{
-				channel.is_active= true;
-				channel.looped= source.looped;
 				channel.position_samples= 0u;
-				channel.src_sound_data= sounds_[ source.sound_id ].get();
-			}
+
+			channel.is_active= true;
+			channel.looped= source.looped;
+			channel.src_sound_data= sounds_[ source.sound_id ].get();
 
 			// Source is over
 			if( channel.is_active &&
