@@ -272,6 +272,7 @@ public:
 	unsigned char floor_textures[ c_map_size * c_map_size ];
 	unsigned char ceiling_textures[ c_map_size * c_map_size ];
 	unsigned char ambient_lightmap[ c_map_size * c_map_size ];
+	unsigned char ambient_sounds_map[ c_map_size * c_map_size ];
 
 	unsigned char lightmap[ c_lightmap_size * c_lightmap_size ];
 
@@ -294,6 +295,7 @@ private:
 	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask );
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data );
+	void LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
 
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
