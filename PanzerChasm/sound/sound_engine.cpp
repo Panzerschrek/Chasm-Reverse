@@ -20,6 +20,7 @@ static const float g_min_ear_volume= 0.1f;
 static const float g_ears_angle= 160.0f * Constants::to_rad;
 static const float g_ears_half_angle= 0.5f * g_ears_angle;
 static const float g_volume_oversaturation_level= 1.4f;
+static const float g_ambient_sounds_volume_scale= 0.6f;
 
 SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
@@ -433,17 +434,16 @@ void SoundEngine::CalculateSourcesVolume()
 
 	if( ambient_sound_source_ != nullptr )
 	{
-		const float c_ambient_sound_volume_scale= 0.8f; // Ambients is too loud, make it no so.
-		const float volume_scale= c_ambient_sound_volume_scale * ambient_sound_processor_.GetCurrentSoundVolume();
-
+		const float volume_scale= g_ambient_sounds_volume_scale * ambient_sound_processor_.GetCurrentSoundVolume();
 		ambient_sound_source_->volume[0]*= volume_scale;
 		ambient_sound_source_->volume[1]*= volume_scale;
 	}
 
 	if( object_sound_source_ != nullptr )
 	{
-		object_sound_source_->volume[0]*= objects_sounds_processor_.GetCurrentSoundVolume();
-		object_sound_source_->volume[1]*= objects_sounds_processor_.GetCurrentSoundVolume();
+		const float volume_scale= g_ambient_sounds_volume_scale * objects_sounds_processor_.GetCurrentSoundVolume();
+		object_sound_source_->volume[0]*= volume_scale;
+		object_sound_source_->volume[1]*= volume_scale;
 	}
 }
 
