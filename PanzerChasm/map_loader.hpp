@@ -51,6 +51,7 @@ public:
 		m_Vec2 pos;
 		float angle;
 		unsigned char model_id;
+		unsigned char difficulty_flags;
 		bool is_dynamic;
 	};
 

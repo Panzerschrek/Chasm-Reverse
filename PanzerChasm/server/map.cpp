@@ -111,11 +111,14 @@ Map::Map(
 		const MapData::StaticModel& in_model= map_data_->static_models[m];
 		StaticModel& out_model= static_models_[m];
 
-		out_model.model_id= in_model.model_id;
+		if( ( in_model.difficulty_flags & difficulty_ ) == 0u )
+			out_model.model_id= 255; // Disable model for current difficulty. TODO - maybe tihs is not enough.
+		else
+			out_model.model_id= in_model.model_id;
 
 		const MapData::ModelDescription* const model_description=
-			in_model.model_id < map_data_->models_description.size()
-				? &map_data_->models_description[ in_model.model_id ] : nullptr;
+			out_model.model_id < map_data_->models_description.size()
+				? &map_data_->models_description[ out_model.model_id] : nullptr;
 
 		out_model.health= model_description == nullptr ? 0 : model_description->break_limit;
 

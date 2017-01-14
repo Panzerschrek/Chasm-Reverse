@@ -297,6 +297,7 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 				model.pos.y= float(map_wall.vert_coord[0][1]) * g_map_coords_scale;
 				model.angle= float(map_wall.unknown & 7u) / 8.0f * Constants::two_pi + Constants::pi;
 				model.model_id= map_wall.texture_id - c_first_model;
+				model.difficulty_flags= map_wall.vert_coord[1][0];
 				model.is_dynamic= is_dynamic;
 
 				index_element.type= MapData::IndexElement::StaticModel;
