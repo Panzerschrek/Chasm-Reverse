@@ -112,6 +112,7 @@ protected:
 	bool have_left_hand_= true;
 	bool have_right_hand_= true;
 	bool have_head_= true;
+	bool fragmented_= false; // Monster is dead and body is fragmented.
 
 	m_Vec3 pos_;
 	float angle_; // [ 0; 2 * pi )

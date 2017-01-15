@@ -302,18 +302,29 @@ void Monster::Hit(
 		}
 		else
 		{
-			state_= State::DeathAnimation;
-			current_animation_start_time_= current_time;
+			const bool is_boss= IsBoss();
 
-			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0,AnimationId::Idle0 } );
-			PC_ASSERT( animation >= 0 );
-			current_animation_= static_cast<unsigned int>(animation);
+			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0 } );
+			if( animation < 0 || is_boss )
+			{
+				// Fragment monster body.
+				// TODO - fragment body not only for bosses, but else if damage is too hight.
+				// TODO - produce gibs, jumping head, etc.
+				state_= State::Dead;
+				fragmented_= true;
+			}
+			else
+			{
+				state_= State::DeathAnimation;
+				current_animation_= static_cast<unsigned int>(animation);
+			}
+
+			current_animation_start_time_= current_time;
 
 			map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Death );
 
 			BackpackPtr backpack;
-
-			if( IsBoss() )
+			if( is_boss )
 			{
 				// Bosses drops packs with keys.
 				backpack.reset( new Backpack );

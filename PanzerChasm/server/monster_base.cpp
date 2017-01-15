@@ -75,6 +75,9 @@ unsigned int MonsterBase::CurrentAnimationFrame() const
 
 unsigned char MonsterBase::GetBodyPartsMask() const
 {
+	if( fragmented_ ) // Hide all body, if fragmented.
+		return 0u;
+
 	unsigned char mask= BodyPartsMask::Body;
 	mask|= have_left_hand_  ? BodyPartsMask::LeftHand  : BodyPartsMask::LeftHandSeparated ;
 	mask|= have_right_hand_ ? BodyPartsMask::RightHand : BodyPartsMask::RightHandSeparated;

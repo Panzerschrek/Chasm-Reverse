@@ -1493,7 +1493,8 @@ void MapDrawer::DrawMonsters(
 		if( monster.monster_id == 0u )
 			continue;
 
-		if( monster.monster_id >= monsters_models_.size() )
+		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
+			monster.body_parts_mask == 0u ) // Monster is invisible.
 			continue;
 
 		const MonsterModel& monster_model= monsters_models_[ monster.monster_id ];
