@@ -32,7 +32,10 @@ private:
 
 private:
 	void NewGameCommand( const CommandsArguments& args );
-	void RunLevel( const CommandsArguments& args );
+	void RunLevelCommand( const CommandsArguments& args );
+	void ConnectCommand( const CommandsArguments& args );
+	void RunServerCommand( const CommandsArguments& args );
+
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
 
 	void DrawLoadingFrame( float progress, const char* caption );

@@ -57,7 +57,9 @@ Host::Host()
 
 		commands->emplace( "quit", std::bind( &Host::Quit, this ) );
 		commands->emplace( "new", std::bind( &Host::NewGameCommand, this, std::placeholders::_1 ) );
-		commands->emplace( "go", std::bind( &Host::RunLevel, this, std::placeholders::_1 ) );
+		commands->emplace( "go", std::bind( &Host::RunLevelCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "connect", std::bind( &Host::ConnectCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "runserver", std::bind( &Host::RunServerCommand, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
 		commands_processor_.RegisterCommands( host_commands_ );
@@ -107,7 +109,7 @@ Host::Host()
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
 
 	// TODO - do not start new game here. Just show main menu.
-	NewGame( Difficulty::Normal );
+	//NewGame( Difficulty::Normal );
 }
 
 Host::~Host()
@@ -200,7 +202,7 @@ void Host::NewGameCommand( const CommandsArguments& args )
 	NewGame( difficulty );
 }
 
-void Host::RunLevel( const CommandsArguments& args )
+void Host::RunLevelCommand( const CommandsArguments& args )
 {
 	if( args.empty() )
 	{
@@ -215,6 +217,43 @@ void Host::RunLevel( const CommandsArguments& args )
 		difficulty= DifficultyNumberToDifficulty( std::atoi( args[1].c_str() ) );
 
 	DoRunLevel( map_number, difficulty );
+}
+
+void Host::ConnectCommand( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Info( "Expected server address" );
+		return;
+	}
+
+	const std::string& server_address= args[0];
+	Log::Info( "Connecting to ", server_address );
+
+	EnsureClient();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	InetAddress address;
+	address.address= 0;
+	address.port= 6666u;
+	auto connection= net_->ConnectToServer( address, 8000u );
+
+	client_->SetConnection( connection );
+}
+
+void Host::RunServerCommand( const CommandsArguments& args )
+{
+	PC_UNUSED(args);
+
+	EnsureServer();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	local_server_->ChangeMap( 1u, Difficulty::Normal );
+	connections_listener_proxy_->SetConnectionsListener( net_->CreateServerListener( 6666u, 9000u ) );
 }
 
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )

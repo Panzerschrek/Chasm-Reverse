@@ -16,11 +16,16 @@ struct InetAddress
 class Net final
 {
 public:
+	static constexpr uint16_t c_default_tcp_port= 6666u;
+	static constexpr uint16_t c_default_udp_port= 8000u;
+
 	Net();
 	~Net();
 
-	IConnectionPtr ConnectToServer( const InetAddress& address );
-	IConnectionsListenerPtr CreateServerListener();
+	IConnectionPtr ConnectToServer( const InetAddress& address, uint16_t in_udp_port );
+	IConnectionsListenerPtr CreateServerListener(
+		uint16_t tcp_port= c_default_tcp_port,
+		uint16_t base_udp_port= c_default_udp_port );
 
 private:
 	struct PlatformData;
