@@ -12,6 +12,32 @@
 namespace PanzerChasm
 {
 
+// Proxy for connections listener.
+// TODO - add support for many connection listeners together (loopback, net, etc.).
+class Host::ConnectionsListenerProxy final : public IConnectionsListener
+{
+public:
+	ConnectionsListenerProxy(){}
+	virtual ~ConnectionsListenerProxy() override {}
+
+	void SetConnectionsListener( IConnectionsListenerPtr connections_listener )
+	{
+		connections_listener_= std::move( connections_listener );
+	}
+
+public: // IConnectionsListener
+	virtual IConnectionPtr GetNewConnection()
+	{
+		if( connections_listener_ == nullptr )
+			return nullptr;
+
+		return connections_listener_->GetNewConnection();
+	}
+
+private:
+	IConnectionsListenerPtr connections_listener_;
+};
+
 static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
 {
 	switch( n )
@@ -59,8 +85,7 @@ Host::Host()
 	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
 
 	RenderingContext rendering_context;
-	rendering_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
-	rendering_context.viewport_size= system_window_->GetViewportSize();
+	CreateRenderingContext( rendering_context );
 
 	drawers_= std::make_shared<Drawers>( rendering_context, *game_resources_ );
 
@@ -79,34 +104,8 @@ Host::Host()
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
 
-	Log::Info( "Create loopback buffer" );
-	loopback_buffer_= std::make_shared<LoopbackBuffer>();
-
-	const DrawLoadingCallback draw_loading_callback=
-		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
-
-	Log::Info( "Create local server" );
-	local_server_.reset(
-		new Server(
-			commands_processor_,
-			game_resources_,
-			map_loader_,
-			loopback_buffer_,
-			draw_loading_callback ) );
-
-	loopback_buffer_->RequestConnect();
-	local_server_->ChangeMap( 1, Difficulty::Normal );
-
-	Log::Info( "Create client" );
-	client_.reset(
-		new Client(
-			game_resources_,
-			map_loader_,
-			loopback_buffer_,
-			rendering_context,
-			drawers_,
-			sound_engine_,
-			draw_loading_callback ) );
+	// TODO - do not start new game here. Just show main menu.
+	NewGame( Difficulty::Normal );
 }
 
 Host::~Host()
@@ -187,10 +186,7 @@ void Host::Quit()
 
 void Host::NewGame( const DifficultyType difficulty )
 {
-	if( local_server_ != nullptr )
-	{
-		local_server_->ChangeMap( 1u, difficulty );
-	}
+	DoRunLevel( 1u, difficulty );
 }
 
 void Host::NewGameCommand( const CommandsArguments& args )
@@ -216,8 +212,25 @@ void Host::RunLevel( const CommandsArguments& args )
 	if( args.size() >= 2u )
 		difficulty= DifficultyNumberToDifficulty( std::atoi( args[1].c_str() ) );
 
-	if( local_server_ != nullptr )
-		local_server_->ChangeMap( map_number, difficulty );
+	DoRunLevel( map_number, difficulty );
+}
+
+void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
+{
+	EnsureClient();
+	EnsureServer();
+	EnsureLoopbackBuffer();
+
+	loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	local_server_->ChangeMap( map_number, difficulty );
+
+	// Making server listen connections from loopback buffer.
+	connections_listener_proxy_->SetConnectionsListener( loopback_buffer_ );
+	loopback_buffer_->RequestConnect();
+
+	// Make client working with loopback buffer connection.
+	client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )
@@ -230,6 +243,66 @@ void Host::DrawLoadingFrame( const float progress, const char* const caption )
 		drawers_->menu.DrawLoading( progress );
 		system_window_->SwapBuffers();
 	}
+}
+
+void Host::CreateRenderingContext( RenderingContext& out_context )
+{
+	out_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
+	out_context.viewport_size= system_window_->GetViewportSize();
+}
+
+void Host::EnsureClient()
+{
+	if( client_ != nullptr )
+		return;
+
+	Log::Info( "Create client" );
+
+	const DrawLoadingCallback draw_loading_callback=
+		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
+
+	RenderingContext rendering_context;
+	CreateRenderingContext( rendering_context );
+
+	client_.reset(
+		new Client(
+			game_resources_,
+			map_loader_,
+			rendering_context,
+			drawers_,
+			sound_engine_,
+			draw_loading_callback ) );
+}
+
+void Host::EnsureServer()
+{
+	if( local_server_ != nullptr )
+		return;
+
+	Log::Info( "Create local server" );
+
+	const DrawLoadingCallback draw_loading_callback=
+		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
+
+	PC_ASSERT( connections_listener_proxy_ == nullptr );
+	connections_listener_proxy_= std::make_shared<ConnectionsListenerProxy>();
+
+	local_server_.reset(
+		new Server(
+			commands_processor_,
+			game_resources_,
+			map_loader_,
+			connections_listener_proxy_,
+			draw_loading_callback ) );
+}
+
+void Host::EnsureLoopbackBuffer()
+{
+	if( loopback_buffer_ != nullptr )
+		return;
+
+	Log::Info( "Create loopback buffer" );
+	loopback_buffer_= std::make_shared<LoopbackBuffer>();
 }
 
 } // namespace PanzerChasm

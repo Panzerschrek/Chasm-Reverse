@@ -27,10 +27,20 @@ public: // HostCommands
 	virtual void NewGame( DifficultyType difficulty ) override;
 
 private:
+	class ConnectionsListenerProxy;
+
+private:
 	void NewGameCommand( const CommandsArguments& args );
 	void RunLevel( const CommandsArguments& args );
+	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
 
 	void DrawLoadingFrame( float progress, const char* caption );
+
+	void CreateRenderingContext( RenderingContext& out_context );
+
+	void EnsureClient();
+	void EnsureServer();
+	void EnsureLoopbackBuffer();
 
 private:
 	// Put members here in reverse deinitialization order.
@@ -55,8 +65,8 @@ private:
 	MapLoaderPtr map_loader_;
 
 	LoopbackBufferPtr loopback_buffer_;
+	std::shared_ptr<ConnectionsListenerProxy> connections_listener_proxy_; // Create it together with server.
 	std::unique_ptr<Server> local_server_;
-
 	std::unique_ptr<Client> client_;
 };
 

@@ -35,6 +35,7 @@ public:
 
 	// Returns monster_id for spawned player
 	EntityId SpawnPlayer( const PlayerPtr& player );
+	void DespawnPlayer( EntityId player_id );
 
 	void Shoot(
 		EntityId owner_id,

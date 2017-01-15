@@ -27,12 +27,15 @@ public: // IConnection
 	virtual unsigned int ReadUnrealiableData( void* out_data, unsigned int buffer_size ) override;
 
 	virtual void Disconnect() override;
+	virtual bool Disconnected() override;
 
 private:
 	Queue& in_reliable_buffer_;
 	Queue& in_unreliable_buffer_;
 	Queue& out_reliable_buffer_;
 	Queue& out_unreliable_buffer_;
+
+	bool disconnected_= false;
 };
 
 LoopbackBuffer::Connection::Connection(
@@ -51,16 +54,20 @@ LoopbackBuffer::Connection::~Connection()
 
 void LoopbackBuffer::Connection::SendReliablePacket( const void *data, unsigned int data_size )
 {
+	if( disconnected_ ) return;
 	in_reliable_buffer_.PushBytes( data, data_size );
 }
 
 void LoopbackBuffer::Connection::SendUnreliablePacket( const void *data, unsigned int data_size )
 {
+	if( disconnected_ ) return;
 	in_unreliable_buffer_.PushBytes( data, data_size );
 }
 
 unsigned int LoopbackBuffer::Connection::ReadRealiableData( void* out_data, unsigned int buffer_size )
 {
+	if( disconnected_ ) return 0u;
+
 	unsigned int result_size= std::min( buffer_size, out_reliable_buffer_.Size() );
 	out_reliable_buffer_.PopBytes( out_data, result_size );
 	return result_size;
@@ -68,9 +75,21 @@ unsigned int LoopbackBuffer::Connection::ReadRealiableData( void* out_data, unsi
 
 unsigned int LoopbackBuffer::Connection::ReadUnrealiableData( void* out_data, unsigned int buffer_size )
 {
+	if( disconnected_ ) return 0u;
+
 	unsigned int result_size= std::min( buffer_size, out_unreliable_buffer_.Size() );
 	out_unreliable_buffer_.PopBytes( out_data, result_size );
 	return result_size;
+}
+
+void LoopbackBuffer::Connection::Disconnect()
+{
+	disconnected_= true;
+}
+
+bool LoopbackBuffer::Connection::Disconnected()
+{
+	return disconnected_;
 }
 
 LoopbackBuffer::Queue::Queue()
@@ -83,6 +102,12 @@ LoopbackBuffer::Queue::~Queue()
 unsigned int LoopbackBuffer::Queue::Size() const
 {
 	return buffer_.size() - pos_;
+}
+
+void LoopbackBuffer::Queue::Clear()
+{
+	buffer_.clear();
+	pos_= 0u;
 }
 
 void LoopbackBuffer::Queue::PushBytes( const void* data, const unsigned int data_size )
@@ -123,14 +148,19 @@ void LoopbackBuffer::Queue::TryShrink()
 	}
 }
 
-void LoopbackBuffer::Connection::Disconnect()
-{
-	// TODO
-	PC_ASSERT(false);
-}
-
 LoopbackBuffer::LoopbackBuffer()
 {
+}
+
+LoopbackBuffer::~LoopbackBuffer()
+{
+	RequestDisconnect();
+}
+
+void LoopbackBuffer::RequestConnect()
+{
+	PC_ASSERT( state_ == State::Unconnected );
+
 	client_side_connection_=
 		std::make_shared<Connection>(
 			client_to_server_reliable_buffer_,
@@ -144,14 +174,30 @@ LoopbackBuffer::LoopbackBuffer()
 			server_to_client_unreliable_buffer_,
 			client_to_server_reliable_buffer_,
 			client_to_server_unreliable_buffer_ );
+
+	state_= State::WaitingForConnection;
 }
 
-LoopbackBuffer::~LoopbackBuffer()
-{}
-
-void LoopbackBuffer::RequestConnect()
+void LoopbackBuffer::RequestDisconnect()
 {
-	state_= State::WaitingForConnection;
+	if( client_side_connection_ != nullptr )
+	{
+		client_side_connection_->Disconnect();
+		client_side_connection_.reset();
+	}
+
+	if( server_side_connection_ != nullptr )
+	{
+		server_side_connection_->Disconnect();
+		server_side_connection_.reset();
+	}
+
+	client_to_server_reliable_buffer_.Clear();
+	client_to_server_unreliable_buffer_.Clear();
+	server_to_client_reliable_buffer_.Clear();
+	server_to_client_unreliable_buffer_.Clear();
+
+	state_ = State::Unconnected;
 }
 
 IConnectionPtr LoopbackBuffer::GetClientSideConnection()

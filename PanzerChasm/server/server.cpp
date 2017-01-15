@@ -56,6 +56,7 @@ Server::~Server()
 
 void Server::Loop()
 {
+	// Accept new connections.
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
 		players_.emplace_back( new ConnectedPlayer( connection, game_resources_, server_accumulated_time_ ) );
@@ -83,6 +84,24 @@ void Server::Loop()
 		connected_player.connection_info.messages_sender.Flush();
 	}
 
+	// Disconnect players.
+	for( unsigned int p= 0u; p < players_.size(); )
+	{
+		ConnectedPlayerPtr& player= players_[p];
+		if( player->connection_info.connection->Disconnected() )
+		{
+			if( map_ != nullptr )
+				map_->DespawnPlayer( player->player_monster_id );
+
+			if( p < players_.size() - 1u )
+				player= std::move( players_.back() );
+			players_.pop_back();
+		}
+		else
+			p++;
+	}
+
+	// Recieve messages.
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		current_player_= connected_player.get();

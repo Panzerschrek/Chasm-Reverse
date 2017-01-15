@@ -249,6 +249,12 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 	return player_id;
 }
 
+void Map::DespawnPlayer( const EntityId player_id )
+{
+	players_.erase( player_id );
+	monsters_.erase( player_id );
+}
+
 void Map::Shoot(
 	const EntityId owner_id,
 	const unsigned int rocket_id,

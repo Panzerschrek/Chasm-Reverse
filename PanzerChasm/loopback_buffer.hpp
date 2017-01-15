@@ -13,6 +13,7 @@ public:
 	virtual ~LoopbackBuffer() override;
 
 	void RequestConnect();
+	void RequestDisconnect();
 
 	IConnectionPtr GetClientSideConnection();
 
@@ -29,6 +30,7 @@ private:
 		~Queue();
 
 		unsigned int Size() const;
+		void Clear();
 
 		void PushBytes( const void* data, unsigned int data_size );
 		void PopBytes( void* out_data, unsigned int data_size );

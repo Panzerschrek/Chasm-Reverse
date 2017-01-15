@@ -16,6 +16,7 @@ public:
 	virtual unsigned int ReadUnrealiableData( void* out_data, unsigned int buffer_size )= 0;
 
 	virtual void Disconnect()= 0;
+	virtual bool Disconnected()= 0;
 };
 
 } // namespace PanzerChasm

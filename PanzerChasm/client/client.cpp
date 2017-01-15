@@ -15,14 +15,12 @@ namespace PanzerChasm
 Client::Client(
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
-	const LoopbackBufferPtr& loopback_buffer,
 	const RenderingContext& rendering_context,
 	const DrawersPtr& drawers,
 	const Sound::SoundEnginePtr& sound_engine,
 	const DrawLoadingCallback& draw_loading_callback )
 	: game_resources_(game_resources)
 	, map_loader_(map_loader)
-	, loopback_buffer_(loopback_buffer)
 	, sound_engine_(sound_engine)
 	, draw_loading_callback_(draw_loading_callback)
 	, current_tick_time_( Time::CurrentTime() )
@@ -35,12 +33,15 @@ Client::Client(
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
-
-	connection_info_.reset( new ConnectionInfo( loopback_buffer_->GetClientSideConnection() ) );
 }
 
 Client::~Client()
 {}
+
+void Client::SetConnection( IConnectionPtr connection )
+{
+	connection_info_.reset( new ConnectionInfo( connection ) );
+}
 
 void Client::ProcessEvents( const SystemEvents& events )
 {
