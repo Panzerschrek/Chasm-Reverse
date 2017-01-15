@@ -69,6 +69,8 @@ Host::Host()
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
 
+	net_.reset( new Net() );
+
 	system_window_.reset( new SystemWindow() );
 
 	rSetShadersDir( "shaders" );

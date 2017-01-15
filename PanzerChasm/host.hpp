@@ -6,6 +6,7 @@
 #include "console.hpp"
 #include "host_commands.hpp"
 #include "menu.hpp"
+#include "net/net.hpp"
 #include "server/server.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
@@ -52,6 +53,8 @@ private:
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
+
+	std::unique_ptr<Net> net_;
 
 	std::unique_ptr<SystemWindow> system_window_;
 	SystemEvents events_;
