@@ -19,11 +19,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Smertj igroka.
-* Dorabotka urovnej složnosti. Sokrytije nenužnyh dlä konkretnogo urovnä
-  složnosti modelej. Issledovanije vlijanija urovnej složnosti na uron.
+* Issledovanije vlijanija urovnej složnosti na uron.
 * Sohranenije i zagruzka igry.
-* Vypadenije rançev iz nekotoryh mostrov, igrokov, bossov. Issledovanije togo,
-  is kogo cto vypadajet i vypadajet li.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
   rabotajet v originale.
 * Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
@@ -49,9 +46,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 [ZVUK]
 * Issledovatj, kak izlucajetsä zvuk ot proçedur, v slucaje otsutstvija parametra
   "posxy" a takže, kogda takih parametrov neskoljko.
-* Zaçyklennyje zvuki, v tom cisle:
-	* Fonovyje zvuki urovnä.
-	* Zvuki modelej urovnä.
 * Optimizaçija zagruzki zvukov. V slucaje, kogda v tabliçe zvukov igry ili
   urovnä imejutsä dublikaty, gruzitj zvuk toljko odin raz i ispoljzovatj jego
   kak razdeläjemyj.
