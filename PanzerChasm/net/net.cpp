@@ -23,7 +23,7 @@ public:
 		tcp_socket_= tcp_socket;
 		destination_udp_address_= destianation_udp_address;
 
-		in_udp_socket_= ::socket( PF_INET, SOCK_STREAM, 0 );
+		in_udp_socket_= ::socket( PF_INET, SOCK_DGRAM, 0 );
 		if( in_udp_socket_ == INVALID_SOCKET )
 		{
 			Log::Warning( "Can not create udp socket. Error code: ", ::WSAGetLastError() );
@@ -32,16 +32,22 @@ public:
 
 		sockaddr_in in_udp_address;
 		std::memset( &in_udp_address, 0, sizeof(in_udp_address) );
-		in_udp_address.sin_addr.s_addr = ::inet_addr( "127.0.0.1" ); // TODO - maybe INADDR_ANY?
+		in_udp_address.sin_family= AF_INET;
+		in_udp_address.sin_addr.s_addr= INADDR_ANY; //::inet_addr( "127.0.0.1" );
 		in_udp_address.sin_port= ::htons( in_udp_port );
 		::bind( in_udp_socket_, (sockaddr*) &in_udp_address, sizeof(in_udp_address) );
 
-		out_udp_socket_= ::socket( PF_INET, SOCK_STREAM, 0 );
+		out_udp_socket_= ::socket( PF_INET, SOCK_DGRAM, 0 );
 		if( out_udp_socket_ == INVALID_SOCKET )
 		{
 			Log::Warning( "Can not create udp socket. Error code: ", ::WSAGetLastError() );
 			return;
 		}
+
+		//u_long socket_mode= 1;
+		//::ioctlsocket( tcp_socket_, FIONBIO, &socket_mode );
+		//::ioctlsocket( in_udp_socket_, FIONBIO, &socket_mode );
+		//::ioctlsocket( out_udp_socket_, FIONBIO, &socket_mode );
 	}
 
 	virtual ~NetConnection() override
@@ -65,22 +71,63 @@ public: // IConnection
 
 	virtual unsigned int ReadRealiableData( void* out_data, unsigned int buffer_size ) override
 	{
-		return ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
+		fd_set set;
+		set.fd_count= 1u;
+		set.fd_array[0]= tcp_socket_;
+
+		timeval wait_time;
+		wait_time.tv_sec= 0u;
+		wait_time.tv_usec= 1000u;
+
+		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
+		// TODO - check error
+		if( socket_ready == 1u )
+		{
+			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
+			if( result == SOCKET_ERROR )
+			{
+				Log::Info( "Error: ", ::WSAGetLastError() );
+			}
+			return std::max( 0, result );
+		}
+		return 0u;
 	}
 
 	virtual unsigned int ReadUnrealiableData( void* out_data, unsigned int buffer_size ) override
 	{
-		sockaddr_in reciever_address;
-		int reciever_address_length= sizeof(reciever_address);
-		// TODO - check reciever_address
-		return ::recvfrom( in_udp_socket_, (char*) out_data, buffer_size, 0, (sockaddr*) &reciever_address, &reciever_address_length );
+		fd_set set;
+		set.fd_count= 1u;
+		set.fd_array[0]= in_udp_socket_;
+
+		timeval wait_time;
+		wait_time.tv_sec= 0u;
+		wait_time.tv_usec= 1000u;
+
+		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
+		// TODO - check error
+		if( socket_ready == 1u )
+		{
+			sockaddr_in reciever_address;
+			int reciever_address_length= sizeof(reciever_address);
+			// TODO - check reciever_address
+			int result=
+				::recvfrom( in_udp_socket_, (char*) out_data, buffer_size, 0, (sockaddr*) &reciever_address, &reciever_address_length );
+
+			if( result == SOCKET_ERROR )
+			{
+				Log::Info( "Error: ", ::WSAGetLastError() );
+			}
+
+			return std::max( result, 0 );
+		}
+		return 0;
 	}
 
 	virtual void Disconnect() override
 	{
 		// TODO
 	}
-	virtual bool Disconnected()override
+	virtual bool Disconnected() override
 	{
 		// TODO
 		return false;
@@ -177,14 +224,14 @@ public: // IConnectionsListener
 			++next_in_udp_port_;
 
 			// Send to client input udp address, wia tcp.
-			sockaddr_in my_udp_address;
-			my_udp_address.sin_port= ::htons( connection_in_udp_port );
-			::send( client_tcp_socket, (char*) &my_udp_address.sin_port, sizeof(my_udp_address.sin_port), 0 ); // TODO - check errors.
+			::send( client_tcp_socket, (char*) &connection_in_udp_port, sizeof(connection_in_udp_port), 0 ); // TODO - check errors.
 
 			// Recieve from client his udp port wia tcp connection.
+			uint16_t client_udp_port;
+			::recv( client_tcp_socket, (char*) &client_udp_port, sizeof(client_udp_port), 0 ); // TODO - check errors.
 			sockaddr_in client_udp_address;
 			std::memcpy( &client_udp_address, &client_address, sizeof(sockaddr_in) );
-			::recv( client_tcp_socket, (char*) &client_udp_address.sin_port, sizeof(client_udp_address.sin_port), 0 ); // TODO - check errors.
+			client_udp_address.sin_port= ::htons( client_udp_port );
 
 			return std::make_shared<NetConnection>( client_tcp_socket, client_udp_address, connection_in_udp_port );
 		}
@@ -259,15 +306,15 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 		return nullptr;
 	}
 
-	// Send client input udp address, wia tcp.
-	sockaddr_in my_udp_address;
-	my_udp_address.sin_port= ::htons( in_udp_port );
-	::send( tcp_socket, (char*) &my_udp_address.sin_port, sizeof(my_udp_address.sin_port), 0 ); // TODO - check errors.
+	// Send client input udp address, wia tcp.;
+	::send( tcp_socket, (char*) &in_udp_port, sizeof(in_udp_port), 0 ); // TODO - check errors.
 
 	// Recive from server it input udp address.
+	uint16_t server_udp_port;
+	::recv( tcp_socket, (char*) &server_udp_port, sizeof(server_udp_port), 0 ); // TODO - check errors.
 	sockaddr_in server_udp_address;
 	std::memcpy( &server_udp_address, &server_address, sizeof(sockaddr_in) );
-	::recv( tcp_socket, (char*) &server_udp_address.sin_port, sizeof(server_udp_address.sin_port), 0 ); // TODO - check errors.
+	server_udp_address.sin_port= ::htons( server_udp_port );
 
 	return std::make_shared<NetConnection>( tcp_socket, server_udp_address, in_udp_port );
 }
