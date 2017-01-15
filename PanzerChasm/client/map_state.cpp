@@ -193,25 +193,32 @@ void MapState::Tick( const Time current_time )
 
 		PC_ASSERT( part.monster_type < game_resources_->monsters_models.size() );
 		const auto& animations= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ].animations;
-		PC_ASSERT( animations.size() >= 2u );
 
-		const unsigned int frame_count_0= animations[0].frame_count;
-		const unsigned int frame_count_1= animations[1].frame_count;
-		const unsigned int frame= static_cast<unsigned int>( std::round( time_delta_s * GameConstants::animations_frames_per_second ) );
-
-		// Play animation 0, then play animation 1, then stop.
-		if( frame < frame_count_0 )
+		if( animations.size() >= 2u )
 		{
-			part.animation= 0u;
-			part.animation_frame= frame;
+			const unsigned int frame_count_0= animations[0].frame_count;
+			const unsigned int frame_count_1= animations[1].frame_count;
+			const unsigned int frame= static_cast<unsigned int>( std::round( time_delta_s * GameConstants::animations_frames_per_second ) );
+
+			// Play animation 0, then play animation 1, then stop.
+			if( frame < frame_count_0 )
+			{
+				part.animation= 0u;
+				part.animation_frame= frame;
+			}
+			else
+			{
+				part.animation= 1u;
+				if( frame_count_1 > 0u )
+					part.animation_frame= std::min( frame - frame_count_0, frame_count_1 - 1u );
+				else
+					part.animation_frame= 0u;
+			}
 		}
 		else
 		{
-			part.animation= 1u;
-			if( frame_count_1 > 0u )
-				part.animation_frame= std::min( frame - frame_count_0, frame_count_1 - 1u );
-			else
-				part.animation_frame= 0u;
+			part.animation= 0u;
+			part.animation_frame= 0u;
 		}
 
 		// Move part.
