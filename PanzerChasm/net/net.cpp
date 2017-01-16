@@ -18,7 +18,7 @@ static const uint16_t g_default_port_udp= 6667u;
 
 struct ClientToServerFirstUdpMessage
 {
-	char reserved[1];
+	char reserved[8];
 };
 
 class NetConnection final : public IConnection
@@ -98,7 +98,14 @@ public: // IConnection
 
 			if( result == SOCKET_ERROR )
 			{
-				Log::Info( "Error: ", ::WSAGetLastError() );
+				const int error_code= ::WSAGetLastError();
+				if( error_code == WSAEMSGSIZE )
+					return buffer_size;
+				else
+				{
+					Log::Info( "Error: ", error_code );
+					return 0u;
+				}
 			}
 
 			return std::max( result, 0 );
@@ -171,18 +178,20 @@ public:
 				::recvfrom(
 					udp_socket_, (char*) &message, sizeof(message), 0, (sockaddr*) &reciever_address, &reciever_address_length );
 
-			// WSAEMSGSIZE - why?
 			// TODO - check reciever_address.
-			/*if( result == SOCKET_ERROR )
+			if( result == SOCKET_ERROR )
 			{
-				Log::Info( "Error: ", ::WSAGetLastError() );
+				const int error_code= ::WSAGetLastError();
+				if( error_code != WSAEMSGSIZE )
+				{
+					Log::Info( "Error: ", error_code );
+					return nullptr;
+				}
 			}
-			else*/
-			{
-				const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
-				const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
-				return std::make_shared<NetConnection>( tcp_socket, udp_socket, reciever_address );
-			}
+
+			const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
+			const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
+			return std::make_shared<NetConnection>( tcp_socket, udp_socket, reciever_address );
 		}
 
 		return nullptr;
