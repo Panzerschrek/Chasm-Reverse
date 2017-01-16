@@ -37,6 +37,7 @@ public: // Messages handlers
 
 	// Default handler for non-client messages.
 	void operator()( const Messages::MessageBase& message );
+	void operator()( const Messages::DummyNetMessage& ) {}
 
 	// Handler for messages, that can be simply transfered to "MapState".
 	template<

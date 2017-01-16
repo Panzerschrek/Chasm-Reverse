@@ -27,6 +27,7 @@ public:
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
+	void operator()( const Messages::DummyNetMessage& ) {}
 	void operator()( const Messages::PlayerMove& message );
 
 private:

@@ -3,6 +3,8 @@
 #error
 #endif
 
+MESSAGE_FUNC(DummyNetMessage)
+
 MESSAGE_FUNC(MonsterState)
 MESSAGE_FUNC(WallPosition)
 MESSAGE_FUNC(PlayerSpawn)

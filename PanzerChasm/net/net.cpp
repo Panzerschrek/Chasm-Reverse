@@ -6,6 +6,7 @@
 #include "../assert.hpp"
 #include "../i_connection.hpp"
 #include "../log.hpp"
+#include "../messages.hpp"
 #include "../server/i_connections_listener.hpp"
 
 #include "net.hpp"
@@ -15,11 +16,6 @@ namespace PanzerChasm
 
 static const uint16_t g_default_port_tcp= 6666u;
 static const uint16_t g_default_port_udp= 6667u;
-
-struct ClientToServerFirstUdpMessage
-{
-	char reserved[8];
-};
 
 class NetConnection final : public IConnection
 {
@@ -173,7 +169,9 @@ public:
 			sockaddr_in reciever_address;
 			int reciever_address_length= sizeof(reciever_address);
 
-			ClientToServerFirstUdpMessage message;
+			// Recieve any message from client to estabelishing of connection.
+			// If we recieve differnent message, just dump it.
+			Messages::DummyNetMessage message;
 			int result=
 				::recvfrom(
 					udp_socket_, (char*) &message, sizeof(message), 0, (sockaddr*) &reciever_address, &reciever_address_length );
@@ -394,8 +392,13 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 
 	// Send to server first udp message for establishing of connection.
 	// Make NAT happy.
-	ClientToServerFirstUdpMessage first_message;
-	::sendto( udp_socket, (char*) &first_message, sizeof(first_message), 0, (sockaddr*) &server_udp_address, sizeof(server_udp_address) );
+	// Make this multiple times, for better reliability.
+	// We can just start send real game messages, but first message, that server catches, will be lost.
+	for( unsigned int n= 0u; n < 4u; n++ )
+	{
+		Messages::DummyNetMessage first_message;
+		::sendto( udp_socket, (char*) &first_message, sizeof(first_message), 0, (sockaddr*) &server_udp_address, sizeof(server_udp_address) );
+	}
 
 	return std::make_shared<NetConnection>( tcp_socket, udp_socket, server_udp_address );
 }
