@@ -11,6 +11,8 @@
 
 #include "net.hpp"
 
+#define FUNC_NAME  __FUNCTION__
+
 namespace PanzerChasm
 {
 
@@ -34,7 +36,7 @@ static bool IsSocketReady( const SOCKET& socket )
 		return false;
 	else
 	{
-		Log::Warning( __FUNCTION__, " -  ::select call error: ", ::WSAGetLastError() );
+		Log::Warning( FUNC_NAME, " -  ::select call error: ", ::WSAGetLastError() );
 		return false;
 	}
 }
@@ -62,12 +64,23 @@ public:
 public: // IConnection
 	virtual void SendReliablePacket( const void* data, unsigned int data_size ) override
 	{
-		::send( tcp_socket_, (const char*) data, data_size, 0 );
+		if( data_size == 0u )
+			return;
+
+		const int result= ::send( tcp_socket_, (const char*) data, data_size, 0 );
+		if( result == SOCKET_ERROR )
+			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
 	}
 
 	virtual void SendUnreliablePacket( const void* data, unsigned int data_size ) override
 	{
-		::sendto( udp_socket_, (const char*) data, data_size, 0, (sockaddr*) &destination_udp_address_, sizeof(destination_udp_address_) );
+		const int result=
+			::sendto( udp_socket_, (const char*) data, data_size, 0, (sockaddr*) &destination_udp_address_, sizeof(destination_udp_address_) );
+
+		if( result == SOCKET_ERROR )
+			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+		else if( result < static_cast<int>(data_size) )
+			Log::Warning( FUNC_NAME, " not all data transmited: ", result, " from ", data_size );
 	}
 
 	virtual unsigned int ReadRealiableData( void* out_data, unsigned int buffer_size ) override
@@ -76,9 +89,8 @@ public: // IConnection
 		{
 			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
 			if( result == SOCKET_ERROR )
-			{
-				Log::Info( "Error: ", ::WSAGetLastError() );
-			}
+				Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+
 			return std::max( 0, result );
 		}
 		return 0u;
@@ -96,7 +108,7 @@ public: // IConnection
 
 			if( result == SOCKET_ERROR )
 			{
-				Log::Info( "Error: ", ::WSAGetLastError() );
+				Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
 				return 0u;
 			}
 
@@ -145,7 +157,7 @@ public:
 		const int bind_result= ::bind( udp_socket_, (sockaddr*) &udp_address, sizeof(udp_address) );
 		if( bind_result != 0 )
 		{
-			Log::Warning( "Can not bind udp socket. Error code: ", ::WSAGetLastError() );
+			Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", ::WSAGetLastError() );
 			return;
 		}
 	}
@@ -171,7 +183,7 @@ public:
 		// TODO - check reciever_address (must match IP address with tcp connection).
 		if( result == SOCKET_ERROR )
 		{
-			Log::Info( "Error: ", ::WSAGetLastError() );
+			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
 			return nullptr;
 		}
 
@@ -327,7 +339,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const SOCKET tcp_socket= ::socket( AF_INET, SOCK_STREAM, 0 );
 	if( tcp_socket == INVALID_SOCKET )
 	{
-		Log::Warning( "Can not create tcp socket. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC, " can not create tcp socket. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
@@ -340,7 +352,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
 	if( tcp_socket == INVALID_SOCKET )
 	{
-		Log::Warning( "Can not create udp socket. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC, " can not create udp socket. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
@@ -353,7 +365,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const int connection_result= ::connect( tcp_socket, (sockaddr*) &server_tcp_address, sizeof(server_tcp_address) );
 	if( connection_result == SOCKET_ERROR )
 	{
-		Log::Warning( "Can not connect to server. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC, " can not connect to server. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
@@ -367,7 +379,6 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	// Send to server first udp message for establishing of connection.
 	// Make NAT happy.
 	// Make this multiple times, for better reliability.
-	// We can just start send real game messages, but first message, that server catches, will be lost.
 	for( unsigned int n= 0u; n < 4u; n++ )
 	{
 		Messages::DummyNetMessage first_message;
