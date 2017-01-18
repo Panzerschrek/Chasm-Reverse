@@ -59,6 +59,8 @@ public:
 
 	virtual ~NetConnection() override
 	{
+		Disconnect();
+
 		::closesocket( tcp_socket_ );
 		::closesocket( udp_socket_ );
 	}
@@ -66,8 +68,8 @@ public:
 public: // IConnection
 	virtual void SendReliablePacket( const void* data, unsigned int data_size ) override
 	{
-		if( data_size == 0u )
-			return;
+		if( disconnected_ ) return;
+		if( data_size == 0u ) return;
 
 		const int result= ::send( tcp_socket_, (const char*) data, data_size, 0 );
 		if( result == SOCKET_ERROR )
@@ -76,6 +78,8 @@ public: // IConnection
 
 	virtual void SendUnreliablePacket( const void* data, unsigned int data_size ) override
 	{
+		if( disconnected_ ) return;
+
 		const int result=
 			::sendto( udp_socket_, (const char*) data, data_size, 0, (sockaddr*) &destination_udp_address_, sizeof(destination_udp_address_) );
 
@@ -87,11 +91,17 @@ public: // IConnection
 
 	virtual unsigned int ReadRealiableData( void* out_data, unsigned int buffer_size ) override
 	{
+		if( disconnected_ ) return 0u;
+
 		if( IsSocketReady( tcp_socket_ ) )
 		{
 			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
 			if( result == SOCKET_ERROR )
 				Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+
+			// If socket is ready, but recv return zero, this means, that other side closes connection.
+			if( result == 0 )
+				Disconnect();
 
 			return std::max( 0, result );
 		}
@@ -100,6 +110,8 @@ public: // IConnection
 
 	virtual unsigned int ReadUnrealiableData( void* out_data, unsigned int buffer_size ) override
 	{
+		if( disconnected_ ) return 0u;
+
 		if( IsSocketReady( udp_socket_ ) )
 		{
 			sockaddr_in reciever_address;
@@ -127,18 +139,26 @@ public: // IConnection
 
 	virtual void Disconnect() override
 	{
-		// TODO
+		if( disconnected_ ) return;
+		disconnected_= true;
+
+		if( ::shutdown( tcp_socket_, SD_BOTH ) != 0 )
+			Log::Warning( FUNC_NAME, " error, during closing tcp connection: ", ::WSAGetLastError() );
+		if( ::shutdown( udp_socket_, SD_BOTH ) != 0 )
+			Log::Warning( FUNC_NAME, " error, during closing udp connection: ", ::WSAGetLastError() );
 	}
+
 	virtual bool Disconnected() override
 	{
-		// TODO
-		return false;
+		return disconnected_;
 	}
 
 private:
 	const SOCKET tcp_socket_= INVALID_SOCKET;
 	const SOCKET udp_socket_= INVALID_SOCKET;
 	const sockaddr_in destination_udp_address_;
+
+	bool disconnected_= false;
 };
 
 class EstablishingConnection
@@ -192,7 +212,6 @@ public:
 				MSG_PEEK,
 				(sockaddr*) &reciever_address, &reciever_address_length );
 
-		// TODO - check reciever_address (must match IP address with tcp connection).
 		if( result == SOCKET_ERROR )
 		{
 			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
@@ -282,8 +301,6 @@ public: // IConnectionsListener
 				Log::Warning( "Can not accept client. Error code: ", ::WSAGetLastError() );
 				return nullptr;
 			}
-
-			Log::Info( "Client connected to server" );
 
 			const uint16_t connection_in_udp_port= next_in_udp_port_;
 			++next_in_udp_port_;

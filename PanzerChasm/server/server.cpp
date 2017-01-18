@@ -59,6 +59,8 @@ void Server::Loop()
 	// Accept new connections.
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
+		Log::Info( "Client connected to server" );
+
 		players_.emplace_back( new ConnectedPlayer( connection, game_resources_, server_accumulated_time_ ) );
 		ConnectedPlayer& connected_player= *players_.back();
 
@@ -90,6 +92,8 @@ void Server::Loop()
 		ConnectedPlayerPtr& player= players_[p];
 		if( player->connection_info.connection->Disconnected() )
 		{
+			Log::Info( "Client disconnected from server" );
+
 			if( map_ != nullptr )
 				map_->DespawnPlayer( player->player_monster_id );
 
