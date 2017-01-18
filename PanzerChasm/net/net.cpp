@@ -17,6 +17,28 @@ namespace PanzerChasm
 static const uint16_t g_default_port_tcp= 6666u;
 static const uint16_t g_default_port_udp= 6667u;
 
+static bool IsSocketReady( const SOCKET& socket )
+{
+	fd_set set;
+	set.fd_count= 1u;
+	set.fd_array[0]= socket;
+
+	timeval wait_time;
+	wait_time.tv_sec= 0u;
+	wait_time.tv_usec= 0u;
+
+	const int result= ::select( 0, &set, nullptr, nullptr, &wait_time );
+	if( result == 1 )
+		return true;
+	else if( result == 0 )
+		return false;
+	else
+	{
+		Log::Warning( __FUNCTION__, " -  ::select call error: ", ::WSAGetLastError() );
+		return false;
+	}
+}
+
 class NetConnection final : public IConnection
 {
 public:
@@ -25,10 +47,10 @@ public:
 		, udp_socket_( udp_socket )
 		, destination_udp_address_( destination_udp_address )
 	{
+		// TEST - use nonblocking sockets.
 		//u_long socket_mode= 1;
 		//::ioctlsocket( tcp_socket_, FIONBIO, &socket_mode );
-		//::ioctlsocket( in_udp_socket_, FIONBIO, &socket_mode );
-		//::ioctlsocket( out_udp_socket_, FIONBIO, &socket_mode );
+		//::ioctlsocket( udp_socket_, FIONBIO, &socket_mode );
 	}
 
 	virtual ~NetConnection() override
@@ -50,17 +72,7 @@ public: // IConnection
 
 	virtual unsigned int ReadRealiableData( void* out_data, unsigned int buffer_size ) override
 	{
-		fd_set set;
-		set.fd_count= 1u;
-		set.fd_array[0]= tcp_socket_;
-
-		timeval wait_time;
-		wait_time.tv_sec= 0u;
-		wait_time.tv_usec= 1000u;
-
-		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
-		// TODO - check error
-		if( socket_ready == 1u )
+		if( IsSocketReady( tcp_socket_ ) )
 		{
 			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
 			if( result == SOCKET_ERROR )
@@ -74,17 +86,7 @@ public: // IConnection
 
 	virtual unsigned int ReadUnrealiableData( void* out_data, unsigned int buffer_size ) override
 	{
-		fd_set set;
-		set.fd_count= 1u;
-		set.fd_array[0]= udp_socket_;
-
-		timeval wait_time;
-		wait_time.tv_sec= 0u;
-		wait_time.tv_usec= 1000u;
-
-		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
-		// TODO - check error
-		if( socket_ready == 1u )
+		if( IsSocketReady( udp_socket_ ) )
 		{
 			sockaddr_in reciever_address;
 			int reciever_address_length= sizeof(reciever_address);
@@ -150,42 +152,32 @@ public:
 
 	IConnectionPtr TryCompleteConnection()
 	{
-		fd_set set;
-		set.fd_count= 1u; set.fd_array[0]= udp_socket_;
+		if( !IsSocketReady( udp_socket_ ) )
+			return nullptr;
 
-		timeval wait_time;
-		wait_time.tv_sec= 0u; wait_time.tv_usec= 1000u;
+		sockaddr_in reciever_address;
+		int reciever_address_length= sizeof(reciever_address);
 
-		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
-		// TODO - check error
-		if( socket_ready == 1u )
+		// Recieve any message from client to estabelishing of connection.
+		// Use MSG_PEEK, because we not want to dump really meaning message.
+		unsigned char dummy_buffer[ IConnection::c_max_unreliable_packet_size ];
+		int result=
+			::recvfrom(
+				udp_socket_,
+				(char*) &dummy_buffer, sizeof(dummy_buffer),
+				MSG_PEEK,
+				(sockaddr*) &reciever_address, &reciever_address_length );
+
+		// TODO - check reciever_address (must match IP address with tcp connection).
+		if( result == SOCKET_ERROR )
 		{
-			sockaddr_in reciever_address;
-			int reciever_address_length= sizeof(reciever_address);
-
-			// Recieve any message from client to estabelishing of connection.
-			// Use MSG_PEEK, because we not want to dump really meaning message.
-			unsigned char dummy_buffer[ IConnection::c_max_unreliable_packet_size ];
-			int result=
-				::recvfrom(
-					udp_socket_,
-					(char*) &dummy_buffer, sizeof(dummy_buffer),
-					MSG_PEEK,
-					(sockaddr*) &reciever_address, &reciever_address_length );
-
-			// TODO - check reciever_address (must match IP address with tcp connection).
-			if( result == SOCKET_ERROR )
-			{
-				Log::Info( "Error: ", ::WSAGetLastError() );
-				return nullptr;
-			}
-
-			const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
-			const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
-			return std::make_shared<NetConnection>( tcp_socket, udp_socket, reciever_address );
+			Log::Info( "Error: ", ::WSAGetLastError() );
+			return nullptr;
 		}
 
-		return nullptr;
+		const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
+		const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
+		return std::make_shared<NetConnection>( tcp_socket, udp_socket, reciever_address );
 	}
 
 private:
@@ -247,31 +239,8 @@ public:
 public: // IConnectionsListener
 	virtual IConnectionPtr GetNewConnection() override
 	{
-		// Ty complete establishing connections.
-		for( unsigned int c= 0u; c < establishing_connections_.size(); c++ )
+		if( IsSocketReady( listen_socket_ ) )
 		{
-			if( const IConnectionPtr connection= establishing_connections_[c]->TryCompleteConnection() )
-			{
-				if( c != establishing_connections_.size() - 1u )
-					establishing_connections_[c]= std::move( establishing_connections_.back() );
-				establishing_connections_.pop_back();
-				return connection;
-			}
-		}
-
-		fd_set set;
-		set.fd_count= 1u;
-		set.fd_array[0]= listen_socket_;
-
-		timeval wait_time;
-		wait_time.tv_sec= 0u;
-		wait_time.tv_usec= 1000u;
-
-		unsigned int socket_ready= ::select( 0, &set, nullptr, nullptr, &wait_time );
-		// TODO - check error
-		if( socket_ready == 1u )
-		{
-			// Create connection.
 			sockaddr_in client_address;
 			int client_address_len= sizeof(client_address);
 			const SOCKET client_tcp_socket=
@@ -289,6 +258,18 @@ public: // IConnectionsListener
 			++next_in_udp_port_;
 
 			establishing_connections_.emplace_back( new EstablishingConnection( client_tcp_socket, connection_in_udp_port ) );
+		}
+
+		// Try complete establishing connections.
+		for( unsigned int c= 0u; c < establishing_connections_.size(); c++ )
+		{
+			if( const IConnectionPtr connection= establishing_connections_[c]->TryCompleteConnection() )
+			{
+				if( c != establishing_connections_.size() - 1u )
+					establishing_connections_[c]= std::move( establishing_connections_.back() );
+				establishing_connections_.pop_back();
+				return connection;
+			}
 		}
 
 		return nullptr;
