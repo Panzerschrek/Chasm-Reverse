@@ -94,14 +94,8 @@ public: // IConnection
 
 			if( result == SOCKET_ERROR )
 			{
-				const int error_code= ::WSAGetLastError();
-				if( error_code == WSAEMSGSIZE )
-					return buffer_size;
-				else
-				{
-					Log::Info( "Error: ", error_code );
-					return 0u;
-				}
+				Log::Info( "Error: ", ::WSAGetLastError() );
+				return 0u;
 			}
 
 			return std::max( result, 0 );
@@ -170,21 +164,20 @@ public:
 			int reciever_address_length= sizeof(reciever_address);
 
 			// Recieve any message from client to estabelishing of connection.
-			// If we recieve differnent message, just dump it.
-			Messages::DummyNetMessage message;
+			// Use MSG_PEEK, because we not want to dump really meaning message.
+			unsigned char dummy_buffer[ IConnection::c_max_unreliable_packet_size ];
 			int result=
 				::recvfrom(
-					udp_socket_, (char*) &message, sizeof(message), 0, (sockaddr*) &reciever_address, &reciever_address_length );
+					udp_socket_,
+					(char*) &dummy_buffer, sizeof(dummy_buffer),
+					MSG_PEEK,
+					(sockaddr*) &reciever_address, &reciever_address_length );
 
-			// TODO - check reciever_address.
+			// TODO - check reciever_address (must match IP address with tcp connection).
 			if( result == SOCKET_ERROR )
 			{
-				const int error_code= ::WSAGetLastError();
-				if( error_code != WSAEMSGSIZE )
-				{
-					Log::Info( "Error: ", error_code );
-					return nullptr;
-				}
+				Log::Info( "Error: ", ::WSAGetLastError() );
+				return nullptr;
 			}
 
 			const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
