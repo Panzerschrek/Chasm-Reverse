@@ -16,6 +16,8 @@
 namespace PanzerChasm
 {
 
+typedef uint32_t IpAddress; // Ip address in net byte order.
+
 static const uint16_t g_default_port_tcp= 6666u;
 static const uint16_t g_default_port_udp= 6667u;
 
@@ -102,13 +104,19 @@ public: // IConnection
 		{
 			sockaddr_in reciever_address;
 			int reciever_address_length= sizeof(reciever_address);
-			// TODO - check reciever_address
 			int result=
 				::recvfrom( udp_socket_, (char*) out_data, buffer_size, 0, (sockaddr*) &reciever_address, &reciever_address_length );
 
 			if( result == SOCKET_ERROR )
 			{
 				Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+				return 0u;
+			}
+
+			if( !( // Check for correct addres - discard messages from invalid address.
+				reciever_address.sin_addr.S_un.S_addr == destination_udp_address_.sin_addr.S_un.S_addr &&
+				reciever_address.sin_port == destination_udp_address_.sin_port ) )
+			{
 				return 0u;
 			}
 
@@ -136,8 +144,12 @@ private:
 class EstablishingConnection
 {
 public:
-	EstablishingConnection( const SOCKET tcp_socket, const uint16_t udp_port )
+	EstablishingConnection(
+		const SOCKET tcp_socket,
+		const IpAddress client_ip_address,
+		const uint16_t udp_port )
 		: tcp_socket_(tcp_socket)
+		, client_ip_address_(client_ip_address)
 	{
 		// Send to client input udp address, wia tcp.
 		::send( tcp_socket_, (char*) &udp_port, sizeof(udp_port), 0 ); // TODO - check errors.
@@ -187,6 +199,12 @@ public:
 			return nullptr;
 		}
 
+		if( reciever_address.sin_addr.S_un.S_addr != client_ip_address_ )
+		{
+			Log::Info( "Unknown user ", inet_ntoa( reciever_address.sin_addr ), " trying to connect. Discard him." );
+			return nullptr;
+		}
+
 		const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
 		const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
 		return std::make_shared<NetConnection>( tcp_socket, udp_socket, reciever_address );
@@ -195,6 +213,7 @@ public:
 private:
 	SOCKET tcp_socket_= INVALID_SOCKET;
 	SOCKET udp_socket_= INVALID_SOCKET;
+	const IpAddress client_ip_address_;
 };
 
 typedef std::unique_ptr<EstablishingConnection> EstablishingConnectionPtr;
@@ -269,7 +288,11 @@ public: // IConnectionsListener
 			const uint16_t connection_in_udp_port= next_in_udp_port_;
 			++next_in_udp_port_;
 
-			establishing_connections_.emplace_back( new EstablishingConnection( client_tcp_socket, connection_in_udp_port ) );
+			establishing_connections_.emplace_back(
+			new EstablishingConnection(
+				client_tcp_socket,
+				client_address.sin_addr.S_un.S_addr,
+				connection_in_udp_port ) );
 		}
 
 		// Try complete establishing connections.
@@ -339,7 +362,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const SOCKET tcp_socket= ::socket( AF_INET, SOCK_STREAM, 0 );
 	if( tcp_socket == INVALID_SOCKET )
 	{
-		Log::Warning( FUNC, " can not create tcp socket. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC_NAME, " can not create tcp socket. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
@@ -352,7 +375,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
 	if( tcp_socket == INVALID_SOCKET )
 	{
-		Log::Warning( FUNC, " can not create udp socket. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC_NAME, " can not create udp socket. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
@@ -365,7 +388,7 @@ IConnectionPtr Net::ConnectToServer( const InetAddress& address, uint16_t in_udp
 	const int connection_result= ::connect( tcp_socket, (sockaddr*) &server_tcp_address, sizeof(server_tcp_address) );
 	if( connection_result == SOCKET_ERROR )
 	{
-		Log::Warning( FUNC, " can not connect to server. Error code: ", ::WSAGetLastError() );
+		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", ::WSAGetLastError() );
 		return nullptr;
 	}
 
