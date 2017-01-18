@@ -29,6 +29,8 @@ public: // IConnection
 	virtual void Disconnect() override;
 	virtual bool Disconnected() override;
 
+	virtual std::string GetConnectionInfo() override;
+
 private:
 	Queue& in_reliable_buffer_;
 	Queue& in_unreliable_buffer_;
@@ -90,6 +92,11 @@ void LoopbackBuffer::Connection::Disconnect()
 bool LoopbackBuffer::Connection::Disconnected()
 {
 	return disconnected_;
+}
+
+std::string LoopbackBuffer::Connection::GetConnectionInfo()
+{
+	return "loopback";
 }
 
 LoopbackBuffer::Queue::Queue()

@@ -153,6 +153,17 @@ public: // IConnection
 		return disconnected_;
 	}
 
+	virtual std::string GetConnectionInfo() override
+	{
+		std::string result;
+		result.reserve( std::strlen( "255.255.255.255:65535") );
+
+		result+= ::inet_ntoa( destination_udp_address_.sin_addr );
+		result+= ":" + std::to_string( destination_udp_address_.sin_port );
+
+		return result;
+	}
+
 private:
 	const SOCKET tcp_socket_= INVALID_SOCKET;
 	const SOCKET udp_socket_= INVALID_SOCKET;

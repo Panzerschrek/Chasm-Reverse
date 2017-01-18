@@ -20,6 +20,9 @@ public:
 
 	virtual void Disconnect()= 0;
 	virtual bool Disconnected()= 0;
+
+	// Returns address or something like this.
+	virtual std::string GetConnectionInfo()= 0;
 };
 
 } // namespace PanzerChasm
