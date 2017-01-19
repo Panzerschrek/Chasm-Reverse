@@ -227,18 +227,29 @@ void Host::ConnectCommand( const CommandsArguments& args )
 		return;
 	}
 
-	const std::string& server_address= args[0];
-	Log::Info( "Connecting to ", server_address );
+	InetAddress address;
+	if( !InetAddress::Parse( args[0], address ) )
+	{
+		Log::Info( "Invalid address" );
+		return;
+	}
+
+	if( address.port == 0 )
+		address.port= Net::c_default_server_tcp_port;
+
+	Log::Info( "Connecting to ", address.ToString() );
 
 	EnsureClient();
 
 	if( loopback_buffer_ != nullptr )
 		loopback_buffer_->RequestDisconnect(); // Kill old connection.
 
-	InetAddress address;
-	address.ip_address= 0x7F000001;
-	address.port= Net::c_default_server_tcp_port;
 	auto connection= net_->ConnectToServer( address );
+	if( connection == nullptr )
+	{
+		Log::Info( "Connection failed" );
+		return;
+	}
 
 	client_->SetConnection( connection );
 }

@@ -10,7 +10,10 @@ struct InetAddress
 	uint16_t port;
 
 	// Returns true, if successfully parsed.
+	// Returns zero port, if it not specified.
 	static bool Parse( const std::string& address_string, InetAddress& out_address );
+
+	std::string ToString() const;
 };
 
 class Net final

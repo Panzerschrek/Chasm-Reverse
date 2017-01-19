@@ -43,6 +43,59 @@ static bool IsSocketReady( const SOCKET& socket )
 	}
 }
 
+bool InetAddress::Parse( const std::string& address_string, InetAddress& out_address )
+{
+	unsigned char addr[4];
+
+	const char* str= address_string.c_str();
+	for( unsigned int i= 0u; i < 4u; i++ )
+	{
+		if( ! std::isdigit( *str ) ) return false;
+
+		const int n= std::atoi(str);
+		if( ! ( n >= 0 && n <= 255 ) ) return false;
+
+		addr[ 3u - i ]= static_cast<unsigned char>(n);
+
+		while( std::isdigit( *str ) && *str != '\0' ) str++;
+
+		if( i != 3u )
+		{
+			if( *str != '.' ) return false;
+			str++;
+		}
+	}
+
+	std::memcpy( &out_address.ip_address, &addr, 4u );
+	out_address.port= 0u;
+
+	if( *str == ':' )
+	{
+		str++;
+		if( *str == '\0' ) return false;
+		if( ! std::isdigit( *str ) ) return false;
+		const int port= std::atoi( str );
+		if( !( port > 0 && port < 65536 ) ) return false;
+		out_address.port= port;
+	}
+
+	return true;
+}
+
+std::string InetAddress::ToString() const
+{
+	std::string result;
+	result.reserve( std::strlen( "255.255.255.255:65535") );
+
+	in_addr ip;
+	ip.S_un.S_addr= ::htonl( ip_address );
+
+	result+= ::inet_ntoa( ip );
+	result+= ":" + std::to_string( port );
+
+	return result;
+}
+
 class NetConnection final : public IConnection
 {
 public:
