@@ -236,9 +236,9 @@ void Host::ConnectCommand( const CommandsArguments& args )
 		loopback_buffer_->RequestDisconnect(); // Kill old connection.
 
 	InetAddress address;
-	address.address= 0;
-	address.port= 6666u;
-	auto connection= net_->ConnectToServer( address, 8000u );
+	address.ip_address= 0x7F000001;
+	address.port= Net::c_default_server_tcp_port;
+	auto connection= net_->ConnectToServer( address );
 
 	client_->SetConnection( connection );
 }
@@ -253,7 +253,7 @@ void Host::RunServerCommand( const CommandsArguments& args )
 		loopback_buffer_->RequestDisconnect(); // Kill old connection.
 
 	local_server_->ChangeMap( 1u, Difficulty::Normal );
-	connections_listener_proxy_->SetConnectionsListener( net_->CreateServerListener( 6666u, 9000u ) );
+	connections_listener_proxy_->SetConnectionsListener( net_->CreateServerListener() );
 }
 
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
