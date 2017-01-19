@@ -169,10 +169,16 @@ void Client::Draw()
 
 		weapon_shift_matrix.Translate( m_Vec3( 0.0f, weapon_shift_y, weapon_shift_z ) );
 
-		map_drawer_.Draw( *map_state_, view_rotation_and_projection_matrix, pos );
+		map_drawer_.Draw(
+			*map_state_,
+			view_rotation_and_projection_matrix,
+			pos,
+			player_monster_id_ );
+
 		map_drawer_.DrawWeapon(
 			weapon_state_,
 			weapon_shift_matrix * projection_matrix,
+
 			pos );
 
 		hud_drawer_.DrawCrosshair();

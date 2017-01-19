@@ -28,7 +28,8 @@ public:
 	void Draw(
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
-		const m_Vec3& camera_position );
+		const m_Vec3& camera_position,
+		EntityId player_monster_id );
 
 	void DrawWeapon(
 		const WeaponState& weapon_state,
@@ -108,6 +109,7 @@ private:
 	void DrawMonsters(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		EntityId player_mosnter_id,
 		bool transparent );
 
 	void DrawMonstersBodyParts(
