@@ -90,6 +90,13 @@ void Server::Loop()
 	for( unsigned int p= 0u; p < players_.size(); )
 	{
 		ConnectedPlayerPtr& player= players_[p];
+
+		if( player->connection_info.messages_extractor.IsBroken() )
+		{
+			Log::Info( "Messages from client \"", player->connection_info.connection->GetConnectionInfo(), "\" was broken" );
+			player->connection_info.connection->Disconnect();
+		}
+
 		if( player->connection_info.connection->Disconnected() )
 		{
 			Log::Info( "Client \"" + player->connection_info.connection->GetConnectionInfo(), "\" disconnected from server" );

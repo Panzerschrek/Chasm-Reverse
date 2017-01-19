@@ -12,6 +12,8 @@ namespace PanzerChasm
 template<class MessagesHandler>
 void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 {
+	if( broken_ ) return;
+
 	for( unsigned int i= 0u; i < 2u; i++ ) // for reliable and unreliable messages
 	{
 		unsigned char* const buffer= i == 0u ? reliable_buffer_ : unreliable_buffer_;
@@ -63,9 +65,8 @@ void MessagesExtractor::ProcessMessages( MessagesHandler& messages_handler )
 				{
 				case MessageId::Unknown:
 				case MessageId::NumMessages:
-					// TODO - handle error
-					PC_ASSERT(false);
-					break;
+					broken_= true;
+					return;
 
 				#define MESSAGE_FUNC(x)\
 				case MessageId::x:\
