@@ -37,6 +37,14 @@ struct MessageBase
 	MessageId message_id;
 };
 
+// Dummy message for connection establishing.
+struct DummyNetMessage : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DummyNetMessage)
+
+	char filler[7u];
+};
+
 struct MonsterState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(MonsterState)

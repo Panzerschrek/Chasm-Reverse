@@ -19,13 +19,14 @@ public:
 	Client(
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
-		const LoopbackBufferPtr& loopback_buffer,
 		const RenderingContext& rendering_context,
 		const DrawersPtr& drawers,
 		const Sound::SoundEnginePtr& sound_engine,
 		const DrawLoadingCallback& draw_loading_callback );
 
 	~Client();
+
+	void SetConnection( IConnectionPtr connection );
 
 	void ProcessEvents( const SystemEvents& events );
 
@@ -36,6 +37,7 @@ public: // Messages handlers
 
 	// Default handler for non-client messages.
 	void operator()( const Messages::MessageBase& message );
+	void operator()( const Messages::DummyNetMessage& ) {}
 
 	// Handler for messages, that can be simply transfered to "MapState".
 	template<
@@ -64,7 +66,6 @@ private:
 private:
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
-	const LoopbackBufferPtr loopback_buffer_;
 	const Sound::SoundEnginePtr sound_engine_;
 	const DrawLoadingCallback draw_loading_callback_;
 

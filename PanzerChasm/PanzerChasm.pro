@@ -9,6 +9,9 @@ win32 {
 	LIBS+= $$SDL_LIBS_DIR/SDL2main.lib
 	LIBS+= $$SDL_LIBS_DIR/SDL2.lib
 	LIBS+= libopengl32
+
+	# Windows sockets 2 (ws2_32.lib).
+	LIBS+= libws2_32
 }
 else {
 	SDL_INCLUDES_DIR = /usr/include/SDL2/
@@ -49,6 +52,7 @@ SOURCES+= \
 	messages_extractor.cpp \
 	messages_sender.cpp \
 	model.cpp \
+	net/net.cpp \
 	obj.cpp \
 	rand.cpp \
 	server/collisions.cpp \
@@ -100,6 +104,7 @@ HEADERS+= \
 	messages_list.h \
 	messages_sender.hpp \
 	model.hpp \
+	net/net.hpp \
 	obj.hpp \
 	particles.hpp \
 	rand.hpp \

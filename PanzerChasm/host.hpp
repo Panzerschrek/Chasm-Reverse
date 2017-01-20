@@ -6,6 +6,7 @@
 #include "console.hpp"
 #include "host_commands.hpp"
 #include "menu.hpp"
+#include "net/net.hpp"
 #include "server/server.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
@@ -27,10 +28,23 @@ public: // HostCommands
 	virtual void NewGame( DifficultyType difficulty ) override;
 
 private:
+	class ConnectionsListenerProxy;
+
+private:
 	void NewGameCommand( const CommandsArguments& args );
-	void RunLevel( const CommandsArguments& args );
+	void RunLevelCommand( const CommandsArguments& args );
+	void ConnectCommand( const CommandsArguments& args );
+	void RunServerCommand( const CommandsArguments& args );
+
+	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
 
 	void DrawLoadingFrame( float progress, const char* caption );
+
+	void CreateRenderingContext( RenderingContext& out_context );
+
+	void EnsureClient();
+	void EnsureServer();
+	void EnsureLoopbackBuffer();
 
 private:
 	// Put members here in reverse deinitialization order.
@@ -42,6 +56,8 @@ private:
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
+
+	std::unique_ptr<Net> net_;
 
 	std::unique_ptr<SystemWindow> system_window_;
 	SystemEvents events_;
@@ -55,8 +71,8 @@ private:
 	MapLoaderPtr map_loader_;
 
 	LoopbackBufferPtr loopback_buffer_;
+	std::shared_ptr<ConnectionsListenerProxy> connections_listener_proxy_; // Create it together with server.
 	std::unique_ptr<Server> local_server_;
-
 	std::unique_ptr<Client> client_;
 };
 

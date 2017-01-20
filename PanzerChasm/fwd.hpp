@@ -12,6 +12,9 @@ typedef std::function< void( float progress, const char* caption ) > DrawLoading
 class IConnection;
 typedef std::shared_ptr<IConnection> IConnectionPtr;
 
+class IConnectionsListener;
+typedef std::shared_ptr<IConnectionsListener> IConnectionsListenerPtr;
+
 struct Drawers;
 typedef std::shared_ptr<Drawers> DrawersPtr;
 

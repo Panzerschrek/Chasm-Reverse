@@ -2,6 +2,7 @@
 #include <type_traits>
 
 #include "fwd.hpp"
+#include "i_connection.hpp"
 #include "messages.hpp"
 
 namespace PanzerChasm
@@ -47,8 +48,7 @@ private:
 	const IConnectionPtr connection_;
 
 	// Bufferize unreliable messages, which works via UDP.
-	// Buffer size - near packet optimal size
-	unsigned char unreliable_messages_buffer_[500];
+	unsigned char unreliable_messages_buffer_[ IConnection::c_max_unreliable_packet_size ];
 	unsigned int unreliable_messages_buffer_pos_= 0u;
 };
 

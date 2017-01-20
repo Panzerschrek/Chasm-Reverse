@@ -415,7 +415,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 void MapDrawer::Draw(
 	const MapState& map_state,
 	const m_Mat4& view_rotation_and_projection_matrix,
-	const m_Vec3& camera_position )
+	const m_Vec3& camera_position,
+	const EntityId player_monster_id )
 {
 	if( current_map_data_ == nullptr )
 		return;
@@ -437,7 +438,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, false );
 	DrawItems( map_state, view_matrix, false );
 	DrawDynamicItems( map_state, view_matrix, false );
-	DrawMonsters( map_state, view_matrix, false );
+	DrawMonsters( map_state, view_matrix, player_monster_id, false );
 	DrawMonstersBodyParts( map_state, view_matrix, false );
 	DrawRockets( map_state, view_matrix, false );
 
@@ -451,7 +452,7 @@ void MapDrawer::Draw(
 	DrawModels( map_state, view_matrix, true );
 	DrawItems( map_state, view_matrix, true );
 	DrawDynamicItems( map_state, view_matrix, true );
-	DrawMonsters( map_state, view_matrix, true );
+	DrawMonsters( map_state, view_matrix, player_monster_id, true );
 	DrawMonstersBodyParts( map_state, view_matrix, true );
 	DrawRockets( map_state, view_matrix, true );
 
@@ -1476,6 +1477,7 @@ void MapDrawer::DrawDynamicItems(
 void MapDrawer::DrawMonsters(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const EntityId player_monster_id,
 	const bool transparent )
 {
 	monsters_shader_.Bind();
@@ -1486,12 +1488,10 @@ void MapDrawer::DrawMonsters(
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
 	{
-		const MapState::Monster& monster= monster_value.second;
-
-		// HACK -REMOVE THIS. Skip players.
-		// TODO - skip only this player
-		if( monster.monster_id == 0u )
+		if( monster_value.first == player_monster_id )
 			continue;
+
+		const MapState::Monster& monster= monster_value.second;
 
 		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
 			monster.body_parts_mask == 0u ) // Monster is invisible.
