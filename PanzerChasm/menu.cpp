@@ -311,7 +311,7 @@ public:
 
 private:
 	HostCommands& host_commands_;
-	std::unique_ptr<MenuBase> submenus_[2];
+	std::unique_ptr<MenuBase> submenus_[3];
 	int current_row_= 0;
 };
 
@@ -327,38 +327,36 @@ NetworkMenu::~NetworkMenu()
 
 void NetworkMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 {
+	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::Network );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
-	const unsigned int size[2]= { 108u, text_draw.GetLineHeight() * 2u };
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * pic_size.xy[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * pic_size.xy[1] ) >> 1 );
 
-	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
-	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
-	const int y1= y + scale * int(text_draw.GetLineHeight());
-	const int x_center= int( viewport_size.xy[0] >> 1u );
+	menu_drawer.DrawMenuBackground(
+		x, y,
+		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
-	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+	MenuDrawer::PictureColor colors[4]=
+	{
+		MenuDrawer::PictureColor::Unactive,
+		MenuDrawer::PictureColor::Unactive,
+		MenuDrawer::PictureColor::Unactive,
+		MenuDrawer::PictureColor::Disabled,
+	};
+	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
 
 	text_draw.Print(
-		x_center,
+		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Network",
 		scale,
 		TextDraw::FontColor::White, TextDraw::Alignment::Center );
 
-	text_draw.Print(
-		x_center, y,
-		"Connect",
-		scale,
-		current_row_ == 0 ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
-		TextDraw::Alignment::Center );
-
-	text_draw.Print(
-		x_center, y1,
-		"Create server",
-		scale,
-		current_row_ == 1 ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
-		TextDraw::Alignment::Center );
+	menu_drawer.DrawMenuPicture(
+		x, y,
+		MenuDrawer::MenuPicture::Network, colors );
 }
 
 MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
@@ -369,13 +367,13 @@ MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
 		if( event.event.key.key_code == KeyCode::Up )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 2 ) % 2;
+			current_row_= ( current_row_ - 1 + 3 ) % 3;
 		}
 
 		if( event.event.key.key_code == KeyCode::Down )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 2 ) % 2;
+			current_row_= ( current_row_ + 1 + 3 ) % 3;
 		}
 
 		if( event.event.key.key_code == KeyCode::Enter )
