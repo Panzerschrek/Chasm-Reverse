@@ -26,6 +26,10 @@ public:
 public: // HostCommands
 	virtual void Quit() override;
 	virtual void NewGame( DifficultyType difficulty ) override;
+	virtual void ConnectToServer(
+		const char* server_address,
+		uint16_t client_tcp_port,
+		uint16_t client_udp_port ) override;
 
 private:
 	class ConnectionsListenerProxy;

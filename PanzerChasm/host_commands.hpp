@@ -14,6 +14,11 @@ public:
 
 
 	virtual void NewGame( DifficultyType difficulty )= 0;
+
+	virtual void ConnectToServer(
+		const char* server_address, // 127.0.0.1:1488 for example
+		uint16_t client_tcp_port,
+		uint16_t client_udp_port )= 0;
 	/*
 	virtual void SaveGame()= 0;
 	virtual void LoadGame()= 0;

@@ -193,6 +193,38 @@ void Host::NewGame( const DifficultyType difficulty )
 	DoRunLevel( 1u, difficulty );
 }
 
+void Host::ConnectToServer(
+	const char* server_address,
+	const uint16_t client_tcp_port,
+	const uint16_t client_udp_port )
+{
+	InetAddress address;
+	if( !InetAddress::Parse( server_address , address ) )
+	{
+		Log::Info( "Invalid address" );
+		return;
+	}
+
+	if( address.port == 0 )
+		address.port= Net::c_default_server_tcp_port;
+
+	Log::Info( "Connecting to ", address.ToString() );
+
+	EnsureClient();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	auto connection= net_->ConnectToServer( address, client_tcp_port, client_udp_port );
+	if( connection == nullptr )
+	{
+		Log::Info( "Connection failed" );
+		return;
+	}
+
+	client_->SetConnection( connection );
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -227,31 +259,7 @@ void Host::ConnectCommand( const CommandsArguments& args )
 		return;
 	}
 
-	InetAddress address;
-	if( !InetAddress::Parse( args[0], address ) )
-	{
-		Log::Info( "Invalid address" );
-		return;
-	}
-
-	if( address.port == 0 )
-		address.port= Net::c_default_server_tcp_port;
-
-	Log::Info( "Connecting to ", address.ToString() );
-
-	EnsureClient();
-
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
-
-	auto connection= net_->ConnectToServer( address );
-	if( connection == nullptr )
-	{
-		Log::Info( "Connection failed" );
-		return;
-	}
-
-	client_->SetConnection( connection );
+	ConnectToServer( args[0].c_str(), Net::c_default_client_tcp_port, Net::c_default_client_udp_port );
 }
 
 void Host::RunServerCommand( const CommandsArguments& args )
