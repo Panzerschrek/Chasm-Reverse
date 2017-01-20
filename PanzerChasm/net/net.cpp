@@ -1,7 +1,20 @@
 #include <cstring>
 #include <vector>
 
+#ifdef _WIN32
 #include <winsock2.h>
+#else
+
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define INVALID_SOCKET (-1)
+typedef int SOCKET;
+
+#endif
 
 #include "../assert.hpp"
 #include "../i_connection.hpp"
@@ -23,6 +36,7 @@ static const uint16_t g_default_port_udp= 6667u;
 
 static bool IsSocketReady( const SOCKET& socket )
 {
+#ifdef _WIN32
 	fd_set set;
 	set.fd_count= 1u;
 	set.fd_array[0]= socket;
@@ -41,6 +55,26 @@ static bool IsSocketReady( const SOCKET& socket )
 		Log::Warning( FUNC_NAME, " -  ::select call error: ", ::WSAGetLastError() );
 		return false;
 	}
+#else
+	fd_set set;
+	FD_ZERO(&set);
+	FD_SET( socket, &set );
+
+	timeval wait_time;
+	wait_time.tv_sec= 0u;
+	wait_time.tv_usec= 0u;
+
+	const int result= ::select( socket + 1u, &set, nullptr, nullptr, &wait_time );
+	if( result == 1 )
+		return true;
+	else if( result == 0 )
+		return false;
+	else
+	{
+		Log::Warning( FUNC_NAME, " -  ::select call error: ", errno );
+		return false;
+	}
+#endif
 }
 
 bool InetAddress::Parse( const std::string& address_string, InetAddress& out_address )
@@ -88,7 +122,11 @@ std::string InetAddress::ToString() const
 	result.reserve( std::strlen( "255.255.255.255:65535") );
 
 	in_addr ip;
+#ifdef _WIN32
 	ip.S_un.S_addr= ::htonl( ip_address );
+#else
+	ip.s_addr= ::htonl( ip_address );
+#endif
 
 	result+= ::inet_ntoa( ip );
 	result+= ":" + std::to_string( port );
@@ -113,9 +151,13 @@ public:
 	virtual ~NetConnection() override
 	{
 		Disconnect();
-
+#ifdef _WIN32
 		::closesocket( tcp_socket_ );
 		::closesocket( udp_socket_ );
+#else
+		::shutdown( tcp_socket_, SHUT_RDWR );
+		::shutdown( udp_socket_, SHUT_RDWR );
+#endif
 	}
 
 public: // IConnection
@@ -124,15 +166,22 @@ public: // IConnection
 		if( disconnected_ ) return;
 		if( data_size == 0u ) return;
 
+#ifdef _WIN32
 		const int result= ::send( tcp_socket_, (const char*) data, data_size, 0 );
 		if( result == SOCKET_ERROR )
 			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+#else
+		const int result= ::send( tcp_socket_, (const char*) data, data_size, 0 );
+		if( result == -1 )
+			Log::Warning( FUNC_NAME, " error: ", errno );
+#endif
 	}
 
 	virtual void SendUnreliablePacket( const void* data, unsigned int data_size ) override
 	{
 		if( disconnected_ ) return;
 
+#ifdef _WIN32
 		const int result=
 			::sendto( udp_socket_, (const char*) data, data_size, 0, (sockaddr*) &destination_udp_address_, sizeof(destination_udp_address_) );
 
@@ -140,6 +189,15 @@ public: // IConnection
 			Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
 		else if( result < static_cast<int>(data_size) )
 			Log::Warning( FUNC_NAME, " not all data transmited: ", result, " from ", data_size );
+#else
+		const int result=
+			::sendto( udp_socket_, (const char*) data, data_size, 0, (sockaddr*) &destination_udp_address_, sizeof(destination_udp_address_) );
+
+		if( result == -1 )
+			Log::Warning( FUNC_NAME, " error: ", errno );
+		else if( result < static_cast<int>(data_size) )
+			Log::Warning( FUNC_NAME, " not all data transmited: ", result, " from ", data_size );
+#endif
 	}
 
 	virtual unsigned int ReadRealiableData( void* out_data, unsigned int buffer_size ) override
@@ -148,10 +206,15 @@ public: // IConnection
 
 		if( IsSocketReady( tcp_socket_ ) )
 		{
+#ifdef _WIN32
 			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
 			if( result == SOCKET_ERROR )
 				Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
-
+#else
+			int result= ::recv( tcp_socket_, (char*) out_data, buffer_size, 0 );
+			if( result == -1 )
+				Log::Warning( FUNC_NAME, " error: ", errno );
+#endif
 			// If socket is ready, but recv return zero, this means, that other side closes connection.
 			if( result == 0 )
 				Disconnect();
@@ -167,6 +230,7 @@ public: // IConnection
 
 		if( IsSocketReady( udp_socket_ ) )
 		{
+#ifdef _WIN32
 			sockaddr_in reciever_address;
 			int reciever_address_length= sizeof(reciever_address);
 			int result=
@@ -184,6 +248,25 @@ public: // IConnection
 			{
 				return 0u;
 			}
+#else
+			sockaddr_in reciever_address;
+			socklen_t reciever_address_length= sizeof(reciever_address);
+			int result=
+				::recvfrom( udp_socket_, (char*) out_data, buffer_size, 0, (sockaddr*) &reciever_address, &reciever_address_length );
+
+			if( result == -1 )
+			{
+				Log::Warning( FUNC_NAME, " error: ", errno );
+				return 0u;
+			}
+
+			if( !( // Check for correct addres - discard messages from invalid address.
+				reciever_address.sin_addr.s_addr == destination_udp_address_.sin_addr.s_addr &&
+				reciever_address.sin_port == destination_udp_address_.sin_port ) )
+			{
+				return 0u;
+			}
+#endif
 
 			return std::max( result, 0 );
 		}
@@ -195,10 +278,17 @@ public: // IConnection
 		if( disconnected_ ) return;
 		disconnected_= true;
 
+#ifdef _WIN32
 		if( ::shutdown( tcp_socket_, SD_BOTH ) != 0 )
 			Log::Warning( FUNC_NAME, " error, during closing tcp connection: ", ::WSAGetLastError() );
 		if( ::shutdown( udp_socket_, SD_BOTH ) != 0 )
 			Log::Warning( FUNC_NAME, " error, during closing udp connection: ", ::WSAGetLastError() );
+#else
+		if( ::shutdown( tcp_socket_, SHUT_RDWR ) != 0 )
+			Log::Warning( FUNC_NAME, " error, during closing tcp connection: ", errno );
+		if( ::shutdown( udp_socket_, SHUT_RDWR ) != 0 )
+			Log::Warning( FUNC_NAME, " error, during closing udp connection: ", errno );
+#endif
 	}
 
 	virtual bool Disconnected() override
@@ -235,6 +325,7 @@ public:
 		: tcp_socket_(tcp_socket)
 		, client_ip_address_(client_ip_address)
 	{
+#ifdef _WIN32
 		// Send to client input udp address, wia tcp.
 		::send( tcp_socket_, (char*) &udp_port, sizeof(udp_port), 0 ); // TODO - check errors.
 
@@ -248,7 +339,7 @@ public:
 
 		sockaddr_in udp_address;
 		udp_address.sin_family= AF_INET;
-		udp_address.sin_addr.s_addr= INADDR_ANY; //::inet_addr( "127.0.0.1" );
+		udp_address.sin_addr.s_addr= INADDR_ANY;
 		udp_address.sin_port= ::htons( udp_port );
 		const int bind_result= ::bind( udp_socket_, (sockaddr*) &udp_address, sizeof(udp_address) );
 		if( bind_result != 0 )
@@ -256,6 +347,29 @@ public:
 			Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", ::WSAGetLastError() );
 			return;
 		}
+#else
+		// Send to client input udp address, wia tcp.
+		::send( tcp_socket_, (char*) &udp_port, sizeof(udp_port), 0 ); // TODO - check errors.
+
+		udp_socket_= ::socket( AF_INET, SOCK_DGRAM, 0 );
+		if( udp_socket_ == -1 )
+		{
+			Log::Warning( "Can not create udp socket. Error code: ", errno );
+			// TODO - to something.
+			return;
+		}
+
+		sockaddr_in udp_address;
+		udp_address.sin_family= AF_INET;
+		udp_address.sin_addr.s_addr= INADDR_ANY;
+		udp_address.sin_port= ::htons( udp_port );
+		const int bind_result= ::bind( udp_socket_, (sockaddr*) &udp_address, sizeof(udp_address) );
+		if( bind_result != 0 )
+		{
+			Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", errno );
+			return;
+		}
+#endif
 	}
 
 	IConnectionPtr TryCompleteConnection()
@@ -263,12 +377,13 @@ public:
 		if( !IsSocketReady( udp_socket_ ) )
 			return nullptr;
 
-		sockaddr_in reciever_address;
-		int reciever_address_length= sizeof(reciever_address);
-
 		// Recieve any message from client to estabelishing of connection.
 		// Use MSG_PEEK, because we not want to dump really meaning message.
 		unsigned char dummy_buffer[ IConnection::c_max_unreliable_packet_size ];
+
+		sockaddr_in reciever_address;
+#ifdef _WIN32
+		int reciever_address_length= sizeof(reciever_address);
 		int result=
 			::recvfrom(
 				udp_socket_,
@@ -287,6 +402,27 @@ public:
 			Log::Info( "Unknown user ", inet_ntoa( reciever_address.sin_addr ), " trying to connect. Discard him." );
 			return nullptr;
 		}
+#else
+		socklen_t reciever_address_length= sizeof(reciever_address);
+		int result=
+			::recvfrom(
+				udp_socket_,
+				(char*) &dummy_buffer, sizeof(dummy_buffer),
+				MSG_PEEK,
+				(sockaddr*) &reciever_address, &reciever_address_length );
+
+		if( result == -1 )
+		{
+			Log::Warning( FUNC_NAME, " error: ", errno );
+			return nullptr;
+		}
+
+		if( reciever_address.sin_addr.s_addr != client_ip_address_ )
+		{
+			Log::Info( "Unknown user ", inet_ntoa( reciever_address.sin_addr ), " trying to connect. Discard him." );
+			return nullptr;
+		}
+#endif
 
 		const SOCKET tcp_socket= tcp_socket_; tcp_socket_= INVALID_SOCKET;
 		const SOCKET udp_socket= udp_socket_; udp_socket_= INVALID_SOCKET;
@@ -310,6 +446,7 @@ public:
 		: listen_port_( tcp_port )
 		, next_in_udp_port_( base_udp_port )
 	{
+#ifdef _WIN32
 		listen_socket_= ::socket( PF_INET, SOCK_STREAM, 0 );
 		if( listen_socket_ == INVALID_SOCKET )
 		{
@@ -320,7 +457,7 @@ public:
 		sockaddr_in listen_socket_address;
 		std::memset( &listen_socket_address, 0, sizeof(listen_socket_address) );
 		listen_socket_address.sin_family = AF_INET;
-		listen_socket_address.sin_addr.s_addr = INADDR_ANY;//::inet_addr( "0.0.0.0" ); // TODO - maybe INADDR_ANY?
+		listen_socket_address.sin_addr.s_addr = INADDR_ANY;
 		listen_socket_address.sin_port= ::htons( listen_port_ );
 		const int bind_result= ::bind( listen_socket_, (sockaddr*) &listen_socket_address, sizeof(listen_socket_address) );
 		if( bind_result != 0 )
@@ -335,14 +472,46 @@ public:
 			Log::Warning( "Can not start listen. Error code: ", ::WSAGetLastError() );
 			return;
 		}
+#else
+		listen_socket_= ::socket( PF_INET, SOCK_STREAM, 0 );
+		if( listen_socket_ == -1 )
+		{
+			Log::Warning( "Can not create tcp socket. Error code: ", errno );
+			return;
+		}
+
+		sockaddr_in listen_socket_address;
+		std::memset( &listen_socket_address, 0, sizeof(listen_socket_address) );
+		listen_socket_address.sin_family = AF_INET;
+		listen_socket_address.sin_addr.s_addr = INADDR_ANY;
+		listen_socket_address.sin_port= ::htons( listen_port_ );
+		const int bind_result= ::bind( listen_socket_, (sockaddr*) &listen_socket_address, sizeof(listen_socket_address) );
+		if( bind_result != 0 )
+		{
+			Log::Warning( "Can not bind listen socket. Error code: ", errno );
+			return;
+		}
+
+		const int listen_result= ::listen( listen_socket_, SOMAXCONN );
+		if( listen_result != 0 )
+		{
+			Log::Warning( "Can not start listen. Error code: ", errno );
+			return;
+		}
+#endif
 
 		all_ok_= true;
 	}
 
 	~ServerListener()
 	{
+#ifdef _WIN32
 		if( listen_socket_ != INVALID_SOCKET )
 			::closesocket( listen_socket_ );
+#else
+		if( listen_socket_ != INVALID_SOCKET )
+			::shutdown( listen_socket_, SHUT_RDWR );
+#endif
 	}
 
 	bool IsOk() const
@@ -355,6 +524,7 @@ public: // IConnectionsListener
 	{
 		if( IsSocketReady( listen_socket_ ) )
 		{
+#ifdef _WIN32
 			sockaddr_in client_address;
 			int client_address_len= sizeof(client_address);
 			const SOCKET client_tcp_socket=
@@ -366,13 +536,28 @@ public: // IConnectionsListener
 				return nullptr;
 			}
 
+			const IpAddress client_ip_address= client_address.sin_addr.S_un.S_addr;
+#else
+			sockaddr_in client_address;
+			socklen_t client_address_len= sizeof(client_address);
+			const SOCKET client_tcp_socket=
+				::accept( listen_socket_, (sockaddr*) &client_address, &client_address_len );
+
+			if( client_tcp_socket == -1 )
+			{
+				Log::Warning( "Can not accept client. Error code: ", errno );
+				return nullptr;
+			}
+
+			const IpAddress client_ip_address= client_address.sin_addr.s_addr;
+#endif
 			const uint16_t connection_in_udp_port= next_in_udp_port_;
 			++next_in_udp_port_;
 
 			establishing_connections_.emplace_back(
 			new EstablishingConnection(
 				client_tcp_socket,
-				client_address.sin_addr.S_un.S_addr,
+				client_ip_address,
 				connection_in_udp_port ) );
 		}
 
@@ -402,7 +587,10 @@ private:
 
 struct Net::PlatformData
 {
+#ifdef _WIN32
 	WSADATA ws_data;
+#else
+#endif
 };
 
 Net::Net()
@@ -441,8 +629,7 @@ IConnectionPtr Net::ConnectToServer(
 	const uint16_t in_udp_port,
 	const uint16_t in_tcp_port )
 {
-	PC_UNUSED(address);
-
+#ifdef _WIN32
 	// Create and open TCP socket.
 	const SOCKET tcp_socket= ::socket( AF_INET, SOCK_STREAM, 0 );
 	if( tcp_socket == INVALID_SOCKET )
@@ -500,6 +687,65 @@ IConnectionPtr Net::ConnectToServer(
 		Messages::DummyNetMessage first_message;
 		::sendto( udp_socket, (char*) &first_message, sizeof(first_message), 0, (sockaddr*) &server_udp_address, sizeof(server_udp_address) );
 	}
+#else
+	// Create and open TCP socket.
+	const SOCKET tcp_socket= ::socket( AF_INET, SOCK_STREAM, 0 );
+	if( tcp_socket == -1 )
+	{
+		Log::Warning( FUNC_NAME, " can not create tcp socket. Error code: ", errno );
+		return nullptr;
+	}
+
+	sockaddr_in tcp_address;
+	tcp_address.sin_family= AF_INET;
+	tcp_address.sin_addr.s_addr= INADDR_ANY;
+	tcp_address.sin_port= ::htons( in_tcp_port );
+	::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) );
+
+	// Createe and open UDP socket.
+	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
+	if( tcp_socket == -1 )
+	{
+		Log::Warning( FUNC_NAME, " can not create udp socket. Error code: ", errno );
+		return nullptr;
+	}
+
+	sockaddr_in udp_address;
+	udp_address.sin_family= AF_INET;
+	udp_address.sin_addr.s_addr= INADDR_ANY;
+	udp_address.sin_port= ::htons( in_udp_port );
+	::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) );
+
+	// Connect to server.
+	sockaddr_in server_tcp_address;
+	std::memset( &server_tcp_address, 0, sizeof(server_tcp_address) );
+	server_tcp_address.sin_family= AF_INET;
+	server_tcp_address.sin_addr.s_addr= ::htonl( address.ip_address );
+	server_tcp_address.sin_port= ::htons( address.port );
+
+	const int connection_result= ::connect( tcp_socket, (sockaddr*) &server_tcp_address, sizeof(server_tcp_address) );
+	if( connection_result == -1 )
+	{
+		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", errno);
+		return nullptr;
+	}
+
+	// Recive from server it input udp address.
+	uint16_t server_udp_port;
+	::recv( tcp_socket, (char*) &server_udp_port, sizeof(server_udp_port), 0 ); // TODO - check errors.
+	sockaddr_in server_udp_address;
+	std::memcpy( &server_udp_address, &server_tcp_address, sizeof(sockaddr_in) );
+	server_udp_address.sin_port= ::htons( server_udp_port );
+
+	// Send to server first udp message for establishing of connection.
+	// Make NAT happy.
+	// Make this multiple times, for better reliability.
+	for( unsigned int n= 0u; n < 4u; n++ )
+	{
+		Messages::DummyNetMessage first_message;
+		::sendto( udp_socket, (char*) &first_message, sizeof(first_message), 0, (sockaddr*) &server_udp_address, sizeof(server_udp_address) );
+	}
+#endif
 
 	return std::make_shared<NetConnection>( tcp_socket, udp_socket, server_udp_address );
 }
