@@ -16,7 +16,7 @@ public:
 	enum class FontColor
 	{
 		White= 0u,
-		DrakYellow,
+		DarkYellow,
 		Golden,
 		YellowGreen,
 	};
@@ -25,6 +25,7 @@ public:
 	{
 		Left,
 		Center,
+		Right,
 	};
 
 	TextDraw(

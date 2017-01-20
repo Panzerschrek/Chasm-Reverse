@@ -198,7 +198,7 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
-	const unsigned int size[2]= { 260u, text_draw.GetLineHeight() * 5u };
+	const unsigned int size[2]= { 280u, text_draw.GetLineHeight() * 5u };
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
@@ -208,13 +208,13 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
-		"Connect",
+		"Join setup",
 		scale,
 		TextDraw::FontColor::White, TextDraw::Alignment::Center );
 
 	static const char* const texts[4u]
 	{
-		"served ip address", "server tcp port", "client tcp port", "client udp port"
+		"served ip address:", "server tcp port:", "client tcp port:", "client udp port:"
 	};
 	for( unsigned int i= 0u; i < 4u; i++ )
 	{
@@ -222,20 +222,20 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		const int row_y= y + scale * int( i * text_draw.GetLineHeight() );
 
 		text_draw.Print(
-			x, row_y,
+			x + 135 * scale, row_y,
 			texts[i],
 			scale,
-			active ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
-			TextDraw::Alignment::Left );
+			TextDraw::FontColor::White,
+			TextDraw::Alignment::Right );
 
 		char value_with_cursor[ c_value_max_size + 2u ];
 		std::snprintf( value_with_cursor, sizeof(value_with_cursor), "%s%s", values_[i], active ? "_" : "" );
 
 		text_draw.Print(
-			x + 140 * scale, row_y,
+			x + 145 * scale, row_y,
 			value_with_cursor,
 			scale,
-			active ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
+			active ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 			TextDraw::Alignment::Left );
 	}
 
