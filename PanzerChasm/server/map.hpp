@@ -309,6 +309,8 @@ private:
 
 	std::vector<RotatingLightEffect> rotating_lights_;
 
+	std::vector<Messages::MonsterBirth> monsters_birth_messages_;
+	std::vector<Messages::MonsterDeath> monsters_death_messages_;
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::DynamicItemBirth> dynamic_items_birth_messages_;

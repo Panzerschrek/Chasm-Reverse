@@ -192,14 +192,23 @@ Map::Map(
 		if( ( map_monster.difficulty_flags & difficulty_ ) == 0u )
 			continue;
 
-		monsters_[ GetNextMonsterId() ]=
-			MonsterPtr(
-				new Monster(
-					map_monster,
-					GetFloorLevel( map_monster.pos ),
-					game_resources_,
-					random_generator_,
-					map_start_time ) );
+		const EntityId& monster_id= GetNextMonsterId();
+		const MonsterBasePtr& monster=
+			monsters_[ monster_id ]=
+				MonsterPtr(
+					new Monster(
+						map_monster,
+						GetFloorLevel( map_monster.pos ),
+						game_resources_,
+						random_generator_,
+						map_start_time ) );
+
+		monsters_birth_messages_.emplace_back();
+		Messages::MonsterBirth& message= monsters_birth_messages_.back();
+
+		PrepareMonsterStateMessage( *monster, message.initial_state );
+		message.initial_state.monster_id= monster_id;
+		message.monster_id= monster_id;
 	}
 }
 
@@ -244,15 +253,30 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 	const EntityId player_id= GetNextMonsterId();
 
 	players_.emplace( player_id, player );
-	monsters_.emplace( player_id, player );
+	const MonstersContainer::value_type& monster_value=
+		* monsters_.emplace( player_id, player ).first;
+
+	monsters_birth_messages_.emplace_back();
+	Messages::MonsterBirth& message= monsters_birth_messages_.back();
+
+	PrepareMonsterStateMessage( *monster_value.second, message.initial_state );
+	message.initial_state.monster_id= monster_value.first;
+	message.monster_id= monster_value.first;
 
 	return player_id;
 }
 
 void Map::DespawnPlayer( const EntityId player_id )
 {
-	players_.erase( player_id );
+	const bool erased= players_.erase( player_id ) != 0u;
 	monsters_.erase( player_id );
+
+	if( erased )
+	{
+		monsters_death_messages_.emplace_back();
+		Messages::MonsterDeath& message= monsters_death_messages_.back();
+		message.monster_id= player_id;
+	}
 }
 
 void Map::Shoot(
@@ -1574,6 +1598,14 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 		messages_sender.SendUnreliableMessage( monster_message );
 	}
 
+	for( const Messages::MonsterBirth& message : monsters_birth_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
+	for( const Messages::MonsterDeath& message : monsters_death_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
 	for( const Messages::RocketBirth& message : rockets_birth_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1639,6 +1671,8 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 void Map::ClearUpdateEvents()
 {
 	sprite_effects_.clear();
+	monsters_birth_messages_.clear();
+	monsters_death_messages_.clear();
 	rockets_birth_messages_.clear();
 	rockets_death_messages_.clear();
 	dynamic_items_birth_messages_.clear();
