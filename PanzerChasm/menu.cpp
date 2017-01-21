@@ -793,6 +793,8 @@ Menu::Menu(
 	, root_menu_( new MainMenu( sound_engine, host_commands ) )
 {
 	PC_ASSERT( drawers_ != nullptr );
+
+	current_menu_= root_menu_.get();
 }
 
 Menu::~Menu()

@@ -116,6 +116,7 @@ MenuDrawer::MenuDrawer(
 
 	load_texture( "M_TILE1.CEL", tiles_texture_ );
 	load_texture( "LOADING.CEL", loading_texture_ );
+	load_texture( "GROUND.CEL", game_background_texture_ );
 
 	{ // Menu pictures
 		Vfs::FileContent picture_file;
@@ -626,6 +627,53 @@ void MenuDrawer::DrawLoading( const float progress )
 			1.0f / float(loading_texture_.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, 2u * 6u, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawer::DrawGameBackground()
+{
+	Vertex vertices[ 4u ];
+
+	vertices[0].xy[0]= 0;
+	vertices[0].xy[1]= 0;
+	vertices[0].tex_coord[0]= 0;
+	vertices[0].tex_coord[1]= viewport_size_.Height() / menu_scale_;
+
+	vertices[1].xy[0]= viewport_size_.Width();
+	vertices[1].xy[1]= 0;
+	vertices[1].tex_coord[0]= viewport_size_.Width() / menu_scale_;
+	vertices[1].tex_coord[1]= viewport_size_.Height() / menu_scale_;
+
+	vertices[2].xy[0]= viewport_size_.Width();
+	vertices[2].xy[1]= viewport_size_.Height();
+	vertices[2].tex_coord[0]= viewport_size_.Width() / menu_scale_;
+	vertices[2].tex_coord[1]= 0;
+
+	vertices[3].xy[0]= 0;
+	vertices[3].xy[1]= viewport_size_.Height();
+	vertices[3].tex_coord[0]= 0;
+	vertices[3].tex_coord[1]= 0;
+
+	polygon_buffer_.VertexSubData( vertices, sizeof(vertices), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
+	menu_picture_shader_.Bind();
+
+	game_background_texture_.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(game_background_texture_.Width ()),
+			1.0f / float(game_background_texture_.Height()) ) );
+
+	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
 } // namespace PanzerChasm

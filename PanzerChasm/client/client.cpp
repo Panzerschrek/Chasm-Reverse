@@ -43,6 +43,14 @@ void Client::SetConnection( IConnectionPtr connection )
 	connection_info_.reset( new ConnectionInfo( connection ) );
 }
 
+bool Client::Disconnected() const
+{
+	if( connection_info_ == nullptr )
+		return true;
+
+	return connection_info_->connection->Disconnected();
+}
+
 void Client::ProcessEvents( const SystemEvents& events )
 {
 	using KeyCode= SystemEvent::KeyEvent::KeyCode;

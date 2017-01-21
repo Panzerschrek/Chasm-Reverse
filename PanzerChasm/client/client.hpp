@@ -27,6 +27,7 @@ public:
 	~Client();
 
 	void SetConnection( IConnectionPtr connection );
+	bool Disconnected() const;
 
 	void ProcessEvents( const SystemEvents& events );
 

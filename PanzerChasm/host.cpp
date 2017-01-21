@@ -113,9 +113,6 @@ Host::Host()
 			sound_engine_ ) );
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
-
-	// TODO - do not start new game here. Just show main menu.
-	//NewGame( Difficulty::Normal );
 }
 
 Host::~Host()
@@ -174,8 +171,10 @@ bool Host::Loop()
 		glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-		if( client_ != nullptr )
+		if( client_ != nullptr && !client_->Disconnected() )
 			client_->Draw();
+		else
+			drawers_->menu.DrawGameBackground();
 
 		if( menu_ != nullptr )
 			menu_->Draw();
