@@ -65,11 +65,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [SETJ]
 * Issledovanije raboty setevoj igry originala.
-* Realizaçja interfejsov "IConnection" i procih dlä raboty po realjnoj seti.
-* Realizaçija setevogo vzaimodejstvija pod "Windows".
-* Dorabotki igrovoj logiki dlä setevyh režimov.
-* Menü setevoj igry.
-* Realizaçija setevogo vzaimodejstvija pod "GNU/Linux" i "OS X".
+* Dorabotki igrovoj logiki dlä setevyh režimov..
+* Dorabotki seti. Asinhronnyj "Connect". Zakrytije neotvecajuscego
+  sojedinenija. Bolee informativnyje soobscenija ob ošibkah.
 * Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
 * Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
   paketov. Rascöt animaçij na storone klijenta.
