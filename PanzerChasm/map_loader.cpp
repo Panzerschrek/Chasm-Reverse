@@ -241,6 +241,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_data )
 {
 	const unsigned int c_lightmap_data_offset= 0x01u;
+	const unsigned int c_walls_lightmap_data_offset= c_lightmap_data_offset * MapData::c_lightmap_size * MapData::c_lightmap_size;
 
 	const unsigned char* const in_data= map_file.data() + c_lightmap_data_offset;
 
@@ -250,6 +251,19 @@ void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_dat
 	{
 		map_data.lightmap[ x + 1u + y * MapData::c_lightmap_size ]=
 			255u - in_data[ x + y * MapData::c_lightmap_size ] * 6u;
+	}
+
+
+	const unsigned char* const in_walls_data= map_file.data() + c_walls_lightmap_data_offset;
+
+	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+	for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+	{
+		for( unsigned int i= 0u; i < 8; i++ )
+		{
+			map_data.walls_lightmap[ ( x + y * MapData::c_map_size ) * 8u + i ]=
+				255u - in_walls_data[ ( x + y * MapData::c_map_size ) * 8u + i ] * 6u;
+		}
 	}
 }
 
@@ -336,6 +350,9 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 
 		wall.vert_tex_coord[0]= float(map_wall.wall_size) / 128.0f;
 		wall.vert_tex_coord[1]= 0.0f;
+
+		wall.xy[0]= x;
+		wall.xy[1]= y;
 
 		wall.texture_id= map_wall.texture_id;
 	} // for xy

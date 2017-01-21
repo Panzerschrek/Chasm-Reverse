@@ -44,6 +44,7 @@ public:
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
 		unsigned char texture_id;
+		unsigned char xy[2];
 	};
 
 	struct StaticModel
@@ -278,6 +279,7 @@ public:
 	unsigned char ambient_sounds_map[ c_map_size * c_map_size ];
 
 	unsigned char lightmap[ c_lightmap_size * c_lightmap_size ];
+	unsigned char walls_lightmap[ c_map_size * c_map_size * 8u ];
 
 	unsigned char floor_textures_data[ c_floors_textures_count ][ c_floor_texture_size * c_floor_texture_size ];
 };

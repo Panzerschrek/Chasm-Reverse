@@ -142,6 +142,7 @@ private:
 
 	bool use_hd_lightmap_;
 	r_Texture lightmap_;
+	r_Texture walls_lightmap_;
 	r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
 	r_Texture fullbright_lightmap_dummy_;
 
