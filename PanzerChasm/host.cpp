@@ -12,30 +12,36 @@
 namespace PanzerChasm
 {
 
-// Proxy for connections listener.
-// TODO - add support for many connection listeners together (loopback, net, etc.).
+// Proxy for connections listeners.
 class Host::ConnectionsListenerProxy final : public IConnectionsListener
 {
 public:
 	ConnectionsListenerProxy(){}
 	virtual ~ConnectionsListenerProxy() override {}
 
-	void SetConnectionsListener( IConnectionsListenerPtr connections_listener )
+	void AddConnectionsListener( IConnectionsListenerPtr connections_listener )
 	{
-		connections_listener_= std::move( connections_listener );
+		PC_ASSERT( connections_listener != nullptr );
+		connections_listeners_.emplace_back( std::move( connections_listener ) );
+	}
+	void ClearConnectionsListeners()
+	{
+		connections_listeners_.clear();
 	}
 
 public: // IConnectionsListener
 	virtual IConnectionPtr GetNewConnection()
 	{
-		if( connections_listener_ == nullptr )
-			return nullptr;
-
-		return connections_listener_->GetNewConnection();
+		for( const IConnectionsListenerPtr& listener : connections_listeners_ )
+		{
+			if( const IConnectionPtr connection= listener->GetNewConnection() )
+				return connection;
+		}
+		return nullptr;
 	}
 
 private:
-	IConnectionsListenerPtr connections_listener_;
+	std::vector<IConnectionsListenerPtr> connections_listeners_;
 };
 
 static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
@@ -232,21 +238,34 @@ void Host::StartServer(
 	const uint16_t server_tcp_port,
 	const uint16_t server_base_udp_port )
 {
-	PC_UNUSED( dedicated );
-	// TODO - add support of loopback connection together with net connections.
-
 	EnsureServer();
+	if( !dedicated )
+	{
+		EnsureClient();
+		EnsureLoopbackBuffer();
+	}
 
 	if( loopback_buffer_ != nullptr )
 		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
+	connections_listener_proxy_->ClearConnectionsListeners();
 
 	const auto listener=
 		net_->CreateServerListener(
 			server_tcp_port != 0u ? server_tcp_port : Net::c_default_server_tcp_port,
 			server_base_udp_port != 0u ? server_base_udp_port : Net::c_default_server_udp_base_port );
 
-	connections_listener_proxy_->SetConnectionsListener( listener );
+	connections_listener_proxy_->AddConnectionsListener( listener );
+	if( !dedicated )
+		connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
+
 	local_server_->ChangeMap( map_number, difficulty );
+
+	if( !dedicated )
+	{
+		loopback_buffer_->RequestConnect();
+		client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
+	}
 }
 
 void Host::NewGameCommand( const CommandsArguments& args )
@@ -301,11 +320,13 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 	EnsureLoopbackBuffer();
 
 	loopback_buffer_->RequestDisconnect(); // Kill old connection.
+	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
+	connections_listener_proxy_->ClearConnectionsListeners();
 
 	local_server_->ChangeMap( map_number, difficulty );
 
 	// Making server listen connections from loopback buffer.
-	connections_listener_proxy_->SetConnectionsListener( loopback_buffer_ );
+	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
 	loopback_buffer_->RequestConnect();
 
 	// Make client working with loopback buffer connection.

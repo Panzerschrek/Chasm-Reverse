@@ -244,6 +244,18 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	show_progress( 1.0f );
 }
 
+void Server::DisconnectAllClients()
+{
+	for( const ConnectedPlayerPtr& player : players_ )
+	{
+		if( map_ != nullptr )
+			map_->DespawnPlayer( player->player_monster_id );
+		player->connection_info.connection->Disconnect();
+	}
+
+	players_.clear();
+}
+
 void Server::operator()( const Messages::MessageBase& message )
 {
 	PC_ASSERT(false);
