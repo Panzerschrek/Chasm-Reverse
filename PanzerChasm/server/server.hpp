@@ -24,6 +24,7 @@ public:
 	void Loop();
 
 	void ChangeMap( unsigned int map_number, DifficultyType difficulty );
+	void DisconnectAllClients();
 
 public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );

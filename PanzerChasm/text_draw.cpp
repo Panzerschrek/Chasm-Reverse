@@ -192,6 +192,15 @@ void TextDraw::Print(
 					last_newline_vertex_index++;
 				}
 			}
+			else if( alignment == Alignment::Right )
+			{
+				const int delta_x= last_newline_vertex_index->xy[0] - current_x;
+				while( last_newline_vertex_index < v )
+				{
+					last_newline_vertex_index->xy[0]+= delta_x;
+					last_newline_vertex_index++;
+				}
+			}
 
 			current_x= x;
 			current_y-= int(g_letter_height * scale);

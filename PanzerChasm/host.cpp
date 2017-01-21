@@ -12,30 +12,36 @@
 namespace PanzerChasm
 {
 
-// Proxy for connections listener.
-// TODO - add support for many connection listeners together (loopback, net, etc.).
+// Proxy for connections listeners.
 class Host::ConnectionsListenerProxy final : public IConnectionsListener
 {
 public:
 	ConnectionsListenerProxy(){}
 	virtual ~ConnectionsListenerProxy() override {}
 
-	void SetConnectionsListener( IConnectionsListenerPtr connections_listener )
+	void AddConnectionsListener( IConnectionsListenerPtr connections_listener )
 	{
-		connections_listener_= std::move( connections_listener );
+		PC_ASSERT( connections_listener != nullptr );
+		connections_listeners_.emplace_back( std::move( connections_listener ) );
+	}
+	void ClearConnectionsListeners()
+	{
+		connections_listeners_.clear();
 	}
 
 public: // IConnectionsListener
 	virtual IConnectionPtr GetNewConnection()
 	{
-		if( connections_listener_ == nullptr )
-			return nullptr;
-
-		return connections_listener_->GetNewConnection();
+		for( const IConnectionsListenerPtr& listener : connections_listeners_ )
+		{
+			if( const IConnectionPtr connection= listener->GetNewConnection() )
+				return connection;
+		}
+		return nullptr;
 	}
 
 private:
-	IConnectionsListenerPtr connections_listener_;
+	std::vector<IConnectionsListenerPtr> connections_listeners_;
 };
 
 static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
@@ -193,6 +199,75 @@ void Host::NewGame( const DifficultyType difficulty )
 	DoRunLevel( 1u, difficulty );
 }
 
+void Host::ConnectToServer(
+	const char* server_address,
+	const uint16_t client_tcp_port,
+	const uint16_t client_udp_port )
+{
+	InetAddress address;
+	if( !InetAddress::Parse( server_address , address ) )
+	{
+		Log::Info( "Invalid address" );
+		return;
+	}
+
+	if( address.port == 0 )
+		address.port= Net::c_default_server_tcp_port;
+
+	Log::Info( "Connecting to ", address.ToString() );
+
+	EnsureClient();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	auto connection= net_->ConnectToServer( address, client_tcp_port, client_udp_port );
+	if( connection == nullptr )
+	{
+		Log::Info( "Connection failed" );
+		return;
+	}
+
+	client_->SetConnection( connection );
+}
+
+void Host::StartServer(
+	const unsigned int map_number,
+	const DifficultyType difficulty,
+	const bool dedicated,
+	const uint16_t server_tcp_port,
+	const uint16_t server_base_udp_port )
+{
+	EnsureServer();
+	if( !dedicated )
+	{
+		EnsureClient();
+		EnsureLoopbackBuffer();
+	}
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
+	connections_listener_proxy_->ClearConnectionsListeners();
+
+	const auto listener=
+		net_->CreateServerListener(
+			server_tcp_port != 0u ? server_tcp_port : Net::c_default_server_tcp_port,
+			server_base_udp_port != 0u ? server_base_udp_port : Net::c_default_server_udp_base_port );
+
+	connections_listener_proxy_->AddConnectionsListener( listener );
+	if( !dedicated )
+		connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
+
+	local_server_->ChangeMap( map_number, difficulty );
+
+	if( !dedicated )
+	{
+		loopback_buffer_->RequestConnect();
+		client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
+	}
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -227,44 +302,15 @@ void Host::ConnectCommand( const CommandsArguments& args )
 		return;
 	}
 
-	InetAddress address;
-	if( !InetAddress::Parse( args[0], address ) )
-	{
-		Log::Info( "Invalid address" );
-		return;
-	}
-
-	if( address.port == 0 )
-		address.port= Net::c_default_server_tcp_port;
-
-	Log::Info( "Connecting to ", address.ToString() );
-
-	EnsureClient();
-
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
-
-	auto connection= net_->ConnectToServer( address );
-	if( connection == nullptr )
-	{
-		Log::Info( "Connection failed" );
-		return;
-	}
-
-	client_->SetConnection( connection );
+	ConnectToServer( args[0].c_str(), Net::c_default_client_tcp_port, Net::c_default_client_udp_port );
 }
 
 void Host::RunServerCommand( const CommandsArguments& args )
 {
+	// TODO - parse args, somehow
 	PC_UNUSED(args);
 
-	EnsureServer();
-
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
-
-	local_server_->ChangeMap( 1u, Difficulty::Normal );
-	connections_listener_proxy_->SetConnectionsListener( net_->CreateServerListener() );
+	StartServer( 1u, Difficulty::Normal, false, 0u, 0u );
 }
 
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
@@ -274,11 +320,13 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 	EnsureLoopbackBuffer();
 
 	loopback_buffer_->RequestDisconnect(); // Kill old connection.
+	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
+	connections_listener_proxy_->ClearConnectionsListeners();
 
 	local_server_->ChangeMap( map_number, difficulty );
 
 	// Making server listen connections from loopback buffer.
-	connections_listener_proxy_->SetConnectionsListener( loopback_buffer_ );
+	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
 	loopback_buffer_->RequestConnect();
 
 	// Make client working with loopback buffer connection.
