@@ -240,7 +240,7 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	}
 
 	text_draw.Print(
-		int(viewport_size.xy[1] >> 1u), y + scale * int( 4u * text_draw.GetLineHeight() ),
+		int(viewport_size.xy[0] >> 1u), y + scale * int( 4u * text_draw.GetLineHeight() ),
 		"connect",
 		scale,
 		current_row_ == 4 ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
@@ -298,6 +298,243 @@ MenuBase* NetworkConnectMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// NetworkCreateServerMenu
+
+class NetworkCreateServerMenu final : public MenuBase
+{
+public:
+	NetworkCreateServerMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~NetworkCreateServerMenu() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	const char* GetDifficultyStr();
+
+private:
+	HostCommands& host_commands_;
+
+	struct Row
+	{
+		enum : int
+		{
+			Map= 0, Difficulty, Dedicated, TCPPort, UDPBasePort, Start, NumRows
+		};
+	};
+	int current_row_= 0;
+
+	unsigned int map_number_= 1u;
+	unsigned int difficulty_= 1u;
+	bool dedicated_= false;
+
+	static constexpr unsigned int c_port_str_max_size= 8u;
+	char tcp_port_[ c_port_str_max_size ];
+	char base_udp_port_[ c_port_str_max_size ];
+};
+
+NetworkCreateServerMenu::NetworkCreateServerMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, host_commands_(host_commands)
+{
+	std::snprintf( tcp_port_, sizeof(tcp_port_), "%d", Net::c_default_server_tcp_port );
+	std::snprintf( base_udp_port_, sizeof(base_udp_port_), "%d", Net::c_default_server_udp_base_port );
+}
+
+NetworkCreateServerMenu::~NetworkCreateServerMenu()
+{}
+
+void NetworkCreateServerMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 210u, text_draw.GetLineHeight() * Row::NumRows };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 110;
+	const int param_x= x + scale * 120;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Start server",
+		scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Map * y_step,
+		"map:", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	char map_name[ 64 ];
+	std::snprintf( map_name, sizeof(map_name), "map%02d", map_number_ ); // TODO - show real man name here
+	text_draw.Print(
+		param_x, y + Row::Map * y_step,
+		map_name, scale,
+		current_row_ == Row::Map ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Difficulty * y_step,
+		"difficulty:", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Difficulty * y_step,
+		GetDifficultyStr(), scale,
+		current_row_ == Row::Difficulty ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Dedicated * y_step,
+		"dedicated:", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Dedicated * y_step,
+		dedicated_ ? "yes" : "no", scale,
+		current_row_ == Row::Dedicated ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	char port_str_with_cursor[ c_port_str_max_size + 2u ];
+
+	text_draw.Print(
+		param_descr_x, y + Row::TCPPort * y_step,
+		"tcp port:", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	std::snprintf( port_str_with_cursor, sizeof(port_str_with_cursor), "%s%s", tcp_port_, current_row_ == Row::TCPPort ? "_" : "" );
+	text_draw.Print(
+		param_x, y + Row::TCPPort * y_step,
+		port_str_with_cursor, scale,
+		current_row_ == Row::TCPPort ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::UDPBasePort * y_step,
+		"base udp port:", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	std::snprintf( port_str_with_cursor, sizeof(port_str_with_cursor), "%s%s", base_udp_port_, current_row_ == Row::UDPBasePort ? "_" : "" );
+	text_draw.Print(
+		param_x, y + Row::UDPBasePort * y_step,
+		port_str_with_cursor, scale,
+		current_row_ == Row::UDPBasePort ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ), y + Row::Start * y_step,
+		"start", scale,
+		current_row_ == Row::Start ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
+		TextDraw::Alignment::Center );
+}
+
+MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+		}
+
+		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;
+		}
+
+		if( event.event.key.key_code == KeyCode::Left || event.event.key.key_code == KeyCode::Right )
+		{
+			if( current_row_ == Row::Map )
+			{
+				if( map_number_ > 1u && event.event.key.key_code == KeyCode::Left )
+					map_number_--;
+				else if( map_number_ < 99 && event.event.key.key_code == KeyCode::Right )
+					map_number_++;
+
+			}
+			if( current_row_ == Row::Difficulty )
+			{
+				if( event.event.key.key_code == KeyCode::Left )
+					difficulty_++;
+				else
+					difficulty_--;
+				difficulty_= ( difficulty_ + 4u ) % 4u ;
+			}
+			if( current_row_ == Row::Dedicated )
+				dedicated_= !dedicated_;
+		}
+
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Map && map_number_ < 99 )
+			map_number_++;
+
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Dedicated )
+			dedicated_= !dedicated_;
+
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Difficulty )
+			difficulty_= ( difficulty_ + 1u ) % 4u ;
+
+		if( event.event.key.key_code == KeyCode::Backspace && current_row_ == Row::TCPPort )
+		{
+			const unsigned int len= std::strlen( tcp_port_ );
+			if( len > 0 ) tcp_port_[ len - 1u ]= '\0';
+		}
+		if( event.event.key.key_code == KeyCode::Backspace && current_row_ == Row::UDPBasePort )
+		{
+			const unsigned int len= std::strlen( base_udp_port_ );
+			if( len > 0 ) base_udp_port_[ len - 1u ]= '\0';
+		}
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Start )
+		{
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+
+			host_commands_.StartServer(
+				map_number_,
+				static_cast<DifficultyType>( 1u << difficulty_ ),
+				dedicated_,
+				std::atoi( tcp_port_ ),
+				std::atoi( base_udp_port_ ) );
+
+			return nullptr;
+		}
+	}
+
+	if( event.type == SystemEvent::Type::CharInput && current_row_ == Row::TCPPort )
+	{
+		const unsigned int l= std::strlen( tcp_port_ );
+		if( l < c_port_str_max_size - 1u )
+		{
+			tcp_port_[l]= event.event.char_input.ch;
+			tcp_port_[l + 1u]= 0u;
+		}
+	}
+	if( event.type == SystemEvent::Type::CharInput && current_row_ == Row::UDPBasePort )
+	{
+		const unsigned int l= std::strlen( base_udp_port_ );
+		if( l < c_port_str_max_size - 1u )
+		{
+			base_udp_port_[l]= event.event.char_input.ch;
+			base_udp_port_[l + 1u]= 0u;
+		}
+	}
+
+	return this;
+}
+
+const char* NetworkCreateServerMenu::GetDifficultyStr()
+{
+	switch( static_cast<DifficultyType>( 1u << difficulty_ ) )
+	{
+	case Difficulty::Easy: return "easy";
+	case Difficulty::Normal: return "normal";
+	case Difficulty::Hard: return "hard";
+	case Difficulty::Deathmatch: return "deathmatch";
+	};
+	return "";
+}
+
 // NetworkMenu
 
 class NetworkMenu final : public MenuBase
@@ -320,6 +557,7 @@ NetworkMenu::NetworkMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	, host_commands_(host_commands)
 {
 	submenus_[0].reset( new NetworkConnectMenu( this, sound_engine, host_commands ) );
+	submenus_[1].reset( new NetworkCreateServerMenu( this, sound_engine, host_commands ) );
 }
 
 NetworkMenu::~NetworkMenu()

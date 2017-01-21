@@ -225,6 +225,30 @@ void Host::ConnectToServer(
 	client_->SetConnection( connection );
 }
 
+void Host::StartServer(
+	const unsigned int map_number,
+	const DifficultyType difficulty,
+	const bool dedicated,
+	const uint16_t server_tcp_port,
+	const uint16_t server_base_udp_port )
+{
+	PC_UNUSED( dedicated );
+	// TODO - add support of loopback connection together with net connections.
+
+	EnsureServer();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+
+	const auto listener=
+		net_->CreateServerListener(
+			server_tcp_port != 0u ? server_tcp_port : Net::c_default_server_tcp_port,
+			server_base_udp_port != 0u ? server_base_udp_port : Net::c_default_server_udp_base_port );
+
+	connections_listener_proxy_->SetConnectionsListener( listener );
+	local_server_->ChangeMap( map_number, difficulty );
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -264,15 +288,10 @@ void Host::ConnectCommand( const CommandsArguments& args )
 
 void Host::RunServerCommand( const CommandsArguments& args )
 {
+	// TODO - parse args, somehow
 	PC_UNUSED(args);
 
-	EnsureServer();
-
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
-
-	local_server_->ChangeMap( 1u, Difficulty::Normal );
-	connections_listener_proxy_->SetConnectionsListener( net_->CreateServerListener() );
+	StartServer( 1u, Difficulty::Normal, false, 0u, 0u );
 }
 
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
