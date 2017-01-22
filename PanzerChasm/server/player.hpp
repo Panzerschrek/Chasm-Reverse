@@ -54,6 +54,8 @@ public:
 	void SetNoclip( bool noclip );
 	bool IsNoclip() const;
 
+	void SetGodMode( bool god_mode );
+
 	bool IsFullyDead() const;
 
 	void GiveWeapon();
@@ -99,6 +101,7 @@ private:
 	m_Vec3 speed_;
 	bool on_floor_;
 	bool noclip_;
+	bool god_mode_;
 	bool teleported_;
 
 	unsigned char ammo_[ GameConstants::weapon_count ];

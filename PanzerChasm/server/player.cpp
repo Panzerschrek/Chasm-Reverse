@@ -18,6 +18,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, speed_( 0.0f, 0.0f, 0.0f )
 	, on_floor_(false)
 	, noclip_(false)
+	, god_mode_(false)
 	, teleported_(true)
 	, armor_(0)
 	, last_state_change_time_( current_time )
@@ -266,8 +267,11 @@ void Player::Hit(
 
 	int health_damage= ( damage - armor_damage ) + armor_damage / 4;
 
-	armor_-= armor_damage;
-	health_-= health_damage;
+	if( !god_mode_ )
+	{
+		armor_-= armor_damage;
+		health_-= health_damage;
+	}
 
 	if( health_ <= 0 )
 	{
@@ -519,6 +523,13 @@ void Player::SetNoclip( const bool noclip )
 bool Player::IsNoclip() const
 {
 	return noclip_;
+}
+
+void Player::SetGodMode( const bool god_mode )
+{
+	god_mode_= god_mode;
+	if( god_mode_ )
+		health_= armor_= 200;
 }
 
 bool Player::IsFullyDead() const

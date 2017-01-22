@@ -80,6 +80,7 @@ private:
 
 	// Cheats
 	bool noclip_= false;
+	bool god_mode_= false;
 };
 
 } // PanzerChasm

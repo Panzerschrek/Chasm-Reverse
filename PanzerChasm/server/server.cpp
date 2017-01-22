@@ -334,6 +334,12 @@ void Server::GiveKeys()
 
 void Server::ToggleGodMode()
 {
+	god_mode_= !god_mode_;
+
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player->SetGodMode( god_mode_ );
+
+	Log::Info( god_mode_ ? "chojin mode on" : "chojin mode off" );
 }
 
 void Server::ToggleNoclip()
