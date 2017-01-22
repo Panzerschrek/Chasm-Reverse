@@ -23,7 +23,7 @@ public:
 
 	void Loop();
 
-	void ChangeMap( unsigned int map_number, DifficultyType difficulty );
+	void ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
 	void DisconnectAllClients();
 
 public: // Messages handlers
@@ -32,12 +32,6 @@ public: // Messages handlers
 	void operator()( const Messages::PlayerMove& message );
 
 private:
-	enum class State
-	{
-		NoMap,
-		PlayingMap,
-	};
-
 	struct ConnectedPlayer final
 	{
 		ConnectedPlayer(
@@ -70,7 +64,7 @@ private:
 
 	CommandsMapConstPtr commands_;
 
-	State state_= State::NoMap;
+	GameRules game_rules_= GameRules::SinglePlayer;
 	unsigned int current_map_number_= ~0;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<Map> map_;

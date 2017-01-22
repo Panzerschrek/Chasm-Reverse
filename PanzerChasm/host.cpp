@@ -258,7 +258,7 @@ void Host::StartServer(
 	if( !dedicated )
 		connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
 
-	local_server_->ChangeMap( map_number, difficulty );
+	local_server_->ChangeMap( map_number, difficulty, GameRules::Cooperative /* todo - select */ );
 
 	if( !dedicated )
 	{
@@ -322,7 +322,7 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
 	connections_listener_proxy_->ClearConnectionsListeners();
 
-	local_server_->ChangeMap( map_number, difficulty );
+	local_server_->ChangeMap( map_number, difficulty, GameRules::SinglePlayer );
 
 	// Making server listen connections from loopback buffer.
 	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );

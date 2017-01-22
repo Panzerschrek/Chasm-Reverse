@@ -55,6 +55,13 @@ struct Difficulty
 
 typedef decltype(Difficulty::Easy) DifficultyType;
 
+enum class GameRules
+{
+	SinglePlayer,
+	Cooperative,
+	Deathmatch,
+};
+
 namespace Sound
 {
 

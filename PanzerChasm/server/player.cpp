@@ -521,6 +521,11 @@ bool Player::IsNoclip() const
 	return noclip_;
 }
 
+bool Player::IsFullyDead() const
+{
+	return state_ == State::Dead;
+}
+
 void Player::GiveWeapon()
 {
 	for( unsigned int w= 0u; w < GameConstants::weapon_count; w++ )

@@ -176,12 +176,12 @@ void Server::Loop()
 			current_map_number_ < 16u )
 		{
 			current_map_number_++;
-			ChangeMap( current_map_number_, map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty() );
+			ChangeMap( current_map_number_, map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty(), game_rules_ );
 		}
 	}
 }
 
-void Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty )
+void Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty, const GameRules game_rules )
 {
 	const auto show_progress=
 	[&]( const float progress )
@@ -200,6 +200,7 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	}
 
 	show_progress( 0.5f );
+	game_rules_= game_rules;
 	current_map_number_= map_number;
 	current_map_data_= map_data;
 	map_.reset(
@@ -211,8 +212,6 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 			[this](){ map_end_triggered_= true; } ) );
 
 	map_end_triggered_= false;
-
-	state_= State::PlayingMap;
 
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
@@ -265,7 +264,35 @@ void Server::operator()( const Messages::MessageBase& message )
 void Server::operator()( const Messages::PlayerMove& message )
 {
 	PC_ASSERT( current_player_ != nullptr );
-	current_player_->player->UpdateMovement( message );
+
+	if( current_player_->player->IsFullyDead() )
+	{
+		// Respawn when player press shoot-button.
+		if( message.shoot_pressed && map_ != nullptr )
+		{
+			map_->DespawnPlayer( current_player_->player_monster_id );
+			current_player_->player= std::make_shared<Player>( game_resources_, server_accumulated_time_ );
+
+			if( game_rules_ == GameRules::SinglePlayer )
+			{
+				// Just restart map in SinglePlayer.
+				ChangeMap( current_map_number_, map_->GetDifficulty(), game_rules_ );
+			}
+			else
+			{
+				// Respawn player without map restart in multiplayer modes.
+				current_player_->player_monster_id= map_->SpawnPlayer( current_player_->player );
+
+				// Send spawn message.
+				Messages::PlayerSpawn spawn_message;
+				current_player_->player->BuildSpawnMessage( spawn_message );
+				spawn_message.player_monster_id= current_player_->player_monster_id;
+				current_player_->connection_info.messages_sender.SendReliableMessage( spawn_message );
+			}
+		}
+	}
+	else
+		current_player_->player->UpdateMovement( message );
 }
 
 void Server::UpdateTimes()
