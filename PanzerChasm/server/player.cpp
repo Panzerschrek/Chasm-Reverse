@@ -19,8 +19,8 @@ Player::Player( const GameResourcesConstPtr& game_resources, const Time current_
 	, on_floor_(false)
 	, noclip_(false)
 	, teleported_(true)
-	, health_(100)
 	, armor_(0)
+	, last_state_change_time_( current_time )
 	, last_shoot_time_( current_time )
 	, weapon_animation_state_change_time_( current_time )
 	, last_pain_sound_time_( current_time )
@@ -53,40 +53,68 @@ void Player::Tick(
 {
 	teleported_= false;
 
+	// Process animations.
+	if( state_ == State::Alive )
+	{
+		if( mevement_acceleration_ > 0.0f )
+		{
+			float angle_diff= movement_direction_ - angle_;
+			if( angle_diff > +Constants::pi )
+				angle_diff-= Constants::two_pi;
+			if( angle_diff < -Constants::pi )
+				angle_diff+= Constants::two_pi;
+
+			if( std::abs(angle_diff) <= Constants::half_pi )
+				current_animation_= GetAnimation( AnimationId::Run );
+			else
+				current_animation_= GetAnimation( AnimationId::MeleeAttackLeftHand ); // TODO - select backwalk animation
+		}
+		else
+			current_animation_= GetAnimation( AnimationId::Idle0 );
+
+		const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
+		current_animation_frame_=
+			static_cast<unsigned int>( std::round( frame ) ) %
+			game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
+	}
+	if( state_ == State::DeathAnimation )
+	{
+		current_animation_= GetAnimation( AnimationId::Death0 );
+
+		const float animation_time_delta_s= ( current_time - last_state_change_time_ ).ToSeconds();
+		const unsigned int frame=
+			static_cast<unsigned int>( std::round( animation_time_delta_s * GameConstants::animations_frames_per_second ) );
+
+		if( frame >= game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count )
+		{
+			last_state_change_time_= current_time;
+			state_= State::Dead;
+		}
+		else
+			current_animation_frame_= frame;
+	}
+	if( state_ == State::Dead )
+	{
+		// Use last frame of previous death animation.
+		current_animation_frame_= game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count - 1u;
+	}
+
+	if( state_ != State::Alive )
+		return;
+
+	// Move.
 	const bool jumped= Move( last_tick_delta );
+
+	// Play move/jump sounds.
 	if( jumped )
 		map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::Jump );
-
-	if( mevement_acceleration_ > 0.0f )
-	{
-		float angle_diff= movement_direction_ - angle_;
-		if( angle_diff > +Constants::pi )
-			angle_diff-= Constants::two_pi;
-		if( angle_diff < -Constants::pi )
-			angle_diff+= Constants::two_pi;
-
-		if( std::abs(angle_diff) <= Constants::half_pi )
-			current_animation_= GetAnimation( AnimationId::Run );
-		else
-			current_animation_= GetAnimation( AnimationId::MeleeAttackLeftHand ); // TODO - select backwalk animation
-	}
-	else
-		current_animation_= GetAnimation( AnimationId::Idle0 );
-
-
-	if( on_floor_ &&
+	else if( on_floor_ &&
 		mevement_acceleration_ > 0.0f &&
 		( current_time - last_step_sound_time_ ).ToSeconds() > 0.4f )
 	{
 		last_step_sound_time_= current_time;
 		map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::StepRun );
 	}
-
-	const float frame= ( current_time - spawn_time_ ).ToSeconds() * GameConstants::animations_frames_per_second;
-	current_animation_frame_=
-		static_cast<unsigned int>( std::round( frame ) ) %
-		game_resources_->monsters_models[0].animations[ current_animation_ ].frame_count;
-
 
 	// Make some iterations of weapon logic.
 	bool switch_step_done= false;
@@ -226,6 +254,9 @@ void Player::Hit(
 {
 	PC_UNUSED( current_time );
 
+	if( state_ != State::Alive )
+		return;
+
 	// TODO - in original game damage is bigger or smaller, sometimes. Know, why.
 
 	// Armor absorbess all damage and gives 1/4 of absorbed damage to health.
@@ -238,7 +269,14 @@ void Player::Hit(
 	armor_-= armor_damage;
 	health_-= health_damage;
 
-	if( ( current_time - last_pain_sound_time_ ).ToSeconds() >= 0.5f )
+	if( health_ <= 0 )
+	{
+		// Player is dead now.
+		state_= State::DeathAnimation;
+		last_state_change_time_= current_time;
+		map.PlayMonsterSound( monster_id, Sound::PlayerMonsterSoundId::Death );
+	}
+	else if( ( current_time - last_pain_sound_time_ ).ToSeconds() >= 0.5f )
 	{
 		last_pain_sound_time_= current_time;
 		map.PlayMonsterSound(
@@ -453,6 +491,9 @@ void Player::OnMapChange()
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 {
+	if( state_ != State::Alive )
+		return;
+
 	angle_= MessageAngleToAngle( move_message.view_direction );
 	movement_direction_= MessageAngleToAngle( move_message.move_direction );
 	mevement_acceleration_= float(move_message.acceleration) / 255.0f;
@@ -554,8 +595,11 @@ bool Player::Move( const Time time_delta )
 	const float deceleration_speed_delta= time_delta_s * c_deceleration;
 
 	// Accelerate
-	speed_.x+= std::cos( movement_direction_ ) * speed_delta;
-	speed_.y+= std::sin( movement_direction_ ) * speed_delta;
+	if( state_ == State::Alive )
+	{
+		speed_.x+= std::cos( movement_direction_ ) * speed_delta;
+		speed_.y+= std::sin( movement_direction_ ) * speed_delta;
+	}
 
 	// Decelerate
 	const float new_speed_length= speed_.xy().Length();
@@ -583,12 +627,15 @@ bool Player::Move( const Time time_delta )
 	bool jumped= false;
 
 	// Jump
-	if( jump_pessed_ && noclip_ )
-		speed_.z-= 2.0f * GameConstants::vertical_acceleration * time_delta_s;
-	else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
+	if( state_ == State::Alive )
 	{
-		jumped= true;
-		speed_.z+= c_jump_speed_delta;
+		if( jump_pessed_ && noclip_ )
+			speed_.z-= 2.0f * GameConstants::vertical_acceleration * time_delta_s;
+		else if( jump_pessed_ && on_floor_ && speed_.z <= 0.0f )
+		{
+			jumped= true;
+			speed_.z+= c_jump_speed_delta;
+		}
 	}
 
 	// Clamp vertical speed

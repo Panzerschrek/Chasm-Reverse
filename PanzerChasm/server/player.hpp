@@ -75,6 +75,13 @@ private:
 	bool Move( Time time_delta );
 
 private:
+	enum class State
+	{
+		Alive,
+		DeathAnimation,
+		Dead,
+	};
+
 	enum class WeaponState
 	{
 		Idle,
@@ -94,7 +101,6 @@ private:
 
 	unsigned char ammo_[ GameConstants::weapon_count ];
 	bool have_weapon_[ GameConstants::weapon_count ];
-	int health_;
 	int armor_;
 
 	bool have_red_key_= false;
@@ -104,6 +110,9 @@ private:
 	float mevement_acceleration_= 0.0f;
 	float movement_direction_= 0.0f;
 	bool jump_pessed_= false;
+
+	State state_= State::Alive;
+	Time last_state_change_time_;
 
 	WeaponState weapon_state_= WeaponState::Idle;
 
