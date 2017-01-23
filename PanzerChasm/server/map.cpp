@@ -1951,7 +1951,7 @@ void Map::ReturnProcedure( const unsigned int procedure_number, const Time curre
 {
 	PC_ASSERT( procedure_number < map_data_->procedures.size() );
 
-	const MapData::Procedure& procededure= map_data_->procedures[ procedure_number ];
+	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
 
 	if( procedure_state.locked )
@@ -1971,10 +1971,10 @@ void Map::ReturnProcedure( const unsigned int procedure_number, const Time curre
 	{
 		procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 		float dt_s;
-		if( procededure.speed > 0.0f )
+		if( procedure.speed > 0.0f )
 			dt_s=
 				std::max(
-					1.0f / ( procededure.speed * GameConstants::procedures_speed_scale ) -
+					1.0f / ( procedure.speed * GameConstants::procedures_speed_scale ) -
 					( current_time - procedure_state.last_state_change_time ).ToSeconds(),
 					0.0f );
 		else
