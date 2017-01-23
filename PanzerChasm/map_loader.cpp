@@ -732,8 +732,12 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.speed;
 		else if( StringEquals( thing, "LifeCheckon" ) )
 			line_stream >> procedure.life_check;
+		else if( StringEquals( thing, "checkgo" ) )
+			procedure.check_go= true;
+		else if( StringEquals( thing, "checkback" ) )
+			procedure.check_back= true;
 		else if( StringEquals( thing, "Mortal" ) )
-			line_stream >> procedure.mortal;
+			procedure.mortal= true;
 		else if( StringEquals( thing, "LightRemap" ) )
 			line_stream >> procedure.light_remap;
 		else if( StringEquals( thing, "Lock" ) && !has_action ) // Distinguish property "lock" and action command "lock".

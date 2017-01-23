@@ -1699,13 +1699,34 @@ void Map::TryActivateProcedure(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	if( !player.TryActivateProcedure( procedure_number, current_time ) )
-		return;
-
 	PC_ASSERT( procedure_number < procedures_.size() );
 
 	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
+
+	// Abort reverse movement if check_back.
+	// TODO - if player tries activate procedure, not revert in and left in BackWait state.
+	if( procedure.check_back &&
+		procedure_state.movement_state == ProcedureState::MovementState::ReverseMovement )
+	{
+		float dt_s;
+		if( procedure.speed > 0.0f )
+			dt_s=
+				std::max(
+					1.0f / ( procedure.speed * GameConstants::procedures_speed_scale ) -
+					( current_time - procedure_state.last_state_change_time ).ToSeconds(),
+					0.0f );
+		else
+			dt_s= 0.0f;
+
+		procedure_state.last_state_change_time= current_time - Time::FromSeconds( dt_s );
+		procedure_state.movement_state= ProcedureState::MovementState::Movement;
+		return;
+	}
+
+	// TODO - make activation filter better.
+	if( !player.TryActivateProcedure( procedure_number, current_time ) )
+		return;
 
 	const bool have_necessary_keys=
 		( !procedure.  red_key_required || player.HaveRedKey() ) &&

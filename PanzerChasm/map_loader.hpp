@@ -157,6 +157,8 @@ public:
 		float back_wait_s= 0.0f; // If zero - not reversible
 		float speed= 10.0f; // TODO - check default speed
 		bool life_check= false;
+		bool check_go= false;
+		bool check_back= false;
 		bool mortal= false;
 		bool light_remap= false;
 		bool locked= false;
