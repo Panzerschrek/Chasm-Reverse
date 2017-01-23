@@ -730,8 +730,6 @@ void MapLoader::LoadProcedure(
 			line_stream >> procedure.back_wait_s;
 		else if( StringEquals( thing, "Speed" ) )
 			line_stream >> procedure.speed;
-		else if( StringEquals( thing, "LifeCheckon" ) )
-			line_stream >> procedure.life_check;
 		else if( StringEquals( thing, "checkgo" ) )
 			procedure.check_go= true;
 		else if( StringEquals( thing, "checkback" ) )
