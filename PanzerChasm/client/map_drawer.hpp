@@ -8,6 +8,7 @@
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
+#include "map_light.hpp"
 #include "map_state.hpp"
 
 namespace PanzerChasm
@@ -19,7 +20,7 @@ class MapDrawer final
 {
 public:
 	MapDrawer(
-		GameResourcesConstPtr game_resources,
+		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
 	~MapDrawer();
 
@@ -140,7 +141,7 @@ private:
 	MapDataConstPtr current_map_data_;
 
 	r_Texture lightmap_;
-	r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
+	const r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
 	r_Texture fullbright_lightmap_dummy_;
 
 	GLuint floor_textures_array_id_= ~0;
@@ -188,6 +189,8 @@ private:
 	r_GLSLProgram sky_shader_;
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;
+
+	MapLight map_light_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

@@ -1,6 +1,8 @@
 #include <ogl_state_manager.hpp>
 
+#include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "map_state.hpp"
 
 #include "map_light.hpp"
 
@@ -31,8 +33,13 @@ const r_OGLState g_light_pass_state(
 } // namespace
 
 
-MapLight::MapLight( const RenderingContext& rendering_context )
+MapLight::MapLight(
+	const GameResourcesConstPtr& game_resources,
+	const RenderingContext& rendering_context )
+	: game_resources_(game_resources)
 {
+	PC_ASSERT( game_resources_ != nullptr );
+
 	const unsigned int c_hd_lightmap_scale= 4u;
 
 	// Floor
@@ -150,53 +157,71 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 		base_floor_lightmap_.Bind();
 		r_OGLStateManager::UpdateState( g_light_pass_state );
 		floor_light_pass_shader_.Bind();
+		DrawLight( light );
+	}	
 
-		// Make light pass.
-		shadowmap_.GetTextures().front().Bind(0);
+	r_Framebuffer::BindScreenFramebuffer();
 
-		const float lightmap_texel_size= float( MapData::c_map_size ) / float( base_floor_lightmap_.Width() );
-		const float half_map_size= 0.5f * float(MapData::c_map_size);
-		const float extended_radius= light.outer_radius + lightmap_texel_size;
-
-		m_Mat4 world_scale_mat, viewport_scale_mat, world_shift_mat, viewport_shift_mat, world_mat, viewport_mat;
-		world_scale_mat.Scale( extended_radius );
-		viewport_scale_mat.Scale( extended_radius / half_map_size );
-
-		world_shift_mat.Translate( m_Vec3( light.pos, 0.0f ) );
-		viewport_shift_mat.Translate(
-			m_Vec3(
-				( light.pos - m_Vec2( half_map_size, half_map_size ) ) / half_map_size,
-				0.0f ) );
-
-		world_mat= world_scale_mat * world_shift_mat;
-		viewport_mat= viewport_scale_mat * viewport_shift_mat;
-
-		floor_light_pass_shader_.Uniform( "shadowmap", int(0) );
-		floor_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
-		floor_light_pass_shader_.Uniform( "world_matrix", world_mat );
-		floor_light_pass_shader_.Uniform( "light_pos", light.pos );
-		floor_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
-		floor_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
-		floor_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
-		floor_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
-
-		glDrawArrays( GL_TRIANGLES, 0, 6 );
-	}
-
-	{ // Ambient light, drawn manually in map editor.
-		r_Texture ambient_lightmap_texture(
+	// Update ambient light texture.
+	ambient_lightmap_texture_=
+		r_Texture(
 			r_Texture::PixelFormat::R8,
 			MapData::c_map_size, MapData::c_map_size,
 			map_data->ambient_lightmap );
-		ambient_lightmap_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
-		ambient_lightmap_texture.Bind(0);
+	ambient_lightmap_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+}
 
+void MapLight::Update( const MapState& map_state )
+{
+	PC_UNUSED( map_state );
+
+	// Clear shadowmam.
+	shadowmap_.Bind();
+	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+	glClear( GL_COLOR_BUFFER_BIT );
+
+	// Draw to floor lightmap.
+	final_floor_lightmap_.Bind();
+
+	{ // Copy base floor lightmap.
+		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
 		floor_ambient_light_pass_shader_.Bind();
+		base_floor_lightmap_.GetTextures().front().Bind(0);
+		floor_ambient_light_pass_shader_.Uniform( "tex", 0 );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
+	{ // Mix with ambient light texture.
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		floor_ambient_light_pass_shader_.Bind();
+		ambient_lightmap_texture_.Bind(0);
 		floor_ambient_light_pass_shader_.Uniform( "tex", 0 );
 
 		glBlendEquation( GL_MAX );
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 		glBlendEquation( GL_FUNC_ADD );
+	}
+
+	{ // Dynamic lights.
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		floor_light_pass_shader_.Bind();
+
+		for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+		{
+			const MapState::Rocket& rocket= rocket_value.second;
+			if( rocket.rocket_id >= game_resources_->rockets_description.size() )
+				continue;
+			if( !game_resources_->rockets_description[ rocket.rocket_id ].Light )
+				continue;
+
+			MapData::Light light;
+			light.inner_radius= 0.5f;
+			light.outer_radius= 1.0f;
+			light.power= 64.0f;
+			light.max_light_level= 128.0f;
+			light.pos= rocket.pos.xy();
+			DrawLight( light );
+		}
 	}
 
 	r_Framebuffer::BindScreenFramebuffer();
@@ -206,9 +231,44 @@ const r_Texture& MapLight::GetFloorLightmap() const
 {
 	return final_floor_lightmap_.GetTextures().front();
 }
+
 const r_Texture& MapLight::GetWallsLightmap() const
 {
 	return final_walls_lightmap_.GetTextures().front();
+}
+
+void MapLight::DrawLight( const MapData::Light& light )
+{
+	// Make light pass.
+	shadowmap_.GetTextures().front().Bind(0);
+
+	const float lightmap_texel_size= float( MapData::c_map_size ) / float( base_floor_lightmap_.Width() );
+	const float half_map_size= 0.5f * float(MapData::c_map_size);
+	const float extended_radius= light.outer_radius + lightmap_texel_size;
+
+	m_Mat4 world_scale_mat, viewport_scale_mat, world_shift_mat, viewport_shift_mat, world_mat, viewport_mat;
+	world_scale_mat.Scale( extended_radius );
+	viewport_scale_mat.Scale( extended_radius / half_map_size );
+
+	world_shift_mat.Translate( m_Vec3( light.pos, 0.0f ) );
+	viewport_shift_mat.Translate(
+		m_Vec3(
+			( light.pos - m_Vec2( half_map_size, half_map_size ) ) / half_map_size,
+			0.0f ) );
+
+	world_mat= world_scale_mat * world_shift_mat;
+	viewport_mat= viewport_scale_mat * viewport_shift_mat;
+
+	floor_light_pass_shader_.Uniform( "shadowmap", int(0) );
+	floor_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
+	floor_light_pass_shader_.Uniform( "world_matrix", world_mat );
+	floor_light_pass_shader_.Uniform( "light_pos", light.pos );
+	floor_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
+	floor_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
+	floor_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+	floor_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+	glDrawArrays( GL_TRIANGLES, 0, 6 );
 }
 
 } // namespace PanzerChasm

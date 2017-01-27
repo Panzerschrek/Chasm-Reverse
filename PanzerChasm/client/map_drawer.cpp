@@ -190,10 +190,11 @@ static void CreateModelMatrices(
 }
 
 MapDrawer::MapDrawer(
-	GameResourcesConstPtr game_resources,
+	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context )
-	: game_resources_(std::move(game_resources))
+	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
+	, map_light_( game_resources, rendering_context )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -311,6 +312,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	if( map_data == current_map_data_ )
 		return;
 
+	map_light_.SetMap( map_data );
+
 	current_map_data_= map_data;
 
 	LoadFloorsTextures( *map_data );
@@ -359,7 +362,8 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
 
-	active_lightmap_= &lightmap_;
+	//active_lightmap_= &lightmap_;
+	active_lightmap_= &map_light_.GetFloorLightmap();
 }
 
 void MapDrawer::Draw(
@@ -372,6 +376,7 @@ void MapDrawer::Draw(
 		return;
 
 	UpdateDynamicWalls( map_state.GetDynamicWalls() );
+	map_light_.Update( map_state );
 
 	m_Mat4 translate;
 	translate.Translate( -camera_position );
