@@ -18,6 +18,6 @@ void main()
 	if( f_discard_mask < 0.5f || ( c.a < 0.5 && f_alpha_test_mask > 0.5 ) )
 		discard;
 
-	float light= c_light_scale * texture( lightmap, f_lightmap_coord ).x;
+	float light= c_light_scale * length( texture( lightmap, f_lightmap_coord ) );
 	color= vec4( light * c.xyz, 0.25 );
 }

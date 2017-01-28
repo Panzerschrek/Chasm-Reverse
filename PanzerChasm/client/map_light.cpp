@@ -50,11 +50,11 @@ MapLight::MapLight(
 	// Floor
 	base_floor_lightmap_=
 		r_Framebuffer(
-			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+			{ r_Texture::PixelFormat::RGBA8 }, r_Texture::PixelFormat::Unknown,
 			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
 	final_floor_lightmap_=
 		r_Framebuffer(
-			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
+			{ r_Texture::PixelFormat::RGBA8 }, r_Texture::PixelFormat::Unknown,
 			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
 
 	// Walls
@@ -99,6 +99,11 @@ MapLight::MapLight(
 	walls_ambient_light_pass_shader_.SetAttribLocation( "lightmap_coord", 1 );
 	walls_ambient_light_pass_shader_.SetAttribLocation( "normal", 2 );
 	walls_ambient_light_pass_shader_.Create();
+
+	copy_shader_.ShaderSource(
+		rLoadShader( "texture_copy_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "texture_copy_v.glsl", rendering_context.glsl_version ) );
+	copy_shader_.Create();
 
 	shadowmap_shader_.ShaderSource(
 		rLoadShader( "shadowmap_f.glsl", rendering_context.glsl_version ),
@@ -234,9 +239,9 @@ void MapLight::Update( const MapState& map_state )
 
 	{ // Copy base floor lightmap.
 		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
-		floor_ambient_light_pass_shader_.Bind();
+		copy_shader_.Bind();
 		base_floor_lightmap_.GetTextures().front().Bind(0);
-		floor_ambient_light_pass_shader_.Uniform( "tex", 0 );
+		copy_shader_.Uniform( "tex", 0 );
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
 
@@ -268,9 +273,9 @@ void MapLight::Update( const MapState& map_state )
 
 	{ // Copy base walls lightmap.
 		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
-		floor_ambient_light_pass_shader_.Bind();
+		copy_shader_.Bind();
 		base_walls_lightmap_.GetTextures().front().Bind(0);
-		floor_ambient_light_pass_shader_.Uniform( "tex", 0 );
+		copy_shader_.Uniform( "tex", 0 );
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
 

@@ -35,7 +35,8 @@ public:
 	void DrawWeapon(
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
-		const m_Vec3& camera_position );
+		const m_Vec3& camera_position,
+		float x_angle, float z_angle );
 
 private:
 	struct FloorGeometryInfo

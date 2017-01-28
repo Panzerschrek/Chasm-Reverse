@@ -264,7 +264,8 @@ MapDrawer::MapDrawer(
 
 	models_shader_.ShaderSource(
 		rLoadShader( "models_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "models_v.glsl", rendering_context.glsl_version ) );
+		rLoadShader( "models_v.glsl", rendering_context.glsl_version ),
+		rLoadShader( "models_g.glsl", rendering_context.glsl_version ) );
 	models_shader_.SetAttribLocation( "pos", 0u );
 	models_shader_.SetAttribLocation( "tex_coord", 1u );
 	models_shader_.SetAttribLocation( "tex_id", 2u );
@@ -421,7 +422,8 @@ void MapDrawer::Draw(
 void MapDrawer::DrawWeapon(
 	const WeaponState& weapon_state,
 	const m_Mat4& projection_matrix,
-	const m_Vec3& camera_position )
+	const m_Vec3& camera_position,
+	const float x_angle, const float z_angle  )
 {
 	// TODO - maybe this points differnet for differnet weapons?
 	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
@@ -448,8 +450,14 @@ void MapDrawer::DrawWeapon(
 	lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 	const m_Mat3 lightmap_mat= scale_in_lightmap_mat * lightmap_shift_mat * lightmap_scale_mat;
 
+	// Rotate model for anisothropic lighting.
+	m_Mat4 rotation_mat_x, rotation_mat_z;
+	rotation_mat_x.RotateX( x_angle );
+	rotation_mat_z.RotateZ( z_angle );
+
 	models_shader_.Uniform( "view_matrix", shift_mat * projection_matrix );
 	models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
+	models_shader_.Uniform( "rotation_matrix", rotation_mat_x * rotation_mat_z );
 
 	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
 	const unsigned int frame= model.animations[ weapon_state.CurrentAnimation() ].first_frame + weapon_state.CurrentAnimationFrame();
@@ -1228,12 +1236,14 @@ void MapDrawer::DrawModels(
 			model_geometry.first_vertex_index +
 			static_model.animation_frame * model_geometry.vertex_count;
 
-		m_Mat4 model_matrix;
+		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( static_model.angle );
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -1274,12 +1284,14 @@ void MapDrawer::DrawItems(
 			model_geometry.first_vertex_index +
 			item.animation_frame * model_geometry.vertex_count;
 
-		m_Mat4 model_matrix;
+		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( item.angle );
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -1318,12 +1330,14 @@ void MapDrawer::DrawDynamicItems(
 			model_geometry.first_vertex_index +
 			item.frame * model_geometry.vertex_count;
 
-		m_Mat4 model_matrix;
+		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( item.angle );
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
 		( item.fullbright ? fullbright_lightmap_dummy_ : lightmap_ ).Bind(1);
 
@@ -1481,10 +1495,12 @@ void MapDrawer::DrawRockets(
 		shift_mat.Translate( rocket.pos );
 		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 
-		const m_Mat4 model_mat= rotate_max_x * rotate_mat_z * shift_mat;
+		const m_Mat4 rotate_mat= rotate_max_x * rotate_mat_z;
+		const m_Mat4 model_mat= rotate_mat * shift_mat;
 
 		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+		models_shader_.Uniform( "rotation_matrix", rotate_mat );
 
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			fullbright_lightmap_dummy_.Bind(1);
