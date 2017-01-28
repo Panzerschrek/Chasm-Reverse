@@ -74,6 +74,7 @@ private:
 	r_GLSLProgram walls_light_pass_shader_;
 	r_GLSLProgram walls_ambient_light_pass_shader_;
 
+	r_GLSLProgram copy_shader_;
 	r_GLSLProgram shadowmap_shader_;
 
 	MapDataConstPtr map_data_;
