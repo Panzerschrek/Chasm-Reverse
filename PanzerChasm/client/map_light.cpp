@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <ogl_state_manager.hpp>
 
 #include "../game_resources.hpp"
@@ -224,7 +226,31 @@ void MapLight::Update( const MapState& map_state )
 		}
 	}
 
+	PrepareMapWalls( *map_data_ );
+
 	r_Framebuffer::BindScreenFramebuffer();
+}
+
+void MapLight::GetStaticWallLightmapCoord(
+	const unsigned int static_wall_index,
+	unsigned char* out_coord_xy ) const
+{
+	PC_ASSERT( static_wall_index < map_data_->static_walls.size() );
+	std::memcpy(
+		out_coord_xy,
+		walls_vertices_[ static_walls_first_vertex_ + static_wall_index ].lightmap_coord_xy,
+		2u );
+}
+
+void MapLight::GetDynamicWallLightmapCoord(
+	const unsigned int dynamic_wall_index,
+	unsigned char* out_coord_xy ) const
+{
+	PC_ASSERT( dynamic_wall_index < map_data_->dynamic_walls.size() );
+	std::memcpy(
+		out_coord_xy,
+		walls_vertices_[ dynamic_walls_first_vertex_ + dynamic_wall_index ].lightmap_coord_xy,
+		2u );
 }
 
 const r_Texture& MapLight::GetFloorLightmap() const
@@ -235,6 +261,66 @@ const r_Texture& MapLight::GetFloorLightmap() const
 const r_Texture& MapLight::GetWallsLightmap() const
 {
 	return final_walls_lightmap_.GetTextures().front();
+}
+
+void MapLight::PrepareMapWalls( const MapData& map_data )
+{
+	walls_vertices_.resize( 2u * ( map_data.static_walls.size() + map_data.dynamic_walls.size() ) );
+	static_walls_first_vertex_= 0u;
+	dynamic_walls_first_vertex_= map_data.static_walls.size() * 2u;
+
+	// Place walls in lightmap atlas.
+	unsigned int x= 0u, y= 0u;
+
+	const auto build_wall=
+	[&]( const MapData::Wall& in_wall, WallVertex* const v )
+	{
+		v[0].pos[0]= short( in_wall.vert_pos[0].x * 256.0f );
+		v[0].pos[1]= short( in_wall.vert_pos[0].y * 256.0f );
+		v[1].pos[0]= short( in_wall.vert_pos[1].x * 256.0f );
+		v[1].pos[1]= short( in_wall.vert_pos[1].y * 256.0f );
+
+		v[0].lightmap_coord_xy[0]= x;
+		v[0].lightmap_coord_xy[1]= y;
+		v[1].lightmap_coord_xy[0]= x + 1u;
+		v[1].lightmap_coord_xy[1]= y;
+
+		m_Vec2 normal( in_wall.vert_pos[1].y - in_wall.vert_pos[0].y, in_wall.vert_pos[0].x - in_wall.vert_pos[1].x );
+		normal.Normalize();
+
+		v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );
+		v[0].normal[1]= v[1].normal[1]= static_cast<unsigned char>( normal.y * 126.5f );
+
+		if( x >= MapData::c_map_size )
+		{
+			x= 0u;
+			y++;
+		}
+	};
+
+	for( unsigned int w= 0u; w < map_data.static_walls.size(); w++ )
+		build_wall(
+			map_data.static_walls[w],
+			walls_vertices_[ static_walls_first_vertex_ + w * 2u ] );
+
+
+	for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
+		build_wall(
+			map_data.dynamice_walls[w],
+			walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ] );
+
+	// Send data to GPU.
+	walls_vertex_buffer_.VertexData(
+		walls_vertices_.data(),
+		sizeof(WallVertex) * walls_vertices_.size(),
+		sizeof(WallVertex) );
+
+	walls_vertex_buffer_.SetPrimitiveType( GL_LINES );
+
+	WallVertex& v;
+	walls_vertex_buffer_.VertexAttribPointer( 0, 2, GL_SHORT, false, ((char*)v.pos) - &v );
+	walls_vertex_buffer_.VertexAttribPointer( 1, 2, GL_UNSIGNED_BYTE, false, ((char*)v.lightmap_coord_xy) - &v );
+	walls_vertex_buffer_.VertexAttribPointer( 2, 2, GL_BYTE, true, ((char*)v.normal) - &v );
 }
 
 void MapLight::DrawLight( const MapData::Light& light )
