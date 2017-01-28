@@ -280,7 +280,8 @@ MapDrawer::MapDrawer(
 
 	monsters_shader_.ShaderSource(
 		rLoadShader( "monsters_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "monsters_v.glsl", rendering_context.glsl_version ) );
+		rLoadShader( "monsters_v.glsl", rendering_context.glsl_version ),
+		rLoadShader( "monsters_g.glsl", rendering_context.glsl_version ) );
 	monsters_shader_.SetAttribLocation( "pos", 0u );
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
@@ -1388,13 +1389,15 @@ void MapDrawer::DrawMonsters(
 			model_geometry.first_vertex_index +
 			frame * model_geometry.vertex_count;
 
-		m_Mat4 model_matrix;
+		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( monster.angle + Constants::half_pi );
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
+		monsters_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
@@ -1439,13 +1442,15 @@ void MapDrawer::DrawMonstersBodyParts(
 			model_geometry.first_vertex_index +
 			frame * model_geometry.vertex_count;
 
-		m_Mat4 model_matrix;
+		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( part.pos, part.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( part.angle + Constants::half_pi );
 
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
+		monsters_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
