@@ -14,6 +14,9 @@ namespace PanzerChasm
 namespace
 {
 
+const float g_floor_light_scale= 0.8f / 128.0f;
+const float g_walls_light_scale= 1.2f / 128.0f;
+
 const unsigned int g_wall_lightmap_size= 32u;
 const Size2 g_walls_lightmap_atlas_size(
 	MapData::c_map_size * g_wall_lightmap_size,
@@ -168,9 +171,10 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 		// TODO - use scissor test for speed.
 		walls_buffer.Draw();
 
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+
 		// Add light to floor lightmap.
 		base_floor_lightmap_.Bind();
-		r_OGLStateManager::UpdateState( g_light_pass_state );
 		floor_light_pass_shader_.Bind();
 		DrawLight( light );
 
@@ -180,8 +184,8 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 		walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
 		walls_light_pass_shader_.Uniform( "light_pos", light.pos );
-		walls_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
-		walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
+		walls_light_pass_shader_.Uniform( "light_power", light.power * g_walls_light_scale );
+		walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level * g_walls_light_scale );
 		walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
 		walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 
@@ -219,6 +223,7 @@ void MapLight::Update( const MapState& map_state )
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
 
+	if( false )
 	{ // Mix with ambient light texture.
 		r_OGLStateManager::UpdateState( g_light_pass_state );
 		floor_ambient_light_pass_shader_.Bind();
@@ -376,8 +381,8 @@ void MapLight::DrawLight( const MapData::Light& light )
 	floor_light_pass_shader_.Uniform( "view_matrix", viewport_mat );
 	floor_light_pass_shader_.Uniform( "world_matrix", world_mat );
 	floor_light_pass_shader_.Uniform( "light_pos", light.pos );
-	floor_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
-	floor_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
+	floor_light_pass_shader_.Uniform( "light_power", light.power * g_floor_light_scale );
+	floor_light_pass_shader_.Uniform( "max_light_level", light.max_light_level * g_floor_light_scale );
 	floor_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
 	floor_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 
