@@ -14,14 +14,16 @@ out vec4 color;
 void main()
 {
 	vec2 r= light_pos - f_world_coord;
+	vec2 normalized_dir_to_light= normalize( r );
 	float distance_to_light= distance( light_pos, f_world_coord );
 
 	float light_fraction= 1.0 - min( max( distance_to_light - min_radius, 0.0 ) / ( max_radius - min_radius ), 1.0 );
 
-	float shadow_factor= 1.0 - texture( shadowmap, f_world_coord / 64.0 ).x;
+	vec2 shadow_fetch_pos= f_world_coord + normalized_dir_to_light / 8.0; // TODO - calibrate this.
+	float shadow_factor= 1.0 - texture( shadowmap, shadow_fetch_pos / 64.0 ).x;
 
-	vec2 normalized_dir_to_light= normalize( r );
 	float normal_factor= max( 0, -dot( f_normal, normalized_dir_to_light ) );
+
 
 	color=
 		vec4(
