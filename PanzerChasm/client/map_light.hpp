@@ -43,7 +43,8 @@ private:
 
 private:
 	void PrepareMapWalls( const MapData& map_data );
-	void DrawLight( const MapData::Light& light );
+	void DrawFloorLight( const MapData::Light& light );
+	void DrawWallsLight( const MapData::Light& light );
 
 private:
 	const GameResourcesConstPtr game_resources_;

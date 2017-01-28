@@ -37,7 +37,6 @@ const r_OGLState g_light_pass_state(
 
 } // namespace
 
-
 MapLight::MapLight(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context )
@@ -184,20 +183,12 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 		// Add light to floor lightmap.
 		base_floor_lightmap_.Bind();
 		floor_light_pass_shader_.Bind();
-		DrawLight( light );
+		DrawFloorLight( light );
 
 		// Add light to walls lightmap.
 		base_walls_lightmap_.Bind();
 		walls_light_pass_shader_.Bind();
-
-		walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
-		walls_light_pass_shader_.Uniform( "light_pos", light.pos );
-		walls_light_pass_shader_.Uniform( "light_power", light.power * g_walls_light_scale );
-		walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level * g_walls_light_scale );
-		walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
-		walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
-
-		walls_vertex_buffer_.Draw();
+		DrawWallsLight( light );
 	}
 
 	r_Framebuffer::BindScreenFramebuffer();
@@ -213,7 +204,22 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 void MapLight::Update( const MapState& map_state )
 {
-	PC_UNUSED( map_state );
+	const auto gen_light_for_rocket=
+	[&]( const MapState::Rocket& rocket, MapData::Light& out_light ) -> bool
+	{
+		if( rocket.rocket_id >= game_resources_->rockets_description.size() )
+			return false;
+		if( !game_resources_->rockets_description[ rocket.rocket_id ].Light )
+			return false;
+
+		out_light.inner_radius= 0.5f;
+		out_light.outer_radius= 1.0f;
+		out_light.power= 64.0f;
+		out_light.max_light_level= 128.0f;
+		out_light.pos= rocket.pos.xy();
+
+		return true;
+	};
 
 	// Clear shadowmam.
 	shadowmap_.Bind();
@@ -248,19 +254,9 @@ void MapLight::Update( const MapState& map_state )
 
 		for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
 		{
-			const MapState::Rocket& rocket= rocket_value.second;
-			if( rocket.rocket_id >= game_resources_->rockets_description.size() )
-				continue;
-			if( !game_resources_->rockets_description[ rocket.rocket_id ].Light )
-				continue;
-
 			MapData::Light light;
-			light.inner_radius= 0.5f;
-			light.outer_radius= 1.0f;
-			light.power= 64.0f;
-			light.max_light_level= 128.0f;
-			light.pos= rocket.pos.xy();
-			DrawLight( light );
+			if( gen_light_for_rocket( rocket_value.second, light ) )
+				DrawFloorLight( light );
 		}
 	}
 
@@ -284,6 +280,18 @@ void MapLight::Update( const MapState& map_state )
 		glBlendEquation( GL_MAX );
 		walls_vertex_buffer_.Draw();
 		glBlendEquation( GL_FUNC_ADD );
+	}
+
+	{ // Dynamic lights.
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		walls_light_pass_shader_.Bind();
+
+		for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+		{
+			MapData::Light light;
+			if( gen_light_for_rocket( rocket_value.second, light ) )
+				DrawWallsLight( light );
+		}
 	}
 
 	r_Framebuffer::BindScreenFramebuffer();
@@ -381,9 +389,8 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 	walls_vertex_buffer_.VertexAttribPointer( 2, 2, GL_BYTE, true, ((char*)v.normal) - (char*)&v );
 }
 
-void MapLight::DrawLight( const MapData::Light& light )
+void MapLight::DrawFloorLight( const MapData::Light& light )
 {
-	// Make light pass.
 	shadowmap_.GetTextures().front().Bind(0);
 
 	const float lightmap_texel_size= float( MapData::c_map_size ) / float( base_floor_lightmap_.Width() );
@@ -413,6 +420,20 @@ void MapLight::DrawLight( const MapData::Light& light )
 	floor_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 
 	glDrawArrays( GL_TRIANGLES, 0, 6 );
+}
+
+void MapLight::DrawWallsLight( const MapData::Light& light )
+{
+	shadowmap_.GetTextures().front().Bind(0);
+
+	walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
+	walls_light_pass_shader_.Uniform( "light_pos", light.pos );
+	walls_light_pass_shader_.Uniform( "light_power", light.power * g_walls_light_scale );
+	walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level * g_walls_light_scale );
+	walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+	walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+	walls_vertex_buffer_.Draw();
 }
 
 } // namespace PanzerChasm
