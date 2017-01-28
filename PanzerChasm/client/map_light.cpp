@@ -92,6 +92,14 @@ MapLight::MapLight(
 	walls_light_pass_shader_.SetAttribLocation( "normal", 2 );
 	walls_light_pass_shader_.Create();
 
+	walls_ambient_light_pass_shader_.ShaderSource(
+		rLoadShader( "walls_ambient_light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "walls_light_v.glsl", rendering_context.glsl_version ) );
+	walls_ambient_light_pass_shader_.SetAttribLocation( "pos", 0 );
+	walls_ambient_light_pass_shader_.SetAttribLocation( "lightmap_coord", 1 );
+	walls_ambient_light_pass_shader_.SetAttribLocation( "normal", 2 );
+	walls_ambient_light_pass_shader_.Create();
+
 	shadowmap_shader_.ShaderSource(
 		rLoadShader( "shadowmap_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "shadowmap_v.glsl", rendering_context.glsl_version ),
@@ -256,6 +264,28 @@ void MapLight::Update( const MapState& map_state )
 		}
 	}
 
+	// Draw to walls lightmap.
+	final_walls_lightmap_.Bind();
+
+	{ // Copy base walls lightmap.
+		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+		floor_ambient_light_pass_shader_.Bind();
+		base_walls_lightmap_.GetTextures().front().Bind(0);
+		floor_ambient_light_pass_shader_.Uniform( "tex", 0 );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
+	{ // Mix with ambient light texture.
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		walls_ambient_light_pass_shader_.Bind();
+		ambient_lightmap_texture_.Bind(0);
+		walls_ambient_light_pass_shader_.Uniform( "tex", 0 );
+
+		glBlendEquation( GL_MAX );
+		walls_vertex_buffer_.Draw();
+		glBlendEquation( GL_FUNC_ADD );
+	}
+
 	r_Framebuffer::BindScreenFramebuffer();
 }
 
@@ -288,8 +318,7 @@ const r_Texture& MapLight::GetFloorLightmap() const
 
 const r_Texture& MapLight::GetWallsLightmap() const
 {
-	//return final_walls_lightmap_.GetTextures().front();
-	return base_walls_lightmap_.GetTextures().front();
+	return final_walls_lightmap_.GetTextures().front();
 }
 
 void MapLight::PrepareMapWalls( const MapData& map_data )
@@ -314,7 +343,7 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 		v[1].lightmap_coord_xy[0]= x + 1u;
 		v[1].lightmap_coord_xy[1]= y;
 
-		m_Vec2 normal( in_wall.vert_pos[1].y - in_wall.vert_pos[0].y, in_wall.vert_pos[0].x - in_wall.vert_pos[1].x );
+		m_Vec2 normal( in_wall.vert_pos[0].y - in_wall.vert_pos[1].y, in_wall.vert_pos[1].x - in_wall.vert_pos[0].x );
 		normal.Normalize();
 
 		v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );

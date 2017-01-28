@@ -22,8 +22,7 @@ void main()
 	vec2 shadow_fetch_pos= f_world_coord + normalized_dir_to_light / 8.0; // TODO - calibrate this.
 	float shadow_factor= 1.0 - texture( shadowmap, shadow_fetch_pos / 64.0 ).x;
 
-	float normal_factor= max( 0, -dot( f_normal, normalized_dir_to_light ) );
-
+	float normal_factor= max( 0, dot( f_normal, normalized_dir_to_light ) );
 
 	color=
 		vec4(
