@@ -223,7 +223,6 @@ void MapLight::Update( const MapState& map_state )
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
 
-	if( false )
 	{ // Mix with ambient light texture.
 		r_OGLStateManager::UpdateState( g_light_pass_state );
 		floor_ambient_light_pass_shader_.Bind();
@@ -256,8 +255,6 @@ void MapLight::Update( const MapState& map_state )
 			DrawLight( light );
 		}
 	}
-
-	PrepareMapWalls( *map_data_ );
 
 	r_Framebuffer::BindScreenFramebuffer();
 }
