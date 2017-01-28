@@ -18,7 +18,9 @@ void main()
 
 	float normal_xy_square_length= dot( f_normal.xy, f_normal.xy );
 
-	vec4 lightmap_value= texture( lightmap, f_lightmap_coord );
+	// Shift fetch position towards normal. This is hack for some map models.
+	vec2 lightmap_fetch_coord= f_lightmap_coord + f_normal.xy / ( 64.0 * 7.9 );
+	vec4 lightmap_value= texture( lightmap, lightmap_fetch_coord );
 	float light_for_flat_surface= 0.5 * length( lightmap_value );
 
 	float directional_light=
