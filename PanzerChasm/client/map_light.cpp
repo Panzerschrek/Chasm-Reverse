@@ -4,6 +4,7 @@
 
 #include "../game_resources.hpp"
 #include "../map_loader.hpp"
+#include "../math_utils.hpp"
 #include "map_state.hpp"
 
 #include "map_light.hpp"
@@ -204,6 +205,8 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 void MapLight::Update( const MapState& map_state )
 {
+	UpdateLightOnDynamicWalls( map_state );
+
 	const auto gen_light_for_rocket=
 	[&]( const MapState::Rocket& rocket, MapData::Light& out_light ) -> bool
 	{
@@ -387,6 +390,103 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 	walls_vertex_buffer_.VertexAttribPointer( 0, 2, GL_SHORT, false, ((char*)v.pos) - (char*)&v );
 	walls_vertex_buffer_.VertexAttribPointer( 1, 2, GL_UNSIGNED_BYTE, false, ((char*)v.lightmap_coord_xy) - (char*)&v );
 	walls_vertex_buffer_.VertexAttribPointer( 2, 2, GL_BYTE, true, ((char*)v.normal) - (char*)&v );
+}
+
+void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
+{
+	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
+
+	updated_dynamic_walls_flags_.clear();
+	updated_dynamic_walls_flags_.resize( dynamic_walls.size(), false );
+
+	unsigned int first_updated_wall= ~0u;
+	unsigned int last_updated_wall= ~0u;
+
+	for( unsigned int w= 0u; w < dynamic_walls.size(); w++ )
+	{
+		const MapState::DynamicWall& wall= dynamic_walls[w];
+		WallVertex* const v= &walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ];
+
+		short pos[2][2];
+		for( unsigned int j= 0u; j < 2; j++ )
+		{
+			pos[j][0]= short( wall.vert_pos[j].x * 256.0f );
+			pos[j][1]= short( wall.vert_pos[j].y * 256.0f );
+		}
+
+		if( std::memcmp( pos[0], v[0].pos, sizeof(short) * 2u ) != 0 || std::memcmp( pos[1], v[1].pos, sizeof(short) * 2u ) != 0 )
+		{
+			// Update flags
+			updated_dynamic_walls_flags_[w]= true;
+			if( first_updated_wall == ~0u )
+				first_updated_wall= w;
+			last_updated_wall= w;
+
+			// Update position and normal.
+			v[0].pos[0]= pos[0][0]; v[0].pos[1]= pos[0][1];
+			v[1].pos[0]= pos[1][0]; v[1].pos[1]= pos[1][1];
+
+			m_Vec2 normal( wall.vert_pos[0].y - wall.vert_pos[1].y, wall.vert_pos[1].x - wall.vert_pos[0].x );
+			normal.Normalize();
+
+			v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );
+			v[0].normal[1]= v[1].normal[1]= static_cast<unsigned char>( normal.y * 126.5f );
+		}
+	}
+
+	if( first_updated_wall == ~0u || last_updated_wall == ~0u )
+		return; // Nothing to update.
+
+	// Update GPU data.
+	walls_vertex_buffer_.VertexSubData(
+		walls_vertices_.data() + dynamic_walls_first_vertex_ + first_updated_wall * 2u,
+		( 1u + last_updated_wall - first_updated_wall ) * 2u * sizeof(WallVertex),
+		( dynamic_walls_first_vertex_ + first_updated_wall * 2u ) * sizeof(WallVertex) );
+
+	// Recalculate light for dynamic walls.
+
+	base_walls_lightmap_.Bind();
+	walls_light_pass_shader_.Bind();
+	walls_vertex_buffer_.Bind();
+
+	for( unsigned int w= first_updated_wall; w <= last_updated_wall; w++ )
+	{
+		if( !updated_dynamic_walls_flags_[w] ) continue;
+		const MapState::DynamicWall& wall= dynamic_walls[w];
+
+		// Clear individual wall lightmap with "black" light.
+		r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+
+		shadowmap_.GetTextures().front().Bind(0);
+
+		walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
+		walls_light_pass_shader_.Uniform( "light_pos", m_Vec2( 0.0f, 0.0f ));
+		walls_light_pass_shader_.Uniform( "light_power", 0.0f );
+		walls_light_pass_shader_.Uniform( "max_light_level", 0.0f );
+		walls_light_pass_shader_.Uniform( "min_radius", 0.5f );
+		walls_light_pass_shader_.Uniform( "max_radius", 1.0f );
+
+		glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 2u, 2u );
+
+		// Add light from nearest sources.
+		r_OGLStateManager::UpdateState( g_light_pass_state );
+		for( const MapData::Light& light : map_data_->lights )
+		{
+			if( DistanceToLineSegment( light.pos, wall.vert_pos[0], wall.vert_pos[1] ) > light.outer_radius )
+				continue;
+
+			walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
+			walls_light_pass_shader_.Uniform( "light_pos", light.pos );
+			walls_light_pass_shader_.Uniform( "light_power", light.power * g_walls_light_scale );
+			walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level * g_walls_light_scale );
+			walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+			walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+			glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 2u, 2u );
+		}
+	}
+
+	r_Framebuffer::BindScreenFramebuffer();
 }
 
 void MapLight::DrawFloorLight( const MapData::Light& light )

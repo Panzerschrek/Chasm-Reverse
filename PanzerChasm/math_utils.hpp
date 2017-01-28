@@ -30,4 +30,9 @@ void VecToAngles( const m_Vec3& vec, float* out_angle );
 // Convert to range [ 0; 2 * pi )
 float NormalizeAngle( float angle );
 
+float DistanceToLineSegment(
+	const m_Vec2& from,
+	const m_Vec2& v0,
+	const m_Vec2& v1 );
+
 } // namespace PanzerChasm

@@ -43,6 +43,7 @@ private:
 
 private:
 	void PrepareMapWalls( const MapData& map_data );
+	void UpdateLightOnDynamicWalls( const MapState& map_state );
 	void DrawFloorLight( const MapData::Light& light );
 	void DrawWallsLight( const MapData::Light& light );
 
@@ -76,6 +77,8 @@ private:
 	r_GLSLProgram shadowmap_shader_;
 
 	MapDataConstPtr map_data_;
+
+	std::vector<bool> updated_dynamic_walls_flags_;
 };
 
 } // namespace PanzerChasm
