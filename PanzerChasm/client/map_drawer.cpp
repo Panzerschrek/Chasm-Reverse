@@ -64,7 +64,8 @@ struct WallVertex
 	short tex_coord[2]; // 8.8 fixed
 	unsigned char texture_id;
 	char normal[2];
-	unsigned char reserved[3];
+	unsigned char lightmap_coord[2];
+	unsigned char reserved[1];
 };
 
 SIZE_ASSERT( WallVertex, 16u );
@@ -258,6 +259,7 @@ MapDrawer::MapDrawer(
 	walls_shader_.SetAttribLocation( "tex_coord", 1u );
 	walls_shader_.SetAttribLocation( "tex_id", 2u );
 	walls_shader_.SetAttribLocation( "normal", 3u );
+	walls_shader_.SetAttribLocation( "lightmap_coord", 4u );
 	walls_shader_.Create();
 
 	models_shader_.ShaderSource(
@@ -747,6 +749,15 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 		v[0].tex_coord[1]= v[1].tex_coord[1]= 0;
 		v[2].tex_coord[1]= v[3].tex_coord[1]= 256;
 
+		map_light_.GetStaticWallLightmapCoord(
+			&wall - map_data.static_walls.data(),
+			v[0].lightmap_coord );
+
+		v[2].lightmap_coord[0]= v[0].lightmap_coord[0];
+		v[2].lightmap_coord[1]= v[0].lightmap_coord[1];
+		v[3].lightmap_coord[0]= v[1].lightmap_coord[0]= v[0].lightmap_coord[0] + 1u;
+		v[3].lightmap_coord[1]= v[1].lightmap_coord[1]= v[0].lightmap_coord[1];
+
 		m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
 			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1]));
@@ -792,6 +803,10 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 		polygon_buffer.VertexAttribPointer(
 			3, 2, GL_BYTE, true,
 			((char*)v.normal) - ((char*)&v) );
+
+		polygon_buffer.VertexAttribPointer(
+			4, 2, GL_UNSIGNED_BYTE, false,
+			((char*)v.lightmap_coord) - ((char*)&v) );
 	};
 
 	walls_geometry_.VertexData(
@@ -1069,6 +1084,13 @@ void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls 
 		v[0].tex_coord[1]= v[1].tex_coord[1]= 0;
 		v[2].tex_coord[1]= v[3].tex_coord[1]= 256;
 
+		map_light_.GetDynamicWallLightmapCoord( w, v[0].lightmap_coord );
+
+		v[2].lightmap_coord[0]= v[0].lightmap_coord[0];
+		v[2].lightmap_coord[1]= v[0].lightmap_coord[1];
+		v[3].lightmap_coord[0]= v[1].lightmap_coord[0]= v[0].lightmap_coord[0] + 1u;
+		v[3].lightmap_coord[1]= v[1].lightmap_coord[1]= v[0].lightmap_coord[1];
+
 		m_Vec2 wall_vec=
 			m_Vec2(float(v[0].xyz[0]), float(v[0].xyz[1])) -
 			m_Vec2(float(v[1].xyz[0]), float(v[1].xyz[1]));
@@ -1134,7 +1156,8 @@ void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
 
 	glActiveTexture( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, wall_textures_array_id_ );
-	active_lightmap_->Bind(1);
+	//active_lightmap_->Bind(1);
+	map_light_.GetWallsLightmap().Bind(1);
 
 	walls_shader_.Uniform( "tex", int(0) );
 	walls_shader_.Uniform( "lightmap", int(1) );

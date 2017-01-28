@@ -36,7 +36,7 @@ private:
 	{
 		short pos[2]; // 8.8 format
 		unsigned char lightmap_coord_xy[2];
-		unsigned char normal[2];
+		char normal[2];
 	};
 
 	SIZE_ASSERT( WallVertex, 8u );
@@ -58,8 +58,8 @@ private:
 	r_Framebuffer base_walls_lightmap_;
 	r_Framebuffer final_walls_lightmap_;
 
-	r_PolygonBuffer walls_vertex_buffer_;
 	std::vector<WallVertex> walls_vertices_;
+	r_PolygonBuffer walls_vertex_buffer_;
 	unsigned int static_walls_first_vertex_= 0u;
 	unsigned int dynamic_walls_first_vertex_= 0u;
 
@@ -69,6 +69,7 @@ private:
 	// Shaders
 	r_GLSLProgram floor_light_pass_shader_;
 	r_GLSLProgram floor_ambient_light_pass_shader_;
+	r_GLSLProgram walls_light_pass_shader_;
 
 	r_GLSLProgram shadowmap_shader_;
 

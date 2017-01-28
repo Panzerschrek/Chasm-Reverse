@@ -81,6 +81,14 @@ MapLight::MapLight(
 		rLoadShader( "ambient_light_v.glsl", rendering_context.glsl_version ) );
 	floor_ambient_light_pass_shader_.Create();
 
+	walls_light_pass_shader_.ShaderSource(
+		rLoadShader( "walls_light_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "walls_light_v.glsl", rendering_context.glsl_version ) );
+	walls_light_pass_shader_.SetAttribLocation( "pos", 0 );
+	walls_light_pass_shader_.SetAttribLocation( "lightmap_coord", 1 );
+	walls_light_pass_shader_.SetAttribLocation( "normal", 2 );
+	walls_light_pass_shader_.Create();
+
 	shadowmap_shader_.ShaderSource(
 		rLoadShader( "shadowmap_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "shadowmap_v.glsl", rendering_context.glsl_version ),
@@ -95,6 +103,7 @@ MapLight::~MapLight()
 void MapLight::SetMap( const MapDataConstPtr& map_data )
 {
 	map_data_= map_data;
+	PrepareMapWalls( *map_data );
 
 	// Occludders buffer.
 	r_PolygonBuffer walls_buffer;
@@ -123,6 +132,10 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 	}
 
 	base_floor_lightmap_.Bind();
+	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+	glClear( GL_COLOR_BUFFER_BIT );
+
+	base_walls_lightmap_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
 	glClear( GL_COLOR_BUFFER_BIT );
 
@@ -155,12 +168,25 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 		// TODO - use scissor test for speed.
 		walls_buffer.Draw();
 
-		// Build lightmap.
+		// Add light to floor lightmap.
 		base_floor_lightmap_.Bind();
 		r_OGLStateManager::UpdateState( g_light_pass_state );
 		floor_light_pass_shader_.Bind();
 		DrawLight( light );
-	}	
+
+		// Add light to walls lightmap.
+		base_walls_lightmap_.Bind();
+		walls_light_pass_shader_.Bind();
+
+		walls_light_pass_shader_.Uniform( "shadowmap", int(0) );
+		walls_light_pass_shader_.Uniform( "light_pos", light.pos );
+		walls_light_pass_shader_.Uniform( "light_power", light.power / 128.0f );
+		walls_light_pass_shader_.Uniform( "max_light_level", light.max_light_level / 128.0f  );
+		walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
+		walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
+
+		walls_vertex_buffer_.Draw();
+	}
 
 	r_Framebuffer::BindScreenFramebuffer();
 
@@ -238,7 +264,7 @@ void MapLight::GetStaticWallLightmapCoord(
 	PC_ASSERT( static_wall_index < map_data_->static_walls.size() );
 	std::memcpy(
 		out_coord_xy,
-		walls_vertices_[ static_walls_first_vertex_ + static_wall_index ].lightmap_coord_xy,
+		walls_vertices_[ static_walls_first_vertex_ + 2u * static_wall_index ].lightmap_coord_xy,
 		2u );
 }
 
@@ -249,7 +275,7 @@ void MapLight::GetDynamicWallLightmapCoord(
 	PC_ASSERT( dynamic_wall_index < map_data_->dynamic_walls.size() );
 	std::memcpy(
 		out_coord_xy,
-		walls_vertices_[ dynamic_walls_first_vertex_ + dynamic_wall_index ].lightmap_coord_xy,
+		walls_vertices_[ dynamic_walls_first_vertex_ + 2u * dynamic_wall_index ].lightmap_coord_xy,
 		2u );
 }
 
@@ -260,7 +286,8 @@ const r_Texture& MapLight::GetFloorLightmap() const
 
 const r_Texture& MapLight::GetWallsLightmap() const
 {
-	return final_walls_lightmap_.GetTextures().front();
+	//return final_walls_lightmap_.GetTextures().front();
+	return base_walls_lightmap_.GetTextures().front();
 }
 
 void MapLight::PrepareMapWalls( const MapData& map_data )
@@ -291,6 +318,7 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 		v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );
 		v[0].normal[1]= v[1].normal[1]= static_cast<unsigned char>( normal.y * 126.5f );
 
+		x++;
 		if( x >= MapData::c_map_size )
 		{
 			x= 0u;
@@ -301,13 +329,12 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 	for( unsigned int w= 0u; w < map_data.static_walls.size(); w++ )
 		build_wall(
 			map_data.static_walls[w],
-			walls_vertices_[ static_walls_first_vertex_ + w * 2u ] );
-
+			&walls_vertices_[ static_walls_first_vertex_ + w * 2u ] );
 
 	for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
 		build_wall(
-			map_data.dynamice_walls[w],
-			walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ] );
+			map_data.dynamic_walls[w],
+			&walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ] );
 
 	// Send data to GPU.
 	walls_vertex_buffer_.VertexData(
@@ -317,10 +344,10 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 
 	walls_vertex_buffer_.SetPrimitiveType( GL_LINES );
 
-	WallVertex& v;
-	walls_vertex_buffer_.VertexAttribPointer( 0, 2, GL_SHORT, false, ((char*)v.pos) - &v );
-	walls_vertex_buffer_.VertexAttribPointer( 1, 2, GL_UNSIGNED_BYTE, false, ((char*)v.lightmap_coord_xy) - &v );
-	walls_vertex_buffer_.VertexAttribPointer( 2, 2, GL_BYTE, true, ((char*)v.normal) - &v );
+	WallVertex v;
+	walls_vertex_buffer_.VertexAttribPointer( 0, 2, GL_SHORT, false, ((char*)v.pos) - (char*)&v );
+	walls_vertex_buffer_.VertexAttribPointer( 1, 2, GL_UNSIGNED_BYTE, false, ((char*)v.lightmap_coord_xy) - (char*)&v );
+	walls_vertex_buffer_.VertexAttribPointer( 2, 2, GL_BYTE, true, ((char*)v.normal) - (char*)&v );
 }
 
 void MapLight::DrawLight( const MapData::Light& light )
