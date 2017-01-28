@@ -11,7 +11,7 @@ out vec4 color;
 void main()
 {
 	vec4 light_basis= texture( lightmap, f_lightmap_coord );
-	float light_for_flat_surface= length( light_basis );
+	float light_for_flat_surface= 0.5 * length( light_basis );
 
 	float light= c_light_scale * light_for_flat_surface;
 	color= texture( tex, f_tex_coord ) * light;

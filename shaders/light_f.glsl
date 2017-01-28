@@ -24,8 +24,8 @@ void main()
 
 	color=
 		vec4(
-			l * max( 0.0, +normalized_dir_to_light.x ),
-			l * max( 0.0, -normalized_dir_to_light.x ),
-			l * max( 0.0, +normalized_dir_to_light.y ),
-			l * max( 0.0, -normalized_dir_to_light.y ) );
+			2.0 * l * max( 0.0, +normalized_dir_to_light.x ),
+			2.0 * l * max( 0.0, -normalized_dir_to_light.x ),
+			2.0 * l * max( 0.0, +normalized_dir_to_light.y ),
+			2.0 * l * max( 0.0, -normalized_dir_to_light.y ) );
 }

@@ -373,7 +373,7 @@ void MapLoader::LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map
 	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 	{
 		// Convert "darkeness" into light.
-		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 10;
+		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 5;
 		map_data.ambient_lightmap[ x + y * MapData::c_map_size ]= static_cast<unsigned char>(l);
 	}
 }

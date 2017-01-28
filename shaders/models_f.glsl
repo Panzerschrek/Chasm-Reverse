@@ -19,7 +19,7 @@ void main()
 	float normal_xy_square_length= dot( f_normal.xy, f_normal.xy );
 
 	vec4 lightmap_value= texture( lightmap, f_lightmap_coord );
-	float light_for_flat_surface= length( lightmap_value );
+	float light_for_flat_surface= 0.5 * length( lightmap_value );
 
 	float directional_light=
 		max( 0.0, +lightmap_value.x * f_normal.x * normal_xy_square_length ) +
