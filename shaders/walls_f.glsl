@@ -1,3 +1,5 @@
+#include "constants.glsl"
+
 uniform sampler2DArray tex;
 uniform sampler2D lightmap;
 
@@ -8,11 +10,12 @@ out vec4 color;
 
 void main()
 {
-	float light= texture( lightmap, f_lightmap_coord ).x;
 	vec4 c= texture( tex, f_tex_coord );
 
 	if( c.a < 0.5 )
 		discard;
+
+	float light= c_light_scale * texture( lightmap, f_lightmap_coord ).x;
 
 	color= c * light;
 }

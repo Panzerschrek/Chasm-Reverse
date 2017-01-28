@@ -1,3 +1,5 @@
+#include "constants.glsl"
+
 uniform sampler2DArray tex;
 uniform sampler2D lightmap;
 
@@ -13,6 +15,6 @@ void main()
 	if( c.a < 0.5 && f_alpha_test_mask > 0.5 )
 		discard;
 
-	float light= texture( lightmap, f_lightmap_coord ).x;
+	float light= c_light_scale * texture( lightmap, f_lightmap_coord ).x;
 	color= vec4( light * c.xyz, 0.25 );
 }

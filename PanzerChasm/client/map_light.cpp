@@ -15,8 +15,8 @@ namespace PanzerChasm
 namespace
 {
 
-const float g_floor_light_scale= 0.8f / 128.0f;
-const float g_walls_light_scale= 1.2f / 128.0f;
+const float g_floor_light_scale= 0.8f / 144.0f;
+const float g_walls_light_scale= 1.2f / 144.0f;
 
 const unsigned int g_wall_lightmap_size= 32u;
 const Size2 g_walls_lightmap_atlas_size(
