@@ -168,7 +168,6 @@ bool Host::Loop()
 	if( system_window_ )
 	{
 		// TODO - remove draww stuff from here
-		glClearColor( 0.1f, 0.1f, 0.1f, 0.5f );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		if( client_ != nullptr && !client_->Disconnected() )
