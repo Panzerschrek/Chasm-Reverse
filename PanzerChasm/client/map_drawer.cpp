@@ -1340,7 +1340,7 @@ void MapDrawer::DrawDynamicItems(
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
-		( item.fullbright ? fullbright_lightmap_dummy_ : lightmap_ ).Bind(1);
+		( item.fullbright ? fullbright_lightmap_dummy_ : *active_lightmap_ ).Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
