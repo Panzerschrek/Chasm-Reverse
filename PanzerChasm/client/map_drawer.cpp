@@ -158,21 +158,6 @@ static void CalculateModelsTexturesPlacement(
 	out_placement.layer_count= current_layer + 1u;
 }
 
-static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd_dynamic_lightmap )
-{
-	constexpr unsigned int c_size= 4u;
-	unsigned char data[ c_size * c_size ];
-	std::memset( data, use_hd_dynamic_lightmap ? 128u : 255u, sizeof(data) );
-
-	texture=
-		r_Texture(
-			r_Texture::PixelFormat::R8,
-			c_size, c_size,
-			data );
-
-	texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
-}
-
 static void CreateModelMatrices(
 	const m_Vec3& pos, const float angle,
 	m_Mat4& out_model_matrix, m_Mat3& out_lightmap_matrix )
@@ -209,8 +194,6 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &items_textures_array_id_ );
 	glGenTextures( 1, &rockets_textures_array_id_ );
 	glGenTextures( 1, &weapons_textures_array_id_ );
-
-	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_, use_hd_dynamic_lightmap_ );
 
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
@@ -1353,7 +1336,7 @@ void MapDrawer::DrawDynamicItems(
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
 
-		( item.fullbright ? fullbright_lightmap_dummy_ : *active_lightmap_ ).Bind(1);
+		( item.fullbright ? map_light_.GetFullbrightLightmapDummy() : *active_lightmap_ ).Bind(1);
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -1521,7 +1504,7 @@ void MapDrawer::DrawRockets(
 		models_shader_.Uniform( "rotation_matrix", rotate_mat );
 
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
-			fullbright_lightmap_dummy_.Bind(1);
+			map_light_.GetFullbrightLightmapDummy().Bind(1);
 		else
 			active_lightmap_->Bind(1);
 

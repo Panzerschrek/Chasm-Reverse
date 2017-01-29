@@ -143,7 +143,6 @@ private:
 
 	bool use_hd_dynamic_lightmap_;
 	const r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
-	r_Texture fullbright_lightmap_dummy_;
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;

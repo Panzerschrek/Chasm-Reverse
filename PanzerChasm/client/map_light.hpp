@@ -29,6 +29,7 @@ public:
 	void GetStaticWallLightmapCoord( unsigned int static_wall_index, unsigned char* out_coord_xy ) const;
 	void GetDynamicWallLightmapCoord( unsigned int dynamic_wall_index, unsigned char* out_coord_xy ) const;
 
+	const r_Texture& GetFullbrightLightmapDummy() const;
 	const r_Texture& GetFloorLightmap() const;
 	const r_Texture& GetWallsLightmap() const;
 
@@ -52,6 +53,7 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const bool use_hd_dynamic_lightmap_;
 
+	r_Texture fullbright_lightmap_dummy_;
 	r_Texture static_lightmap_;
 	r_Texture ambient_lightmap_texture_;
 

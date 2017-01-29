@@ -42,6 +42,21 @@ const r_OGLState g_light_pass_state(
 
 } // namespace
 
+static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd_dynamic_lightmap )
+{
+	constexpr unsigned int c_size= 4u;
+	unsigned char data[ c_size * c_size ];
+	std::memset( data, use_hd_dynamic_lightmap ? 128u : 255u, sizeof(data) );
+
+	texture=
+		r_Texture(
+			r_Texture::PixelFormat::R8,
+			c_size, c_size,
+			data );
+
+	texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+}
+
 MapLight::MapLight(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context,
@@ -50,6 +65,8 @@ MapLight::MapLight(
 	, use_hd_dynamic_lightmap_(use_hd_dynamic_lightmap)
 {
 	PC_ASSERT( game_resources_ != nullptr );
+
+	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_, use_hd_dynamic_lightmap_ );
 
 	if( !use_hd_dynamic_lightmap_ )
 		return;
@@ -371,6 +388,11 @@ void MapLight::GetDynamicWallLightmapCoord(
 		out_coord_xy,
 		walls_vertices_[ dynamic_walls_first_vertex_ + 4u * dynamic_wall_index ].lightmap_coord_xy,
 		2u );
+}
+
+const r_Texture& MapLight::GetFullbrightLightmapDummy() const
+{
+	return fullbright_lightmap_dummy_;
 }
 
 const r_Texture& MapLight::GetFloorLightmap() const
