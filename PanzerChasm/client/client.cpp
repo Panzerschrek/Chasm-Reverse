@@ -42,7 +42,10 @@ Client::~Client()
 
 void Client::SetConnection( IConnectionPtr connection )
 {
-	connection_info_.reset( new ConnectionInfo( connection ) );
+	if( connection == nullptr )
+		connection_info_= nullptr;
+	else
+		connection_info_.reset( new ConnectionInfo( connection ) );
 }
 
 bool Client::Disconnected() const

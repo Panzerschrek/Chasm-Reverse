@@ -23,7 +23,9 @@ public:
 
 	void Loop();
 
-	void ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
+	// Returns true, if map successfully changed or restarted.
+	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
+
 	void DisconnectAllClients();
 
 public: // Messages handlers

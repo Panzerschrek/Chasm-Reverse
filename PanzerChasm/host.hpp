@@ -58,6 +58,8 @@ private:
 	void EnsureServer();
 	void EnsureLoopbackBuffer();
 
+	void ClearBeforeGameStart();
+
 private:
 	// Put members here in reverse deinitialization order.
 

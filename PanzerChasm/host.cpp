@@ -216,8 +216,7 @@ void Host::ConnectToServer(
 
 	EnsureClient();
 
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
+	ClearBeforeGameStart();
 
 	auto connection= net_->ConnectToServer( address, client_tcp_port, client_udp_port );
 	if( connection == nullptr )
@@ -243,21 +242,28 @@ void Host::StartServer(
 		EnsureLoopbackBuffer();
 	}
 
-	if( loopback_buffer_ != nullptr )
-		loopback_buffer_->RequestDisconnect(); // Kill old connection.
-	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
-	connections_listener_proxy_->ClearConnectionsListeners();
+	ClearBeforeGameStart();
 
-	const auto listener=
+	const IConnectionsListenerPtr listener=
 		net_->CreateServerListener(
 			server_tcp_port != 0u ? server_tcp_port : Net::c_default_server_tcp_port,
 			server_base_udp_port != 0u ? server_base_udp_port : Net::c_default_server_udp_base_port );
 
+	if( listener == nullptr )
+	{
+		Log::Info( "Can not start server: network error" );
+		return;
+	}
+
+	const bool map_changed=
+		local_server_->ChangeMap( map_number, difficulty, GameRules::Cooperative /* todo - select */ );
+
+	if( !map_changed )
+		return;
+
 	connections_listener_proxy_->AddConnectionsListener( listener );
 	if( !dedicated )
 		connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
-
-	local_server_->ChangeMap( map_number, difficulty, GameRules::Cooperative /* todo - select */ );
 
 	if( !dedicated )
 	{
@@ -317,11 +323,12 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 	EnsureServer();
 	EnsureLoopbackBuffer();
 
-	loopback_buffer_->RequestDisconnect(); // Kill old connection.
-	local_server_->DisconnectAllClients(); // Restart server - disconnect users.
-	connections_listener_proxy_->ClearConnectionsListeners();
+	ClearBeforeGameStart();
 
-	local_server_->ChangeMap( map_number, difficulty, GameRules::SinglePlayer );
+	const bool map_changed=
+		local_server_->ChangeMap( map_number, difficulty, GameRules::SinglePlayer );
+	if( !map_changed )
+		return;
 
 	// Making server listen connections from loopback buffer.
 	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
@@ -401,6 +408,21 @@ void Host::EnsureLoopbackBuffer()
 
 	Log::Info( "Create loopback buffer" );
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
+}
+
+void Host::ClearBeforeGameStart()
+{
+	if( client_ != nullptr )
+		client_->SetConnection( nullptr );
+
+	if( local_server_ != nullptr )
+		local_server_->DisconnectAllClients();
+
+	if( connections_listener_proxy_ != nullptr )
+		connections_listener_proxy_->ClearConnectionsListeners();
+
+	if( loopback_buffer_ != nullptr )
+		loopback_buffer_->RequestDisconnect();
 }
 
 } // namespace PanzerChasm

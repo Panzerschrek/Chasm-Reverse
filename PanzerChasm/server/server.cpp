@@ -181,7 +181,7 @@ void Server::Loop()
 	}
 }
 
-void Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty, const GameRules game_rules )
+bool Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty, const GameRules game_rules )
 {
 	const auto show_progress=
 	[&]( const float progress )
@@ -196,7 +196,7 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	if( map_data == nullptr )
 	{
 		Log::Warning( "Can not load map ", map_number );
-		return;
+		return false;
 	}
 
 	show_progress( 0.5f );
@@ -241,6 +241,8 @@ void Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	}
 
 	show_progress( 1.0f );
+
+	return true;
 }
 
 void Server::DisconnectAllClients()
