@@ -141,7 +141,7 @@ private:
 
 	MapDataConstPtr current_map_data_;
 
-	r_Texture lightmap_;
+	bool use_hd_dynamic_lightmap_;
 	const r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
 	r_Texture fullbright_lightmap_dummy_;
 

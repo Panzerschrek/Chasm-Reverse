@@ -158,11 +158,11 @@ static void CalculateModelsTexturesPlacement(
 	out_placement.layer_count= current_layer + 1u;
 }
 
-static void CreateFullbrightLightmapDummy( r_Texture& texture )
+static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd_dynamic_lightmap )
 {
 	constexpr unsigned int c_size= 4u;
 	unsigned char data[ c_size * c_size ];
-	std::memset( data, 128u, sizeof(data) );
+	std::memset( data, use_hd_dynamic_lightmap ? 128u : 255u, sizeof(data) );
 
 	texture=
 		r_Texture(
@@ -195,7 +195,8 @@ MapDrawer::MapDrawer(
 	const RenderingContext& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
-	, map_light_( game_resources, rendering_context )
+	, use_hd_dynamic_lightmap_( true )
+	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -209,7 +210,7 @@ MapDrawer::MapDrawer(
 	glGenTextures( 1, &rockets_textures_array_id_ );
 	glGenTextures( 1, &weapons_textures_array_id_ );
 
-	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_ );
+	CreateFullbrightLightmapDummy( fullbright_lightmap_dummy_, use_hd_dynamic_lightmap_ );
 
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
@@ -245,16 +246,26 @@ MapDrawer::MapDrawer(
 
 	const std::vector<std::string> defines{ lightmap_scale };
 
-	floors_shader_.ShaderSource(
-		rLoadShader( "floors_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "floors_v.glsl", rendering_context. glsl_version, defines ) );
+	if( use_hd_dynamic_lightmap_ )
+		floors_shader_.ShaderSource(
+			rLoadShader( "floors_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "floors_v.glsl", rendering_context. glsl_version, defines ) );
+	else
+		floors_shader_.ShaderSource(
+			rLoadShader( "static_light/floors_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "floors_v.glsl", rendering_context. glsl_version, defines ) );
 	floors_shader_.SetAttribLocation( "pos", 0u );
 	floors_shader_.SetAttribLocation( "tex_id", 1u );
 	floors_shader_.Create();
 
-	walls_shader_.ShaderSource(
-		rLoadShader( "walls_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "walls_v.glsl", rendering_context.glsl_version, defines ) );
+	if( use_hd_dynamic_lightmap_ )
+		walls_shader_.ShaderSource(
+			rLoadShader( "walls_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "walls_v.glsl", rendering_context.glsl_version, defines ) );
+	else
+		walls_shader_.ShaderSource(
+			rLoadShader( "static_light/walls_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "static_light/walls_v.glsl", rendering_context.glsl_version, defines ) );
 	walls_shader_.SetAttribLocation( "pos", 0u );
 	walls_shader_.SetAttribLocation( "tex_coord", 1u );
 	walls_shader_.SetAttribLocation( "tex_id", 2u );
@@ -262,10 +273,15 @@ MapDrawer::MapDrawer(
 	walls_shader_.SetAttribLocation( "lightmap_coord", 4u );
 	walls_shader_.Create();
 
-	models_shader_.ShaderSource(
-		rLoadShader( "models_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "models_v.glsl", rendering_context.glsl_version ),
-		rLoadShader( "models_g.glsl", rendering_context.glsl_version ) );
+	if( use_hd_dynamic_lightmap_ )
+		models_shader_.ShaderSource(
+			rLoadShader( "models_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "models_v.glsl", rendering_context.glsl_version ),
+			rLoadShader( "models_g.glsl", rendering_context.glsl_version ) );
+	else
+		models_shader_.ShaderSource(
+			rLoadShader( "static_light/models_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "static_light/models_v.glsl", rendering_context.glsl_version ));
 	models_shader_.SetAttribLocation( "pos", 0u );
 	models_shader_.SetAttribLocation( "tex_coord", 1u );
 	models_shader_.SetAttribLocation( "tex_id", 2u );
@@ -278,10 +294,15 @@ MapDrawer::MapDrawer(
 	sprites_shader_.SetAttribLocation( "pos", 0u );
 	sprites_shader_.Create();
 
-	monsters_shader_.ShaderSource(
-		rLoadShader( "monsters_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "monsters_v.glsl", rendering_context.glsl_version ),
-		rLoadShader( "monsters_g.glsl", rendering_context.glsl_version ) );
+	if( use_hd_dynamic_lightmap_ )
+		monsters_shader_.ShaderSource(
+			rLoadShader( "monsters_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "monsters_v.glsl", rendering_context.glsl_version ),
+			rLoadShader( "monsters_g.glsl", rendering_context.glsl_version ) );
+	else
+		monsters_shader_.ShaderSource(
+			rLoadShader( "static_light/monsters_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "static_light/monsters_v.glsl", rendering_context.glsl_version ) );
 	monsters_shader_.SetAttribLocation( "pos", 0u );
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
@@ -331,13 +352,6 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 		models_geometry_data_,
 		models_textures_array_id_ );
 
-	lightmap_=
-		r_Texture(
-			r_Texture::PixelFormat::R8,
-			MapData::c_lightmap_size, MapData::c_lightmap_size,
-			map_data->lightmap );
-	lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
-
 	// Sky
 	if( std::strcmp( current_sky_texture_file_name_, current_map_data_->sky_texture_name ) != 0 )
 	{
@@ -366,7 +380,6 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
 
-	//active_lightmap_= &lightmap_;
 	active_lightmap_= &map_light_.GetFloorLightmap();
 }
 

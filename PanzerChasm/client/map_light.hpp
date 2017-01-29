@@ -18,7 +18,8 @@ class MapLight final
 public:
 	MapLight(
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
+		const RenderingContext& rendering_context,
+		bool use_hd_dynamic_lightmap );
 	~MapLight();
 
 	void SetMap( const MapDataConstPtr& map_data );
@@ -49,7 +50,9 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
+	const bool use_hd_dynamic_lightmap_;
 
+	r_Texture static_lightmap_;
 	r_Texture ambient_lightmap_texture_;
 
 	// Floor

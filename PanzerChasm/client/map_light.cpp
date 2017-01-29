@@ -44,10 +44,15 @@ const r_OGLState g_light_pass_state(
 
 MapLight::MapLight(
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContext& rendering_context,
+	const bool use_hd_dynamic_lightmap )
 	: game_resources_(game_resources)
+	, use_hd_dynamic_lightmap_(use_hd_dynamic_lightmap)
 {
 	PC_ASSERT( game_resources_ != nullptr );
+
+	if( !use_hd_dynamic_lightmap_ )
+		return;
 
 	const unsigned int c_hd_lightmap_scale= 4u;
 
@@ -122,7 +127,23 @@ MapLight::~MapLight()
 
 void MapLight::SetMap( const MapDataConstPtr& map_data )
 {
+	if( map_data == map_data_ )
+		return;
+
 	map_data_= map_data;
+
+	if( !use_hd_dynamic_lightmap_ )
+	{
+		static_lightmap_=
+			r_Texture(
+				r_Texture::PixelFormat::R8,
+				MapData::c_lightmap_size, MapData::c_lightmap_size,
+				map_data->lightmap );
+		static_lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+
+		return;
+	}
+
 	PrepareMapWalls( *map_data );
 
 	// Occludders buffer.
@@ -224,6 +245,9 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 void MapLight::Update( const MapState& map_state )
 {
+	if( !use_hd_dynamic_lightmap_ )
+		return;
+
 	UpdateLightOnDynamicWalls( map_state );
 
 	const auto gen_light_for_rocket=
@@ -324,6 +348,10 @@ void MapLight::GetStaticWallLightmapCoord(
 	unsigned char* out_coord_xy ) const
 {
 	PC_ASSERT( static_wall_index < map_data_->static_walls.size() );
+
+	if( !use_hd_dynamic_lightmap_ )
+		return;
+
 	std::memcpy(
 		out_coord_xy,
 		walls_vertices_[ static_walls_first_vertex_ + 2u * static_wall_index ].lightmap_coord_xy,
@@ -335,6 +363,10 @@ void MapLight::GetDynamicWallLightmapCoord(
 	unsigned char* out_coord_xy ) const
 {
 	PC_ASSERT( dynamic_wall_index < map_data_->dynamic_walls.size() );
+
+	if( !use_hd_dynamic_lightmap_ )
+		return;
+
 	std::memcpy(
 		out_coord_xy,
 		walls_vertices_[ dynamic_walls_first_vertex_ + 4u * dynamic_wall_index ].lightmap_coord_xy,
@@ -343,11 +375,17 @@ void MapLight::GetDynamicWallLightmapCoord(
 
 const r_Texture& MapLight::GetFloorLightmap() const
 {
+	if( !use_hd_dynamic_lightmap_ )
+		return static_lightmap_;
+
 	return final_floor_lightmap_.GetTextures().front();
 }
 
 const r_Texture& MapLight::GetWallsLightmap() const
 {
+	if( !use_hd_dynamic_lightmap_ )
+		return static_lightmap_;
+
 	return final_walls_lightmap_.GetTextures().front();
 }
 
