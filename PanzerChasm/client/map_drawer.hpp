@@ -8,6 +8,7 @@
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
+#include "map_light.hpp"
 #include "map_state.hpp"
 
 namespace PanzerChasm
@@ -19,7 +20,7 @@ class MapDrawer final
 {
 public:
 	MapDrawer(
-		GameResourcesConstPtr game_resources,
+		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
 	~MapDrawer();
 
@@ -34,7 +35,8 @@ public:
 	void DrawWeapon(
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
-		const m_Vec3& camera_position );
+		const m_Vec3& camera_position,
+		float x_angle, float z_angle );
 
 private:
 	struct FloorGeometryInfo
@@ -68,7 +70,6 @@ private:
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
-	void BuildHDLightmap( const MapData& map_data );
 
 	void LoadFloors( const MapData& map_data );
 	void LoadWalls( const MapData& map_data );
@@ -140,13 +141,8 @@ private:
 
 	MapDataConstPtr current_map_data_;
 
-	bool use_hd_lightmap_;
-	r_Texture lightmap_;
-	r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
-	r_Texture fullbright_lightmap_dummy_;
-
-	r_Framebuffer hd_lightmap_framebuffer_;
-	r_Framebuffer hd_lightmap_shadowmap_framebuffer_;
+	bool use_hd_dynamic_lightmap_;
+	const r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
 
 	GLuint floor_textures_array_id_= ~0;
 	GLuint wall_textures_array_id_= ~0;
@@ -194,9 +190,7 @@ private:
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;
 
-	r_GLSLProgram hd_light_pass_shader_;
-	r_GLSLProgram hd_ambient_light_pass_shader_;
-	r_GLSLProgram hd_lightmap_shadowmap_shader_;
+	MapLight map_light_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

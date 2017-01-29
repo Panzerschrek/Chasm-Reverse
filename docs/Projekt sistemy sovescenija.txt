@@ -1,0 +1,62 @@
+V igre jestj osvescenije.
+Ono byvajet dvuh tipov:
+0) Fonovoje. Zadajotsä tabliçej, hranäscejsä v urovne.
+1) Tocecnoje. Isotcnik v opredelönnoj poziçii osvescajet okruženije vblizi sebä.
+
+Kak kažetsä (v rezuljtate issledovanij), rezuljtirujuscij svet raven maksimaljnomu iz dvuh tipov.
+
+Osvescajemmyj objekty v mire možno razdelitj na dve gruppy:
+0) Pol, potolok, modeli. Dlä nih svet hranitsä v odnoj boljšoj svetokarte na vesj urovenj.
+1) Steny. Každaja stena imejet svoju sobstvennuju 1d svetokartu. Pri rascöte ucityvajetsä kosinus ugla padenija.
+
+Pri rascöte osvescenija ucityvajetsä zatenenije. Teni mogut otbrasyvatj toljko staticeskije steny.
+Vozmožno, pri rascöte sveta ot dinamiceskih istocnikov sveta ne nužno ucityvatj zatenenije.
+
+
+DETALI RASCÖTA SVETA POLA
+
+ Na starte urovnä rascityvajetsä svet ot vseh staticeskih istocnikov sveta (s tenämi) dlä vsej karty,
+rezuljtat sohranäjetsä.
+ Každyj kadr eta svetokarta kopirujetsä v svetokartu tekuscego kadra, poverh nejo dobavläjetsä svet
+ot dinamiceskih istocnikov. Posle etogo v polucivšujusä svetokartu dobavläjestä fonovyj svet so
+smešenijem GL_MAX.
+
+
+DETALI RASCÖTA SVETA STEN
+
+ Na starte urovnä dlä vseh staticeskih sten rascityvaejtsä svet ot vseh staticeskih istocnikov sveta,
+rezuljtat sohranäjetsä.
+ Každyj kadr dlä sten, izmenivših svojo položenije, perescityvajetsä svet ot vseh staticeskih
+istocnikov, ih zatragivajuscih. Rezuljtat sohranäjetsä v glavnoj svetokarte.
+ Každyj kadr zavodisä svetokarta tekuscego kadra. V nejo kopirujetsä svetokarta so staticeskim svetom.
+V etu svetokartu dobavläjetsä svet ot dinamiceskih istocnikov dlä vseh staticeskih i dinamiceskih
+sten.
+Posle etogo v polucivšujusä svetokartu dobavläjestä fonovyj svet so smešenijem GL_MAX.
+
+
+O TENÄH
+
+ Dlä rascöta sveta ot staticeskih istocnikov na dinamiceskih stenah polezno bylo by hranitj dlä
+každogo staticeskogo istocnika sveta jego kartu tenej v zone jego dejstvija. Togda, možno bylo by
+ne perescityvatj dlä nego teni pri rascöte sveta dlä dinamiceskih sten.
+
+
+NEMNOGO STATISTIKI
+
+Na samom boljšom urovne v igre - "MAP09" nahoditsä:
+1416 staticeskih sten
+91 dinamiceskih sten
+183 istocnika sveta
+~3011 m2 ploscadj zon dejstvija istocnikov sveta
+
+Na "MAP14" nahoditsä boljše vsego istocnikov sveta:
+747 staticeskih sten
+118 dinamiceskih sten
+201 istocnika sveta
+~2757 m2 ploscadj zon dejstvija istocnikov sveta
+
+Na "MAP06" nahoditsä boljše vsego dinamiceskih sten:
+956 staticeskih sten
+127 dinamiceskih sten
+171 istocnika sveta
+~2148 m2 ploscadj zon dejstvija istocnikov sveta

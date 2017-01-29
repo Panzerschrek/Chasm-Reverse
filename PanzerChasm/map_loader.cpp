@@ -373,7 +373,7 @@ void MapLoader::LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map
 	for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
 	{
 		// Convert "darkeness" into light.
-		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 14;
+		const int l= std::max( 18 - int( in_ambient_lightmap_data[ x * MapData::c_map_size + y ] ), 0 ) * 6;
 		map_data.ambient_lightmap[ x + y * MapData::c_map_size ]= static_cast<unsigned char>(l);
 	}
 }
@@ -414,7 +414,7 @@ void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_dat
 			out_light.inner_radius= 0.0f;
 
 		// Make just a bit biger
-		out_light.outer_radius+= 0.125f;
+		out_light.outer_radius+= 0.25f;
 	}
 
 	const unsigned int monsters_count_offset= c_lights_offset + sizeof(MapLight) * lights_count;

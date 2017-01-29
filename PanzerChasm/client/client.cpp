@@ -196,7 +196,9 @@ void Client::Draw()
 			map_drawer_.DrawWeapon(
 				weapon_state_,
 				weapon_shift_matrix * projection_matrix,
-				pos );
+				pos,
+				camera_controller_.GetViewAngleX(),
+				camera_controller_.GetViewAngleZ() );
 		}
 
 		hud_drawer_.DrawCrosshair();

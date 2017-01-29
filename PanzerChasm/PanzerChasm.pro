@@ -31,6 +31,7 @@ SOURCES+= \
 	client/client.cpp \
 	client/hud_drawer.cpp \
 	client/map_drawer.cpp \
+	client/map_light.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
 	client/weapon_state.cpp \
@@ -78,6 +79,7 @@ HEADERS+= \
 	client/fwd.hpp \
 	client/hud_drawer.hpp \
 	client/map_drawer.hpp \
+	client/map_light.hpp \
 	client/map_state.hpp \
 	client/movement_controller.hpp \
 	client/weapon_state.hpp \

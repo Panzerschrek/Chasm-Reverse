@@ -7,6 +7,7 @@ uniform float min_radius;
 uniform float max_radius;
 
 in vec2 f_world_coord;
+in vec2 f_normal;
 
 out vec4 color;
 
@@ -18,14 +19,14 @@ void main()
 
 	float light_fraction= 1.0 - min( max( distance_to_light - min_radius, 0.0 ) / ( max_radius - min_radius ), 1.0 );
 
-	float shadow_factor= 1.0 - texture( shadowmap, f_world_coord / 64.0 ).x;
+	vec2 shadow_fetch_pos= f_world_coord + normalized_dir_to_light / 8.0; // TODO - calibrate this.
+	float shadow_factor= 1.0 - texture( shadowmap, shadow_fetch_pos / 64.0 ).x;
 
-	float l= shadow_factor * min( light_power * light_fraction, max_light_level );
+	float normal_factor= max( 0, dot( f_normal, normalized_dir_to_light ) );
+	normal_factor= sqrt( normal_factor ); // hack for light sources, too near to walls.
 
 	color=
 		vec4(
-			2.0 * l * max( 0.0, +normalized_dir_to_light.x ),
-			2.0 * l * max( 0.0, -normalized_dir_to_light.x ),
-			2.0 * l * max( 0.0, +normalized_dir_to_light.y ),
-			2.0 * l * max( 0.0, -normalized_dir_to_light.y ) );
+			shadow_factor * normal_factor * min( light_power * light_fraction, max_light_level ),
+			1.0, 1.0, 1.0 );
 }
