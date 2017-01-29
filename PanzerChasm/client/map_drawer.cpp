@@ -162,7 +162,7 @@ static void CreateFullbrightLightmapDummy( r_Texture& texture )
 {
 	constexpr unsigned int c_size= 4u;
 	unsigned char data[ c_size * c_size ];
-	std::memset( data, 255u, sizeof(data) );
+	std::memset( data, 128u, sizeof(data) );
 
 	texture=
 		r_Texture(
