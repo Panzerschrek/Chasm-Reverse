@@ -19,6 +19,9 @@ const float g_full_light_intensity= 0.8f;
 const float g_floor_light_scale=        0.5f * g_full_light_intensity / 128.0f;
 const float g_walls_light_scale= 1.5f * 0.5f * g_full_light_intensity / 128.0f;
 
+const float g_normal_scale= 126.5f;
+const unsigned char g_first_transparent_texture_id= 87u;
+
 const unsigned int g_wall_lightmap_size= 32u;
 const Size2 g_walls_lightmap_atlas_size(
 	MapData::c_map_size * g_wall_lightmap_size,
@@ -129,7 +132,7 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 		for( const MapData::Wall& wall : map_data_->static_walls )
 		{
-			if( wall.texture_id >= 87u )
+			if( wall.texture_id >= g_first_transparent_texture_id )
 				continue;
 			if( map_data_->walls_textures[ wall.texture_id ].file_path[0] == '\0' )
 				continue;
@@ -230,7 +233,7 @@ void MapLight::Update( const MapState& map_state )
 		return true;
 	};
 
-	// Clear shadowmam.
+	// Clear shadowmap.
 	shadowmap_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
 	glClear( GL_COLOR_BUFFER_BIT );
@@ -324,7 +327,7 @@ void MapLight::GetDynamicWallLightmapCoord(
 	PC_ASSERT( dynamic_wall_index < map_data_->dynamic_walls.size() );
 	std::memcpy(
 		out_coord_xy,
-		walls_vertices_[ dynamic_walls_first_vertex_ + 2u * dynamic_wall_index ].lightmap_coord_xy,
+		walls_vertices_[ dynamic_walls_first_vertex_ + 4u * dynamic_wall_index ].lightmap_coord_xy,
 		2u );
 }
 
@@ -340,16 +343,16 @@ const r_Texture& MapLight::GetWallsLightmap() const
 
 void MapLight::PrepareMapWalls( const MapData& map_data )
 {
-	walls_vertices_.resize( 2u * ( map_data.static_walls.size() + map_data.dynamic_walls.size() ) );
-	static_walls_first_vertex_= 0u;
-	dynamic_walls_first_vertex_= map_data.static_walls.size() * 2u;
-
 	// Place walls in lightmap atlas.
 	unsigned int x= 0u, y= 0u;
 
-	const auto build_wall=
-	[&]( const MapData::Wall& in_wall, WallVertex* const v )
+	static_walls_first_vertex_= 0u;
+	walls_vertices_.resize( 2u * map_data.static_walls.size() );
+
+	for( unsigned int w= 0u; w < map_data.static_walls.size(); w++ )
 	{
+		const MapData::Wall& in_wall= map_data.static_walls[w];
+		WallVertex* const v= &walls_vertices_[ static_walls_first_vertex_ + w * 2u ];
 		v[0].pos[0]= short( in_wall.vert_pos[0].x * 256.0f );
 		v[0].pos[1]= short( in_wall.vert_pos[0].y * 256.0f );
 		v[1].pos[0]= short( in_wall.vert_pos[1].x * 256.0f );
@@ -363,8 +366,8 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 		m_Vec2 normal( in_wall.vert_pos[0].y - in_wall.vert_pos[1].y, in_wall.vert_pos[1].x - in_wall.vert_pos[0].x );
 		normal.Normalize();
 
-		v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );
-		v[0].normal[1]= v[1].normal[1]= static_cast<unsigned char>( normal.y * 126.5f );
+		v[0].normal[0]= v[1].normal[0]= static_cast<char>( normal.x * g_normal_scale );
+		v[0].normal[1]= v[1].normal[1]= static_cast<char>( normal.y * g_normal_scale );
 
 		x++;
 		if( x >= MapData::c_map_size )
@@ -372,17 +375,61 @@ void MapLight::PrepareMapWalls( const MapData& map_data )
 			x= 0u;
 			y++;
 		}
-	};
+	}
 
+	// Add segments with reverse normal for transparent walls
 	for( unsigned int w= 0u; w < map_data.static_walls.size(); w++ )
-		build_wall(
-			map_data.static_walls[w],
-			&walls_vertices_[ static_walls_first_vertex_ + w * 2u ] );
+	{
+		const MapData::Wall& in_wall= map_data.static_walls[w];
+		// TODO - check transparency criteria.
+		if( !map_data.walls_textures[ in_wall.texture_id ].gso[1] )
+			continue;
+
+		walls_vertices_.resize( walls_vertices_.size() + 2u );
+		WallVertex* const out_v= walls_vertices_.data() + walls_vertices_.size() - 2u;
+		const WallVertex* const in_v= &walls_vertices_[ static_walls_first_vertex_ + w * 2u ];
+
+		out_v[0]= in_v[0];
+		out_v[1]= in_v[1];
+		out_v[1].normal[0]= out_v[0].normal[0]= -in_v[0].normal[0];
+		out_v[1].normal[1]= out_v[0].normal[1]= -in_v[0].normal[1];
+	}
+
+	dynamic_walls_first_vertex_= walls_vertices_.size();
+	walls_vertices_.resize( dynamic_walls_first_vertex_ + 4u * map_data.dynamic_walls.size() );
 
 	for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
-		build_wall(
-			map_data.dynamic_walls[w],
-			&walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ] );
+	{
+		const MapData::Wall& in_wall= map_data.dynamic_walls[w];
+		WallVertex* const v= &walls_vertices_[ dynamic_walls_first_vertex_ + w * 4u ];
+		v[0].pos[0]= short( in_wall.vert_pos[0].x * 256.0f );
+		v[0].pos[1]= short( in_wall.vert_pos[0].y * 256.0f );
+		v[1].pos[0]= short( in_wall.vert_pos[1].x * 256.0f );
+		v[1].pos[1]= short( in_wall.vert_pos[1].y * 256.0f );
+
+		v[0].lightmap_coord_xy[0]= x;
+		v[0].lightmap_coord_xy[1]= y;
+		v[1].lightmap_coord_xy[0]= x + 1u;
+		v[1].lightmap_coord_xy[1]= y;
+
+		m_Vec2 normal( in_wall.vert_pos[0].y - in_wall.vert_pos[1].y, in_wall.vert_pos[1].x - in_wall.vert_pos[0].x );
+		normal.Normalize();
+
+		v[0].normal[0]= v[1].normal[0]= static_cast<char>( normal.x * g_normal_scale );
+		v[0].normal[1]= v[1].normal[1]= static_cast<char>( normal.y * g_normal_scale );
+
+		// Segment with reverse normal. We need add light from both sides on dynamic walls.
+		v[2]= v[0]; v[3]= v[1];
+		v[2].normal[0]= -v[2].normal[0]; v[2].normal[1]= -v[2].normal[1];
+		v[3].normal[0]= -v[3].normal[0]; v[3].normal[1]= -v[3].normal[1];
+
+		x++;
+		if( x >= MapData::c_map_size )
+		{
+			x= 0u;
+			y++;
+		}
+	}
 
 	// Send data to GPU.
 	walls_vertex_buffer_.VertexData(
@@ -411,7 +458,7 @@ void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
 	for( unsigned int w= 0u; w < dynamic_walls.size(); w++ )
 	{
 		const MapState::DynamicWall& wall= dynamic_walls[w];
-		WallVertex* const v= &walls_vertices_[ dynamic_walls_first_vertex_ + w * 2u ];
+		WallVertex* const v= &walls_vertices_[ dynamic_walls_first_vertex_ + w * 4u ];
 
 		short pos[2][2];
 		for( unsigned int j= 0u; j < 2; j++ )
@@ -429,14 +476,18 @@ void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
 			last_updated_wall= w;
 
 			// Update position and normal.
-			v[0].pos[0]= pos[0][0]; v[0].pos[1]= pos[0][1];
-			v[1].pos[0]= pos[1][0]; v[1].pos[1]= pos[1][1];
+			v[2].pos[0]= v[0].pos[0]= pos[0][0];
+			v[2].pos[1]= v[0].pos[1]= pos[0][1];
+			v[3].pos[0]= v[1].pos[0]= pos[1][0];
+			v[3].pos[1]= v[1].pos[1]= pos[1][1];
 
 			m_Vec2 normal( wall.vert_pos[0].y - wall.vert_pos[1].y, wall.vert_pos[1].x - wall.vert_pos[0].x );
 			normal.Normalize();
 
-			v[0].normal[0]= v[1].normal[0]= static_cast<unsigned char>( normal.x * 126.5f );
-			v[0].normal[1]= v[1].normal[1]= static_cast<unsigned char>( normal.y * 126.5f );
+			v[1].normal[0]= v[0].normal[0]= static_cast<char>( normal.x * g_normal_scale );
+			v[1].normal[1]= v[0].normal[1]= static_cast<char>( normal.y * g_normal_scale );
+			v[3].normal[0]= v[2].normal[0]= -v[0].normal[0];
+			v[3].normal[1]= v[2].normal[1]= -v[0].normal[1];
 		}
 	}
 
@@ -445,12 +496,16 @@ void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
 
 	// Update GPU data.
 	walls_vertex_buffer_.VertexSubData(
-		walls_vertices_.data() + dynamic_walls_first_vertex_ + first_updated_wall * 2u,
-		( 1u + last_updated_wall - first_updated_wall ) * 2u * sizeof(WallVertex),
-		( dynamic_walls_first_vertex_ + first_updated_wall * 2u ) * sizeof(WallVertex) );
+		walls_vertices_.data() + dynamic_walls_first_vertex_ + first_updated_wall * 4u,
+		( 1u + last_updated_wall - first_updated_wall ) * 4u * sizeof(WallVertex),
+		( dynamic_walls_first_vertex_ + first_updated_wall * 4u ) * sizeof(WallVertex) );
+
+	// Clear shadowmap.
+	shadowmap_.Bind();
+	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
+	glClear( GL_COLOR_BUFFER_BIT );
 
 	// Recalculate light for dynamic walls.
-
 	base_walls_lightmap_.Bind();
 	walls_light_pass_shader_.Bind();
 	walls_vertex_buffer_.Bind();
@@ -472,7 +527,7 @@ void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
 		walls_light_pass_shader_.Uniform( "min_radius", 0.5f );
 		walls_light_pass_shader_.Uniform( "max_radius", 1.0f );
 
-		glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 2u, 2u );
+		glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 4u, 4u );
 
 		// Add light from nearest sources.
 		r_OGLStateManager::UpdateState( g_light_pass_state );
@@ -488,7 +543,7 @@ void MapLight::UpdateLightOnDynamicWalls( const MapState& map_state )
 			walls_light_pass_shader_.Uniform( "min_radius", light.inner_radius );
 			walls_light_pass_shader_.Uniform( "max_radius", light.outer_radius );
 
-			glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 2u, 2u );
+			glDrawArrays( GL_LINES, dynamic_walls_first_vertex_ + w * 4u, 4u );
 		}
 	}
 
