@@ -185,8 +185,18 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 		const float shadowmap_texel_size= 2.0f / float( shadowmap_.GetTextures().front().Width() );
 		shadowmap_shader_.Uniform( "offset", shadowmap_texel_size * 1.5f );
 
-		// TODO - use scissor test for speed.
+		// Draw occluders with scissor test.
+		// We can not just extend polygons in geometry shaer, ising light radius.
+		glEnable( GL_SCISSOR_TEST );
+		{
+			const unsigned int shadowmap_scale= shadowmap_.GetTextures().front().Width() / MapData::c_map_size;
+			const int center_x= int( light.pos.x * float(shadowmap_scale) );
+			const int center_y= int( light.pos.y * float(shadowmap_scale) );
+			const int radius= int( light.outer_radius * float(shadowmap_scale) ) + 4;
+			glScissor( center_x - radius, center_y - radius, radius * 2, radius * 2 );
+		}
 		walls_buffer.Draw();
+		glDisable( GL_SCISSOR_TEST );
 
 		r_OGLStateManager::UpdateState( g_light_pass_state );
 
