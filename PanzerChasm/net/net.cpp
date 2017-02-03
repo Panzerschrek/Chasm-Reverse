@@ -463,6 +463,7 @@ public:
 		if( bind_result != 0 )
 		{
 			Log::Warning( "Can not bind listen socket. Error code: ", ::WSAGetLastError() );
+			::closesocket( listen_socket_ );
 			return;
 		}
 
@@ -470,6 +471,7 @@ public:
 		if( listen_result != 0 )
 		{
 			Log::Warning( "Can not start listen. Error code: ", ::WSAGetLastError() );
+			::closesocket( listen_socket_ );
 			return;
 		}
 #else
@@ -489,6 +491,7 @@ public:
 		if( bind_result != 0 )
 		{
 			Log::Warning( "Can not bind listen socket. Error code: ", errno );
+			::close( listen_socket_ );
 			return;
 		}
 
@@ -496,6 +499,7 @@ public:
 		if( listen_result != 0 )
 		{
 			Log::Warning( "Can not start listen. Error code: ", errno );
+			::close( listen_socket_ );
 			return;
 		}
 #endif
@@ -642,13 +646,19 @@ IConnectionPtr Net::ConnectToServer(
 	tcp_address.sin_family= AF_INET;
 	tcp_address.sin_addr.s_addr= INADDR_ANY;
 	tcp_address.sin_port= ::htons( in_tcp_port );
-	::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) );
+	if( ::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) ) != 0 )
+	{
+		Log::Warning( FUNC_NAME, " can not bind tcp socket. Error code: ", ::WSAGetLastError() );
+		::closesocket( tcp_socket );
+		return nullptr;
+	}
 
 	// Createe and open UDP socket.
 	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
-	if( tcp_socket == INVALID_SOCKET )
+	if( udp_socket == INVALID_SOCKET )
 	{
 		Log::Warning( FUNC_NAME, " can not create udp socket. Error code: ", ::WSAGetLastError() );
+		::closesocket( tcp_socket );
 		return nullptr;
 	}
 
@@ -656,7 +666,13 @@ IConnectionPtr Net::ConnectToServer(
 	udp_address.sin_family= AF_INET;
 	udp_address.sin_addr.s_addr= INADDR_ANY;
 	udp_address.sin_port= ::htons( in_udp_port );
-	::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) );
+	if( ::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) ) != 0 )
+	{
+		Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", ::WSAGetLastError() );
+		::closesocket( tcp_socket );
+		::closesocket( udp_socket );
+		return nullptr;
+	}
 
 	// Connect to server.
 	sockaddr_in server_tcp_address;
@@ -669,6 +685,8 @@ IConnectionPtr Net::ConnectToServer(
 	if( connection_result == SOCKET_ERROR )
 	{
 		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", ::WSAGetLastError() );
+		::closesocket( tcp_socket );
+		::closesocket( udp_socket );
 		return nullptr;
 	}
 
@@ -700,13 +718,19 @@ IConnectionPtr Net::ConnectToServer(
 	tcp_address.sin_family= AF_INET;
 	tcp_address.sin_addr.s_addr= INADDR_ANY;
 	tcp_address.sin_port= ::htons( in_tcp_port );
-	::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) );
+	if( ::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) ) != 0 )
+	{
+		Log::Warning( FUNC_NAME, " can not bind tcp socket. Error code: ", errno );
+		::close( tcp_socket );
+		return nullptr;
+	}
 
 	// Createe and open UDP socket.
 	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
-	if( tcp_socket == -1 )
+	if( udp_socket == -1 )
 	{
 		Log::Warning( FUNC_NAME, " can not create udp socket. Error code: ", errno );
+		::close( tcp_socket );
 		return nullptr;
 	}
 
@@ -714,7 +738,13 @@ IConnectionPtr Net::ConnectToServer(
 	udp_address.sin_family= AF_INET;
 	udp_address.sin_addr.s_addr= INADDR_ANY;
 	udp_address.sin_port= ::htons( in_udp_port );
-	::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) );
+	if( ::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) ) != 0 )
+	{
+		Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", errno );
+		::close( tcp_socket );
+		::close( udp_socket );
+		return nullptr;
+	}
 
 	// Connect to server.
 	sockaddr_in server_tcp_address;
@@ -726,7 +756,9 @@ IConnectionPtr Net::ConnectToServer(
 	const int connection_result= ::connect( tcp_socket, (sockaddr*) &server_tcp_address, sizeof(server_tcp_address) );
 	if( connection_result == -1 )
 	{
-		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", errno);
+		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", errno );
+		::close( tcp_socket );
+		::close( udp_socket );
 		return nullptr;
 	}
 
