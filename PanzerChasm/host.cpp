@@ -80,7 +80,7 @@ Host::Host()
 
 	net_.reset( new Net() );
 
-	system_window_.reset( new SystemWindow() );
+	system_window_.reset( new SystemWindow( settings_ ) );
 
 	rSetShadersDir( "shaders" );
 	{

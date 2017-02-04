@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL.h>
 
+#include "fwd.hpp"
 #include "size.hpp"
 #include "system_event.hpp"
 
@@ -12,7 +13,7 @@ namespace PanzerChasm
 class SystemWindow final
 {
 public:
-	SystemWindow();
+	explicit SystemWindow( Settings& settings );
 	~SystemWindow();
 
 	Size2 GetViewportSize() const;
