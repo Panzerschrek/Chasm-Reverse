@@ -9,8 +9,10 @@
 namespace PanzerChasm
 {
 
+static const char g_old_style_perspective[]= "cl_old_style_perspective";
+
 MovementController::MovementController(
-	const Settings& settings,
+	Settings& settings,
 	const m_Vec3& angle,
 	float aspect, float fov )
 	: settings_( settings )
@@ -50,10 +52,15 @@ void MovementController::Tick( const KeyboardState& keyboard_state )
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
+	const float max_ange_x=
+		settings_.GetOrSetBool( g_old_style_perspective, false )
+			? ( Constants::half_pi * 0.65f )
+			: Constants::half_pi;
+
 	if( angle_.z > Constants::two_pi ) angle_.z-= Constants::two_pi;
 	else if( angle_.z < 0.0f ) angle_.z+= Constants::two_pi;
-	if( angle_.x > Constants::half_pi ) angle_.x= Constants::half_pi;
-	else if( angle_.x < -Constants::half_pi ) angle_.x= -Constants::half_pi;
+	if( angle_.x > max_ange_x ) angle_.x= max_ange_x;
+	else if( angle_.x < -max_ange_x ) angle_.x= -max_ange_x;
 
 	jump_pressed_= key_pressed( SettingsKeys::key_jump );
 }
@@ -140,14 +147,12 @@ void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 
 void MovementController::GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) const
 {
-	const bool old_style= false;
-
 	m_Mat4 rot_x, rot_z, projection;
 
 	rot_z.RotateZ( -angle_.z );
 	GetViewProjectionMatrix( projection );
 
-	if( old_style )
+	if( settings_.GetOrSetBool( g_old_style_perspective, false ) )
 	{
 		rot_x.Identity();
 		rot_x.value[6]= std::tan( -angle_.x );

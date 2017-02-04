@@ -13,7 +13,7 @@ namespace PanzerChasm
 {
 
 Client::Client(
-	const Settings& settings,
+	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
 	const RenderingContext& rendering_context,

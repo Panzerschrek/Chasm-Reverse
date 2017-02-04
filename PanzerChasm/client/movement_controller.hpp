@@ -15,7 +15,7 @@ class MovementController final
 {
 public:
 	MovementController(
-		const Settings& settings,
+		Settings& settings,
 		const m_Vec3& angle= m_Vec3(0.0f, 0.0f, 0.0f),
 		float aspect= 1.0f, float fov= Constants::half_pi );
 
@@ -45,7 +45,7 @@ public:
 	void RotateZ( int delta );
 
 private:
-	const Settings& settings_;
+	Settings& settings_;
 
 	m_Vec3 angle_;
 
