@@ -5,7 +5,7 @@
 namespace PanzerChasm
 {
 
-class Settings
+class Settings final
 {
 public:
 	explicit Settings( const char* file_name );
@@ -33,6 +33,10 @@ public:
 	int GetOrSetInt( const char* name, int default_value= 0 );
 	float GetOrSetFloat( const char* name, float default_value= 0.0f );
 	bool GetOrSetBool( const char* name, bool default_value= false );
+
+private:
+	Settings( const Settings& )= delete;
+	Settings& operator=( const Settings )= delete;
 
 private:
 	/* Special class for settings keys.
