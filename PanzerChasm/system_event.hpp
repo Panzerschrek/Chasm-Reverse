@@ -92,4 +92,6 @@ struct SystemEvent
 
 typedef std::vector<SystemEvent> SystemEvents;
 
+const char* GetKeyName( SystemEvent::KeyEvent::KeyCode key_code );
+
 } // namespace PanzerChasm

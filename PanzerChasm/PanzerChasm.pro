@@ -69,6 +69,7 @@ SOURCES+= \
 	sound/objects_sounds_processor.cpp \
 	sound/sound_engine.cpp \
 	sound/sounds_loader.cpp \
+	system_event.cpp \
 	system_window.cpp \
 	time.cpp \
 	text_draw.cpp \

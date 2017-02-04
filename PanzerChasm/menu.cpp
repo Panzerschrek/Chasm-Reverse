@@ -43,7 +43,7 @@ public:
 	MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& sound_engine );
 	virtual ~MenuBase();
 
-	MenuBase* GetParent() const;
+	virtual MenuBase* GetParent();
 	void PlayMenuSound( unsigned int sound_id );
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) = 0;
@@ -64,7 +64,7 @@ MenuBase::MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& so
 MenuBase::~MenuBase()
 {}
 
-MenuBase* MenuBase::GetParent() const
+MenuBase* MenuBase::GetParent()
 {
 	return parent_menu_;
 }
@@ -629,6 +629,146 @@ MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// Controls Menu
+
+class ControlsMenu final : public MenuBase
+{
+public:
+	ControlsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~ControlsMenu() override;
+
+	// Hack for escape pressing in key set mode.
+	virtual MenuBase* GetParent() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	struct KeySettings
+	{
+		const char* name;
+		const char* setting_name;
+		const KeyCode default_key_code;
+	};
+
+	static const KeySettings c_key_settings[];
+	static const unsigned int c_key_setting_count;
+
+private:
+	Settings& settings_;
+	int current_row_= 0;
+	bool in_set_mode_= false;
+};
+
+const ControlsMenu::KeySettings ControlsMenu::c_key_settings[]=
+{
+	{ "Move Forward"	, SettingsKeys::key_forward		, KeyCode::W },
+	{ "Move Backward"	, SettingsKeys::key_backward	, KeyCode::S },
+	{ "Strafe Left"		, SettingsKeys::key_step_left	, KeyCode::A },
+	{ "Strafe Right"	, SettingsKeys::key_step_right	, KeyCode::D },
+	{ "Turn Left"		, SettingsKeys::key_turn_left	, KeyCode::Left },
+	{ "Turn Right"		, SettingsKeys::key_turn_right	, KeyCode::Right },
+	{ "Look Up"			, SettingsKeys::key_look_up		, KeyCode::Up },
+	{ "Look Down"		, SettingsKeys::key_look_down	, KeyCode::Down },
+	{ "Jump"			, SettingsKeys::key_jump		, KeyCode::Space },
+};
+
+const unsigned int ControlsMenu::c_key_setting_count= sizeof(ControlsMenu::c_key_settings) / sizeof(ControlsMenu::c_key_settings[0]);
+
+MenuBase* ControlsMenu::GetParent()
+{
+	return in_set_mode_ ? this : MenuBase::GetParent();
+}
+
+ControlsMenu::ControlsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_(host_commands.GetSettings())
+{}
+
+ControlsMenu::~ControlsMenu()
+{}
+
+void ControlsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 200u, text_draw.GetLineHeight() * c_key_setting_count };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 115;
+	const int param_x= x + scale * 130;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Controls",
+		scale,
+		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+
+	for( unsigned int i= 0u; i < c_key_setting_count; i++ )
+	{
+		const bool active= current_row_ == int(i);
+
+		const KeySettings& setting= c_key_settings[i];
+		const KeyCode key_code= static_cast<KeyCode>( settings_.GetOrSetInt( setting.setting_name, static_cast<int>( setting.default_key_code ) ) );
+
+		text_draw.Print(
+			param_descr_x, y + int(i) * y_step,
+			setting.name, scale,
+			active ? ( in_set_mode_ ?  TextDraw::FontColor::Golden : TextDraw::FontColor::YellowGreen ) : TextDraw::FontColor::White,
+			TextDraw::Alignment::Right );
+		text_draw.Print(
+			param_x, y + int(i) * y_step,
+			( active && in_set_mode_ ) ? "?" : GetKeyName( key_code ),
+			scale,
+			( active && in_set_mode_ ) ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+	}
+}
+
+MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		const auto key= event.event.key.key_code;
+
+		if( in_set_mode_ )
+		{
+			if( key == KeyCode::Escape )
+				in_set_mode_= false;
+			else
+			{
+				settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(key) );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				in_set_mode_= false;
+			}
+		}
+		else
+		{
+			if( key == KeyCode::Up )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				current_row_= ( current_row_ - 1 + int(c_key_setting_count) ) % int(c_key_setting_count);
+			}
+			if( key == KeyCode::Down )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				current_row_= ( current_row_ + 1 ) % int(c_key_setting_count);
+			}
+
+			if( key == KeyCode::Enter )
+				in_set_mode_= true;
+		}
+	}
+
+	return this;
+}
+
 // Options Menu
 
 class OptionsMenu final : public MenuBase
@@ -661,11 +801,14 @@ private:
 	int fx_volume_;
 	int cd_volume_;
 	int mouse_sensetivity_;
+
+	ControlsMenu controls_menu_;
 };
 
 OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
 	, settings_( host_commands.GetSettings() )
+	, controls_menu_( this, sound_engine, host_commands )
 {
 	always_run_= settings_.GetOrSetBool( SettingsKeys::always_run, true );
 	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
@@ -830,7 +973,14 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 
 		if( key == KeyCode::Enter )
 		{
-			// TODO - submenus
+			switch(current_row_)
+			{
+			case Row::Controls:
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				return &controls_menu_;
+			default:
+				break;
+			};
 		}
 
 		// Boolean parameters.
