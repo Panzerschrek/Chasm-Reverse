@@ -28,13 +28,10 @@ SoundEngine::SoundEngine(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
+	, settings_( settings )
 	, objects_sounds_processor_( game_resources )
 {
 	PC_ASSERT( game_resources_ != nullptr );
-
-	volume_= settings.GetFloat( SettingsKeys::fx_volume, 0.5f );
-	volume_= std::max( 0.0f, std::min( volume_, 1.0f ) );
-	settings.SetSetting( SettingsKeys::fx_volume, volume_ );
 
 	Log::Info( "Start loading sounds" );
 
@@ -458,13 +455,18 @@ void SoundEngine::CalculateSourcesVolume()
 		object_sound_source_->volume[1]*= volume_scale;
 	}
 
+	// Read master volume.
+	float master_volume= settings_.GetFloat( SettingsKeys::fx_volume, 0.5f );
+	master_volume= std::max( 0.0f, std::min( master_volume, 1.0f ) );
+	settings_.SetSetting( SettingsKeys::fx_volume, master_volume );
+
 	// Apply master volume.
 	for( Source& source : sources_ )
 	{
 		if( source.is_free )
 			continue;
-		source.volume[0]*= volume_;
-		source.volume[1]*= volume_;
+		source.volume[0]*= master_volume;
+		source.volume[1]*= master_volume;
 	}
 }
 

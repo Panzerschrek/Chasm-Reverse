@@ -82,7 +82,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-	float volume_; // [ 0.0; 1.0 ]
+	Settings& settings_;
 	Driver driver_;
 
 	MapDataConstPtr current_map_data_;
