@@ -13,6 +13,7 @@ namespace PanzerChasm
 {
 
 Client::Client(
+	const Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
 	const RenderingContext& rendering_context,
@@ -25,6 +26,7 @@ Client::Client(
 	, draw_loading_callback_(draw_loading_callback)
 	, current_tick_time_( Time::CurrentTime() )
 	, camera_controller_(
+		settings,
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( game_resources, rendering_context )
@@ -58,49 +60,9 @@ bool Client::Disconnected() const
 
 void Client::ProcessEvents( const SystemEvents& events )
 {
-	using KeyCode= SystemEvent::KeyEvent::KeyCode;
-
 	for( const SystemEvent& event : events )
 	{
-		if( event.type == SystemEvent::Type::Key )
-		{
-			if( event.event.key.key_code == KeyCode::W )
-				event.event.key.pressed ? camera_controller_.ForwardPressed() : camera_controller_.ForwardReleased();
-			else if( event.event.key.key_code == KeyCode::S )
-				event.event.key.pressed ? camera_controller_.BackwardPressed() : camera_controller_.BackwardReleased();
-			else if( event.event.key.key_code == KeyCode::A )
-				event.event.key.pressed ? camera_controller_.LeftPressed() : camera_controller_.LeftReleased();
-			else if( event.event.key.key_code == KeyCode::D )
-				event.event.key.pressed ? camera_controller_.RightPressed() : camera_controller_.RightReleased();
-			else if( event.event.key.key_code == KeyCode::Space )
-				event.event.key.pressed ? camera_controller_.UpPressed() : camera_controller_.UpReleased();
-			else if( event.event.key.key_code == KeyCode::C )
-				event.event.key.pressed ? camera_controller_.DownPressed() : camera_controller_.DownReleased();
-
-			else if( event.event.key.key_code == KeyCode::Up )
-				event.event.key.pressed ? camera_controller_.RotateUpPressed() : camera_controller_.RotateUpReleased();
-			else if( event.event.key.key_code == KeyCode::Down )
-				event.event.key.pressed ? camera_controller_.RotateDownPressed() : camera_controller_.RotateDownReleased();
-			else if( event.event.key.key_code == KeyCode::Left )
-				event.event.key.pressed ? camera_controller_.RotateLeftPressed() : camera_controller_.RotateLeftReleased();
-			else if( event.event.key.key_code == KeyCode::Right )
-				event.event.key.pressed ? camera_controller_.RotateRightPressed() : camera_controller_.RotateRightReleased();
-
-			else if( event.event.key.key_code >= KeyCode::K1 &&
-				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
-			{
-				unsigned int weapon_index=
-					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
-
-				if( player_state_.ammo[ weapon_index ] > 0u &&
-					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
-					requested_weapon_index_= weapon_index;
-			}
-
-			if( event.event.key.key_code == KeyCode::Tab && event.event.key.pressed )
-				map_mode_= !map_mode_;
-		}
-		else if( event.type == SystemEvent::Type::MouseKey &&
+		if( event.type == SystemEvent::Type::MouseKey &&
 			event.event.mouse_key.mouse_button == 1u )
 		{
 			shoot_pressed_= event.event.mouse_key.pressed;
@@ -113,14 +75,14 @@ void Client::ProcessEvents( const SystemEvents& events )
 	} // for events
 }
 
-void Client::Loop()
+void Client::Loop( const KeyboardState& keyboard_state )
 {
 	current_tick_time_= Time::CurrentTime();
 
 	if( connection_info_ != nullptr )
 		connection_info_->messages_extractor.ProcessMessages( *this );
 
-	camera_controller_.Tick();
+	camera_controller_.Tick( keyboard_state );
 
 	if( sound_engine_ != nullptr )
 	{
@@ -144,7 +106,7 @@ void Client::Loop()
 	if( connection_info_ != nullptr )
 	{
 		float move_direction, move_acceleration;
-		camera_controller_.GetAcceleration( move_direction, move_acceleration );
+		camera_controller_.GetAcceleration( keyboard_state, move_direction, move_acceleration );
 
 		Messages::PlayerMove message;
 		message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );

@@ -191,6 +191,21 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 	} // while events
 }
 
+void SystemWindow::GetKeyboardState( KeyboardState& out_keyboard_state )
+{
+	out_keyboard_state.reset();
+
+	int key_count;
+	const Uint8* const keyboard_state= SDL_GetKeyboardState( &key_count );
+
+	for( int i= 0; i < key_count; i++ )
+	{
+		SystemEvent::KeyEvent::KeyCode code= TranslateKey( SDL_Scancode(i) );
+		if( code < SystemEvent::KeyEvent::KeyCode::KeyCount && code != SystemEvent::KeyEvent::KeyCode::Unknown  )
+			out_keyboard_state[ static_cast<unsigned int>(code) ]= keyboard_state[i] != 0;
+	}
+}
+
 void SystemWindow::CaptureMouse( const bool need_capture )
 {
 	if( need_capture != mouse_captured_ )

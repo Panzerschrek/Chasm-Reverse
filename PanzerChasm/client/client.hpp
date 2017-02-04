@@ -17,6 +17,7 @@ class Client final
 {
 public:
 	Client(
+		const Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
 		const RenderingContext& rendering_context,
@@ -31,7 +32,7 @@ public:
 
 	void ProcessEvents( const SystemEvents& events );
 
-	void Loop();
+	void Loop( const KeyboardState& keyboard_state );
 	void Draw();
 
 public: // Messages handlers

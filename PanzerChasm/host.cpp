@@ -129,10 +129,12 @@ Host::~Host()
 bool Host::Loop()
 {
 	// Events processing
+	KeyboardState keyboard_state;
 	if( system_window_ != nullptr )
 	{
 		events_.clear();
 		system_window_->GetInput( events_ );
+		system_window_->GetKeyboardState( keyboard_state );
 	}
 
 	for( const SystemEvent& event : events_ )
@@ -169,7 +171,16 @@ bool Host::Loop()
 		local_server_->Loop();
 
 	if( client_ != nullptr )
-		client_->Loop();
+	{
+		if( input_goes_to_console || input_goes_to_menu )
+		{
+			KeyboardState dummy_keyboard_state;
+			dummy_keyboard_state.reset();
+			client_->Loop( dummy_keyboard_state );
+		}
+		else
+			client_->Loop( keyboard_state );
+	}
 
 	// Draw operations
 	if( system_window_ )
@@ -383,6 +394,7 @@ void Host::EnsureClient()
 
 	client_.reset(
 		new Client(
+			settings_,
 			game_resources_,
 			map_loader_,
 			rendering_context,

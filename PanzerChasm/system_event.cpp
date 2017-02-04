@@ -10,7 +10,9 @@ const char* GetKeyName( const SystemEvent::KeyEvent::KeyCode key_code )
 	using KeyCode= SystemEvent::KeyEvent::KeyCode;
 	switch( key_code )
 	{
+	case KeyCode::KeyCount:
 	case KeyCode::Unknown: return "";
+
 	case KeyCode::Escape: return "Esc";
 	case KeyCode::Enter: return "Enter";
 	case KeyCode::Space: return "Space";
