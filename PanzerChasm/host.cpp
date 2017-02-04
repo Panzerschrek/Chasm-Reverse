@@ -103,8 +103,13 @@ Host::Host()
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, drawers_ ) );
 
-	Log::Info( "Initialize sound subsystem" );
-	sound_engine_= std::make_shared<Sound::SoundEngine>( game_resources_ );
+	if( !settings_.GetOrSetBool( "s_nosound", false ) )
+	{
+		Log::Info( "Initialize sound subsystem" );
+		sound_engine_= std::make_shared<Sound::SoundEngine>( settings_, game_resources_ );
+	}
+	else
+		Log::Info( "Sound disabled in settings" );
 
 	Log::Info( "Initialize menu" );
 	menu_.reset(

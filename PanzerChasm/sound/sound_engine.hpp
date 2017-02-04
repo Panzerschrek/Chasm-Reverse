@@ -19,7 +19,9 @@ namespace Sound
 class SoundEngine final
 {
 public:
-	explicit SoundEngine( const GameResourcesConstPtr& game_resources );
+	SoundEngine(
+		Settings& settings,
+		const GameResourcesConstPtr& game_resources );
 	~SoundEngine();
 
 	void Tick();
@@ -80,7 +82,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-
+	float volume_; // [ 0.0; 1.0 ]
 	Driver driver_;
 
 	MapDataConstPtr current_map_data_;

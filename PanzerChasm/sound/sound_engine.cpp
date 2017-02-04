@@ -4,6 +4,7 @@
 #include "../client/map_state.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
+#include "../settings.hpp"
 
 #include "sound_engine.hpp"
 
@@ -22,11 +23,18 @@ static const float g_ears_half_angle= 0.5f * g_ears_angle;
 static const float g_volume_oversaturation_level= 1.4f;
 static const float g_ambient_sounds_volume_scale= 0.6f;
 
-SoundEngine::SoundEngine( const GameResourcesConstPtr& game_resources )
+SoundEngine::SoundEngine(
+	Settings& settings,
+	const GameResourcesConstPtr& game_resources )
 	: game_resources_( game_resources )
 	, objects_sounds_processor_( game_resources )
 {
 	PC_ASSERT( game_resources_ != nullptr );
+
+	static const char c_volume_key[]= "s_volume";
+	volume_= settings.GetFloat( c_volume_key, 0.5f );
+	volume_= std::max( 0.0f, std::min( volume_, 1.0f ) );
+	settings.SetSetting( c_volume_key, volume_ );
 
 	Log::Info( "Start loading sounds" );
 
@@ -448,6 +456,15 @@ void SoundEngine::CalculateSourcesVolume()
 		const float volume_scale= g_ambient_sounds_volume_scale * objects_sounds_processor_.GetCurrentSoundVolume();
 		object_sound_source_->volume[0]*= volume_scale;
 		object_sound_source_->volume[1]*= volume_scale;
+	}
+
+	// Apply master volume.
+	for( Source& source : sources_ )
+	{
+		if( source.is_free )
+			continue;
+		source.volume[0]*= volume_;
+		source.volume[1]*= volume_;
 	}
 }
 
