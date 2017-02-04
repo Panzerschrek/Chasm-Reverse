@@ -2,13 +2,15 @@
 #include <cstring>
 
 #include "log.hpp"
+#include "settings.hpp"
 
 #include "commands_processor.hpp"
 
 namespace PanzerChasm
 {
 
-CommandsProcessor::CommandsProcessor()
+CommandsProcessor::CommandsProcessor( Settings& settings )
+	: settings_(settings)
 {}
 
 CommandsProcessor::~CommandsProcessor()
@@ -49,7 +51,16 @@ void CommandsProcessor::ProcessCommand( const char* const command_string )
 		}
 	}
 
-	Log::Info( command_parsed.first, ": command not found" );
+	// Search settins variable.
+	if( settings_.IsValue( command_parsed.first.c_str() ) )
+	{
+		if( command_parsed.second.empty() )
+			Log::Info( "\"", command_parsed.first, "\" is \"", settings_.GetString( command_parsed.first.c_str() ), "\"" );
+		else
+			settings_.SetSetting( command_parsed.first.c_str(), command_parsed.second.front().c_str() );
+	}
+	else
+		Log::Info( command_parsed.first, ": command not found" );
 }
 
 std::string CommandsProcessor::TryCompleteCommand( const char* command_string ) const

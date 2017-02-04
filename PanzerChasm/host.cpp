@@ -58,6 +58,7 @@ static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
 
 Host::Host()
 	: settings_( "PanzerChasm.cfg" )
+	, commands_processor_( settings_ )
 {
 	{ // Register host commands
 		CommandsMapPtr commands= std::make_shared<CommandsMap>();
