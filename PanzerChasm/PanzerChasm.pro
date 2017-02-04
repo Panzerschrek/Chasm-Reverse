@@ -63,6 +63,7 @@ SOURCES+= \
 	server/monster_base.cpp \
 	server/player.cpp \
 	server/server.cpp \
+	settings.cpp \
 	sound/ambient_sound_processor.cpp \
 	sound/driver.cpp \
 	sound/objects_sounds_processor.cpp \
@@ -122,6 +123,7 @@ HEADERS+= \
 	server/monster_base.hpp \
 	server/player.hpp \
 	server/server.hpp \
+	settings.hpp \
 	size.hpp \
 	sound/ambient_sound_processor.hpp \
 	sound/channel.hpp \

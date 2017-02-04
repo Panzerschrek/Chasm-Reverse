@@ -8,6 +8,7 @@
 #include "menu.hpp"
 #include "net/net.hpp"
 #include "server/server.hpp"
+#include "settings.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
 
@@ -65,6 +66,7 @@ private:
 
 	bool quit_requested_= false;
 
+	Settings settings_;
 	CommandsProcessor commands_processor_;
 	CommandsMapConstPtr host_commands_;
 
