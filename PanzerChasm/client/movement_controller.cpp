@@ -10,13 +10,14 @@ namespace PanzerChasm
 {
 
 static const char g_old_style_perspective[]= "cl_old_style_perspective";
+static const char g_fov[]= "cl_fov";
 
 MovementController::MovementController(
 	Settings& settings,
 	const m_Vec3& angle,
-	float aspect, float fov )
+	float aspect )
 	: settings_( settings )
-	, angle_(angle), aspect_(aspect), fov_(fov)
+	, angle_(angle), aspect_(aspect)
 	, speed_(0.0f)
 	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
@@ -140,7 +141,11 @@ void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 	basis_change[9]= 1.0f;
 	basis_change[10]= 0.0f;
 
-	perspective.PerspectiveProjection( aspect_, fov_, c_z_near, c_z_far );
+	float fov= settings_.GetOrSetFloat( g_fov, 90.0f );
+	fov= std::max( 10.0f, std::min( fov, 150.0f ) );
+	settings_.SetSetting( g_fov, fov );
+
+	perspective.PerspectiveProjection( aspect_, fov * Constants::to_rad, c_z_near, c_z_far );
 
 	out_mat= basis_change * perspective;
 }

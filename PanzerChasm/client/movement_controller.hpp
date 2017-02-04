@@ -3,7 +3,7 @@
 #include <vec.hpp>
 #include <matrix.hpp>
 
-#include "fwd.hpp"
+#include "../fwd.hpp"
 #include "math_utils.hpp"
 #include  "system_event.hpp"
 #include "time.hpp"
@@ -17,7 +17,7 @@ public:
 	MovementController(
 		Settings& settings,
 		const m_Vec3& angle= m_Vec3(0.0f, 0.0f, 0.0f),
-		float aspect= 1.0f, float fov= Constants::half_pi );
+		float aspect= 1.0f );
 
 	~MovementController();
 
@@ -48,9 +48,7 @@ private:
 	Settings& settings_;
 
 	m_Vec3 angle_;
-
 	float aspect_;
-	float fov_;
 
 	float speed_;
 
