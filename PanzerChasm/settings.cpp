@@ -71,6 +71,16 @@ static bool StrToFloat( const char* str, float* f )
 	return true;
 }
 
+std::string FloatToStr( const float f )
+{
+	// HACK - replace ',' to '.' for bad locale
+	std::string result= std::to_string( f );
+	size_t pos = result.find(",");
+	if ( pos != std::string::npos ) result[pos] = '.';
+
+	return result;
+}
+
 static std::string MakeQuotedString( const std::string& str )
 {
 	std::string result;
@@ -168,60 +178,54 @@ Settings::~Settings()
 	}
 }
 
-void Settings::SetSetting( const char* name, const char* value )
+void Settings::SetSetting( const char* const name, const char* const value )
 {
 	map_[ SettingsStringContainer(name) ]= std::string(value);
 }
 
-void Settings::SetSetting( const char* name, int value )
+void Settings::SetSetting( const char* const name, const int value )
 {
 	map_[ SettingsStringContainer(name) ]= std::to_string(value);
 }
 
-void Settings::SetSetting( const char* name, bool value )
+void Settings::SetSetting( const char* const name, const bool value )
 {
-	map_[ SettingsStringContainer(name) ]= std::to_string( int(value) );
+	SetSetting( name, value ? 1 : 0 );
 }
 
-void Settings::SetSetting( const char* name, float value )
+void Settings::SetSetting( const char* const name, const float value )
 {
-	// HACK - replace ',' to '.' for bad locale
-	std::string str = std::to_string( value );
-	size_t pos = str.find(",");
-	if ( pos != std::string::npos ) str[pos] = '.';
-
-	map_[ SettingsStringContainer(name) ]= str;
+	map_[ SettingsStringContainer(name) ]= FloatToStr( value );
 }
 
-bool Settings::IsValue( const char* name ) const
+bool Settings::IsValue( const char* const name ) const
 {
-	auto it = map_.find( SettingsStringContainer(name) );
-	return it != map_.cend();
+	return map_.find( SettingsStringContainer(name) ) != map_.cend();
 }
 
-bool Settings::IsNumber( const char* name ) const
+bool Settings::IsNumber( const char* const name ) const
 {
-	auto it = map_.find( SettingsStringContainer(name) );
-	if ( it == map_.cend() )
+	const auto it = map_.find( SettingsStringContainer(name) );
+	if( it == map_.cend() )
 		return false;
 
 	float f;
 	return StrToFloat( (*it).second.data(), &f );
 }
 
-const char* Settings::GetString( const char* name, const char* default_value ) const
+const char* Settings::GetString( const char* const name, const char* const default_value ) const
 {
-	auto it = map_.find( SettingsStringContainer(name) );
+	const auto it= map_.find( SettingsStringContainer(name) );
 	if ( it == map_.cend() )
 		return default_value;
 
-	return (*it).second.data();
+	return it->second.data();
 }
 
-int Settings::GetInt( const char* name, int default_value ) const
+int Settings::GetInt( const char* const name, const int default_value ) const
 {
-	auto it = map_.find( SettingsStringContainer(name) );
-	if ( it == map_.cend() )
+	const auto it= map_.find( SettingsStringContainer(name) );
+	if( it == map_.cend() )
 		return default_value;
 
 	int val;
@@ -230,10 +234,10 @@ int Settings::GetInt( const char* name, int default_value ) const
 	return default_value;
 }
 
-float Settings::GetFloat( const char* name, float default_value ) const
+float Settings::GetFloat( const char* const name, const float default_value ) const
 {
-	auto it = map_.find( SettingsStringContainer(name) );
-	if ( it == map_.cend() )
+	const auto it = map_.find( SettingsStringContainer(name) );
+	if( it == map_.cend() )
 		return default_value;
 
 	float val;
@@ -242,9 +246,54 @@ float Settings::GetFloat( const char* name, float default_value ) const
 	return default_value;
 }
 
-bool Settings::GetBool( const char* name, bool default_value ) const
+bool Settings::GetBool( const char* const name, const bool default_value ) const
 {
-	return GetInt( name, int(default_value) );
+	return GetInt( name, default_value ? 1 : 0 ) != 0;
+}
+
+const char* Settings::GetOrSetString( const char* const name, const char* const default_value )
+{
+	const auto it = map_.find( SettingsStringContainer(name) );
+	if ( it == map_.cend() )
+	{
+		map_[ SettingsStringContainer(name) ]= std::string( default_value );
+		return default_value;
+	}
+
+	return it->second.data();
+}
+
+int Settings::GetOrSetInt( const char* const name, const int default_value )
+{
+	const auto it= map_.find( SettingsStringContainer(name) );
+	if ( it != map_.cend() )
+	{
+		int val;
+		if( StrToInt( it->second.data(), &val ) )
+			return val;
+	}
+
+	map_[ SettingsStringContainer(name) ]= std::to_string( default_value );
+	return default_value;
+}
+
+float Settings::GetOrSetFloat( const char* const name, const float default_value )
+{
+	const auto it= map_.find( SettingsStringContainer(name) );
+	if ( it != map_.cend() )
+	{
+		float val;
+		if( StrToFloat( it->second.data(), &val ) )
+			return val;
+	}
+
+	map_[ SettingsStringContainer(name) ]= FloatToStr( default_value );
+	return default_value;
+}
+
+bool Settings::GetOrSetBool( const char* const name, const bool default_value )
+{
+	return GetOrSetInt( name, default_value ? 1 : 0 ) != 0;
 }
 
 /*

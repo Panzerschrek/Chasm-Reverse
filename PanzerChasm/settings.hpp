@@ -18,13 +18,21 @@ public:
 
 	bool IsValue( const char* name ) const;
 
-	// Returns true, if can convert string to number
+	// Returns true, if can convert string to number.
 	bool IsNumber( const char* name ) const;
 
-	const char* GetString( const char* name, const char* default_value = "" ) const;
-	int GetInt( const char* name, int default_value = 0 ) const;
-	float GetFloat( const char* name, float default_value = 0.0f ) const;
-	bool GetBool( const char* name, bool default_value = false ) const;
+	// Simple getters. Get setting value, or default value, if settings does not exist.
+	const char* GetString( const char* name, const char* default_value= "" ) const;
+	int GetInt( const char* name, int default_value= 0 ) const;
+	float GetFloat( const char* name, float default_value= 0.0f ) const;
+	bool GetBool( const char* name, bool default_value= false ) const;
+
+	// Get value, if it exist, or set settings value to default and return default.
+	// If settings value can not be converted to number( for number methods ) it sets to default value.
+	const char* GetOrSetString( const char* name, const char* default_value= "" );
+	int GetOrSetInt( const char* name, int default_value= 0 );
+	float GetOrSetFloat( const char* name, float default_value= 0.0f );
+	bool GetOrSetBool( const char* name, bool default_value= false );
 
 private:
 	/* Special class for settings keys.
