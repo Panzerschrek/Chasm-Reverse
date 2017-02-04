@@ -69,6 +69,7 @@ std::string CommandsProcessor::TryCompleteCommand( const char* command_string ) 
 
 	std::vector<std::string> candidates;
 
+	// Get matching commands.
 	for( unsigned int m= 0u; m < commands_maps_.size(); m++ )
 	{
 		const CommandsMapConstPtr commads_map= commands_maps_[m].lock();
@@ -82,6 +83,9 @@ std::string CommandsProcessor::TryCompleteCommand( const char* command_string ) 
 			}
 		}
 	}
+
+	// Get matching settings variables.
+	settings_.GetSettingsKeysStartsWith( command.c_str(), candidates );
 
 	if( candidates.size() == 0u )
 		return command;

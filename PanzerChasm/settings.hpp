@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <string>
+#include <vector>
 
 namespace PanzerChasm
 {
@@ -34,6 +35,10 @@ public:
 	float GetOrSetFloat( const char* name, float default_value= 0.0f );
 	bool GetOrSetBool( const char* name, bool default_value= false );
 
+	void GetSettingsKeysStartsWith(
+		const char* settings_key_start,
+		std::vector<std::string>& out_seettings_keys ) const;
+
 private:
 	Settings( const Settings& )= delete;
 	Settings& operator=( const Settings )= delete;
@@ -51,6 +56,7 @@ private:
 		~SettingsStringContainer();
 
 		explicit operator std::string() const;
+		const char* CStr() const;
 
 		bool operator < ( const SettingsStringContainer& other ) const;
 

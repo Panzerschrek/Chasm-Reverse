@@ -1,5 +1,4 @@
 #include <cstring>
-#include <vector>
 
 #include "../Common/files.hpp"
 using namespace ChasmReverse;
@@ -296,6 +295,18 @@ bool Settings::GetOrSetBool( const char* const name, const bool default_value )
 	return GetOrSetInt( name, default_value ? 1 : 0 ) != 0;
 }
 
+void Settings::GetSettingsKeysStartsWith(
+	const char* const settings_key_start,
+	std::vector<std::string>& out_seettings_keys ) const
+{
+	for( const MapType::value_type& map_value : map_ )
+	{
+		const char* const str= map_value.first.CStr();
+		if( std::strstr( str, settings_key_start ) == str )
+			out_seettings_keys.push_back( str );
+	}
+}
+
 /*
 ------------------SettingsStringContainer-----------------------
 */
@@ -316,6 +327,11 @@ Settings::SettingsStringContainer::SettingsStringContainer( const SettingsString
 Settings::SettingsStringContainer::operator std::string() const
 {
 	return c_str_ ? std::string(c_str_) : str_;
+}
+
+const char* Settings::SettingsStringContainer::CStr() const
+{
+	return c_str_ != nullptr ? c_str_ : str_.c_str();
 }
 
 Settings::SettingsStringContainer::~SettingsStringContainer()
