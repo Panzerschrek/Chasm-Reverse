@@ -60,6 +60,8 @@ bool Client::Disconnected() const
 
 void Client::ProcessEvents( const SystemEvents& events )
 {
+	using KeyCode= SystemEvent::KeyEvent::KeyCode;
+
 	for( const SystemEvent& event : events )
 	{
 		if( event.type == SystemEvent::Type::MouseKey &&
@@ -71,6 +73,21 @@ void Client::ProcessEvents( const SystemEvents& events )
 		{
 			camera_controller_.RotateZ( -event.event.mouse_move.dx );
 			camera_controller_.RotateX( -event.event.mouse_move.dy );
+		}
+
+		// Select weapon.
+		if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+		{
+			if( event.event.key.key_code >= KeyCode::K1 &&
+				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
+			{
+				unsigned int weapon_index=
+					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
+
+				if( player_state_.ammo[ weapon_index ] > 0u &&
+					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
+					requested_weapon_index_= weapon_index;
+			}
 		}
 	} // for events
 }
