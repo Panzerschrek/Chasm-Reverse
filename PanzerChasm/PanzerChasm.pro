@@ -124,6 +124,7 @@ HEADERS+= \
 	server/player.hpp \
 	server/server.hpp \
 	settings.hpp \
+	shared_settings_keys.hpp \
 	size.hpp \
 	sound/ambient_sound_processor.hpp \
 	sound/channel.hpp \

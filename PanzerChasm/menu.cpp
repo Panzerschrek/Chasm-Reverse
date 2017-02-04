@@ -3,6 +3,8 @@
 #include "assert.hpp"
 #include "drawers.hpp"
 #include "net/net.hpp"
+#include "settings.hpp"
+#include "shared_settings_keys.hpp"
 #include "sound/sound_engine.hpp"
 #include "sound/sound_id.hpp"
 
@@ -28,6 +30,8 @@ M_TILE1.CEL
 using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
 static const unsigned int g_menu_caption_offset= 2u;
+static const char g_yes[]= "yes";
+static const char g_no[]= "no";
 
 // Menu base
 
@@ -394,7 +398,7 @@ void NetworkCreateServerMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Dedicated * y_step,
-		dedicated_ ? "yes" : "no", scale,
+		dedicated_ ? g_yes : g_no, scale,
 		current_row_ == Row::Dedicated ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
@@ -623,6 +627,172 @@ MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// Options Menu
+
+class OptionsMenu final : public MenuBase
+{
+public:
+	OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~OptionsMenu() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	Settings& settings_;
+
+	struct Row
+	{
+		enum : int
+		{
+			Controls, Video, AlwaysRun, Crosshair, RevertMouse, WeaponReset, FXVolume, CDVolume, MouseSEnsitivity, NumRows
+		};
+	};
+	int current_row_= 0;
+
+	bool always_run_;
+	bool crosshair_;
+	bool reverse_mouse_;
+	bool weapon_reset_;
+};
+
+OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_( host_commands.GetSettings() )
+{
+	always_run_= settings_.GetOrSetBool( SettingsKeys::always_run, true );
+	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
+	reverse_mouse_= settings_.GetOrSetBool( SettingsKeys::reverse_mouse, false );
+	weapon_reset_= settings_.GetOrSetBool( SettingsKeys::weapon_reset, false );
+}
+
+OptionsMenu::~OptionsMenu()
+{}
+
+void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 210u, text_draw.GetLineHeight() * Row::NumRows };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 110;
+	const int param_x= x + scale * 120;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Options",
+		scale,
+		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Controls * y_step,
+		"Controls...", scale,
+		current_row_ == Row::Controls ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_descr_x, y + Row::Video * y_step,
+		"Video...", scale,
+		current_row_ == Row::Video ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+
+	text_draw.Print(
+		param_descr_x, y + Row::AlwaysRun * y_step,
+		"Alaways Run", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::AlwaysRun * y_step,
+		always_run_ ? g_yes : g_no, scale,
+		current_row_ == Row::AlwaysRun ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Crosshair * y_step,
+		"Crosshair", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Crosshair * y_step,
+		crosshair_ ? g_yes : g_no, scale,
+		current_row_ == Row::Crosshair ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::RevertMouse * y_step,
+		"Reverse Mouse", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::RevertMouse * y_step,
+		reverse_mouse_ ? g_yes : g_no, scale,
+		current_row_ == Row::RevertMouse ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::WeaponReset * y_step,
+		"Weapon Reset", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::WeaponReset * y_step,
+		weapon_reset_ ? g_yes : g_no, scale,
+		current_row_ == Row::WeaponReset ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+}
+
+MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+		}
+		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 ) % Row::NumRows;
+		}
+
+		// Boolean parameters.
+		const auto key= event.event.key.key_code;
+		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
+		{
+			switch(current_row_)
+			{
+			case Row::AlwaysRun:
+				always_run_= !always_run_;
+				settings_.SetSetting( SettingsKeys::always_run, always_run_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::Crosshair:
+				crosshair_= !crosshair_;
+				settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::RevertMouse:
+				reverse_mouse_= !reverse_mouse_;
+				settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::WeaponReset:
+				weapon_reset_= !weapon_reset_;
+				settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			default:
+				break;
+			};
+		}
+	}
+
+	return this;
+}
+
 // Quit Menu
 
 class QuitMenu final : public MenuBase
@@ -714,6 +884,7 @@ MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& hos
 {
 	submenus_[0].reset( new NewGameMenu( this, sound_engine, host_commands ) );
 	submenus_[1].reset( new NetworkMenu( this, sound_engine, host_commands ) );
+	submenus_[4].reset( new OptionsMenu( this, sound_engine, host_commands ) );
 	submenus_[5].reset( new QuitMenu( this, sound_engine, host_commands ) );
 }
 

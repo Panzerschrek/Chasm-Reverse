@@ -194,6 +194,11 @@ bool Host::Loop()
 	return !quit_requested_;
 }
 
+Settings& Host::GetSettings()
+{
+	return settings_;
+}
+
 void Host::Quit()
 {
 	quit_requested_= true;

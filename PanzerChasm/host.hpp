@@ -25,6 +25,7 @@ public:
 	bool Loop();
 
 public: // HostCommands
+	virtual Settings& GetSettings() override;
 	virtual void Quit() override;
 	virtual void NewGame( DifficultyType difficulty ) override;
 
