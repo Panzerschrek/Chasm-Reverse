@@ -32,6 +32,8 @@ using KeyCode= SystemEvent::KeyEvent::KeyCode;
 static const unsigned int g_menu_caption_offset= 2u;
 static const char g_yes[]= "yes";
 static const char g_no[]= "no";
+static const char g_on[]= "On";
+static const char g_off[]= "Off";
 
 // Menu base
 
@@ -717,7 +719,7 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::AlwaysRun * y_step,
-		always_run_ ? g_yes : g_no, scale,
+		always_run_ ? g_on : g_off, scale,
 		current_row_ == Row::AlwaysRun ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
@@ -727,7 +729,7 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Crosshair * y_step,
-		crosshair_ ? g_yes : g_no, scale,
+		crosshair_ ? g_on : g_off, scale,
 		current_row_ == Row::Crosshair ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
@@ -737,7 +739,7 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::RevertMouse * y_step,
-		reverse_mouse_ ? g_yes : g_no, scale,
+		reverse_mouse_ ? g_on : g_off, scale,
 		current_row_ == Row::RevertMouse ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
@@ -747,7 +749,7 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::WeaponReset * y_step,
-		weapon_reset_ ? g_yes : g_no, scale,
+		weapon_reset_ ? g_on : g_off, scale,
 		current_row_ == Row::WeaponReset ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
