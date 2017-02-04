@@ -654,6 +654,11 @@ private:
 	bool crosshair_;
 	bool reverse_mouse_;
 	bool weapon_reset_;
+
+	const int c_max_slider_value= 16;
+	int fx_volume_;
+	int cd_volume_;
+	int mouse_sensetivity_;
 };
 
 OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
@@ -664,6 +669,10 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
 	reverse_mouse_= settings_.GetOrSetBool( SettingsKeys::reverse_mouse, false );
 	weapon_reset_= settings_.GetOrSetBool( SettingsKeys::weapon_reset, false );
+
+	fx_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::fx_volume, 0.5f ) ) );
+	cd_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::cd_volume, 0.5f ) ) );
+	mouse_sensetivity_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f ) ) );
 }
 
 OptionsMenu::~OptionsMenu()
@@ -678,8 +687,8 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
-	const int param_descr_x= x + scale * 110;
-	const int param_x= x + scale * 120;
+	const int param_descr_x= x + scale * 130;
+	const int param_x= x + scale * 140;
 	const int y_step= int(text_draw.GetLineHeight()) * scale;
 
 	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
@@ -741,25 +750,88 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		weapon_reset_ ? g_yes : g_no, scale,
 		current_row_ == Row::WeaponReset ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
+
+	char slider_back_text[ 1u + 7u + 1u + 1u ];
+	slider_back_text[0]= TextDraw::c_slider_left_letter_code;
+	std::memset( slider_back_text + 1u, TextDraw::c_slider_back_letter_code, 7u );
+	slider_back_text[8]= TextDraw::c_slider_right_letter_code;
+	slider_back_text[9]= '\0';
+	static const char slder_text[]= { TextDraw::c_slider_letter_code, '\0' };
+
+	const int c_slider_pos_scale= 7;
+
+	text_draw.Print(
+		param_descr_x, y + Row::FXVolume * y_step,
+		"FX Volume", scale,
+		current_row_ == Row::FXVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::FXVolume * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + fx_volume_ * c_slider_pos_scale, y + Row::FXVolume * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::CDVolume * y_step,
+		"CD Volume", scale,
+		current_row_ == Row::CDVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::CDVolume * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + cd_volume_ * c_slider_pos_scale, y + Row::CDVolume * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::MouseSEnsitivity * y_step,
+		"Mouse Sensetivity", scale,
+		current_row_ == Row::MouseSEnsitivity ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::MouseSEnsitivity * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + mouse_sensetivity_ * c_slider_pos_scale, y + Row::MouseSEnsitivity * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
 }
 
 MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 {
 	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
 	{
-		if( event.event.key.key_code == KeyCode::Up )
+		const auto key= event.event.key.key_code;
+
+		if( key == KeyCode::Up )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
 		}
-		if( event.event.key.key_code == KeyCode::Down )
+		if( key == KeyCode::Down )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ + 1 ) % Row::NumRows;
 		}
 
+		if( key == KeyCode::Enter )
+		{
+			// TODO - submenus
+		}
+
 		// Boolean parameters.
-		const auto key= event.event.key.key_code;
 		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
 		{
 			switch(current_row_)
@@ -787,7 +859,47 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 			default:
 				break;
 			};
-		}
+		} // boolean params.
+
+		// Sliders
+		if( key == KeyCode::Left || key == KeyCode::Right )
+		{
+			const int shift= key == KeyCode::Left ? -1 : 1;
+			int new_value;
+
+			switch(current_row_)
+			{
+			case Row::FXVolume:
+				new_value= std::max( 0, std::min( fx_volume_ + shift, c_max_slider_value ) );
+				if( new_value != fx_volume_ )
+				{
+					fx_volume_= new_value;
+					settings_.SetSetting( SettingsKeys::fx_volume, float(fx_volume_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			case Row::CDVolume:
+				new_value= std::max( 0, std::min( cd_volume_ + shift, c_max_slider_value ) );
+				if( new_value != cd_volume_ )
+				{
+					cd_volume_= new_value;
+					settings_.SetSetting( SettingsKeys::cd_volume, float(cd_volume_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			case Row::MouseSEnsitivity:
+				new_value= std::max( 0, std::min( mouse_sensetivity_ + shift, c_max_slider_value ) );
+				if( new_value != mouse_sensetivity_ )
+				{
+					mouse_sensetivity_= new_value;
+					settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			default:
+				break;
+			};
+		} // sliders.
 	}
 
 	return this;

@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
@@ -90,16 +92,26 @@ TextDraw::TextDraw(
 			pixel_count,
 			fond_data, font_data_shifted.data() );
 
+		// Hack. Move "slider" letter from code '\0';
+		for( unsigned int y= 0; y < g_letter_place_height; y++ )
+			std::memcpy(
+				font_data_shifted.data() + g_atlas_width * y + g_letter_place_width * ( c_slider_back_letter_code & 15u ) +  g_atlas_width * g_letter_place_height * ( c_slider_back_letter_code >> 4u ),
+				font_data_shifted.data() + g_atlas_width * y,
+				g_letter_place_width );
+
 		ConvertToRGBA(
 			pixel_count,
 			font_data_shifted.data(),
 			game_resources.palette,
 			font_rgba.data() + c * pixel_count * 4u );
+
 	}
 
 	CalculateLettersWidth(
 		fond_data,
 		letters_width_ );
+
+	letters_width_[ c_slider_back_letter_code ]= letters_width_[0]; // Move slider letter.
 
 	texture_=
 		r_Texture(

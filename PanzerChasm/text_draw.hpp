@@ -28,6 +28,11 @@ public:
 		Right,
 	};
 
+	static constexpr unsigned char c_slider_back_letter_code= 8u;
+	static constexpr unsigned char c_slider_left_letter_code = 1u;
+	static constexpr unsigned char c_slider_right_letter_code= 2u;
+	static constexpr unsigned char c_slider_letter_code= 3u;
+
 	TextDraw(
 		const RenderingContext& rendering_context,
 		const GameResources& game_resources );

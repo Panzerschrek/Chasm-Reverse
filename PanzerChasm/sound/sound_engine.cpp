@@ -5,6 +5,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../settings.hpp"
+#include "../shared_settings_keys.hpp"
 
 #include "sound_engine.hpp"
 
@@ -31,10 +32,9 @@ SoundEngine::SoundEngine(
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
-	static const char c_volume_key[]= "s_volume";
-	volume_= settings.GetFloat( c_volume_key, 0.5f );
+	volume_= settings.GetFloat( SettingsKeys::fx_volume, 0.5f );
 	volume_= std::max( 0.0f, std::min( volume_, 1.0f ) );
-	settings.SetSetting( c_volume_key, volume_ );
+	settings.SetSetting( SettingsKeys::fx_volume, volume_ );
 
 	Log::Info( "Start loading sounds" );
 
