@@ -57,6 +57,8 @@ static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
 }
 
 Host::Host()
+	: settings_( "PanzerChasm.cfg" )
+	, commands_processor_( settings_ )
 {
 	{ // Register host commands
 		CommandsMapPtr commands= std::make_shared<CommandsMap>();
@@ -79,7 +81,7 @@ Host::Host()
 
 	net_.reset( new Net() );
 
-	system_window_.reset( new SystemWindow() );
+	system_window_.reset( new SystemWindow( settings_ ) );
 
 	rSetShadersDir( "shaders" );
 	{
@@ -102,8 +104,13 @@ Host::Host()
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, drawers_ ) );
 
-	Log::Info( "Initialize sound subsystem" );
-	sound_engine_= std::make_shared<Sound::SoundEngine>( game_resources_ );
+	if( !settings_.GetOrSetBool( "s_nosound", false ) )
+	{
+		Log::Info( "Initialize sound subsystem" );
+		sound_engine_= std::make_shared<Sound::SoundEngine>( settings_, game_resources_ );
+	}
+	else
+		Log::Info( "Sound disabled in settings" );
 
 	Log::Info( "Initialize menu" );
 	menu_.reset(
@@ -122,10 +129,12 @@ Host::~Host()
 bool Host::Loop()
 {
 	// Events processing
+	KeyboardState keyboard_state;
 	if( system_window_ != nullptr )
 	{
 		events_.clear();
 		system_window_->GetInput( events_ );
+		system_window_->GetKeyboardState( keyboard_state );
 	}
 
 	for( const SystemEvent& event : events_ )
@@ -162,7 +171,16 @@ bool Host::Loop()
 		local_server_->Loop();
 
 	if( client_ != nullptr )
-		client_->Loop();
+	{
+		if( input_goes_to_console || input_goes_to_menu )
+		{
+			KeyboardState dummy_keyboard_state;
+			dummy_keyboard_state.reset();
+			client_->Loop( dummy_keyboard_state );
+		}
+		else
+			client_->Loop( keyboard_state );
+	}
 
 	// Draw operations
 	if( system_window_ )
@@ -185,6 +203,11 @@ bool Host::Loop()
 	}
 
 	return !quit_requested_;
+}
+
+Settings& Host::GetSettings()
+{
+	return settings_;
 }
 
 void Host::Quit()
@@ -371,6 +394,7 @@ void Host::EnsureClient()
 
 	client_.reset(
 		new Client(
+			settings_,
 			game_resources_,
 			map_loader_,
 			rendering_context,

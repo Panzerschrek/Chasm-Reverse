@@ -10,8 +10,9 @@ class HostCommands
 public:
 	virtual ~HostCommands(){}
 
-	virtual void Quit()= 0;
+	virtual Settings& GetSettings()= 0;
 
+	virtual void Quit()= 0;
 
 	virtual void NewGame( DifficultyType difficulty )= 0;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <bitset>
 #include <vector>
 
 namespace PanzerChasm
@@ -20,7 +21,9 @@ struct SystemEvent
 	{
 		enum class KeyCode
 		{
+			// Do not set here key names manually.
 			Unknown= 0,
+
 			Escape,
 			Enter,
 			Space,
@@ -38,6 +41,9 @@ struct SystemEvent
 
 			A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
 			K0, K1, K2, K3, K4, K5, K6, K7, K8, K9,
+
+			// Put it last here.
+			KeyCount
 		};
 
 		enum Modifiers : unsigned int
@@ -91,5 +97,9 @@ struct SystemEvent
 };
 
 typedef std::vector<SystemEvent> SystemEvents;
+
+typedef std::bitset< static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::KeyCount ) > KeyboardState;
+
+const char* GetKeyName( SystemEvent::KeyEvent::KeyCode key_code );
 
 } // namespace PanzerChasm

@@ -1,6 +1,8 @@
 #include <panzer_ogl_lib.hpp>
 
+#include "game_constants.hpp"
 #include "log.hpp"
+#include "settings.hpp"
 
 #include "system_window.hpp"
 
@@ -60,11 +62,21 @@ static SystemEvent::KeyEvent::ModifiersMask TranslateKeyModifiers( const Uint16 
 	return result;
 }
 
-SystemWindow::SystemWindow()
+SystemWindow::SystemWindow( Settings& settings )
 {
-	// TODO -read from settings here
-	viewport_size_.Width ()= 1024u;
-	viewport_size_.Height()=  768u;
+	static const char c_width_key []= "r_window_width" ;
+	static const char c_height_key[]= "r_window_height";
+	const int c_max_window_size= 4096; // TODO - get system metrics for this.
+
+	int width = settings.GetInt( c_width_key , 640 );
+	int height= settings.GetInt( c_height_key, 480 );
+	width = std::min( std::max( int(GameConstants::min_screen_width ), width  ), c_max_window_size );
+	height= std::min( std::max( int(GameConstants::min_screen_height), height ), c_max_window_size );
+	settings.SetSetting( c_width_key , width  );
+	settings.SetSetting( c_height_key, height );
+
+	viewport_size_.Width ()= static_cast<unsigned int>( width  );
+	viewport_size_.Height()= static_cast<unsigned int>( height );
 
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		Log::FatalError( "Can not initialize sdl video" );
@@ -80,7 +92,7 @@ SystemWindow::SystemWindow()
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			viewport_size_.Width(), viewport_size_.Height(),
+			width, height,
 			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
@@ -177,6 +189,21 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			break;
 		};
 	} // while events
+}
+
+void SystemWindow::GetKeyboardState( KeyboardState& out_keyboard_state )
+{
+	out_keyboard_state.reset();
+
+	int key_count;
+	const Uint8* const keyboard_state= SDL_GetKeyboardState( &key_count );
+
+	for( int i= 0; i < key_count; i++ )
+	{
+		SystemEvent::KeyEvent::KeyCode code= TranslateKey( SDL_Scancode(i) );
+		if( code < SystemEvent::KeyEvent::KeyCode::KeyCount && code != SystemEvent::KeyEvent::KeyCode::Unknown  )
+			out_keyboard_state[ static_cast<unsigned int>(code) ]= keyboard_state[i] != 0;
+	}
 }
 
 void SystemWindow::CaptureMouse( const bool need_capture )

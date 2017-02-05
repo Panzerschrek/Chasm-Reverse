@@ -9,6 +9,7 @@
 #include "../log.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
+#include "../settings.hpp"
 #include "weapon_state.hpp"
 
 #include "map_drawer.hpp"
@@ -176,11 +177,12 @@ static void CreateModelMatrices(
 }
 
 MapDrawer::MapDrawer(
+	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
-	, use_hd_dynamic_lightmap_( true )
+	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( "r_dynamic_lighting", true ) )
 	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
 {
 	PC_ASSERT( game_resources_ != nullptr );

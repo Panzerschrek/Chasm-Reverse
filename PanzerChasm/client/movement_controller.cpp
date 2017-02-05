@@ -1,20 +1,24 @@
 #include <algorithm>
 
 #include "game_constants.hpp"
+#include "settings.hpp"
+#include "shared_settings_keys.hpp"
 
 #include "movement_controller.hpp"
 
 namespace PanzerChasm
 {
 
+static const char g_old_style_perspective[]= "cl_old_style_perspective";
+static const char g_fov[]= "cl_fov";
+
 MovementController::MovementController(
+	Settings& settings,
 	const m_Vec3& angle,
-	float aspect, float fov )
-	: angle_(angle), aspect_(aspect), fov_(fov)
+	float aspect )
+	: settings_( settings )
+	, angle_(angle), aspect_(aspect)
 	, speed_(0.0f)
-	, forward_pressed_(false), backward_pressed_(false), left_pressed_(false), right_pressed_(false)
-	, up_pressed_(false), down_pressed_(false)
-	, rotate_up_pressed_(false), rotate_down_pressed_(false), rotate_left_pressed_(false), rotate_right_pressed_(false)
 	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
 {}
@@ -22,7 +26,7 @@ MovementController::MovementController(
 MovementController::~MovementController()
 {}
 
-void MovementController::Tick()
+void MovementController::Tick( const KeyboardState& keyboard_state )
 {
 	const Time new_tick= Time::CurrentTime();
 
@@ -30,19 +34,36 @@ void MovementController::Tick()
 
 	prev_calc_tick_= new_tick;
 
+	auto key_pressed=
+	[&]( const char* const key_setting_name )
+	{
+		using KeyCode= SystemEvent::KeyEvent::KeyCode;
+		const KeyCode key= static_cast<KeyCode>( settings_.GetInt( key_setting_name ) );
+		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
+			return keyboard_state[ static_cast<unsigned int>( key ) ];
+		return false;
+	};
+
 	m_Vec3 rotate_vec( 0.0f ,0.0f, 0.0f );
-	if(rotate_up_pressed_) rotate_vec.x+= 1.0f;
-	if(rotate_down_pressed_) rotate_vec.x+= -1.0f;
-	if(rotate_left_pressed_) rotate_vec.z+= 1.0f;
-	if(rotate_right_pressed_) rotate_vec.z+= -1.0f;
+	if( key_pressed( SettingsKeys::key_turn_left  ) ) rotate_vec.z+= +1.0f;
+	if( key_pressed( SettingsKeys::key_turn_right ) ) rotate_vec.z+= -1.0f;
+	if( key_pressed( SettingsKeys::key_look_up    ) ) rotate_vec.x+= +1.0f;
+	if( key_pressed( SettingsKeys::key_look_down  ) ) rotate_vec.x+= -1.0f;
 
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
+	const float max_ange_x=
+		settings_.GetOrSetBool( g_old_style_perspective, false )
+			? ( Constants::half_pi * 0.65f )
+			: Constants::half_pi;
+
 	if( angle_.z > Constants::two_pi ) angle_.z-= Constants::two_pi;
 	else if( angle_.z < 0.0f ) angle_.z+= Constants::two_pi;
-	if( angle_.x > Constants::half_pi ) angle_.x= Constants::half_pi;
-	else if( angle_.x < -Constants::half_pi ) angle_.x= -Constants::half_pi;
+	if( angle_.x > max_ange_x ) angle_.x= max_ange_x;
+	else if( angle_.x < -max_ange_x ) angle_.x= -max_ange_x;
+
+	jump_pressed_= key_pressed( SettingsKeys::key_jump );
 }
 
 void MovementController::SetSpeed( const float speed )
@@ -56,16 +77,26 @@ void MovementController::SetAngles( float z_angle, float x_angle )
 	angle_.x= x_angle;
 }
 
-void MovementController::GetAcceleration( float& out_dir, float& out_acceleration ) const
+void MovementController::GetAcceleration(
+	const KeyboardState& keyboard_state,
+	float& out_dir, float& out_acceleration ) const
 {
 	m_Vec3 move_vector(0.0f,0.0f,0.0f);
 
-	if(forward_pressed_) move_vector.y+= 1.0f;
-	if(backward_pressed_) move_vector.y+= -1.0f;
-	if(left_pressed_) move_vector.x+= -1.0f;
-	if(right_pressed_) move_vector.x+= 1.0f;
-	if(up_pressed_) move_vector.z+= 1.0f;
-	if(down_pressed_) move_vector.z+= -1.0f;
+	auto key_pressed=
+	[&]( const char* const key_setting_name )
+	{
+		using KeyCode= SystemEvent::KeyEvent::KeyCode;
+		const KeyCode key= static_cast<KeyCode>( settings_.GetInt( key_setting_name ) );
+		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
+			return keyboard_state[ static_cast<unsigned int>( key ) ];
+		return false;
+	};
+
+	if( key_pressed( SettingsKeys::key_forward    ) ) move_vector.y+= +1.0f;
+	if( key_pressed( SettingsKeys::key_backward   ) ) move_vector.y+= -1.0f;
+	if( key_pressed( SettingsKeys::key_step_left  ) ) move_vector.x+= -1.0f;
+	if( key_pressed( SettingsKeys::key_step_right ) ) move_vector.x+= +1.0f;
 
 	m_Mat4 move_vector_rot_mat;
 	move_vector_rot_mat.RotateZ( angle_.z );
@@ -110,21 +141,23 @@ void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 	basis_change[9]= 1.0f;
 	basis_change[10]= 0.0f;
 
-	perspective.PerspectiveProjection( aspect_, fov_, c_z_near, c_z_far );
+	float fov= settings_.GetOrSetFloat( g_fov, 90.0f );
+	fov= std::max( 10.0f, std::min( fov, 150.0f ) );
+	settings_.SetSetting( g_fov, fov );
+
+	perspective.PerspectiveProjection( aspect_, fov * Constants::to_rad, c_z_near, c_z_far );
 
 	out_mat= basis_change * perspective;
 }
 
 void MovementController::GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) const
 {
-	const bool old_style= false;
-
 	m_Mat4 rot_x, rot_z, projection;
 
 	rot_z.RotateZ( -angle_.z );
 	GetViewProjectionMatrix( projection );
 
-	if( old_style )
+	if( settings_.GetOrSetBool( g_old_style_perspective, false ) )
 	{
 		rot_x.Identity();
 		rot_x.value[6]= std::tan( -angle_.x );
@@ -166,7 +199,7 @@ float MovementController::GetViewAngleZ() const
 
 bool MovementController::JumpPressed() const
 {
-	return up_pressed_;
+	return jump_pressed_;
 }
 
 void MovementController::RotateX( int delta )
@@ -177,106 +210,6 @@ void MovementController::RotateX( int delta )
 void MovementController::RotateZ( int delta )
 {
 	angle_.z+= float(delta) * 0.004f;
-}
-
-void MovementController::ForwardPressed()
-{
-	forward_pressed_= true;
-}
-
-void MovementController::BackwardPressed()
-{
-	backward_pressed_= true;
-}
-
-void MovementController::LeftPressed()
-{
-	left_pressed_= true;
-}
-
-void MovementController::RightPressed()
-{
-	right_pressed_= true;
-}
-
-void MovementController::ForwardReleased()
-{
-	forward_pressed_= false;
-}
-
-void MovementController::BackwardReleased()
-{
-	backward_pressed_= false;
-}
-
-void MovementController::LeftReleased()
-{
-	left_pressed_= false;
-}
-
-void MovementController::RightReleased()
-{
-	right_pressed_= false;
-}
-
-void MovementController::UpPressed()
-{
-	up_pressed_= true;
-}
-
-void MovementController::DownPressed()
-{
-	down_pressed_= true;
-}
-
-void MovementController::UpReleased()
-{
-	up_pressed_= false;
-}
-
-void MovementController::DownReleased()
-{
-	down_pressed_= false;
-}
-
-void MovementController::RotateUpPressed()
-{
-	rotate_up_pressed_= true;
-}
-
-void MovementController::RotateDownPressed()
-{
-	rotate_down_pressed_= true;
-}
-
-void MovementController::RotateLeftPressed()
-{
-	rotate_left_pressed_= true;
-}
-
-void MovementController::RotateRightPressed()
-{
-	rotate_right_pressed_= true;
-}
-
-void MovementController::RotateUpReleased()
-{
-	rotate_up_pressed_= false;
-}
-
-void MovementController::RotateDownReleased()
-{
-	rotate_down_pressed_= false;
-}
-
-void MovementController::RotateLeftReleased()
-{
-	rotate_left_pressed_= false;
-}
-
-void MovementController::RotateRightReleased()
-{
-	rotate_right_pressed_= false;
 }
 
 } // namespace ChasmReverse

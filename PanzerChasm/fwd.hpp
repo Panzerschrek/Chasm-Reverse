@@ -37,6 +37,8 @@ typedef std::shared_ptr<LongRand> LongRandPtr;
 
 struct ObjSprite;
 
+class Settings;
+
 class Vfs;
 typedef std::shared_ptr<Vfs> VfsPtr;
 

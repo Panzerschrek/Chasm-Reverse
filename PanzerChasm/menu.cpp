@@ -3,6 +3,8 @@
 #include "assert.hpp"
 #include "drawers.hpp"
 #include "net/net.hpp"
+#include "settings.hpp"
+#include "shared_settings_keys.hpp"
 #include "sound/sound_engine.hpp"
 #include "sound/sound_id.hpp"
 
@@ -28,6 +30,10 @@ M_TILE1.CEL
 using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
 static const unsigned int g_menu_caption_offset= 2u;
+static const char g_yes[]= "yes";
+static const char g_no[]= "no";
+static const char g_on[]= "On";
+static const char g_off[]= "Off";
 
 // Menu base
 
@@ -37,7 +43,7 @@ public:
 	MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& sound_engine );
 	virtual ~MenuBase();
 
-	MenuBase* GetParent() const;
+	virtual MenuBase* GetParent();
 	void PlayMenuSound( unsigned int sound_id );
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) = 0;
@@ -58,7 +64,7 @@ MenuBase::MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& so
 MenuBase::~MenuBase()
 {}
 
-MenuBase* MenuBase::GetParent() const
+MenuBase* MenuBase::GetParent()
 {
 	return parent_menu_;
 }
@@ -394,7 +400,7 @@ void NetworkCreateServerMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw
 		TextDraw::FontColor::White, TextDraw::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Dedicated * y_step,
-		dedicated_ ? "yes" : "no", scale,
+		dedicated_ ? g_yes : g_no, scale,
 		current_row_ == Row::Dedicated ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
 		TextDraw::Alignment::Left );
 
@@ -623,6 +629,434 @@ MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// Controls Menu
+
+class ControlsMenu final : public MenuBase
+{
+public:
+	ControlsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~ControlsMenu() override;
+
+	// Hack for escape pressing in key set mode.
+	virtual MenuBase* GetParent() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	struct KeySettings
+	{
+		const char* name;
+		const char* setting_name;
+		const KeyCode default_key_code;
+	};
+
+	static const KeySettings c_key_settings[];
+	static const unsigned int c_key_setting_count;
+
+private:
+	Settings& settings_;
+	int current_row_= 0;
+	bool in_set_mode_= false;
+};
+
+const ControlsMenu::KeySettings ControlsMenu::c_key_settings[]=
+{
+	{ "Move Forward"	, SettingsKeys::key_forward		, KeyCode::W },
+	{ "Move Backward"	, SettingsKeys::key_backward	, KeyCode::S },
+	{ "Strafe Left"		, SettingsKeys::key_step_left	, KeyCode::A },
+	{ "Strafe Right"	, SettingsKeys::key_step_right	, KeyCode::D },
+	{ "Turn Left"		, SettingsKeys::key_turn_left	, KeyCode::Left },
+	{ "Turn Right"		, SettingsKeys::key_turn_right	, KeyCode::Right },
+	{ "Look Up"			, SettingsKeys::key_look_up		, KeyCode::Up },
+	{ "Look Down"		, SettingsKeys::key_look_down	, KeyCode::Down },
+	{ "Jump"			, SettingsKeys::key_jump		, KeyCode::Space },
+};
+
+const unsigned int ControlsMenu::c_key_setting_count= sizeof(ControlsMenu::c_key_settings) / sizeof(ControlsMenu::c_key_settings[0]);
+
+MenuBase* ControlsMenu::GetParent()
+{
+	return in_set_mode_ ? this : MenuBase::GetParent();
+}
+
+ControlsMenu::ControlsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_(host_commands.GetSettings())
+{}
+
+ControlsMenu::~ControlsMenu()
+{}
+
+void ControlsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 200u, text_draw.GetLineHeight() * c_key_setting_count };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 115;
+	const int param_x= x + scale * 130;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Controls",
+		scale,
+		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+
+	for( unsigned int i= 0u; i < c_key_setting_count; i++ )
+	{
+		const bool active= current_row_ == int(i);
+
+		const KeySettings& setting= c_key_settings[i];
+		const KeyCode key_code= static_cast<KeyCode>( settings_.GetOrSetInt( setting.setting_name, static_cast<int>( setting.default_key_code ) ) );
+
+		text_draw.Print(
+			param_descr_x, y + int(i) * y_step,
+			setting.name, scale,
+			active ? ( in_set_mode_ ?  TextDraw::FontColor::Golden : TextDraw::FontColor::YellowGreen ) : TextDraw::FontColor::White,
+			TextDraw::Alignment::Right );
+		text_draw.Print(
+			param_x, y + int(i) * y_step,
+			( active && in_set_mode_ ) ? "?" : GetKeyName( key_code ),
+			scale,
+			( active && in_set_mode_ ) ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+	}
+}
+
+MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		const auto key= event.event.key.key_code;
+
+		if( in_set_mode_ )
+		{
+			if( key == KeyCode::Escape )
+				in_set_mode_= false;
+			else
+			{
+				settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(key) );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				in_set_mode_= false;
+			}
+		}
+		else
+		{
+			if( key == KeyCode::Up )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				current_row_= ( current_row_ - 1 + int(c_key_setting_count) ) % int(c_key_setting_count);
+			}
+			if( key == KeyCode::Down )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				current_row_= ( current_row_ + 1 ) % int(c_key_setting_count);
+			}
+
+			if( key == KeyCode::Enter )
+				in_set_mode_= true;
+		}
+	}
+
+	return this;
+}
+
+// Options Menu
+
+class OptionsMenu final : public MenuBase
+{
+public:
+	OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~OptionsMenu() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	Settings& settings_;
+
+	struct Row
+	{
+		enum : int
+		{
+			Controls, Video, AlwaysRun, Crosshair, RevertMouse, WeaponReset, FXVolume, CDVolume, MouseSEnsitivity, NumRows
+		};
+	};
+	int current_row_= 0;
+
+	bool always_run_;
+	bool crosshair_;
+	bool reverse_mouse_;
+	bool weapon_reset_;
+
+	const int c_max_slider_value= 16;
+	int fx_volume_;
+	int cd_volume_;
+	int mouse_sensetivity_;
+
+	ControlsMenu controls_menu_;
+};
+
+OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_( host_commands.GetSettings() )
+	, controls_menu_( this, sound_engine, host_commands )
+{
+	always_run_= settings_.GetOrSetBool( SettingsKeys::always_run, true );
+	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
+	reverse_mouse_= settings_.GetOrSetBool( SettingsKeys::reverse_mouse, false );
+	weapon_reset_= settings_.GetOrSetBool( SettingsKeys::weapon_reset, false );
+
+	fx_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::fx_volume, 0.5f ) ) );
+	cd_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::cd_volume, 0.5f ) ) );
+	mouse_sensetivity_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f ) ) );
+}
+
+OptionsMenu::~OptionsMenu()
+{}
+
+void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 210u, text_draw.GetLineHeight() * Row::NumRows };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 130;
+	const int param_x= x + scale * 140;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Options",
+		scale,
+		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Controls * y_step,
+		"Controls...", scale,
+		current_row_ == Row::Controls ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_descr_x, y + Row::Video * y_step,
+		"Video...", scale,
+		current_row_ == Row::Video ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+
+	text_draw.Print(
+		param_descr_x, y + Row::AlwaysRun * y_step,
+		"Alaways Run", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::AlwaysRun * y_step,
+		always_run_ ? g_on : g_off, scale,
+		current_row_ == Row::AlwaysRun ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Crosshair * y_step,
+		"Crosshair", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Crosshair * y_step,
+		crosshair_ ? g_on : g_off, scale,
+		current_row_ == Row::Crosshair ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::RevertMouse * y_step,
+		"Reverse Mouse", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::RevertMouse * y_step,
+		reverse_mouse_ ? g_on : g_off, scale,
+		current_row_ == Row::RevertMouse ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::WeaponReset * y_step,
+		"Weapon Reset", scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::WeaponReset * y_step,
+		weapon_reset_ ? g_on : g_off, scale,
+		current_row_ == Row::WeaponReset ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	char slider_back_text[ 1u + 7u + 1u + 1u ];
+	slider_back_text[0]= TextDraw::c_slider_left_letter_code;
+	std::memset( slider_back_text + 1u, TextDraw::c_slider_back_letter_code, 7u );
+	slider_back_text[8]= TextDraw::c_slider_right_letter_code;
+	slider_back_text[9]= '\0';
+	static const char slder_text[]= { TextDraw::c_slider_letter_code, '\0' };
+
+	const int c_slider_pos_scale= 7;
+
+	text_draw.Print(
+		param_descr_x, y + Row::FXVolume * y_step,
+		"FX Volume", scale,
+		current_row_ == Row::FXVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::FXVolume * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + fx_volume_ * c_slider_pos_scale, y + Row::FXVolume * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::CDVolume * y_step,
+		"CD Volume", scale,
+		current_row_ == Row::CDVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::CDVolume * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + cd_volume_ * c_slider_pos_scale, y + Row::CDVolume * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::MouseSEnsitivity * y_step,
+		"Mouse Sensetivity", scale,
+		current_row_ == Row::MouseSEnsitivity ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::MouseSEnsitivity * y_step,
+		slider_back_text, scale,
+		TextDraw::FontColor::White,
+		TextDraw::Alignment::Left );
+	text_draw.Print(
+		param_x + mouse_sensetivity_ * c_slider_pos_scale, y + Row::MouseSEnsitivity * y_step,
+		slder_text, scale,
+		TextDraw::FontColor::Golden,
+		TextDraw::Alignment::Left );
+}
+
+MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		const auto key= event.event.key.key_code;
+
+		if( key == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+		}
+		if( key == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 ) % Row::NumRows;
+		}
+
+		if( key == KeyCode::Enter )
+		{
+			switch(current_row_)
+			{
+			case Row::Controls:
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				return &controls_menu_;
+			default:
+				break;
+			};
+		}
+
+		// Boolean parameters.
+		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
+		{
+			switch(current_row_)
+			{
+			case Row::AlwaysRun:
+				always_run_= !always_run_;
+				settings_.SetSetting( SettingsKeys::always_run, always_run_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::Crosshair:
+				crosshair_= !crosshair_;
+				settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::RevertMouse:
+				reverse_mouse_= !reverse_mouse_;
+				settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::WeaponReset:
+				weapon_reset_= !weapon_reset_;
+				settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			default:
+				break;
+			};
+		} // boolean params.
+
+		// Sliders
+		if( key == KeyCode::Left || key == KeyCode::Right )
+		{
+			const int shift= key == KeyCode::Left ? -1 : 1;
+			int new_value;
+
+			switch(current_row_)
+			{
+			case Row::FXVolume:
+				new_value= std::max( 0, std::min( fx_volume_ + shift, c_max_slider_value ) );
+				if( new_value != fx_volume_ )
+				{
+					fx_volume_= new_value;
+					settings_.SetSetting( SettingsKeys::fx_volume, float(fx_volume_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			case Row::CDVolume:
+				new_value= std::max( 0, std::min( cd_volume_ + shift, c_max_slider_value ) );
+				if( new_value != cd_volume_ )
+				{
+					cd_volume_= new_value;
+					settings_.SetSetting( SettingsKeys::cd_volume, float(cd_volume_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			case Row::MouseSEnsitivity:
+				new_value= std::max( 0, std::min( mouse_sensetivity_ + shift, c_max_slider_value ) );
+				if( new_value != mouse_sensetivity_ )
+				{
+					mouse_sensetivity_= new_value;
+					settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			default:
+				break;
+			};
+		} // sliders.
+	}
+
+	return this;
+}
+
 // Quit Menu
 
 class QuitMenu final : public MenuBase
@@ -714,6 +1148,7 @@ MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& hos
 {
 	submenus_[0].reset( new NewGameMenu( this, sound_engine, host_commands ) );
 	submenus_[1].reset( new NetworkMenu( this, sound_engine, host_commands ) );
+	submenus_[4].reset( new OptionsMenu( this, sound_engine, host_commands ) );
 	submenus_[5].reset( new QuitMenu( this, sound_engine, host_commands ) );
 }
 

@@ -20,6 +20,7 @@ class MapDrawer final
 {
 public:
 	MapDrawer(
+		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
 	~MapDrawer();

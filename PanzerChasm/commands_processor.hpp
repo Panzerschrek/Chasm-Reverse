@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "fwd.hpp"
+
 namespace PanzerChasm
 {
 
@@ -19,7 +21,7 @@ typedef std::weak_ptr<const CommandsMap> CommandsMapConstWeakPtr;
 class CommandsProcessor final
 {
 public:
-	CommandsProcessor();
+	explicit CommandsProcessor( Settings& settings );
 	~CommandsProcessor();
 
 	// Register commands.
@@ -37,6 +39,7 @@ private:
 
 private:
 	std::vector< CommandsMapConstWeakPtr > commands_maps_;
+	Settings& settings_;
 
 };
 
