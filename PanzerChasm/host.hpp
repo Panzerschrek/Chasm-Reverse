@@ -7,6 +7,7 @@
 #include "host_commands.hpp"
 #include "menu.hpp"
 #include "net/net.hpp"
+#include "program_arguments.hpp"
 #include "server/server.hpp"
 #include "settings.hpp"
 #include "system_event.hpp"
@@ -18,7 +19,7 @@ namespace PanzerChasm
 class Host final : public HostCommands
 {
 public:
-	Host();
+	Host( int argc, const char* const* argv );
 	virtual ~Host() override;
 
 	// Returns false on quit
@@ -67,6 +68,7 @@ private:
 
 	bool quit_requested_= false;
 
+	const ProgramArguments program_arguments_;
 	Settings settings_;
 	CommandsProcessor commands_processor_;
 	CommandsMapConstPtr host_commands_;

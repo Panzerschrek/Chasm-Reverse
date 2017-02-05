@@ -53,7 +53,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [OBSCEJE]
-* Zapusk dopolnenij.
 * Menü nastrojek grafiki.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Menü "save" i "load".

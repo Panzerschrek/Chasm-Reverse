@@ -56,8 +56,9 @@ static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
 	};
 }
 
-Host::Host()
-	: settings_( "PanzerChasm.cfg" )
+Host::Host( const int argc, const char* const* const argv )
+	: program_arguments_( argc, argv )
+	, settings_( "PanzerChasm.cfg" )
 	, commands_processor_( settings_ )
 {
 	{ // Register host commands
@@ -73,8 +74,14 @@ Host::Host()
 		commands_processor_.RegisterCommands( host_commands_ );
 	}
 
-	Log::Info( "Read game archive" );
-	vfs_= std::make_shared<Vfs>( "CSM.BIN" );
+	{
+		Log::Info( "Read game archive" );
+		const char* const addon_path= program_arguments_.GetParamValue( "addon" );
+		if( addon_path != nullptr )
+			Log::Info( "Trying to load addon \"", addon_path, "\"" );
+
+		vfs_= std::make_shared<Vfs>( "CSM.BIN", addon_path );
+	}
 
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );

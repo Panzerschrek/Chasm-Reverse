@@ -55,6 +55,7 @@ SOURCES+= \
 	model.cpp \
 	net/net.cpp \
 	obj.cpp \
+	program_arguments.cpp \
 	rand.cpp \
 	server/collisions.cpp \
 	server/collision_index.cpp \
@@ -111,6 +112,7 @@ HEADERS+= \
 	net/net.hpp \
 	obj.hpp \
 	particles.hpp \
+	program_arguments.hpp \
 	rand.hpp \
 	rendering_context.hpp \
 	server/a_code.hpp \
