@@ -16,7 +16,7 @@ out float g_discard_mask; // Polygon discard
 
 void main()
 {
-	g_world_pos= ( vec4( pos, 1.0 ) * rotation_matrix ).xyz;
+	g_world_pos= ( rotation_matrix * vec4( pos, 1.0 ) ).xyz;
 	g_tex_coord= tex_coord;
 	g_lightmap_coord= ( lightmap_matrix * vec3( pos.xy, 1.0 ) ).xy;
 	g_alpha_test_mask= alpha_test_mask;
