@@ -29,7 +29,7 @@ Client::Client(
 		settings,
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
-	, map_drawer_( game_resources, rendering_context )
+	, map_drawer_( settings, game_resources, rendering_context )
 	, weapon_state_( game_resources )
 	, hud_drawer_( game_resources, rendering_context, drawers )
 {
