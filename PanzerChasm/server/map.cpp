@@ -1739,6 +1739,13 @@ void Map::TryActivateProcedure(
 		procedure_state.movement_state == ProcedureState::MovementState::None )
 	{
 		ActivateProcedure( procedure_number, current_time );
+
+		if( procedure.on_message_number != 0u )
+		{
+			Messages::TextMessage text_message;
+			text_message.text_message_number= procedure.on_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
+		}
 	} // if activated
 
 	// Activation messages.
@@ -1756,12 +1763,6 @@ void Map::TryActivateProcedure(
 	{
 		Messages::TextMessage text_message;
 		text_message.text_message_number= procedure.lock_message_number;
-		messages_sender.SendUnreliableMessage( text_message );
-	}
-	if( procedure.on_message_number != 0u )
-	{
-		Messages::TextMessage text_message;
-		text_message.text_message_number= procedure.on_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
 }
