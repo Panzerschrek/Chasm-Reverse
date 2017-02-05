@@ -71,8 +71,9 @@ void Client::ProcessEvents( const SystemEvents& events )
 		}
 		else if( event.type == SystemEvent::Type::MouseMove )
 		{
-			camera_controller_.RotateZ( -event.event.mouse_move.dx );
-			camera_controller_.RotateX( -event.event.mouse_move.dy );
+			camera_controller_.ControllerRotate(
+				event.event.mouse_move.dy,
+				event.event.mouse_move.dx );
 		}
 
 		// Select weapon.

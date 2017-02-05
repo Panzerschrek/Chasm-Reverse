@@ -202,14 +202,19 @@ bool MovementController::JumpPressed() const
 	return jump_pressed_;
 }
 
-void MovementController::RotateX( int delta )
+void MovementController::ControllerRotate( const int delta_x, const int delta_z )
 {
-	angle_.x+= float(delta) * 0.004f;
-}
+	float base_sensetivity= settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f );
+	base_sensetivity= std::max( 0.0f, std::min( base_sensetivity, 1.0f ) );
+	settings_.SetSetting( SettingsKeys::mouse_sensetivity, base_sensetivity );
 
-void MovementController::RotateZ( int delta )
-{
-	angle_.z+= float(delta) * 0.004f;
+	const float c_max_exp_sensetivity= 8.0f;
+	const float exp_sensetivity= std::exp( base_sensetivity * std::log(c_max_exp_sensetivity) ); // [ 1; c_max_exp_sensetivity ]
+
+	const float c_pix_scale= 1.0f / 1024.0f;
+
+	angle_.x-= exp_sensetivity * c_pix_scale * float(delta_x);
+	angle_.z-= exp_sensetivity * c_pix_scale * float(delta_z);
 }
 
 } // namespace ChasmReverse

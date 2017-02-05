@@ -41,8 +41,7 @@ public:
 
 	bool JumpPressed() const;
 
-	void RotateX( int delta );
-	void RotateZ( int delta );
+	void ControllerRotate( int delta_x, int delta_z );
 
 private:
 	Settings& settings_;
