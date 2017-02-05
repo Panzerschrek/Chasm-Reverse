@@ -115,7 +115,7 @@ MenuDrawer::MenuDrawer(
 	};
 
 	load_texture( "M_TILE1.CEL", tiles_texture_ );
-	load_texture( "LOADING.CEL", loading_texture_ );
+	load_texture( "COMMON/LOADING.CEL", loading_texture_ );
 	load_texture( "GROUND.CEL", game_background_texture_ );
 
 	{ // Menu pictures
