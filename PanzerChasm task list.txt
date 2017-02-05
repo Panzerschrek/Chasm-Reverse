@@ -18,7 +18,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
-* Smertj igroka.
 * Issledovanije vlijanija urovnej složnosti na uron.
 * Sohranenije i zagruzka igry.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
@@ -30,7 +29,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [GRAFIKA]
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
-* Dinamiceskoje osvescenije - otbleski ot vzryvov, popadanij pulj, raket.
+* Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
 * Boleje ekonomnoje hranenije animaçij modelej.
@@ -54,9 +53,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [OBSCEJE]
-* Sistema nastrojek.
 * Zapusk dopolnenij.
-* Menü nastrojek.
+* Menü nastrojek grafiki.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Menü "save" i "load".
 * Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
@@ -65,9 +63,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [SETJ]
 * Issledovanije raboty setevoj igry originala.
-* Dorabotki igrovoj logiki dlä setevyh režimov..
+* Dorabotki igrovoj logiki dlä setevyh režimov.
 * Dorabotki seti. Asinhronnyj "Connect". Zakrytije neotvecajuscego
-  sojedinenija. Bolee informativnyje soobscenija ob ošibkah.
+  sojedinenija. Boleje informativnyje soobscenija ob ošibkah.
 * Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
 * Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
   paketov. Rascöt animaçij na storone klijenta.
