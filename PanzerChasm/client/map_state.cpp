@@ -102,6 +102,11 @@ const MapState::DynamicItemsContainer& MapState::GetDynamicItems() const
 	return dynamic_items_;
 }
 
+const MapState::LightFlashes& MapState::GetLightFlashes() const
+{
+	return light_flashes_;
+}
+
 float MapState::GetSpritesFrame() const
 {
 	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
@@ -286,6 +291,30 @@ void MapState::Tick( const Time current_time )
 			item.angle= Constants::pi * time_delta_s;
 		else
 			item.angle= 0.0f;
+	}
+
+	for( unsigned int i= 0u; i < light_flashes_.size(); )
+	{
+		LightFlash& light_flash= light_flashes_[i];
+
+		const float c_light_life_time_s= 0.4f; // TODO - calibrate this
+		const float age_s= ( current_time - light_flash.birth_time ).ToSeconds();
+
+		if( age_s > c_light_life_time_s )
+		{
+			if( i + 1u != light_flashes_.size() )
+				light_flash= light_flashes_.back();
+			light_flashes_.pop_back();
+			continue;
+		}
+
+		if( age_s < c_light_life_time_s * 0.5f )
+			light_flash.intensity= age_s * 2.0f / c_light_life_time_s;
+		else
+			light_flash.intensity= ( c_light_life_time_s - age_s ) * 2.0f / c_light_life_time_s;
+		light_flash.intensity= light_flash.intensity * light_flash.intensity; // Make quadratic.
+
+		i++;
 	}
 }
 
@@ -527,6 +556,25 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 		}
 		break;
 	};
+
+	// Try spawn light flash.
+	switch(effect)
+	{
+	case ParticleEffect::Glass:
+	case ParticleEffect::Blood:
+	case ParticleEffect::FirstBlowEffect:
+		break;
+
+	case ParticleEffect::Bullet:
+	case ParticleEffect::Sparkles:
+		case ParticleEffect::Explosion:
+		{
+			m_Vec2 pos;
+			MessagePositionToPosition( message.xyz, pos );
+			SpawnLightFlash( pos );
+		}
+		break;
+	};
 }
 
 void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )
@@ -627,6 +675,16 @@ void MapState::ProcessMessage( const Messages::DynamicItemUpdate& message )
 void MapState::ProcessMessage( const Messages::DynamicItemDeath& message )
 {
 	dynamic_items_.erase( message.item_id );
+}
+
+void MapState::SpawnLightFlash( const m_Vec2& pos )
+{
+	light_flashes_.emplace_back();
+	LightFlash& light= light_flashes_.back();
+
+	light.pos= pos;
+	light.birth_time= last_tick_time_;
+	light.intensity= 0.0f;
 }
 
 } // namespace PanzerChasm

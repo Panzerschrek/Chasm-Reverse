@@ -284,6 +284,17 @@ void MapLight::Update( const MapState& map_state )
 		return true;
 	};
 
+	const auto gen_light_for_flash=
+	[&]( const MapState::LightFlash& flash, MapData::Light& out_light )
+	{
+		// TODO - calibrate params.
+		out_light.outer_radius= 1.7f * ( flash.intensity * 0.6f + 0.4f );
+		out_light.inner_radius= 0.5f * out_light.outer_radius;
+		out_light.power= 48.0f * flash.intensity;
+		out_light.max_light_level= 128.0f;
+		out_light.pos= flash.pos;
+	};
+
 	// Clear shadowmap.
 	shadowmap_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
@@ -321,6 +332,13 @@ void MapLight::Update( const MapState& map_state )
 			if( gen_light_for_rocket( rocket_value.second, light ) )
 				DrawFloorLight( light );
 		}
+
+		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
+		{
+			MapData::Light light;
+			gen_light_for_flash( light_flash, light );
+			DrawFloorLight( light );
+		}
 	}
 
 	// Draw to walls lightmap.
@@ -354,6 +372,13 @@ void MapLight::Update( const MapState& map_state )
 			MapData::Light light;
 			if( gen_light_for_rocket( rocket_value.second, light ) )
 				DrawWallsLight( light );
+		}
+
+		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
+		{
+			MapData::Light light;
+			gen_light_for_flash( light_flash, light );
+			DrawWallsLight( light );
 		}
 	}
 
