@@ -234,6 +234,25 @@ struct DynamicItemDeath : public MessageBase
 	EntityId item_id;
 };
 
+struct LightSourceBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(LightSourceBirth)
+
+	EntityId light_source_id;
+
+	CoordType xy[2];
+	CoordType radius;
+	unsigned char brightness;
+	unsigned short turn_on_time_ms;
+};
+
+struct LightSourceDeath : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(LightSourceDeath)
+
+	EntityId light_source_id;
+};
+
 struct MapChange : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(MapChange)

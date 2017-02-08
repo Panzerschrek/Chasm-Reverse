@@ -295,6 +295,16 @@ void MapLight::Update( const MapState& map_state )
 		out_light.pos= flash.pos;
 	};
 
+	const auto gen_light_for_source=
+	[&]( const MapState::LightSource& light_source, MapData::Light& out_light )
+	{
+		out_light.outer_radius= light_source.radius;
+		out_light.inner_radius= light_source.radius * 0.25f;
+		out_light.power= 4.0f * light_source.intensity;
+		out_light.max_light_level= 128.0f;
+		out_light.pos= light_source.pos;
+	};
+
 	// Clear shadowmap.
 	shadowmap_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
@@ -332,11 +342,16 @@ void MapLight::Update( const MapState& map_state )
 			if( gen_light_for_rocket( rocket_value.second, light ) )
 				DrawFloorLight( light );
 		}
-
 		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
 		{
 			MapData::Light light;
 			gen_light_for_flash( light_flash, light );
+			DrawFloorLight( light );
+		}
+		for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
+		{
+			MapData::Light light;
+			gen_light_for_source( light_source_value.second, light );
 			DrawFloorLight( light );
 		}
 	}
@@ -373,11 +388,16 @@ void MapLight::Update( const MapState& map_state )
 			if( gen_light_for_rocket( rocket_value.second, light ) )
 				DrawWallsLight( light );
 		}
-
 		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
 		{
 			MapData::Light light;
 			gen_light_for_flash( light_flash, light );
+			DrawWallsLight( light );
+		}
+		for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
+		{
+			MapData::Light light;
+			gen_light_for_source( light_source_value.second, light );
 			DrawWallsLight( light );
 		}
 	}

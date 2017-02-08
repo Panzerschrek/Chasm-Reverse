@@ -117,6 +117,16 @@ public:
 
 	typedef std::vector<LightFlash> LightFlashes;
 
+	struct LightSource
+	{
+		m_Vec2 pos;
+		Time birth_time= Time::FromSeconds(0);
+		float intensity;
+		float radius;
+	};
+
+	typedef std::unordered_map<EntityId, LightSource> LightSourcesContainer;
+
 public:
 	MapState(
 		const MapDataConstPtr& map,
@@ -133,6 +143,7 @@ public:
 	const RocketsContainer& GetRockets() const;
 	const DynamicItemsContainer& GetDynamicItems() const;
 	const LightFlashes& GetLightFlashes() const;
+	const LightSourcesContainer& GetLightSources() const;
 
 	float GetSpritesFrame() const;
 
@@ -152,6 +163,8 @@ public:
 	void ProcessMessage( const Messages::RocketDeath& message );
 	void ProcessMessage( const Messages::DynamicItemBirth& message );
 	void ProcessMessage( const Messages::DynamicItemUpdate& message );
+	void ProcessMessage( const Messages::LightSourceBirth& message );
+	void ProcessMessage( const Messages::LightSourceDeath& message );
 	void ProcessMessage( const Messages::DynamicItemDeath& message );
 
 private:
@@ -175,6 +188,7 @@ private:
 	DynamicItemsContainer dynamic_items_;
 
 	LightFlashes light_flashes_;
+	LightSourcesContainer light_sources_;
 };
 
 } // namespace PanzerChasm

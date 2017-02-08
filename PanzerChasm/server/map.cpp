@@ -916,7 +916,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		case ProcedureState::MovementState::Movement:
 			if( new_stage >= 1.0f )
 			{
-				// TODO - do it at the end if movement?
+				// TODO - do it at the end of movement?
 				// Maybe, do this at end of reverse-movement?
 				DoProcedureDeactivationCommands( procedure );
 
@@ -936,6 +936,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				wait_time.ToSeconds() >= procedure.back_wait_s )
 			{
 				ActivateProcedureSwitches( procedure, true, current_time );
+				DeactivateProcedureLightSources( procedure );
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -1532,6 +1533,8 @@ void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender )
 
 		messages_sender.SendReliableMessage( message );
 	}
+
+	// TODO - rockets, light sources, dynamic items
 }
 
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
@@ -1622,6 +1625,14 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendUnreliableMessage( message );
 	}
+	for( const Messages::LightSourceBirth& message : light_sources_birth_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
+	for( const Messages::LightSourceDeath& message : light_sources_death_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1677,6 +1688,8 @@ void Map::ClearUpdateEvents()
 	rockets_death_messages_.clear();
 	dynamic_items_birth_messages_.clear();
 	dynamic_items_death_messages_.clear();
+	light_sources_birth_messages_.clear();
+	light_sources_death_messages_.clear();
 	particles_effects_messages_.clear();
 	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();
@@ -1831,6 +1844,7 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 	// Do immediate commands
 	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
 	{
+		// TODO - replace with switch-case
 		using Command= MapData::Procedure::ActionCommandId;
 		if( command.id == Command::Lock )
 		{
@@ -1944,6 +1958,36 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 				}
 			}
 		}
+		else if( command.id == Command::Source )
+		{
+			// Coordinates of light sources is in two formats : ihteger (0-64) or 8.8 fixed-point.
+			// Convert this coordinates.
+			m_Vec2 xy;
+			for( unsigned int i= 0u; i < 2u; i++ )
+				xy.ToArr()[i]= command.args[i] >= float(MapData::c_map_size) ? ( command.args[i] / 256.0f ) : command.args[i];
+
+			const EntityId id=
+				GetLightSourceId(
+					&procedure - map_data_->procedures.data(),
+					&command - procedure.action_commands.data() );
+
+			// Crate light source.
+			LightSource& source= light_sources_[id];
+			source.birth_time= current_time;
+			source.pos= xy;
+			source.radius= command.args[2] / float( MapData::c_lightmap_scale );
+			source.brightness= command.args[3];
+			source.turn_on_time_ms= static_cast<unsigned short>(command.args[4]);
+
+			// Send light birth message.
+			light_sources_birth_messages_.emplace_back();
+			Messages::LightSourceBirth& message= light_sources_birth_messages_.back();
+			message.light_source_id= id;
+			PositionToMessagePosition( source.pos, message.xy );
+			message.radius= CoordToMessageCoord( source.radius );
+			message.brightness= static_cast<unsigned char>( source.brightness );
+			message.turn_on_time_ms= source.turn_on_time_ms;
+		}
 		// TODO - process other commands
 		else
 		{}
@@ -1966,6 +2010,25 @@ void Map::DoProcedureDeactivationCommands( const MapData::Procedure& procedure )
 			ProcessWind( command, false );
 		else if( command.id == Command::Death )
 			ProcessDeathZone( command, false );
+	}
+}
+
+void Map::DeactivateProcedureLightSources( const MapData::Procedure& procedure )
+{
+	for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+	{
+		if( command.id == MapData::Procedure::ActionCommandId::Source )
+		{
+			const EntityId id=
+				GetLightSourceId(
+					&procedure - map_data_->procedures.data(),
+					&command - procedure.action_commands.data() );
+
+			// Remove light source om procedure deactivation, send death message.
+			light_sources_.erase(id);
+			light_sources_death_messages_.emplace_back();
+			light_sources_death_messages_.back().light_source_id= id;
+		}
 	}
 }
 
@@ -2601,6 +2664,15 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 EntityId Map::GetNextMonsterId()
 {
 	return ++next_monster_id_;
+}
+
+EntityId Map::GetLightSourceId(
+	const unsigned int parent_procedure_number,
+	const unsigned int light_source_coomand_number ) const
+{
+	PC_ASSERT( parent_procedure_number < 256u );
+	PC_ASSERT( light_source_coomand_number < 256u );
+	return parent_procedure_number * 256u + light_source_coomand_number;
 }
 
 void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message )

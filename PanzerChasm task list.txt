@@ -31,7 +31,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej.
 * Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
-* Sozdanije tocecnogo istocnika sveta po komande "source" proçedury.
+* Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
+  proçedur.
 * Boleje ekonomnoje hranenije animaçij modelej.
 * Plavnyje animaçii, po krajnej mere casti objektov.
 * Graficeskij effekt pri vystrele iz "Mega-destroyer".

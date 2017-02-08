@@ -107,6 +107,11 @@ const MapState::LightFlashes& MapState::GetLightFlashes() const
 	return light_flashes_;
 }
 
+const MapState::LightSourcesContainer& MapState::GetLightSources() const
+{
+	return light_sources_;
+}
+
 float MapState::GetSpritesFrame() const
 {
 	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
@@ -677,6 +682,25 @@ void MapState::ProcessMessage( const Messages::DynamicItemDeath& message )
 	dynamic_items_.erase( message.item_id );
 }
 
+void MapState::ProcessMessage( const Messages::LightSourceBirth& message )
+{
+	const auto it= light_sources_.find( message.light_source_id );
+	if( it != light_sources_.end() )
+		return;
+
+	LightSource& source= light_sources_.emplace( message.light_source_id, LightSource() ).first->second;
+
+	MessagePositionToPosition( message.xy, source.pos );
+	source.birth_time= last_tick_time_;
+	source.intensity= float(message.brightness);
+	source.radius= MessageCoordToCoord( message.radius );
+}
+
+void MapState::ProcessMessage( const Messages::LightSourceDeath& message )
+{
+	light_sources_.erase( message.light_source_id );
+}
+
 void MapState::SpawnLightFlash( const m_Vec2& pos )
 {
 	light_flashes_.emplace_back();
@@ -685,6 +709,7 @@ void MapState::SpawnLightFlash( const m_Vec2& pos )
 	light.pos= pos;
 	light.birth_time= last_tick_time_;
 	light.intensity= 0.0f;
+	// TODO - use blinking
 }
 
 } // namespace PanzerChasm

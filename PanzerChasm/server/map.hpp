@@ -216,6 +216,16 @@ private:
 		float brightness;
 	};
 
+	struct LightSource
+	{
+		Time birth_time= Time::FromSeconds(0);
+		m_Vec2 pos;
+		float radius;
+		float brightness;
+		unsigned short turn_on_time_ms;
+	};
+	typedef std::unordered_map< EntityId, LightSource > LightSourcesContainer;
+
 	struct HitResult
 	{
 		enum class ObjectType
@@ -246,6 +256,7 @@ private:
 	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time );
 	void DoProcedureImmediateCommands( const MapData::Procedure& procedure, Time current_time );
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
+	void DeactivateProcedureLightSources( const MapData::Procedure& procedure );
 	void ReturnProcedure( unsigned int procedure_number, Time current_time );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
@@ -272,6 +283,7 @@ private:
 	float GetFloorLevel( const m_Vec2& pos, float radius= 0.0f ) const;
 
 	EntityId GetNextMonsterId();
+	EntityId GetLightSourceId( unsigned int parent_procedure_number, unsigned int light_source_coomand_number ) const;
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 
@@ -308,6 +320,7 @@ private:
 	EntityId next_monster_id_= 1u;
 
 	std::vector<RotatingLightEffect> rotating_lights_;
+	LightSourcesContainer light_sources_;
 
 	std::vector<Messages::MonsterBirth> monsters_birth_messages_;
 	std::vector<Messages::MonsterDeath> monsters_death_messages_;
@@ -315,6 +328,8 @@ private:
 	std::vector<Messages::RocketDeath> rockets_death_messages_;
 	std::vector<Messages::DynamicItemBirth> dynamic_items_birth_messages_;
 	std::vector<Messages::DynamicItemDeath> dynamic_items_death_messages_;
+	std::vector<Messages::LightSourceBirth> light_sources_birth_messages_;
+	std::vector<Messages::LightSourceDeath> light_sources_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
 	std::vector<Messages::MonsterPartBirth> monsters_parts_birth_messages_;
 	std::vector<Messages::MapEventSound> map_events_sounds_messages_;
