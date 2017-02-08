@@ -5,6 +5,7 @@
 #include <winsock2.h>
 #else
 
+#include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -30,9 +31,6 @@ namespace PanzerChasm
 {
 
 typedef uint32_t IpAddress; // Ip address in net byte order.
-
-static const uint16_t g_default_port_tcp= 6666u;
-static const uint16_t g_default_port_udp= 6667u;
 
 static bool IsSocketReady( const SOCKET& socket )
 {
@@ -155,8 +153,8 @@ public:
 		::closesocket( tcp_socket_ );
 		::closesocket( udp_socket_ );
 #else
-		::shutdown( tcp_socket_, SHUT_RDWR );
-		::shutdown( udp_socket_, SHUT_RDWR );
+		::close( tcp_socket_ );
+		::close( udp_socket_ );
 #endif
 	}
 
