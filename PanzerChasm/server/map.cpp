@@ -1497,17 +1497,16 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	}
 
 	// Process rotating lights.
-	for( unsigned int l= 0u; l < rotating_lights_.size(); )
+	for( StaticModel& model : static_models_ )
 	{
-		RotatingLightEffect& light= rotating_lights_[l];
-		if( current_time >= light.end_time )
+		if( model.linked_rotating_light != nullptr )
 		{
-			if( l != rotating_lights_.size() - 1u )
-				light= rotating_lights_.back();
-			rotating_lights_.pop_back();
+			if( current_time >= model.linked_rotating_light->end_time )
+			{
+				// Kill expired rotating light source.
+				model.linked_rotating_light= nullptr;
+			}
 		}
-		else
-			l++;
 	}
 
 	// At end of this procedure, report about map change, if this needed.
@@ -1947,14 +1946,18 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 				const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
 				if( index_element.type == MapData::IndexElement::StaticModel )
 				{
-					rotating_lights_.emplace_back();
-					RotatingLightEffect& light= rotating_lights_.back();
-					light.coord[0]= x; light.coord[1]= y;
-					light.start_time= current_time;
-					light.end_time= light.start_time + Time::FromSeconds( command.args[2] );
+					StaticModel& model= static_models_[ index_element.index ];
+					if( model.linked_rotating_light == nullptr )
+					{
+						RotatingLightEffect* const light= new RotatingLightEffect;
+						light->start_time= current_time;
+						light->end_time= light->start_time + Time::FromSeconds( command.args[2] );
 
-					light.radius= command.args[3];
-					light.brightness= command.args[4];
+						light->radius= command.args[3];
+						light->brightness= command.args[4];
+
+						model.linked_rotating_light.reset( light );
+					}
 				}
 			}
 		}
@@ -2395,15 +2398,12 @@ void Map::MoveMapObjects( const Time current_time )
 	} // for procedures
 
 	// Rotating lights effect models. Models rotating together with their lights.
-	for( const RotatingLightEffect& light : rotating_lights_ )
+	for( StaticModel& model : static_models_ )
 	{
-		const float c_speed= Constants::two_pi; // TODO - check speeed. Maybe it depends on light source parameters.
-		const float angle_delta= c_speed * ( current_time - light.start_time ).ToSeconds();
-
-		const MapData::IndexElement& index_element= map_data_->map_index[ light.coord[0] + light.coord[1] * MapData::c_map_size ];
-		if( index_element.type == MapData::IndexElement::StaticModel )
+		if( model.linked_rotating_light != nullptr )
 		{
-			StaticModel& model= static_models_[ index_element.index ];
+			const float c_speed= Constants::two_pi; // TODO - check speeed. Maybe it depends on light source parameters.
+			const float angle_delta= c_speed * ( current_time - model.linked_rotating_light->start_time ).ToSeconds();
 			model.transformation_angle_delta+= angle_delta;
 		}
 	}

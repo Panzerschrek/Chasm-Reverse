@@ -78,6 +78,8 @@ public:
 	void ClearUpdateEvents();
 
 private:
+	struct RotatingLightEffect;
+
 	struct ProcedureState
 	{
 		enum class MovementState
@@ -145,6 +147,7 @@ private:
 		unsigned int current_animation_frame;
 
 		bool picked= false; // For keys.
+		std::unique_ptr<RotatingLightEffect> linked_rotating_light;
 	};
 
 	typedef std::vector<StaticModel> StaticModels;
@@ -209,7 +212,6 @@ private:
 
 	struct RotatingLightEffect
 	{
-		unsigned char coord[2];
 		Time start_time= Time::FromSeconds(0);
 		Time end_time= Time::FromSeconds(0);
 		float radius;
@@ -319,7 +321,6 @@ private:
 	MonstersContainer monsters_; // + players
 	EntityId next_monster_id_= 1u;
 
-	std::vector<RotatingLightEffect> rotating_lights_;
 	LightSourcesContainer light_sources_;
 
 	std::vector<Messages::MonsterBirth> monsters_birth_messages_;
