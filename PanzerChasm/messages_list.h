@@ -27,6 +27,8 @@ MESSAGE_FUNC(DynamicItemUpdate)
 MESSAGE_FUNC(DynamicItemDeath)
 MESSAGE_FUNC(LightSourceBirth)
 MESSAGE_FUNC(LightSourceDeath)
+MESSAGE_FUNC(RotatingLightSourceBirth)
+MESSAGE_FUNC(RotatingLightSourceDeath)
 
 // Reliable server to client
 MESSAGE_FUNC(MapChange)

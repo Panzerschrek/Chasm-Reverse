@@ -112,6 +112,11 @@ const MapState::LightSourcesContainer& MapState::GetLightSources() const
 	return light_sources_;
 }
 
+const MapState::DirectedLightSourcesContainer& MapState::GetDirectedLightSources() const
+{
+	return directed_light_sources_;
+}
+
 float MapState::GetSpritesFrame() const
 {
 	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
@@ -320,6 +325,13 @@ void MapState::Tick( const Time current_time )
 		light_flash.intensity= light_flash.intensity * light_flash.intensity; // Make quadratic.
 
 		i++;
+	}
+
+	for( DirectedLightSourcesContainer::value_type& light_value : directed_light_sources_ )
+	{
+		DirectedLightSource& light_source= light_value.second;
+
+		light_source.direction= static_models_[ light_value.first ].angle;
 	}
 }
 
@@ -710,6 +722,26 @@ void MapState::SpawnLightFlash( const m_Vec2& pos )
 	light.birth_time= last_tick_time_;
 	light.intensity= 0.0f;
 	// TODO - use blinking
+}
+
+void MapState::ProcessMessage( const Messages::RotatingLightSourceBirth& message )
+{
+	const auto it= directed_light_sources_.find( message.light_source_id );
+	if( it != directed_light_sources_.end() )
+		return;
+
+	DirectedLightSource& source=
+		directed_light_sources_.emplace( message.light_source_id, DirectedLightSource() ).first->second;
+
+	MessagePositionToPosition( message.xy, source.pos );
+	source.intensity= float(message.brightness);
+	source.radius= MessageCoordToCoord( message.radius );
+	source.direction= 0.0f;
+}
+
+void MapState::ProcessMessage( const Messages::RotatingLightSourceDeath& message )
+{
+	directed_light_sources_.erase( message.light_source_id );
 }
 
 } // namespace PanzerChasm

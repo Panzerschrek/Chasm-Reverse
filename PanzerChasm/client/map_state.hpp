@@ -127,6 +127,16 @@ public:
 
 	typedef std::unordered_map<EntityId, LightSource> LightSourcesContainer;
 
+	struct DirectedLightSource
+	{
+		m_Vec2 pos;
+		float intensity;
+		float radius;
+		float direction;
+	};
+
+	typedef std::unordered_map<EntityId, DirectedLightSource> DirectedLightSourcesContainer;
+
 public:
 	MapState(
 		const MapDataConstPtr& map,
@@ -144,6 +154,7 @@ public:
 	const DynamicItemsContainer& GetDynamicItems() const;
 	const LightFlashes& GetLightFlashes() const;
 	const LightSourcesContainer& GetLightSources() const;
+	const DirectedLightSourcesContainer& GetDirectedLightSources() const;
 
 	float GetSpritesFrame() const;
 
@@ -165,6 +176,8 @@ public:
 	void ProcessMessage( const Messages::DynamicItemUpdate& message );
 	void ProcessMessage( const Messages::LightSourceBirth& message );
 	void ProcessMessage( const Messages::LightSourceDeath& message );
+	void ProcessMessage( const Messages::RotatingLightSourceBirth& message );
+	void ProcessMessage( const Messages::RotatingLightSourceDeath& message );
 	void ProcessMessage( const Messages::DynamicItemDeath& message );
 
 private:
@@ -189,6 +202,7 @@ private:
 
 	LightFlashes light_flashes_;
 	LightSourcesContainer light_sources_;
+	DirectedLightSourcesContainer directed_light_sources_;
 };
 
 } // namespace PanzerChasm

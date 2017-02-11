@@ -305,6 +305,26 @@ void MapLight::Update( const MapState& map_state )
 		out_light.pos= light_source.pos;
 	};
 
+	// Approxiamte cone light as set of point lights.
+	const unsigned int c_cone_light_circles= 3u;
+	const auto gen_lights_for_directed_source=
+	[&]( const MapState::DirectedLightSource& light_source, MapData::Light* const out_lights )
+	{
+		const m_Vec2 dir( std::cos( light_source.direction - Constants::half_pi ), std::sin( light_source.direction - Constants::half_pi ) );
+
+		for( unsigned int i= 0; i < c_cone_light_circles; i++ )
+		{
+			const float r= float( 1u << i ) / ( 3.0f * float( (1u<<(c_cone_light_circles-1u)) ) );
+
+			out_lights[i].power= 4.0f * light_source.intensity;
+			out_lights[i].max_light_level= 128.0f;
+
+			out_lights[i].pos= light_source.pos + light_source.radius * ( 2.0f * r ) * dir;
+			out_lights[i].outer_radius= 1.25f * r * light_source.radius;
+			out_lights[i].inner_radius= out_lights[i].outer_radius * 0.5f;
+		}
+	};
+
 	// Clear shadowmap.
 	shadowmap_.Bind();
 	r_OGLStateManager::UpdateState( g_lightmap_clear_state );
@@ -354,6 +374,13 @@ void MapLight::Update( const MapState& map_state )
 			gen_light_for_source( light_source_value.second, light );
 			DrawFloorLight( light );
 		}
+		for( const MapState::DirectedLightSourcesContainer::value_type& directed_light_source_value : map_state.GetDirectedLightSources() )
+		{
+			MapData::Light lights[ c_cone_light_circles ];
+			gen_lights_for_directed_source( directed_light_source_value.second, lights );
+			for( const MapData::Light& light : lights )
+				DrawFloorLight( light );
+		}
 	}
 
 	// Draw to walls lightmap.
@@ -399,6 +426,13 @@ void MapLight::Update( const MapState& map_state )
 			MapData::Light light;
 			gen_light_for_source( light_source_value.second, light );
 			DrawWallsLight( light );
+		}
+		for( const MapState::DirectedLightSourcesContainer::value_type& directed_light_source_value : map_state.GetDirectedLightSources() )
+		{
+			MapData::Light lights[ c_cone_light_circles ];
+			gen_lights_for_directed_source( directed_light_source_value.second, lights );
+			for( const MapData::Light& light : lights )
+				DrawWallsLight( light );
 		}
 	}
 

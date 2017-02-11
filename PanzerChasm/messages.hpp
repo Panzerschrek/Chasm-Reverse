@@ -253,6 +253,24 @@ struct LightSourceDeath : public MessageBase
 	EntityId light_source_id;
 };
 
+struct RotatingLightSourceBirth : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(RotatingLightSourceBirth)
+
+	EntityId light_source_id; // Id of parenst static model.
+
+	CoordType xy[2];
+	CoordType radius;
+	unsigned char brightness;
+};
+
+struct RotatingLightSourceDeath : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(RotatingLightSourceDeath)
+
+	EntityId light_source_id;
+};
+
 struct MapChange : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(MapChange)

@@ -331,6 +331,8 @@ private:
 	std::vector<Messages::DynamicItemDeath> dynamic_items_death_messages_;
 	std::vector<Messages::LightSourceBirth> light_sources_birth_messages_;
 	std::vector<Messages::LightSourceDeath> light_sources_death_messages_;
+	std::vector<Messages::RotatingLightSourceBirth> rotating_light_sources_birth_messages_;
+	std::vector<Messages::RotatingLightSourceDeath> rotating_light_sources_death_messages_;
 	std::vector<Messages::ParticleEffectBirth> particles_effects_messages_;
 	std::vector<Messages::MonsterPartBirth> monsters_parts_birth_messages_;
 	std::vector<Messages::MapEventSound> map_events_sounds_messages_;

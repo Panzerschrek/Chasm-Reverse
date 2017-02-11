@@ -1504,6 +1504,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( current_time >= model.linked_rotating_light->end_time )
 			{
 				// Kill expired rotating light source.
+				rotating_light_sources_death_messages_.emplace_back();
+				Messages::RotatingLightSourceDeath& message= rotating_light_sources_death_messages_.back();
+				message.light_source_id= &model - static_models_.data();
+
 				model.linked_rotating_light= nullptr;
 			}
 		}
@@ -1632,6 +1636,14 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		messages_sender.SendReliableMessage( message );
 	}
+	for( const Messages::RotatingLightSourceBirth& message : rotating_light_sources_birth_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
+	for( const Messages::RotatingLightSourceDeath& message : rotating_light_sources_death_messages_ )
+	{
+		messages_sender.SendReliableMessage( message );
+	}
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
 	{
 		messages_sender.SendUnreliableMessage( message );
@@ -1689,6 +1701,8 @@ void Map::ClearUpdateEvents()
 	dynamic_items_death_messages_.clear();
 	light_sources_birth_messages_.clear();
 	light_sources_death_messages_.clear();
+	rotating_light_sources_birth_messages_.clear();
+	rotating_light_sources_death_messages_.clear();
 	particles_effects_messages_.clear();
 	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();
@@ -1953,10 +1967,18 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 						light->start_time= current_time;
 						light->end_time= light->start_time + Time::FromSeconds( command.args[2] );
 
-						light->radius= command.args[3];
+						light->radius= command.args[3] / 256.0f;
 						light->brightness= command.args[4];
 
 						model.linked_rotating_light.reset( light );
+
+						rotating_light_sources_birth_messages_.emplace_back();
+						Messages::RotatingLightSourceBirth& message= rotating_light_sources_birth_messages_.back();
+
+						message.light_source_id= index_element.index;
+						PositionToMessagePosition( model.pos.xy(), message.xy );
+						message.brightness= static_cast<unsigned char>( light->brightness );
+						message.radius= CoordToMessageCoord( light->radius );
 					}
 				}
 			}
