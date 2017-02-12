@@ -42,6 +42,8 @@ class Settings;
 class Vfs;
 typedef std::shared_ptr<Vfs> VfsPtr;
 
+class SystemWindow;
+
 typedef unsigned short EntityId;
 
 struct Difficulty

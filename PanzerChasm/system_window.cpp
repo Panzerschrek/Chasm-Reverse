@@ -77,7 +77,7 @@ SystemWindow::SystemWindow( Settings& settings )
 		width = settings.GetInt( SettingsKeys::fullscreen_width , 640 );
 		height= settings.GetInt( SettingsKeys::fullscreen_height, 480 );
 		frequency= settings.GetInt( SettingsKeys::fullscreen_frequency, 60 );
-		display= settings.GetInt( SettingsKeys::fullscreen_dispay, 0 );
+		display= settings.GetInt( SettingsKeys::fullscreen_display, 0 );
 
 		if( displays_video_modes_.empty() )  // Abort fullscreen.
 		{
@@ -117,7 +117,7 @@ SystemWindow::SystemWindow( Settings& settings )
 			goto windowed;
 		}
 
-		settings.SetSetting( SettingsKeys::fullscreen_dispay, int(display) );
+		settings.SetSetting( SettingsKeys::fullscreen_display, int(display) );
 		settings.SetSetting( SettingsKeys::fullscreen_frequency, int(frequency) );
 	}
 

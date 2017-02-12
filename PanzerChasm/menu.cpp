@@ -7,6 +7,7 @@
 #include "shared_settings_keys.hpp"
 #include "sound/sound_engine.hpp"
 #include "sound/sound_id.hpp"
+#include "system_window.hpp"
 
 #include "menu.hpp"
 
@@ -769,6 +770,383 @@ MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// Video Menu
+
+class VideoMenu final : public MenuBase
+{
+public:
+	VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~VideoMenu() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	struct Row
+	{
+		enum : int
+		{
+			Fullscreen= 0, Display, FullscreenResolution, Frequency, WindowWidth, WindowHeight, NumRows
+		};
+	};
+
+private:
+	void UpdateSettings();
+
+private:
+	Settings& settings_;
+	SystemWindow::DispaysVideoModes video_modes_;
+	int current_row_= 0;
+
+	unsigned int display_= 0u;
+	unsigned int resolution_= 0u;
+	unsigned int frequency_= 0u;
+
+	static constexpr unsigned int c_max_window_size= 6u;
+	char window_width_ [ c_max_window_size ];
+	char window_height_[ c_max_window_size ];
+};
+
+VideoMenu::VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_(host_commands.GetSettings())
+{
+	const SystemWindow* system_window= host_commands.GetSystemWindow();
+	if( system_window != nullptr )
+		video_modes_= system_window->GetSupportedVideoModes();
+
+	settings_.GetOrSetBool( SettingsKeys::fullscreen, false );
+
+	display_= std::max( 0, std::min( settings_.GetOrSetInt( SettingsKeys::fullscreen_display, 0 ), int(video_modes_.size()) ) );
+
+	const int width = settings_.GetInt( SettingsKeys::fullscreen_width  );
+	const int height= settings_.GetInt( SettingsKeys::fullscreen_height );
+	const int frequency= settings_.GetInt( SettingsKeys::fullscreen_frequency );
+	if( !video_modes_.empty() )
+	{
+		const SystemWindow::VideoModes& display_modes= video_modes_[display_];
+		for( unsigned int i= 0u; i < display_modes.size(); i++ )
+		{
+			if( width == int(display_modes[i].size.Width()) && height == int(display_modes[i].size.Height()) )
+			{
+				resolution_= i;
+				for( unsigned int j= 0u; j < display_modes[i].supported_frequencies.size(); j++ )
+				{
+					if( int(display_modes[i].supported_frequencies[j]) == frequency )
+					{
+						frequency_= j;
+						break;
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	std::snprintf( window_width_ , sizeof(window_width_ ), "%d", settings_.GetInt( SettingsKeys::window_width  ) );
+	std::snprintf( window_height_, sizeof(window_height_), "%d", settings_.GetInt( SettingsKeys::window_height ) );
+}
+
+VideoMenu::~VideoMenu()
+{}
+
+void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 260u, text_draw.GetLineHeight() * Row::NumRows };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 180;
+	const int param_x= x + scale * 190;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Video",
+		scale,
+		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Fullscreen * y_step,
+		"Fullscreen", scale,
+		current_row_ == Row::Fullscreen ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Fullscreen * y_step,
+		settings_.GetOrSetBool( SettingsKeys::fullscreen, false ) ? g_on : g_off,
+		scale,
+		current_row_ == Row::Fullscreen ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Display * y_step,
+		"Display", scale,
+		current_row_ == Row::Display ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	char display[32];
+	std::snprintf( display, sizeof(display), "%d", display_ );
+	text_draw.Print(
+		param_x, y + Row::Display * y_step,
+		display, scale,
+		current_row_ == Row::Display ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::FullscreenResolution * y_step,
+		"Fullscreen Resolution", scale,
+		current_row_ == Row::FullscreenResolution ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+
+	if( !video_modes_.empty() && ! video_modes_[display_].empty() )
+	{
+		const SystemWindow::VideoMode& video_mode= video_modes_[display_][resolution_];
+
+		char str[32];
+		std::snprintf( str, sizeof(str), "%dx%d", video_mode.size.Width(), video_mode.size.Height() );
+
+		text_draw.Print(
+			param_x, y + Row::FullscreenResolution * y_step,
+			str, scale,
+			current_row_ == Row::FullscreenResolution ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+			TextDraw::Alignment::Left );
+	}
+
+	text_draw.Print(
+		param_descr_x, y + Row::Frequency * y_step,
+		"Fullscreen Refresh Rate", scale,
+		current_row_ == Row::Frequency ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+
+	if( !video_modes_.empty() && !video_modes_[display_].empty() && !video_modes_[display_][resolution_].supported_frequencies.empty() )
+	{
+		const SystemWindow::VideoMode& video_mode= video_modes_[display_][resolution_];
+
+		char str[32];
+		std::snprintf( str, sizeof(str), "%d", video_mode.supported_frequencies[ frequency_ ] );
+
+		text_draw.Print(
+			param_x, y + Row::Frequency * y_step,
+			str, scale,
+			current_row_ == Row::Frequency ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+			TextDraw::Alignment::Left );
+	}
+
+	char size_str[32];
+
+	text_draw.Print(
+		param_descr_x, y + Row::WindowWidth * y_step,
+		"Windowed width", scale,
+		current_row_ == Row::WindowWidth ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	std::snprintf( size_str, sizeof(size_str), current_row_ == Row::WindowWidth ? "%s_" : "%s", window_width_ );
+	text_draw.Print(
+		param_x, y + Row::WindowWidth * y_step,
+		size_str, scale,
+		current_row_ == Row::WindowWidth ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::WindowHeight * y_step,
+		"Windowed height", scale,
+		current_row_ == Row::WindowHeight ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
+		TextDraw::Alignment::Right );
+	std::snprintf( size_str, sizeof(size_str), current_row_ == Row::WindowHeight ? "%s_" : "%s", window_height_ );
+	text_draw.Print(
+		param_x, y + Row::WindowHeight * y_step,
+		size_str, scale,
+		current_row_ == Row::WindowHeight ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
+		TextDraw::Alignment::Left );
+}
+
+MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		const auto key= event.event.key.key_code;
+
+		if( key == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+		}
+		if( key == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 ) % Row::NumRows;
+		}
+
+		// Boolean parameters.
+		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
+		{
+			switch(current_row_)
+			{
+			case Row::Fullscreen:
+				settings_.SetSetting( SettingsKeys::fullscreen, !settings_.GetBool( SettingsKeys::fullscreen, false ) );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			default:
+				break;
+			};
+		} // boolean params.
+
+		if( key == KeyCode::Left || key == KeyCode::Right )
+		{
+			switch(current_row_)
+			{
+			case Row::Display:
+				if( video_modes_.size() >= 2u )
+				{
+					const unsigned int prev_display= display_;
+					display_+= ( key == KeyCode::Right ) ? ( video_modes_.size() - 1u ) : ( 1u );
+					display_%= video_modes_.size();
+
+					// Change resolution index - search same resolution and frequency in other display.
+					bool resolution_found= false;
+					for( unsigned int i= 0u; i < video_modes_[display_].size(); i++ )
+					{
+						if( video_modes_[prev_display][resolution_].size == video_modes_[display_][i].size )
+						{
+							bool frequency_found= false;
+							for( unsigned int j= 0u; j < video_modes_[display_][resolution_].supported_frequencies.size(); j++ )
+							{
+								if( video_modes_[prev_display][resolution_].supported_frequencies[frequency_] ==
+									video_modes_[display_][i].supported_frequencies[j] )
+								{
+									frequency_= j;
+									frequency_found= true;
+									break;
+								}
+							}
+							if( !frequency_found )
+								frequency_= 0u;
+
+							resolution_= i;
+							resolution_found= true;
+							break;
+						}
+					}
+					if( !resolution_found )
+						resolution_= 0u;
+
+					PlayMenuSound( Sound::SoundId::MenuSelect );
+					UpdateSettings();
+				}
+				break;
+
+			case Row::FullscreenResolution:
+				if( !video_modes_.empty() && video_modes_[display_].size() >= 2u )
+				{
+					const unsigned int prev_resolution= resolution_;
+					resolution_+= ( key == KeyCode::Right ) ? ( video_modes_[display_].size() - 1u ) : ( 1u );
+					resolution_%= video_modes_[display_].size();
+
+					// Change resolution - search same frequency for different resolution.
+					bool frequency_found= false;
+					for( unsigned int i= 0u; i < video_modes_[display_][resolution_].supported_frequencies.size(); i++ )
+					{
+						if( video_modes_[display_][prev_resolution].supported_frequencies[frequency_] ==
+							video_modes_[display_][resolution_].supported_frequencies[i] )
+						{
+							frequency_= i;
+							frequency_found= true;
+							break;
+						}
+					}
+					if( !frequency_found )
+						frequency_= 0u;
+
+					PlayMenuSound( Sound::SoundId::MenuSelect );
+					UpdateSettings();
+				}
+				break;
+
+			case Row::Frequency:
+				if( !video_modes_.empty() && !video_modes_[display_].empty() && video_modes_[display_][resolution_].supported_frequencies.size() >= 2u )
+				{
+					frequency_+= ( key == KeyCode::Right ) ? ( video_modes_[display_][resolution_].supported_frequencies.size() - 1u ) : ( 1u );
+					frequency_%= video_modes_[display_][resolution_].supported_frequencies.size();
+
+					PlayMenuSound( Sound::SoundId::MenuSelect );
+					UpdateSettings();
+				}
+				break;
+
+			default:
+				break;
+			};
+		}
+
+		if( key == KeyCode::Backspace )
+		{
+			if( current_row_ == Row::WindowWidth  )
+			{
+				const unsigned int len= std::strlen( window_width_  );
+				if( len > 0u )
+					window_width_ [len - 1u]= '\0';
+				UpdateSettings();
+			}
+			if( current_row_ == Row::WindowHeight )
+			{
+				const unsigned int len= std::strlen( window_height_ );
+				if( len > 0u )
+					window_height_[len - 1u]= '\0';
+				UpdateSettings();
+			}
+		}
+	}
+
+	if( event.type == SystemEvent::Type::CharInput &&
+		event.event.char_input.ch >= '0' && event.event.char_input.ch <= '9' )
+	{
+		const char num= event.event.char_input.ch;
+		if( current_row_ == Row::WindowWidth  )
+		{
+			const unsigned int len= std::strlen( window_width_  );
+			if( len + 1u < c_max_window_size )
+			{
+				window_width_ [len]= num;
+				window_width_ [len + 1u ]= '\0';
+				UpdateSettings();
+			}
+		}
+		if( current_row_ == Row::WindowHeight )
+		{
+			const unsigned int len= std::strlen( window_height_ );
+			if( len + 1u < c_max_window_size )
+			{
+				window_height_[len]= num;
+				window_height_[len + 1u ]= '\0';
+				UpdateSettings();
+			}
+		}
+	}
+
+	return this;
+}
+
+void VideoMenu::UpdateSettings()
+{
+	settings_.SetSetting( SettingsKeys::fullscreen_display, int(display_ ) );
+	if( !video_modes_.empty() && !video_modes_[display_].empty() )
+	{
+		settings_.SetSetting( SettingsKeys::fullscreen_width , int(video_modes_[display_][resolution_].size.Width ()) );
+		settings_.SetSetting( SettingsKeys::fullscreen_height, int(video_modes_[display_][resolution_].size.Height()) );
+		if( !video_modes_[display_][resolution_].supported_frequencies.empty() )
+			settings_.SetSetting( SettingsKeys::fullscreen_frequency, int(video_modes_[display_][resolution_].supported_frequencies[frequency_]) );
+	}
+
+	if( std::strlen( window_width_  ) > 0 )
+		settings_.SetSetting( SettingsKeys::window_width , window_width_  );
+	if( std::strlen( window_height_ ) > 0 )
+		settings_.SetSetting( SettingsKeys::window_height, window_height_ );
+}
+
 // Options Menu
 
 class OptionsMenu final : public MenuBase
@@ -803,12 +1181,14 @@ private:
 	int mouse_sensetivity_;
 
 	ControlsMenu controls_menu_;
+	VideoMenu video_menu_;
 };
 
 OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
 	, settings_( host_commands.GetSettings() )
 	, controls_menu_( this, sound_engine, host_commands )
+	, video_menu_( this, sound_engine, host_commands )
 {
 	always_run_= settings_.GetOrSetBool( SettingsKeys::always_run, true );
 	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
@@ -978,6 +1358,9 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 			case Row::Controls:
 				PlayMenuSound( Sound::SoundId::MenuSelect );
 				return &controls_menu_;
+			case Row::Video:
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				return &video_menu_;
 			default:
 				break;
 			};

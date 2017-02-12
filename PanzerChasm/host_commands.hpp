@@ -11,6 +11,7 @@ public:
 	virtual ~HostCommands(){}
 
 	virtual Settings& GetSettings()= 0;
+	virtual const SystemWindow* GetSystemWindow()= 0;
 
 	virtual void Quit()= 0;
 

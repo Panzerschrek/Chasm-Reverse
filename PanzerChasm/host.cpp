@@ -217,6 +217,11 @@ Settings& Host::GetSettings()
 	return settings_;
 }
 
+const SystemWindow* Host::GetSystemWindow()
+{
+	return system_window_.get();
+}
+
 void Host::Quit()
 {
 	quit_requested_= true;
