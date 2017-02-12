@@ -1605,65 +1605,41 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	}
 
 	for( const Messages::MonsterBirth& message : monsters_birth_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
 	for( const Messages::MonsterDeath& message : monsters_death_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
+
 	for( const Messages::RocketBirth& message : rockets_birth_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 	for( const Messages::RocketDeath& message : rockets_death_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
+
 	for( const Messages::DynamicItemBirth& message : dynamic_items_birth_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 	for( const Messages::DynamicItemDeath& message : dynamic_items_death_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
+
 	for( const Messages::LightSourceBirth& message : light_sources_birth_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
 	for( const Messages::LightSourceDeath& message : light_sources_death_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
+
 	for( const Messages::RotatingLightSourceBirth& message : rotating_light_sources_birth_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
 	for( const Messages::RotatingLightSourceDeath& message : rotating_light_sources_death_messages_ )
-	{
 		messages_sender.SendReliableMessage( message );
-	}
+
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 	for( const Messages::MonsterPartBirth& message : monsters_parts_birth_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
+
 	for( const Messages::MapEventSound& message : map_events_sounds_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 	for( const Messages::MonsterLinkedSound& message : monster_linked_sounds_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 	for( const Messages::MonsterSound& message : monsters_sounds_messages_ )
-	{
 		messages_sender.SendUnreliableMessage( message );
-	}
 
 	for( const Rocket& rocket : rockets_ )
 	{
