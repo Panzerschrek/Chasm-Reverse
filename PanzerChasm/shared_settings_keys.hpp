@@ -25,6 +25,14 @@ const char key_look_up[]= "in_key_look_up";
 const char key_look_down[]= "in_key_look_down";
 const char key_jump[]= "in_key_jump";
 
+const char window_width []= "r_window_width" ;
+const char window_height[]= "r_window_height";
+const char fullscreen[]= "r_fullscreen";
+const char fullscreen_dispay[]= "r_fullscreen_display";
+const char fullscreen_width []= "r_fullscreen_width" ;
+const char fullscreen_height[]= "r_fullscreen_height";
+const char fullscreen_frequency[]= "r_fullscreen_frequency";
+
 } // namespace SettingsKeys
 
 } // PanzerChasm

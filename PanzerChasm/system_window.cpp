@@ -3,6 +3,7 @@
 #include "game_constants.hpp"
 #include "log.hpp"
 #include "settings.hpp"
+#include "shared_settings_keys.hpp"
 
 #include "system_window.hpp"
 
@@ -64,22 +65,78 @@ static SystemEvent::KeyEvent::ModifiersMask TranslateKeyModifiers( const Uint16 
 
 SystemWindow::SystemWindow( Settings& settings )
 {
-	static const char c_width_key []= "r_window_width" ;
-	static const char c_height_key[]= "r_window_height";
-	const int c_max_window_size= 4096; // TODO - get system metrics for this.
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+		Log::FatalError( "Can not initialize sdl video" );
 
-	int width = settings.GetInt( c_width_key , 640 );
-	int height= settings.GetInt( c_height_key, 480 );
-	width = std::min( std::max( int(GameConstants::min_screen_width ), width  ), c_max_window_size );
-	height= std::min( std::max( int(GameConstants::min_screen_height), height ), c_max_window_size );
-	settings.SetSetting( c_width_key , width  );
-	settings.SetSetting( c_height_key, height );
+	GetVideoModes();
+
+	int width, height;
+	unsigned int frequency= 0u, display= 0u;
+	if( settings.GetOrSetBool( SettingsKeys::fullscreen, false ) )
+	{
+		width = settings.GetInt( SettingsKeys::fullscreen_width , 640 );
+		height= settings.GetInt( SettingsKeys::fullscreen_height, 480 );
+		frequency= settings.GetInt( SettingsKeys::fullscreen_frequency, 60 );
+		display= settings.GetInt( SettingsKeys::fullscreen_dispay, 0 );
+
+		if( displays_video_modes_.empty() )  // Abort fullscreen.
+		{
+			settings.SetSetting( SettingsKeys::fullscreen, false );
+			goto windowed;
+		}
+
+		if( display >= displays_video_modes_.size() )
+			display= 0u;
+
+		bool mode_found= false;
+		for( const VideoMode& mode : displays_video_modes_[display] )
+		{
+			if( int(mode.size.Width()) == width && int(mode.size.Height()) == height )
+			{
+				bool frequency_found= false;
+				for( const unsigned int f : mode.supported_frequencies )
+				{
+					if( f == frequency )
+					{
+						frequency_found= true;
+						break;
+					}
+				}
+
+				if( !frequency_found )
+					frequency= mode.supported_frequencies.empty() ? 60 : mode.supported_frequencies.front();
+
+				mode_found= true;
+				break;
+			}
+		}
+
+		if( !mode_found )  // Abort fullscreen.
+		{
+			settings.SetSetting( SettingsKeys::fullscreen, false );
+			goto windowed;
+		}
+
+		settings.SetSetting( SettingsKeys::fullscreen_dispay, int(display) );
+		settings.SetSetting( SettingsKeys::fullscreen_frequency, int(frequency) );
+	}
+
+windowed:
+	const bool fullscreen= settings.GetOrSetBool( SettingsKeys::fullscreen, false );
+	if( !fullscreen )
+	{
+		const int c_max_window_size= 4096; // TODO - get system metrics for this.
+
+		width = settings.GetInt( SettingsKeys::window_width , 640 );
+		height= settings.GetInt( SettingsKeys::window_height, 480 );
+		width = std::min( std::max( int(GameConstants::min_screen_width ), width  ), c_max_window_size );
+		height= std::min( std::max( int(GameConstants::min_screen_height), height ), c_max_window_size );
+		settings.SetSetting( SettingsKeys::window_width , width  );
+		settings.SetSetting( SettingsKeys::window_height, height );
+	}
 
 	viewport_size_.Width ()= static_cast<unsigned int>( width  );
 	viewport_size_.Height()= static_cast<unsigned int>( height );
-
-	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
-		Log::FatalError( "Can not initialize sdl video" );
 
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
@@ -93,7 +150,7 @@ SystemWindow::SystemWindow( Settings& settings )
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height,
-			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
+			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) );
 
 	if( window_ == nullptr )
 		Log::FatalError( "Can not create window" );
@@ -101,6 +158,33 @@ SystemWindow::SystemWindow( Settings& settings )
 	gl_context_= SDL_GL_CreateContext( window_ );
 	if( gl_context_ == nullptr )
 		Log::FatalError( "Can not create OpenGL context" );
+
+	if( fullscreen )
+	{
+		bool switched= false;
+
+		const int mode_count= SDL_GetNumDisplayModes( display );
+		for( int m= 0; m < mode_count; m++ )
+		{
+			SDL_DisplayMode mode;
+			const int result= SDL_GetDisplayMode( display, m, &mode );
+			if( result < 0 )
+				continue;
+			if( !( SDL_BITSPERPIXEL( mode.format ) == 24 || SDL_BITSPERPIXEL( mode.format ) == 32 ) )
+				continue;
+
+			if( mode.w == int(width) && mode.h == int(height) && mode.refresh_rate == int(frequency) )
+			{
+				const int result= SDL_SetWindowDisplayMode( window_, &mode );
+				if( result == 0 )
+					switched= true;
+				break;
+			}
+		}
+
+		if( !switched ) // Abort fullscreen.
+			settings.SetSetting( SettingsKeys::fullscreen, false );
+	}
 
 	SDL_GL_SetSwapInterval(1);
 
@@ -117,6 +201,11 @@ SystemWindow::~SystemWindow()
 Size2 SystemWindow::GetViewportSize() const
 {
 	return viewport_size_;
+}
+
+const SystemWindow::DispaysVideoModes& SystemWindow::GetSupportedVideoModes() const
+{
+	return displays_video_modes_;
 }
 
 void SystemWindow::SwapBuffers()
@@ -212,6 +301,48 @@ void SystemWindow::CaptureMouse( const bool need_capture )
 	{
 		mouse_captured_= need_capture;
 		SDL_SetRelativeMouseMode( need_capture ? SDL_TRUE : SDL_FALSE );
+	}
+}
+
+void SystemWindow::GetVideoModes()
+{
+	const int display_count= SDL_GetNumVideoDisplays();
+	if( display_count <= 0 )
+		return;
+
+	displays_video_modes_.reserve( static_cast<unsigned int>(display_count) );
+
+	for( int d= 0; d < display_count; d++ )
+	{
+		const int display_mode_count= SDL_GetNumDisplayModes( d );
+		if( display_mode_count <= 0 )
+			continue;
+
+		displays_video_modes_.emplace_back();
+		VideoModes& video_modes= displays_video_modes_.back();
+
+		for( int m= 0; m < display_mode_count; m++ )
+		{
+			SDL_DisplayMode mode;
+			const int result= SDL_GetDisplayMode( d, m, &mode );
+			if( result < 0 )
+				continue;
+			if( !( SDL_BITSPERPIXEL( mode.format ) == 24 || SDL_BITSPERPIXEL( mode.format ) == 32 ) ||
+				mode.refresh_rate <= 0 )
+				continue;
+
+			// SDL sorts modes by width, height, bpp, freq.
+			// use it and join modes with same resolution.
+			const Size2 size( mode.w, mode.h );
+			if( video_modes.empty() ||
+				size != video_modes.back().size )
+			{
+				video_modes.emplace_back();
+				video_modes.back().size= size;
+			}
+
+			video_modes.back().supported_frequencies.emplace_back( mode.refresh_rate );
+		}
 	}
 }
 

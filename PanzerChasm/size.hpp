@@ -21,4 +21,14 @@ struct Size2
 	unsigned int Height() const { return xy[1]; }
 };
 
+inline bool operator==( const Size2& l, const Size2& r )
+{
+	return l.xy[0] == r.xy[0] && l.xy[1] == r.xy[1];
+}
+
+inline bool operator!=( const Size2& l, const Size2& r )
+{
+	return !( l == r );
+}
+
 } // namespace PanzerChasm
