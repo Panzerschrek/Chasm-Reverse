@@ -175,6 +175,8 @@ Settings::~Settings()
 
 		std::fprintf( file, "%s %s\r\n", key.c_str(), value.c_str() );
 	}
+
+	std::fclose( file );
 }
 
 void Settings::SetSetting( const char* const name, const char* const value )
