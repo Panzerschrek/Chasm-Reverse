@@ -398,7 +398,9 @@ void Map::PlayMapEventSound( const m_Vec3& pos, const unsigned int sound_id )
 	message.sound_id= sound_id;
 }
 
-m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float radius, bool& out_on_floor ) const
+m_Vec3 Map::CollideWithMap(
+	const m_Vec3 in_pos, const float height, const float radius,
+	bool& out_on_floor, MovementRestriction& out_movement_restriction ) const
 {
 	m_Vec2 pos= in_pos.xy();
 	out_on_floor= false;
@@ -426,6 +428,7 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 					new_pos ) )
 			{
 				pos= new_pos;
+				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
 			}
 		}
 		else if( index_element.type == MapData::IndexElement::StaticModel )
@@ -462,7 +465,12 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 					new_z= std::min( new_z, model_z_min - height );
 				// Push sideways.
 				else
+				{
 					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+
+					const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
+					out_movement_restriction.AddRestriction( normal, index_element );
+				}
 			}
 		}
 		else
@@ -496,6 +504,11 @@ m_Vec3 Map::CollideWithMap( const m_Vec3 in_pos, const float height, const float
 				new_pos ) )
 		{
 			pos= new_pos;
+
+			MapData::IndexElement index_element;
+			index_element.type= MapData::IndexElement::DynamicWall;
+			index_element.index= &wall - dynamic_walls_.data();
+			out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
 		}
 	}
 
@@ -1407,12 +1420,13 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		const float height= GameConstants::player_height; // TODO - select height
 		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
+		MovementRestriction movement_restriction;
 		bool on_floor= false;
 		const m_Vec3 old_monster_pos= monster.Position();
 		const m_Vec3 new_monster_pos=
 			CollideWithMap(
 				old_monster_pos, height, radius,
-				on_floor );
+				on_floor, movement_restriction );
 
 		const m_Vec3 position_delta= new_monster_pos - old_monster_pos;
 
@@ -1425,6 +1439,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		monster.SetPosition( new_monster_pos );
 		monster.SetOnFloor( on_floor );
+		monster.SetMovementRestriction( movement_restriction );
 	}
 
 	// Collide monsters together

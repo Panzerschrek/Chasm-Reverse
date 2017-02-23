@@ -11,6 +11,7 @@
 #include "collision_index.hpp"
 #include "backpack.hpp"
 #include "fwd.hpp"
+#include "movement_restriction.hpp"
 
 namespace PanzerChasm
 {
@@ -63,7 +64,7 @@ public:
 
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
-		bool& out_on_floor ) const;
+		bool& out_on_floor, MovementRestriction& out_movement_restriction ) const;
 
 	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;
 
