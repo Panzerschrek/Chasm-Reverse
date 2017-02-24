@@ -9,8 +9,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   Vyjasnenije znacenija parametra "bobj".
 * Ostanovka dvižuscihsä objektov pri popadanii v ih zonu dejstvija monstrov
   ( svojsta "checkgo" i "checkback" proçedur ).
-* Ubivanije ili nanesenije urona monstram, vstajuscih na puti dvižuscihsä sten
-  ( svojstvo "mortal" sovmestno s "checkback" ili "checkgo" proçedur ).
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
@@ -30,7 +28,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 [GRAFIKA]
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej.
-* Sozdanije vrascajuscihsä istocnikov sveta po komande "light" proçedury.
 * Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
   proçedur.
 * Boleje ekonomnoje hranenije animaçij modelej.
@@ -54,7 +51,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [OBSCEJE]
-* Menü nastrojek grafiki.
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Menü "save" i "load".
 * Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
