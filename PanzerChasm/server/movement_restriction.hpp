@@ -15,6 +15,8 @@ public:
 
 	void AddRestriction( const m_Vec2& normal, const MapData::IndexElement& map_element );
 
+	bool GetRestrictionNormal( m_Vec2& out_optional_normal ) const;
+
 private:
 	struct RestrictionPlane
 	{

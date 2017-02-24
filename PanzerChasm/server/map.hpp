@@ -117,6 +117,7 @@ private:
 		m_Vec2 vert_pos[2];
 		float z;
 		unsigned char texture_id;
+		bool mortal= false;
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;
@@ -148,6 +149,7 @@ private:
 		unsigned int current_animation_frame;
 
 		bool picked= false; // For keys.
+		bool mortal= false;
 		std::unique_ptr<RotatingLightEffect> linked_rotating_light;
 	};
 

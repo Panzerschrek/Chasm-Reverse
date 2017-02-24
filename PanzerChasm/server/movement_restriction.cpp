@@ -43,4 +43,24 @@ void MovementRestriction::AddRestriction( const m_Vec2& normal, const MapData::I
 	}
 }
 
+bool MovementRestriction::GetRestrictionNormal( m_Vec2& out_optional_normal ) const
+{
+	if( planes_count_ == 0u )
+		return false;
+
+	if( planes_count_ == 1u )
+	{
+		out_optional_normal= restriction_planes_[0].normal;
+		return true;
+	}
+	else
+	{
+		out_optional_normal= restriction_planes_[0].normal + restriction_planes_[1].normal;
+		out_optional_normal.Normalize();
+		return true;
+	}
+
+	return true;
+}
+
 } // namespace PanzerChasm

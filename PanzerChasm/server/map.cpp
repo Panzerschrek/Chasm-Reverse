@@ -468,8 +468,11 @@ m_Vec3 Map::CollideWithMap(
 				{
 					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
 
-					const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
-					out_movement_restriction.AddRestriction( normal, index_element );
+					if( !model.mortal )
+					{
+						const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
+						out_movement_restriction.AddRestriction( normal, index_element );
+					}
 				}
 			}
 		}
@@ -505,10 +508,13 @@ m_Vec3 Map::CollideWithMap(
 		{
 			pos= new_pos;
 
-			MapData::IndexElement index_element;
-			index_element.type= MapData::IndexElement::DynamicWall;
-			index_element.index= &wall - dynamic_walls_.data();
-			out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
+			if( !wall.mortal )
+			{
+				MapData::IndexElement index_element;
+				index_element.type= MapData::IndexElement::DynamicWall;
+				index_element.index= &wall - dynamic_walls_.data();
+				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
+			}
 		}
 	}
 
@@ -1442,6 +1448,70 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		monster.SetMovementRestriction( movement_restriction );
 	}
 
+	// Process mortal walls for monsters.
+	for( const DynamicWall& wall : dynamic_walls_ )
+	{
+		if( !wall.mortal )
+			continue;
+
+		for( MonstersContainer::value_type& monster_value : monsters_ )
+		{
+			MonsterBase& monster= *monster_value.second;
+
+			m_Vec2 restiriction_normal;
+			if( !monster.GetMovementRestriction().GetRestrictionNormal( restiriction_normal ) )
+				continue;
+
+			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+
+			m_Vec2 out_pos;
+
+			if( !CollideCircleWithLineSegment(
+					wall.vert_pos[0], wall.vert_pos[1],
+					monster.Position().xy(), monster_radius,
+					out_pos ) )
+				continue;
+
+			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
+			if( wall_normal * restiriction_normal < 0.0f )
+			{
+				monster.Hit( 100000, *this, monster_value.first, current_time );
+			}
+		}
+	}
+	// Process mortal models for monsters.
+	for( const StaticModel& model : static_models_ )
+	{
+		if( !model.mortal || model.model_id >= map_data_->models_description.size() )
+			continue;
+
+		const float model_radius= map_data_->models_description[ model.model_id ].radius;
+		if( model_radius <= 0.0f )
+			continue;
+
+		for( MonstersContainer::value_type& monster_value : monsters_ )
+		{
+			MonsterBase& monster= *monster_value.second;
+
+			m_Vec2 restiriction_normal;
+			if( !monster.GetMovementRestriction().GetRestrictionNormal( restiriction_normal ) )
+				continue;
+
+			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+			const float collide_distance= monster_radius + model_radius;
+
+			const m_Vec2 vec_to_monster= monster.Position().xy() - model.pos.xy();
+			if( vec_to_monster.SquareLength() >= collide_distance * collide_distance )
+				continue;
+
+			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
+			if( normal * restiriction_normal < 0.0f )
+			{
+				monster.Hit( 100000, *this, monster_value.first, current_time );
+			}
+		}
+	}
+
 	// Collide monsters together
 	for( MonstersContainer::value_type& first_monster_value : monsters_ )
 	{
@@ -2237,14 +2307,18 @@ void Map::DoExplosionDamage(
 
 void Map::MoveMapObjects( const Time current_time )
 {
-	// Zero objects transformations.
+	// Zero objects transformations. Set mortal flag to false.
 	for( DynamicWall& wall : dynamic_walls_ )
+	{
 		wall.transformation.Clear();
+		wall.mortal= false;
+	}
 
 	for( StaticModel& model : static_models_ )
 	{
 		model.transformation.Clear();
 		model.transformation_angle_delta= 0.0f;
+		model.mortal= false;
 	}
 
 	/* Accumulate transformations from procedures on objects.
@@ -2267,6 +2341,8 @@ void Map::MoveMapObjects( const Time current_time )
 			absolute_action_stage= 1.0f - procedure_state.movement_stage;
 		else
 			absolute_action_stage= 0.0f;
+
+		const bool mortal= procedure.mortal && procedure_state.movement_state == ProcedureState::MovementState::Movement;
 
 		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
 		{
@@ -2327,12 +2403,14 @@ void Map::MoveMapObjects( const Time current_time )
 					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
 					DynamicWall& wall= dynamic_walls_[ index_element.index ];
 					wall.transformation.mat= wall.transformation.mat * mat;
+					if( mortal ) wall.mortal= true;
 				}
 				else if( index_element.type == MapData::IndexElement::StaticModel )
 				{
 					PC_ASSERT( index_element.index < static_models_.size() );
 					StaticModel& model= static_models_[ index_element.index ];
 					model.transformation.mat= model.transformation.mat * mat;
+					if( mortal ) model.mortal= true;
 				}
 			}
 				break;
@@ -2364,6 +2442,7 @@ void Map::MoveMapObjects( const Time current_time )
 					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
 					DynamicWall& wall= dynamic_walls_[ index_element.index ];
 					wall.transformation.mat= wall.transformation.mat * mat;
+					if( mortal ) wall.mortal= true;
 				}
 				else if( index_element.type == MapData::IndexElement::StaticModel )
 				{
@@ -2371,6 +2450,7 @@ void Map::MoveMapObjects( const Time current_time )
 					StaticModel& model= static_models_[ index_element.index ];
 					model.transformation.mat= model.transformation.mat * mat;
 					model.transformation_angle_delta+= angle_delta;
+					if( mortal ) model.mortal= true;
 				}
 			}
 				break;
