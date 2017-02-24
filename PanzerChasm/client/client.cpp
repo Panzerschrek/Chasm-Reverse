@@ -89,6 +89,9 @@ void Client::ProcessEvents( const SystemEvents& events )
 					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
 					requested_weapon_index_= weapon_index;
 			}
+
+			if( event.event.key.key_code == KeyCode::Tab )
+				map_mode_= !map_mode_;
 		}
 	} // for events
 }
