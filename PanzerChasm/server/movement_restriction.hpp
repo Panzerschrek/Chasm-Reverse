@@ -2,8 +2,6 @@
 
 #include <vec.hpp>
 
-#include "../map_loader.hpp"
-
 namespace PanzerChasm
 {
 
@@ -13,19 +11,14 @@ public:
 	MovementRestriction();
 	~MovementRestriction();
 
-	void AddRestriction( const m_Vec2& normal, const MapData::IndexElement& map_element );
+	void AddRestriction( const m_Vec2& normal );
 
-	bool GetRestrictionNormal( m_Vec2& out_optional_normal ) const;
-
-private:
-	struct RestrictionPlane
-	{
-		m_Vec2 normal;
-		MapData::IndexElement map_element;
-	};
+	bool MovementIsBlocked( const m_Vec2& movement_direction_normalized ) const;
 
 private:
-	RestrictionPlane restriction_planes_[2];
+	static constexpr unsigned int c_max_restriction_planes= 8u;
+
+	m_Vec2 normals_[ c_max_restriction_planes ];
 	unsigned int planes_count_= 0u;
 };
 

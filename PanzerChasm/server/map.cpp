@@ -428,7 +428,7 @@ m_Vec3 Map::CollideWithMap(
 					new_pos ) )
 			{
 				pos= new_pos;
-				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
+				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy() );
 			}
 		}
 		else if( index_element.type == MapData::IndexElement::StaticModel )
@@ -468,11 +468,8 @@ m_Vec3 Map::CollideWithMap(
 				{
 					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
 
-					if( !model.mortal )
-					{
-						const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
-						out_movement_restriction.AddRestriction( normal, index_element );
-					}
+					const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
+					out_movement_restriction.AddRestriction( normal );
 				}
 			}
 		}
@@ -507,14 +504,7 @@ m_Vec3 Map::CollideWithMap(
 				new_pos ) )
 		{
 			pos= new_pos;
-
-			if( !wall.mortal )
-			{
-				MapData::IndexElement index_element;
-				index_element.type= MapData::IndexElement::DynamicWall;
-				index_element.index= &wall - dynamic_walls_.data();
-				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy(), index_element );
-			}
+			out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy() );
 		}
 	}
 
@@ -1458,10 +1448,6 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		{
 			MonsterBase& monster= *monster_value.second;
 
-			m_Vec2 restiriction_normal;
-			if( !monster.GetMovementRestriction().GetRestrictionNormal( restiriction_normal ) )
-				continue;
-
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
 			m_Vec2 out_pos;
@@ -1473,7 +1459,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				continue;
 
 			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
-			if( wall_normal * restiriction_normal < 0.0f )
+			if( monster.GetMovementRestriction().MovementIsBlocked( wall_normal ) )
 			{
 				monster.Hit( 100000, *this, monster_value.first, current_time );
 			}
@@ -1493,10 +1479,6 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		{
 			MonsterBase& monster= *monster_value.second;
 
-			m_Vec2 restiriction_normal;
-			if( !monster.GetMovementRestriction().GetRestrictionNormal( restiriction_normal ) )
-				continue;
-
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 			const float collide_distance= monster_radius + model_radius;
 
@@ -1505,7 +1487,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				continue;
 
 			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
-			if( normal * restiriction_normal < 0.0f )
+			if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
 			{
 				monster.Hit( 100000, *this, monster_value.first, current_time );
 			}
@@ -2342,7 +2324,9 @@ void Map::MoveMapObjects( const Time current_time )
 		else
 			absolute_action_stage= 0.0f;
 
-		const bool mortal= procedure.mortal && procedure_state.movement_state == ProcedureState::MovementState::Movement;
+		const bool mortal=
+			procedure.mortal &&
+			( procedure_state.movement_state == ProcedureState::MovementState::Movement || procedure_state.movement_state == ProcedureState::MovementState::ReverseMovement );
 
 		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
 		{

@@ -11,56 +11,22 @@ MovementRestriction::MovementRestriction()
 MovementRestriction::~MovementRestriction()
 {}
 
-void MovementRestriction::AddRestriction( const m_Vec2& normal, const MapData::IndexElement& map_element )
+void MovementRestriction::AddRestriction( const m_Vec2& normal )
 {
-	m_Vec2 normal_normalized= normal;
-	normal_normalized.Normalize();
-
-	if( planes_count_ < 2 )
-	{
-		// Just add new plane.
-		restriction_planes_[ planes_count_ ].normal= normal_normalized;
-		restriction_planes_[ planes_count_ ].map_element= map_element;
-		planes_count_++;
-
+	if( planes_count_ >= c_max_restriction_planes )
 		return;
-	}
 
-	PC_ASSERT( planes_count_ == 2u );
-
-	const float current_planes_dot= restriction_planes_[0].normal * restriction_planes_[1].normal;
-
-	// Make angle between two restriction planes sharper.
-	if( normal * restriction_planes_[0].normal < current_planes_dot )
-	{
-		restriction_planes_[1].normal= normal_normalized;
-		restriction_planes_[1].map_element= map_element;
-	}
-	else if( normal * restriction_planes_[1].normal < current_planes_dot )
-	{
-		restriction_planes_[0].normal= normal_normalized;
-		restriction_planes_[0].map_element= map_element;
-	}
+	normals_[ planes_count_ ]= normal;
+	planes_count_++;
 }
 
-bool MovementRestriction::GetRestrictionNormal( m_Vec2& out_optional_normal ) const
+bool MovementRestriction::MovementIsBlocked( const m_Vec2& movement_direction_normalized ) const
 {
-	if( planes_count_ == 0u )
-		return false;
+	for( unsigned int i= 0u; i < planes_count_; i++ )
+		if( normals_[i] * movement_direction_normalized < -0.1f )
+			return true;
 
-	if( planes_count_ == 1u )
-	{
-		out_optional_normal= restriction_planes_[0].normal;
-		return true;
-	}
-	else
-	{
-		out_optional_normal= restriction_planes_[0].normal + restriction_planes_[1].normal;
-		out_optional_normal.Normalize();
-		return true;
-	}
-
-	return true;
+	return false;
 }
 
 } // namespace PanzerChasm
