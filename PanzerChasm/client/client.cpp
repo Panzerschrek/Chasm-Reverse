@@ -30,6 +30,7 @@ Client::Client(
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
 	, map_drawer_( settings, game_resources, rendering_context )
+	, minimap_drawer_( settings, game_resources, rendering_context )
 	, weapon_state_( game_resources )
 	, hud_drawer_( game_resources, rendering_context, drawers )
 {
@@ -91,7 +92,7 @@ void Client::ProcessEvents( const SystemEvents& events )
 			}
 
 			if( event.event.key.key_code == KeyCode::Tab )
-				map_mode_= !map_mode_;
+				minimap_mode_= !minimap_mode_;
 		}
 	} // for events
 }
@@ -187,9 +188,12 @@ void Client::Draw()
 				camera_controller_.GetViewAngleZ() );
 		}
 
+		if( minimap_mode_ )
+			minimap_drawer_.Draw( player_position_.xy(), camera_controller_.GetViewAngleZ() );
+
 		hud_drawer_.DrawCrosshair();
 		hud_drawer_.DrawCurrentMessage( current_tick_time_ );
-		hud_drawer_.DrawHud( map_mode_ );
+		hud_drawer_.DrawHud( minimap_mode_ );
 	}
 }
 
@@ -285,6 +289,7 @@ void Client::operator()( const Messages::MapChange& message )
 
 	show_progress( 0.333f );
 	map_drawer_.SetMap( map_data );
+	minimap_drawer_.SetMap( map_data );
 
 	show_progress( 0.666f );
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
