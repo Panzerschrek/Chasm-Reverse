@@ -164,7 +164,7 @@ void MinimapDrawer::Draw(
 
 	shift_matrix.Translate( m_Vec3( -camera_position, 0.0f ) );
 
-	const float c_base_scale= 1.0f / 32.0f;
+	const float c_base_scale= -1.0f / 12.0f;
 	const float aspect= float(rendering_context_.viewport_size.Height()) / float(rendering_context_.viewport_size.Width());
 	scale_matrix.Scale( m_Vec3( aspect * c_base_scale, c_base_scale, 1.0f ) );
 
@@ -192,11 +192,13 @@ void MinimapDrawer::Draw(
 
 	// Arrow
 	{
-		m_Mat4 rotate_matrix;
+		m_Mat4 arrow_scale_matrix, rotate_matrix;
+		const float c_arrow_scale= 0.5f;
+		arrow_scale_matrix.Scale( m_Vec3( c_arrow_scale, c_arrow_scale, 1.0f ) );
 		rotate_matrix.RotateZ( view_angle );
 
 		BindColor( c_arrow_color );
-		lines_shader_.Uniform( "view_matrix", rotate_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
+		lines_shader_.Uniform( "view_matrix", arrow_scale_matrix * rotate_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
 
 		glDrawArrays( GL_LINES, arrow_vertices_offset_, g_arrow_vertices );
 	}
