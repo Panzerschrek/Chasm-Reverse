@@ -26,12 +26,14 @@ public:
 		const m_Vec2& camera_position, float view_angle );
 
 private:
+	void BindColor( unsigned char color_index );
 	void UpdateDynamicWalls( const MapState& map_state );
 
 private:
 	typedef m_Vec2 WallLineVertex;
 
 private:
+	const GameResourcesConstPtr game_resources_;
 	const RenderingContext rendering_context_;
 
 	MapDataConstPtr current_map_data_;

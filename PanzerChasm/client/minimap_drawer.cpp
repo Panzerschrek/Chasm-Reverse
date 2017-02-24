@@ -1,6 +1,7 @@
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
+#include "../assert.hpp"
 #include "../game_constants.hpp"
 #include "../map_loader.hpp"
 #include "map_state.hpp"
@@ -35,8 +36,12 @@ MinimapDrawer::MinimapDrawer(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context )
-	: rendering_context_(rendering_context)
+	: game_resources_(game_resources)
+	, rendering_context_(rendering_context)
 {
+	PC_UNUSED( settings );
+	PC_ASSERT( game_resources != nullptr );
+
 	lines_shader_.ShaderSource(
 		rLoadShader( "minimap_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "minimap_v.glsl", rendering_context.glsl_version ) );
@@ -132,6 +137,11 @@ void MinimapDrawer::Draw(
 {
 	UpdateDynamicWalls( map_state );
 
+	const unsigned char c_walls_color= 15u * 16u + 8u;
+	const unsigned char c_arrow_color= 10u * 16u + 3u;
+	const unsigned char c_framing_color= 0u * 16u + 8u;
+	const unsigned char c_framing_contour_color= 0u * 16u + 0u;
+
 	const float c_left_offset_px= 16.0f;
 	const float c_top_offset_px= 16.0f;
 	const float c_bottom_offset_rel= 1.0f / 3.0f;
@@ -172,7 +182,7 @@ void MinimapDrawer::Draw(
 	glLineWidth( scale );
 
 	// Walls
-	lines_shader_.Uniform( "color", 1.0f, 0.2f, 1.0f, 0.5f );
+	BindColor( c_walls_color );
 	lines_shader_.Uniform( "view_matrix", shift_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
 
 	glEnable( GL_SCISSOR_TEST );
@@ -185,15 +195,13 @@ void MinimapDrawer::Draw(
 		m_Mat4 rotate_matrix;
 		rotate_matrix.RotateZ( view_angle );
 
-		lines_shader_.Uniform( "color", 1.0f, 0.2f, 0.2f, 0.5f );
+		BindColor( c_arrow_color );
 		lines_shader_.Uniform( "view_matrix", rotate_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
 
 		glDrawArrays( GL_LINES, arrow_vertices_offset_, g_arrow_vertices );
 	}
 	// Framing
 	{
-		lines_shader_.Uniform( "color", 0.2f, 0.2f, 0.2f, 0.5f );
-
 		m_Mat4 framing_scale_mat;
 		framing_scale_mat.Scale(
 			m_Vec3(
@@ -203,11 +211,28 @@ void MinimapDrawer::Draw(
 
 		lines_shader_.Uniform( "view_matrix", framing_scale_mat * viewport_shift_matrix );
 
-		glLineWidth( 2.0f * scale );
+		BindColor( c_framing_contour_color );
+		glLineWidth( scale * 3u );
+		glDrawArrays( GL_LINES, framing_vertices_offset_, g_framing_vertices );
+
+		BindColor( c_framing_color );
+		glLineWidth( scale );
 		glDrawArrays( GL_LINES, framing_vertices_offset_, g_framing_vertices );
 	}
 
 	glLineWidth( 1.0f );
+}
+
+void MinimapDrawer::BindColor( const unsigned char color_index )
+{
+	const Palette& palette= game_resources_->palette;
+
+	lines_shader_.Uniform(
+		"color",
+		float( palette[ color_index * 3u + 0u ] ) / 255.0f,
+		float( palette[ color_index * 3u + 1u ] ) / 255.0f,
+		float( palette[ color_index * 3u + 2u ] ) / 255.0f,
+		0.7f );
 }
 
 void MinimapDrawer::UpdateDynamicWalls( const MapState& map_state )
