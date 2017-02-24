@@ -1447,7 +1447,6 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		for( MonstersContainer::value_type& monster_value : monsters_ )
 		{
 			MonsterBase& monster= *monster_value.second;
-
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
 			m_Vec2 out_pos;
@@ -1460,9 +1459,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
 			if( monster.GetMovementRestriction().MovementIsBlocked( wall_normal ) )
-			{
-				monster.Hit( 100000, *this, monster_value.first, current_time );
-			}
+				monster.Hit( GameConstants::mortal_walls_damage, *this, monster_value.first, current_time );
 		}
 	}
 	// Process mortal models for monsters.
@@ -1488,9 +1485,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
 			if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
-			{
-				monster.Hit( 100000, *this, monster_value.first, current_time );
-			}
+				monster.Hit( GameConstants::mortal_walls_damage, *this, monster_value.first, current_time );
 		}
 	}
 
