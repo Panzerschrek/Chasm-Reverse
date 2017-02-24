@@ -115,6 +115,16 @@ bool MonsterBase::TryShot( const m_Vec3& from, const m_Vec3& direction_normalize
 			out_pos );
 }
 
+void MonsterBase::SetMovementRestriction( const MovementRestriction& restriction )
+{
+	movement_restriction_= restriction;
+}
+
+const MovementRestriction& MonsterBase::GetMovementRestriction() const
+{
+	return movement_restriction_;
+}
+
 int MonsterBase::GetAnimation( const AnimationId id ) const
 {
 	PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );

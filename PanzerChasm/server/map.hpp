@@ -11,6 +11,7 @@
 #include "collision_index.hpp"
 #include "backpack.hpp"
 #include "fwd.hpp"
+#include "movement_restriction.hpp"
 
 namespace PanzerChasm
 {
@@ -63,7 +64,7 @@ public:
 
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
-		bool& out_on_floor ) const;
+		bool& out_on_floor, MovementRestriction& out_movement_restriction ) const;
 
 	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;
 
@@ -116,6 +117,7 @@ private:
 		m_Vec2 vert_pos[2];
 		float z;
 		unsigned char texture_id;
+		bool mortal= false;
 	};
 
 	typedef std::vector<DynamicWall> DynamicWalls;
@@ -147,6 +149,7 @@ private:
 		unsigned int current_animation_frame;
 
 		bool picked= false; // For keys.
+		bool mortal= false;
 		std::unique_ptr<RotatingLightEffect> linked_rotating_light;
 	};
 

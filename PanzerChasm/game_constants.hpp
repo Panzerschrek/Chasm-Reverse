@@ -32,6 +32,7 @@ constexpr float player_z_pull_distance= 1.0f / 4.0f;
 
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;
+constexpr int mortal_walls_damage= 100000;
 
 const float player_max_speed= 5.0f;
 

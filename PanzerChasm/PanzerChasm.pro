@@ -62,6 +62,7 @@ SOURCES+= \
 	server/map.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
+	server/movement_restriction.cpp \
 	server/player.cpp \
 	server/server.cpp \
 	settings.cpp \
@@ -124,6 +125,7 @@ HEADERS+= \
 	server/map.hpp \
 	server/monster.hpp \
 	server/monster_base.hpp \
+	server/movement_restriction.hpp \
 	server/player.hpp \
 	server/server.hpp \
 	settings.hpp \

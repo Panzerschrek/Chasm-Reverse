@@ -3,6 +3,7 @@
 #include "../fwd.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"
+#include "movement_restriction.hpp"
 
 #include <vec.hpp>
 
@@ -35,6 +36,9 @@ public:
 	unsigned char GetBodyPartsMask() const;
 
 	bool TryShot( const m_Vec3& from, const m_Vec3& direction_normalized, m_Vec3& out_pos ) const;
+
+	void SetMovementRestriction( const MovementRestriction& restriction );
+	const MovementRestriction& GetMovementRestriction() const;
 
 	virtual void Tick(
 		Map& map,
@@ -121,6 +125,8 @@ protected:
 
 	unsigned int current_animation_= 0u;
 	unsigned int current_animation_frame_= 0u;
+
+	MovementRestriction movement_restriction_;
 };
 
 } // namespace PanzerChasm
