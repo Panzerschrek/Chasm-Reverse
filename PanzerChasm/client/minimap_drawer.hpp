@@ -5,6 +5,7 @@
 
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
+#include "fwd.hpp"
 
 namespace PanzerChasm
 {
@@ -20,7 +21,12 @@ public:
 
 	void SetMap( const MapDataConstPtr& map_data );
 
-	void Draw( const m_Vec2& camera_position, float view_angle );
+	void Draw(
+		const MapState& map_state,
+		const m_Vec2& camera_position, float view_angle );
+
+private:
+	void UpdateDynamicWalls( const MapState& map_state );
 
 private:
 	typedef m_Vec2 WallLineVertex;

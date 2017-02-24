@@ -3,6 +3,7 @@
 
 #include "../game_constants.hpp"
 #include "../map_loader.hpp"
+#include "map_state.hpp"
 
 #include "minimap_drawer.hpp"
 
@@ -125,8 +126,12 @@ void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
 	walls_buffer_.SetPrimitiveType( GL_LINES );
 }
 
-void MinimapDrawer::Draw( const m_Vec2& camera_position, const float view_angle )
+void MinimapDrawer::Draw(
+	const MapState& map_state,
+	const m_Vec2& camera_position, const float view_angle )
 {
+	UpdateDynamicWalls( map_state );
+
 	const float c_left_offset_px= 16.0f;
 	const float c_top_offset_px= 16.0f;
 	const float c_bottom_offset_rel= 1.0f / 3.0f;
@@ -203,6 +208,24 @@ void MinimapDrawer::Draw( const m_Vec2& camera_position, const float view_angle 
 	}
 
 	glLineWidth( 1.0f );
+}
+
+void MinimapDrawer::UpdateDynamicWalls( const MapState& map_state )
+{
+	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
+
+	dynamic_walls_vertices_.resize( dynamic_walls.size() * 2u );
+
+	for( unsigned int w= 0u; w < dynamic_walls.size(); w++ )
+	{
+		dynamic_walls_vertices_[ w * 2u + 0u ]= dynamic_walls[w].vert_pos[0];
+		dynamic_walls_vertices_[ w * 2u + 1u ]= dynamic_walls[w].vert_pos[1];
+	}
+
+	walls_buffer_.VertexSubData(
+		dynamic_walls_vertices_.data(),
+		dynamic_walls_vertices_.size() * sizeof(WallLineVertex),
+		first_dynamic_walls_vertex_ * sizeof(WallLineVertex) );
 }
 
 } // namespace PanzerChasm

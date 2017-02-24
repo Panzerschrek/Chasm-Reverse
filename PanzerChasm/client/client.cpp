@@ -189,7 +189,7 @@ void Client::Draw()
 		}
 
 		if( minimap_mode_ )
-			minimap_drawer_.Draw( player_position_.xy(), camera_controller_.GetViewAngleZ() );
+			minimap_drawer_.Draw( *map_state_, player_position_.xy(), camera_controller_.GetViewAngleZ() );
 
 		hud_drawer_.DrawCrosshair();
 		hud_drawer_.DrawCurrentMessage( current_tick_time_ );
