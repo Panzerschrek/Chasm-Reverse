@@ -213,7 +213,9 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 
 	const float c_pix_scale= 1.0f / 1024.0f;
 
-	angle_.x-= exp_sensetivity * c_pix_scale * float(delta_x);
+	const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -1.0f : +1.0f;
+
+	angle_.x-= exp_sensetivity * c_pix_scale * float(delta_x) * z_direction;
 	angle_.z-= exp_sensetivity * c_pix_scale * float(delta_z);
 }
 
