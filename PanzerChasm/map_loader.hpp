@@ -38,6 +38,8 @@ public:
 	static constexpr unsigned int c_max_map_sounds= 32u;
 	static constexpr unsigned int c_max_map_ambients= 32u;
 
+	static constexpr unsigned int c_first_transparent_texture_id= 87u;
+
 public:
 	struct Wall
 	{

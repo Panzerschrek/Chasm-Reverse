@@ -7,6 +7,8 @@
 #include "hud_drawer.hpp"
 #include "map_drawer.hpp"
 #include "map_state.hpp"
+#include "minimap_drawer.hpp"
+#include "minimap_state.hpp"
 #include "movement_controller.hpp"
 #include "weapon_state.hpp"
 
@@ -81,11 +83,13 @@ private:
 	Messages::PlayerState player_state_;
 	unsigned int requested_weapon_index_= 0u;
 	MovementController camera_controller_;
-	bool map_mode_= false;
+	bool minimap_mode_= false;
 
 	MapDrawer map_drawer_;
+	MinimapDrawer minimap_drawer_;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
+	std::unique_ptr<MinimapState> minimap_state_;
 
 	WeaponState weapon_state_;
 	bool shoot_pressed_= false;
