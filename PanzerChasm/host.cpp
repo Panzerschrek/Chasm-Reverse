@@ -74,11 +74,18 @@ Host::Host( const int argc, const char* const* const argv )
 		commands_processor_.RegisterCommands( host_commands_ );
 	}
 
+	base_window_title_= "PanzerChasm";
+
 	{
 		Log::Info( "Read game archive" );
 		const char* const addon_path= program_arguments_.GetParamValue( "addon" );
 		if( addon_path != nullptr )
+		{
+			base_window_title_+= " - ";
+			base_window_title_+= addon_path;
+
 			Log::Info( "Trying to load addon \"", addon_path, "\"" );
+		}
 
 		vfs_= std::make_shared<Vfs>( "CSM.BIN", addon_path );
 	}
@@ -89,6 +96,7 @@ Host::Host( const int argc, const char* const* const argv )
 	net_.reset( new Net() );
 
 	system_window_.reset( new SystemWindow( settings_ ) );
+	system_window_->SetTitle( base_window_title_ );
 
 	rSetShadersDir( "shaders" );
 	{
@@ -261,6 +269,9 @@ void Host::ConnectToServer(
 	}
 
 	client_->SetConnection( connection );
+
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ + " - multiplayer client" );
 }
 
 void Host::StartServer(
@@ -305,6 +316,9 @@ void Host::StartServer(
 		loopback_buffer_->RequestConnect();
 		client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
 	}
+
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ + ( dedicated ? " - multiplayer dedicated server" : " - multiplayer server" ) );
 }
 
 void Host::NewGameCommand( const CommandsArguments& args )
@@ -371,6 +385,9 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 
 	// Make client working with loopback buffer connection.
 	client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
+
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )
@@ -448,6 +465,9 @@ void Host::EnsureLoopbackBuffer()
 
 void Host::ClearBeforeGameStart()
 {
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ );
+
 	if( client_ != nullptr )
 		client_->SetConnection( nullptr );
 

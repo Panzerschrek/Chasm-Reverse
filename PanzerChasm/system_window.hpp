@@ -34,6 +34,8 @@ public:
 	// May wait for vsync.
 	void SwapBuffers();
 
+	void SetTitle( const std::string& title );
+
 	void GetInput( SystemEvents& out_events );
 	void GetKeyboardState( KeyboardState& out_keyboard_state );
 	void CaptureMouse( bool need_capture );

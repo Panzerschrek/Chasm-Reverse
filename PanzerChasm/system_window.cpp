@@ -213,6 +213,11 @@ void SystemWindow::SwapBuffers()
 	SDL_GL_SwapWindow( window_ );
 }
 
+void SystemWindow::SetTitle( const std::string& title )
+{
+	SDL_SetWindowTitle( window_, title.c_str() );
+}
+
 void SystemWindow::GetInput( SystemEvents& out_events )
 {
 	out_events.clear();

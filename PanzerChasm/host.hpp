@@ -94,6 +94,8 @@ private:
 	std::shared_ptr<ConnectionsListenerProxy> connections_listener_proxy_; // Create it together with server.
 	std::unique_ptr<Server> local_server_;
 	std::unique_ptr<Client> client_;
+
+	std::string base_window_title_;
 };
 
 } // namespace PanzerChasm
