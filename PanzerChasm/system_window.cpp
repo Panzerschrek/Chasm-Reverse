@@ -70,7 +70,7 @@ SystemWindow::SystemWindow( Settings& settings )
 
 	GetVideoModes();
 
-	int width, height;
+	int width= 0, height= 0;
 	unsigned int frequency= 0u, display= 0u;
 	if( settings.GetOrSetBool( SettingsKeys::fullscreen, false ) )
 	{
