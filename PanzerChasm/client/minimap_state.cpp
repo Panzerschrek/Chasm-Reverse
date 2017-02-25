@@ -1,5 +1,3 @@
-#include <limits>
-
 #include <matrix.hpp>
 
 #include "../assert.hpp"
@@ -22,6 +20,7 @@ struct ClipPlane
 	// if( vertex * normal + dist > 0 ) - behind plane
 };
 
+static const float g_z_near= 1.0f / 16.0f;
 static const unsigned int g_view_buffer_size= GameConstants::min_screen_width;
 
 static void BuildViewMatrix(
@@ -30,12 +29,18 @@ static void BuildViewMatrix(
 	const float fov,
 	m_Mat4& out_matrix )
 {
-	m_Mat4 translate, rotate, perspective;
+	m_Mat4 translate, rotate, perspective, basis_change;
 	translate.Translate( m_Vec3( -camera_position, 0.0f ) );
-	rotate.RotateZ( - view_angle_z );
-	perspective.PerspectiveProjection( 1.0f, fov, 0.125f, 128.0f );
+	rotate.RotateZ( -view_angle_z );
+	perspective.PerspectiveProjection( 1.0f, fov, g_z_near, 128.0f );
 
-	out_matrix= translate * rotate * perspective;
+	basis_change.Identity();
+	basis_change[5]= 0.0f;
+	basis_change[6]= 1.0f;
+	basis_change[9]= 1.0f;
+	basis_change[10]= 0.0f;
+
+	out_matrix= translate * rotate * basis_change * perspective;
 }
 
 // Returns -1, if fully clipped
@@ -45,6 +50,8 @@ static int ClipLineSegment(
 	const ClipPlane& clip_plane,
 	m_Vec2& v0, m_Vec2& v1 /* in-out vertices */ )
 {
+	//return ( rand() % 3 ) - 1;
+
 	float dist[2];
 	bool vert_pos[2];
 
@@ -87,6 +94,7 @@ void MinimapState::Update(
 	const m_Vec2& camera_position,
 	const float view_angle_z )
 {
+	// TODO - use real field of view.
 	const float c_fov= Constants::half_pi;
 
 	// Setup buffer
@@ -97,7 +105,7 @@ void MinimapState::Update(
 	for( unsigned int i= 0u; i < g_view_buffer_size; i++ )
 	{
 		screen_buffer[i].type= MapData::IndexElement::None;
-		depth_buffer[i]= std::numeric_limits<DepthType>::max();
+		depth_buffer[i]= 1.0f;
 	}
 
 	// Create view matrix
@@ -106,13 +114,14 @@ void MinimapState::Update(
 
 	// Setup clip planes
 	const unsigned int c_clip_planes= 3u;
-	ClipPlane clip_planes[c_clip_planes];
+	ClipPlane clip_planes[ c_clip_planes ];
 	{
-		const float plane_1_angle= view_angle_z + Constants::half_pi - 0.5f * c_fov;
-		const float plane_2_angle= view_angle_z + Constants::half_pi + 0.5f * c_fov;
+		const float c_rot= Constants::half_pi; // I Don`t know why, but this needs.
+		const float plane_1_angle= c_rot + view_angle_z + ( Constants::half_pi - 0.5f * c_fov );
+		const float plane_2_angle= c_rot + view_angle_z - ( Constants::half_pi - 0.5f * c_fov );
 
-		clip_planes[0].normal= m_Vec2( std::cos( view_angle_z ), std::sin( view_angle_z ) );
-		clip_planes[0].dist= -( clip_planes[0].normal * camera_position );
+		clip_planes[0].normal= m_Vec2( std::cos( c_rot + view_angle_z ), std::sin( c_rot + view_angle_z ) );
+		clip_planes[0].dist= -( clip_planes[0].normal * camera_position + g_z_near );
 
 		clip_planes[1].normal= m_Vec2( std::cos( plane_1_angle ), std::sin( plane_1_angle ) );
 		clip_planes[1].dist= -( clip_planes[1].normal * camera_position );
@@ -121,15 +130,15 @@ void MinimapState::Update(
 		clip_planes[2].dist= -( clip_planes[2].normal * camera_position );
 	}
 
-
 	const auto draw_wall=
 	[&]( const m_Vec2& v0, const m_Vec2& v1, const MapData::IndexElement& wall_index )
 	{
 		m_Vec2 v0_clipped= v0;
 		m_Vec2 v1_clipped= v1;
-		for( unsigned int i= 0u; i < 3u; i++ )
+
+		for( unsigned int p= 0u; p < 3u; p++ )
 		{
-			const int clip_result= ClipLineSegment( clip_planes[i], v0_clipped, v1_clipped );
+			const int clip_result= ClipLineSegment( clip_planes[p], v0_clipped, v1_clipped );
 			if( clip_result == -1 )
 				return;
 		}
@@ -147,30 +156,32 @@ void MinimapState::Update(
 		float v0_depth, v1_depth;
 		float v0_x= ( v0_projected.x + 1.0f ) * ( 0.5f * float(g_view_buffer_size) );
 		float v1_x= ( v1_projected.x + 1.0f ) * ( 0.5f * float(g_view_buffer_size) );
-		if( v0_x > v1_x )
+		if( v0_x < v1_x )
+		{
+			v0_depth= v0_projected.z;
+			v1_depth= v1_projected.z;
+		}
+		else if( v0_x > v1_x )
 		{
 			std::swap( v0_x, v1_x );
 			v0_depth= v1_projected.z;
 			v1_depth= v0_projected.z;
 		}
-		else if( v1_x > v0_x )
-		{
-			v0_depth= v0_projected.z;
-			v1_depth= v1_projected.z;
-		}
 		else
 			return;
 
 		const float d_depth_dx= ( v1_depth - v0_depth ) / ( v1_x - v0_x );
-		const int x_start= std::max( 0, static_cast<int>(v0_x + 0.5f) );
-		const int x_end= std::min( static_cast<int>(v1_x + 0.5f), int(g_view_buffer_size) );
+		const int x_start= std::max( 0, static_cast<int>(std::round(v0_x)) );
+		const int x_end= std::min( static_cast<int>(std::round(v1_x)), int(g_view_buffer_size) );
 		const float depth_start= v0_depth + ( float(x_start) + 0.5f - v0_x ) * d_depth_dx;
 		for( int x= x_start; x < x_end; x++ )
 		{
 			const float depth= depth_start + float( x - x_start ) * d_depth_dx;
-			if( depth >= depth_buffer[x] ) continue;
-			depth_buffer[x]= depth;
-			screen_buffer[x]= wall_index;
+			if( depth < depth_buffer[x] )
+			{
+				depth_buffer[x]= depth;
+				screen_buffer[x]= wall_index;
+			}
 		}
 	};
 
@@ -201,6 +212,16 @@ void MinimapState::Update(
 		else if( index_element.type == MapData::IndexElement::DynamicWall )
 			dynamic_walls_visibility_[ index_element.index ]= true;
 	}
+}
+
+const MinimapState::WallsVisibility& MinimapState::GetStaticWallsVisibility() const
+{
+	return static_walls_visibility_;
+}
+
+const MinimapState::WallsVisibility& MinimapState::GetDynamicWallsVisibility() const
+{
+	return dynamic_walls_visibility_;
 }
 
 } // namespace PanzerChasm

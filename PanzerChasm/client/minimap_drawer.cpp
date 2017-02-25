@@ -42,6 +42,8 @@ MinimapDrawer::MinimapDrawer(
 	PC_UNUSED( settings );
 	PC_ASSERT( game_resources != nullptr );
 
+	glGenTextures( 1, &visibility_texture_id_ );
+
 	lines_shader_.ShaderSource(
 		rLoadShader( "minimap_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "minimap_v.glsl", rendering_context.glsl_version ) );
@@ -51,6 +53,7 @@ MinimapDrawer::MinimapDrawer(
 
 MinimapDrawer::~MinimapDrawer()
 {
+	glDeleteTextures( 1, &visibility_texture_id_ );
 }
 
 void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -62,11 +65,13 @@ void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
 	if( map_data == nullptr )
 		return;
 
-	std::vector<WallLineVertex> vertices;
-	vertices.resize(
-		( current_map_data_->static_walls.size() + current_map_data_->dynamic_walls.size() ) * 2u +
-		g_arrow_vertices +
-		g_framing_vertices );
+	const unsigned int line_count=
+		current_map_data_->static_walls.size() +
+		current_map_data_->dynamic_walls.size() +
+		g_arrow_lines +
+		g_framing_lines;
+
+	std::vector<WallLineVertex> vertices( line_count * 2u );
 
 	first_static_walls_vertex_= 0u * 2u;
 	first_dynamic_walls_vertex_= current_map_data_->static_walls.size() * 2u;
@@ -129,13 +134,24 @@ void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
 	walls_buffer_.VertexData( vertices.data(), vertices.size() * sizeof(WallLineVertex), sizeof(WallLineVertex) );
 	walls_buffer_.VertexAttribPointer( 0, 2, GL_FLOAT, false, 0 );
 	walls_buffer_.SetPrimitiveType( GL_LINES );
+
+	// Prepare visibility texture.
+	visibility_texture_data_.resize( line_count );
+	glBindTexture( GL_TEXTURE_1D, visibility_texture_id_ );
+	glTexImage1D( GL_TEXTURE_1D, 0, GL_R8, line_count, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr );
+	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 }
 
 void MinimapDrawer::Draw(
-	const MapState& map_state,
+	const MapState& map_state, const MinimapState& minimap_state,
 	const m_Vec2& camera_position, const float view_angle )
 {
+	if( current_map_data_ == nullptr )
+		return;
+
 	UpdateDynamicWalls( map_state );
+	UpdateWallsVisibility( minimap_state );
 
 	const unsigned char c_walls_color= 15u * 16u + 8u;
 	const unsigned char c_arrow_color= 10u * 16u + 3u;
@@ -176,6 +192,10 @@ void MinimapDrawer::Draw(
 			float( int(right + left) - int(rendering_context_.viewport_size.Width ()) ) / float(rendering_context_.viewport_size.Width()),
 			float( int(rendering_context_.viewport_size.Height()) - bottom - top ) / float(rendering_context_.viewport_size.Height()),
 			0.0f ) );
+
+	glActiveTexture( GL_TEXTURE0 );
+	glBindTexture( GL_TEXTURE_1D, visibility_texture_id_ );
+	lines_shader_.Uniform( "visibility_texture", 0 );
 
 	walls_buffer_.Bind();
 
@@ -253,6 +273,29 @@ void MinimapDrawer::UpdateDynamicWalls( const MapState& map_state )
 		dynamic_walls_vertices_.data(),
 		dynamic_walls_vertices_.size() * sizeof(WallLineVertex),
 		first_dynamic_walls_vertex_ * sizeof(WallLineVertex) );
+}
+
+void MinimapDrawer::UpdateWallsVisibility( const MinimapState& minimap_state )
+{
+	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state.GetStaticWallsVisibility ();
+	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state.GetDynamicWallsVisibility();
+
+	PC_ASSERT( static_walls_visibility .size() == current_map_data_->static_walls .size() );
+	PC_ASSERT( dynamic_walls_visibility.size() == current_map_data_->dynamic_walls.size() );
+
+	for( unsigned int w= 0u; w < static_walls_visibility .size(); w++ )
+		visibility_texture_data_[ first_static_walls_vertex_  / 2u + w ]= static_walls_visibility [w] ? 255u : 0u;
+	for( unsigned int w= 0u; w < dynamic_walls_visibility.size(); w++ )
+		visibility_texture_data_[ first_dynamic_walls_vertex_ / 2u + w ]= dynamic_walls_visibility[w] ? 255u : 0u;
+
+	// Set arrow and framing visible.
+	for( unsigned int i= 0u; i < g_arrow_lines; i++ )
+		visibility_texture_data_[ arrow_vertices_offset_ / 2u + i ]= 255u;
+	for( unsigned int i= 0u; i < g_framing_lines; i++ )
+		visibility_texture_data_[ framing_vertices_offset_ / 2u + i ]= 255u;
+
+	glBindTexture( GL_TEXTURE_1D, visibility_texture_id_ );
+	glTexSubImage1D( GL_TEXTURE_1D, 0, 0, visibility_texture_data_.size(), GL_RED, GL_UNSIGNED_BYTE, visibility_texture_data_.data() );
 }
 
 } // namespace PanzerChasm

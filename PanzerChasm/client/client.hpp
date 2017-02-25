@@ -8,6 +8,7 @@
 #include "map_drawer.hpp"
 #include "map_state.hpp"
 #include "minimap_drawer.hpp"
+#include "minimap_state.hpp"
 #include "movement_controller.hpp"
 #include "weapon_state.hpp"
 
@@ -88,6 +89,7 @@ private:
 	MinimapDrawer minimap_drawer_;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
+	std::unique_ptr<MinimapState> minimap_state_;
 
 	WeaponState weapon_state_;
 	bool shoot_pressed_= false;
