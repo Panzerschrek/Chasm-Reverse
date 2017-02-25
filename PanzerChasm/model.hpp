@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+#include "assert.hpp"
 #include "vfs.hpp"
 
 namespace PanzerChasm
@@ -10,12 +11,20 @@ struct Submodel
 {
 	struct Vertex
 	{
-		float pos[3];
 		float tex_coord[2];
+		unsigned short vertex_id; // Id of anmiation vertex
 		unsigned char texture_id;
 		unsigned char alpha_test_mask; // Zero for regular polygons, 255 - for alpha-tested
 		unsigned char groups_mask; // Mask for groups. Valid only for .car models.
 	};
+
+	struct AnimationVertex
+	{
+		short pos[3];
+		short reserved[1];
+	};
+
+	SIZE_ASSERT( AnimationVertex, 8u );
 
 	typedef std::vector<Vertex> Vertices;
 
@@ -29,6 +38,7 @@ struct Submodel
 	unsigned int frame_count;
 	std::vector<Animation> animations;
 	Vertices vertices;
+	std::vector<AnimationVertex> animations_vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
 

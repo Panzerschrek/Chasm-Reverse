@@ -1137,8 +1137,8 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 
 	Model::Vertex v;
 	buffer.VertexAttribPointer(
-		0, 3, GL_FLOAT, false,
-		((char*)v.pos) - ((char*)&v) );
+		0, 1, GL_UNSIGNED_SHORT, false,
+		((char*)&v.vertex_id) - ((char*)&v) );
 
 	buffer.VertexAttribPointer(
 		1, 3, GL_FLOAT, false,
