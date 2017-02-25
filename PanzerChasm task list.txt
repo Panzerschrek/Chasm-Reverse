@@ -33,7 +33,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Boleje ekonomnoje hranenije animaçij modelej.
 * Plavnyje animaçii, po krajnej mere casti objektov.
 * Graficeskij effekt pri vystrele iz "Mega-destroyer".
-* Risovanije minikarty. Risovanije toljko vidennyh sten.
 * Otsecenije objektov po piramide vidimosti.
 * Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
 * Sglaživanije.
