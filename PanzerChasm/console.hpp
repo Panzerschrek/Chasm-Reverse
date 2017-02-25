@@ -29,8 +29,8 @@ private:
 
 private:
 	static constexpr unsigned int c_max_input_line_length= 64u;
-	static constexpr unsigned int c_max_lines= 64u;
-	static constexpr unsigned int c_max_history= 32u;
+	static constexpr unsigned int c_max_lines= 128u;
+	static constexpr unsigned int c_max_history= 64u;
 
 	CommandsProcessor& commands_processor_;
 	const DrawersPtr drawers_;
