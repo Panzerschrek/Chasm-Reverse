@@ -385,36 +385,36 @@ bool Player::TryPickupItem( const unsigned int item_id )
 	}
 	else if( a_code == ACode::Item_Life )
 	{
-		if( health_ < 100 )
+		if( health_ < GameConstants::player_nominal_health )
 		{
-			health_= std::min( health_ + 20, 100 );
+			health_= std::min( health_ + 20, GameConstants::player_nominal_health );
 			return true;
 		}
 		return false;
 	}
 	else if( a_code == ACode::Item_BigLife )
 	{
-		if( health_ < 200 )
+		if( health_ < GameConstants::player_max_health )
 		{
-			health_= std::min( health_ + 100, 200 );
+			health_= std::min( health_ + 100, GameConstants::player_max_health );
 			return true;
 		}
 		return false;
 	}
 	else if( a_code == ACode::Item_Armor )
 	{
-		if( armor_ < 200 )
+		if( armor_ < GameConstants::player_max_armor )
 		{
-			armor_= std::min( armor_ + 200, 200 );
+			armor_= std::min( armor_ + 200, GameConstants::player_max_armor );
 			return true;
 		}
 		return false;
 	}
 	else if( a_code == ACode::Item_Helmet )
 	{
-		if( armor_ < 200 )
+		if( armor_ < GameConstants::player_max_armor )
 		{
-			armor_= std::min( armor_ + 100, 200 );
+			armor_= std::min( armor_ + 100, GameConstants::player_max_armor );
 			return true;
 		}
 		return false;
@@ -436,7 +436,7 @@ bool Player::TryPickupBackpack( const Backpack& backpack )
 	have_blue_key_ = have_blue_key_  || backpack.blue_key ;
 
 	armor_+= backpack.armor;
-	if( armor_ > 200 ) armor_= 200;
+	if( armor_ > GameConstants::player_max_armor ) armor_= GameConstants::player_max_armor;
 
 	// TODO - return if really something new picked.
 	return true;
@@ -529,7 +529,10 @@ void Player::SetGodMode( const bool god_mode )
 {
 	god_mode_= god_mode;
 	if( god_mode_ )
-		health_= armor_= 200;
+	{
+		health_= GameConstants::player_max_health;
+		armor_= GameConstants::player_max_armor;
+	}
 }
 
 bool Player::IsFullyDead() const
@@ -544,6 +547,17 @@ void Player::GiveWeapon()
 		have_weapon_[w]= true;
 		ammo_[w]= game_resources_->weapons_description[w].limit;
 	}
+}
+
+void Player::GiveAmmo()
+{
+	for( unsigned int w= 0u; w < GameConstants::weapon_count; w++ )
+		ammo_[w]= game_resources_->weapons_description[w].limit;
+}
+
+void Player::GiveArmor()
+{
+	armor_= GameConstants::player_max_armor;
 }
 
 void Player::GiveRedKey()

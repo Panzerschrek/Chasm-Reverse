@@ -59,6 +59,8 @@ public:
 	bool IsFullyDead() const;
 
 	void GiveWeapon();
+	void GiveAmmo();
+	void GiveArmor();
 
 	void GiveRedKey();
 	void GiveGreenKey();

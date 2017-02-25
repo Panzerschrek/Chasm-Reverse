@@ -23,6 +23,10 @@ constexpr float mines_explosion_radius= 2.3f;
 constexpr int mines_damage= 140;
 constexpr float mines_preparation_time_s= 1.5f;
 
+constexpr int player_nominal_health= 100;
+constexpr int player_max_health= 200;
+constexpr int player_max_armor= 200;
+
 constexpr float player_eyes_level= 0.75f; // From ground
 constexpr float player_deathcam_level= 1.4f;
 constexpr float player_height= 0.9f;

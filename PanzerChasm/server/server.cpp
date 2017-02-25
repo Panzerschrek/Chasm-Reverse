@@ -312,10 +312,18 @@ void Server::UpdateTimes()
 
 void Server::GiveAmmo()
 {
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player->GiveAmmo();
+
+	Log::Info( "ammo added" );
 }
 
 void Server::GiveArmor()
 {
+	for( const ConnectedPlayerPtr& connected_player : players_ )
+		connected_player->player->GiveArmor();
+
+	Log::Info( "armor added" );
 }
 
 void Server::GiveWeapon()
