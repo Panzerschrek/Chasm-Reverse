@@ -20,7 +20,6 @@ const float g_floor_light_scale=        0.5f * g_full_light_intensity / 128.0f;
 const float g_walls_light_scale= 1.5f * 0.5f * g_full_light_intensity / 128.0f;
 
 const float g_normal_scale= 126.5f;
-const unsigned char g_first_transparent_texture_id= 87u;
 
 const unsigned int g_wall_lightmap_size= 32u;
 const Size2 g_walls_lightmap_atlas_size(
@@ -170,7 +169,7 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 
 		for( const MapData::Wall& wall : map_data_->static_walls )
 		{
-			if( wall.texture_id >= g_first_transparent_texture_id )
+			if( wall.texture_id >= MapData::c_first_transparent_texture_id )
 				continue;
 			if( map_data_->walls_textures[ wall.texture_id ].file_path[0] == '\0' )
 				continue;

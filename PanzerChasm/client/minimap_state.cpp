@@ -188,6 +188,9 @@ void MinimapState::Update(
 	// Draw static walls
 	for( const MapData::Wall& wall : map_data_->static_walls )
 	{
+		if( wall.texture_id >= MapData::c_first_transparent_texture_id )
+			continue;
+
 		MapData::IndexElement index;
 		index.type= MapData::IndexElement::StaticWall;
 		index.index= &wall - map_data_->static_walls.data();
@@ -198,6 +201,9 @@ void MinimapState::Update(
 	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
 	for( const MapState::DynamicWall& wall : dynamic_walls )
 	{
+		if( wall.texture_id >= MapData::c_first_transparent_texture_id )
+			continue;
+
 		MapData::IndexElement index;
 		index.type= MapData::IndexElement::DynamicWall;
 		index.index= &wall - dynamic_walls.data();
