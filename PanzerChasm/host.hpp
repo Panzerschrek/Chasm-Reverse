@@ -50,6 +50,7 @@ private:
 	void NewGameCommand( const CommandsArguments& args );
 	void RunLevelCommand( const CommandsArguments& args );
 	void ConnectCommand( const CommandsArguments& args );
+	void DisconnectCommand();
 	void RunServerCommand( const CommandsArguments& args );
 
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );

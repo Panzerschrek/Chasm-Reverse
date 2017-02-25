@@ -68,6 +68,7 @@ Host::Host( const int argc, const char* const* const argv )
 		commands->emplace( "new", std::bind( &Host::NewGameCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "go", std::bind( &Host::RunLevelCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "connect", std::bind( &Host::ConnectCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "disconnect", std::bind( &Host::DisconnectCommand, this ) );
 		commands->emplace( "runserver", std::bind( &Host::RunServerCommand, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
@@ -356,6 +357,11 @@ void Host::ConnectCommand( const CommandsArguments& args )
 	}
 
 	ConnectToServer( args[0].c_str(), Net::c_default_client_tcp_port, Net::c_default_client_udp_port );
+}
+
+void Host::DisconnectCommand()
+{
+	ClearBeforeGameStart();
 }
 
 void Host::RunServerCommand( const CommandsArguments& args )
