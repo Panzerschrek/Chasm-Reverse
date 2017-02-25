@@ -215,7 +215,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 	Model::Animation& anim= out_model.animations.back();
 
 	anim.id= 0u;
-	anim.first_frame= out_model.frame_count;
+	anim.first_frame= 0u;
 	anim.frame_count= out_model.frame_count;
 }
 

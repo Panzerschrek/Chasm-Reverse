@@ -158,6 +158,7 @@ SOURCES+= \
 	../panzer_ogl_lib/glsl_program.cpp \
 	../panzer_ogl_lib/matrix.cpp \
 	../panzer_ogl_lib/ogl_state_manager.cpp \
+	../panzer_ogl_lib/buffer_texture.cpp \
 
 HEADERS+= \
 	../Common/files.hpp \
@@ -172,3 +173,4 @@ HEADERS+= \
 	../panzer_ogl_lib/glsl_program.hpp \
 	../panzer_ogl_lib/matrix.hpp \
 	../panzer_ogl_lib/bbox.hpp \
+	../panzer_ogl_lib/buffer_texture.hpp \
