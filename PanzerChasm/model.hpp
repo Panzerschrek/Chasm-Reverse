@@ -9,6 +9,8 @@ namespace PanzerChasm
 
 struct Submodel
 {
+	// All vertex structures are in GPU-friendly format.
+
 	struct Vertex
 	{
 		float tex_coord[2];
@@ -16,7 +18,11 @@ struct Submodel
 		unsigned char texture_id;
 		unsigned char alpha_test_mask; // Zero for regular polygons, 255 - for alpha-tested
 		unsigned char groups_mask; // Mask for groups. Valid only for .car models.
+
+		unsigned char reserved[3];
 	};
+
+	SIZE_ASSERT( Vertex, 16u );
 
 	struct AnimationVertex
 	{
