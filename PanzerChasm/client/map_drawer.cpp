@@ -201,11 +201,29 @@ MapDrawer::MapDrawer(
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
 	PrepareSkyGeometry();
 
+	// Check buffer textures limitations.
+	// Buffer textures used for models animations vertices.
+	{
+		GLint max_texture_buffer_size;
+		glGetIntegerv( GL_MAX_TEXTURE_BUFFER_SIZE, &max_texture_buffer_size );
+
+		Log::Info( "GL_MAX_TEXTURE_BUFFER_SIZE is ", max_texture_buffer_size );
+
+		const int c_min_required_size= 2 * 1024 * 1024;
+
+		if( max_texture_buffer_size < c_min_required_size )
+		{
+			Log::Warning( "Warning, GL_MAX_TEXTURE_BUFFER_SIZE is too small, required at least ", c_min_required_size );
+			// TODO - use fallback here, if buffer textures size limit is so small.
+		}
+	}
+
 	// Items
 	LoadModels(
 		game_resources_->items_models,
 		items_geometry_,
 		items_geometry_data_,
+		items_animations_,
 		items_textures_array_id_ );
 
 	// Monsters
@@ -216,6 +234,7 @@ MapDrawer::MapDrawer(
 		game_resources_->rockets_models,
 		rockets_geometry_,
 		rockets_geometry_data_,
+		rockets_animations_,
 		rockets_textures_array_id_ );
 
 	// Weapons
@@ -223,6 +242,7 @@ MapDrawer::MapDrawer(
 		game_resources_->weapons_models,
 		weapons_geometry_,
 		weapons_geometry_data_,
+		weapons_animations_,
 		weapons_textures_array_id_ );
 
 	// Shaders
@@ -267,7 +287,7 @@ MapDrawer::MapDrawer(
 		models_shader_.ShaderSource(
 			rLoadShader( "static_light/models_f.glsl", rendering_context.glsl_version ),
 			rLoadShader( "static_light/models_v.glsl", rendering_context.glsl_version ));
-	models_shader_.SetAttribLocation( "pos", 0u );
+	models_shader_.SetAttribLocation( "vertex_id", 0u );
 	models_shader_.SetAttribLocation( "tex_coord", 1u );
 	models_shader_.SetAttribLocation( "tex_id", 2u );
 	models_shader_.SetAttribLocation( "alpha_test_mask", 3u );
@@ -288,7 +308,7 @@ MapDrawer::MapDrawer(
 		monsters_shader_.ShaderSource(
 			rLoadShader( "static_light/monsters_f.glsl", rendering_context.glsl_version ),
 			rLoadShader( "static_light/monsters_v.glsl", rendering_context.glsl_version ) );
-	monsters_shader_.SetAttribLocation( "pos", 0u );
+	monsters_shader_.SetAttribLocation( "vertex_id", 0u );
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
 	monsters_shader_.SetAttribLocation( "alpha_test_mask", 3u );
@@ -335,6 +355,7 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 		map_data->models,
 		models_geometry_,
 		models_geometry_data_,
+		models_animations_,
 		models_textures_array_id_ );
 
 	// Sky
@@ -438,6 +459,9 @@ void MapDrawer::DrawWeapon(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
+	weapons_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
 	m_Mat4 shift_mat;
 	const m_Vec3 additional_shift=
 		c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
@@ -470,16 +494,17 @@ void MapDrawer::DrawWeapon(
 			return;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			model_geometry.vertex_count * frame;
+
+		models_shader_.Uniform(
+			"first_animation_vertex_number",
+			int( model_geometry.first_animations_vertex + model_geometry.animations_vertex_count * frame ) );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	};
 
 	glDepthRange( 0.0f, 1.0f / 8.0f );
@@ -868,6 +893,7 @@ void MapDrawer::LoadModels(
 	const std::vector<Model>& models,
 	std::vector<ModelGeometry>& out_geometry,
 	r_PolygonBuffer& out_geometry_data,
+	r_BufferTexture& out_animations_buffer,
 	GLuint& out_textures_array ) const
 {
 	const Palette& palette= game_resources_->palette;
@@ -884,6 +910,7 @@ void MapDrawer::LoadModels(
 
 	std::vector<unsigned  short> indeces;
 	std::vector<Model::Vertex> vertices;
+	std::vector<Model::AnimationVertex> animations_vertices;
 
 	for( unsigned int m= 0u; m < model_count; m++ )
 	{
@@ -935,6 +962,14 @@ void MapDrawer::LoadModels(
 				float(textures_placement.textures_placement[m].y) / float(c_texture_size[1]);
 		}
 
+		// Copy animations vertices.
+		const unsigned int first_animation_vertex_index= animations_vertices.size();
+		animations_vertices.resize( animations_vertices.size() + model.animations_vertices.size() );
+		std::memcpy(
+			animations_vertices.data() + first_animation_vertex_index,
+			model.animations_vertices.data(),
+			model.animations_vertices.size() * sizeof( Model::AnimationVertex ) );
+
 		// Copy indeces.
 		const unsigned int first_index= indeces.size();
 		indeces.resize( indeces.size() + model.regular_triangles_indeces.size() + model.transparent_triangles_indeces.size() );
@@ -952,7 +987,10 @@ void MapDrawer::LoadModels(
 
 		// Setup geometry info.
 		model_geometry.frame_count= model.frame_count;
-		model_geometry.vertex_count= model.frame_count == 0u ? 0u : ( model.vertices.size() / model.frame_count );
+		model_geometry.animations_vertex_count= model.frame_count == 0u ? 0u : model.animations_vertices.size() / model.frame_count;
+		model_geometry.first_animations_vertex= first_animation_vertex_index;
+
+		model_geometry.vertex_count= model.vertices.size();
 		model_geometry.first_vertex_index= first_vertex_index;
 
 		model_geometry.first_index= first_index;
@@ -974,6 +1012,13 @@ void MapDrawer::LoadModels(
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
+	// Prepare animations buffer
+	out_animations_buffer=
+		r_BufferTexture(
+			r_BufferTexture::PixelFormat::RGBA16I,
+			animations_vertices.size() * sizeof( Model::AnimationVertex ),
+			animations_vertices.data() );
+
 	PrepareModelsPolygonBuffer( vertices, indeces, out_geometry_data );
 }
 
@@ -988,6 +1033,7 @@ void MapDrawer::LoadMonstersModels()
 
 	std::vector<unsigned  short> indeces;
 	std::vector<Model::Vertex> vertices;
+	std::vector<Model::AnimationVertex> animations_vertices;
 
 	// TODO - load gibs from models.
 	for( unsigned int m= 0u; m < monsters_models_.size(); m++ )
@@ -1026,6 +1072,14 @@ void MapDrawer::LoadMonstersModels()
 				submodel.vertices.data(),
 				submodel.vertices.size() * sizeof(Model::Vertex) );
 
+			// Copy animations vertices.
+			const unsigned int first_animation_vertex_index= animations_vertices.size();
+			animations_vertices.resize( animations_vertices.size() + submodel.animations_vertices.size() );
+			std::memcpy(
+				animations_vertices.data() + first_animation_vertex_index,
+				submodel.animations_vertices.data(),
+				submodel.animations_vertices.size() * sizeof( Model::AnimationVertex ) );
+
 			// Copy indeces.
 			const unsigned int first_index= indeces.size();
 			indeces.resize( indeces.size() + submodel.regular_triangles_indeces.size() + submodel.transparent_triangles_indeces.size() );
@@ -1043,7 +1097,10 @@ void MapDrawer::LoadMonstersModels()
 
 			// Setup geometry info.
 			model_geometry.frame_count= submodel.frame_count;
-			model_geometry.vertex_count= submodel.frame_count == 0u ? 0u : submodel.vertices.size() / submodel.frame_count;
+			model_geometry.animations_vertex_count= submodel.frame_count == 0u ? 0u : submodel.animations_vertices.size() / submodel.frame_count;
+			model_geometry.first_animations_vertex= first_animation_vertex_index;
+
+			model_geometry.vertex_count= submodel.vertices.size();
 			model_geometry.first_vertex_index= first_vertex_index;
 
 			model_geometry.first_index= first_index;
@@ -1059,6 +1116,13 @@ void MapDrawer::LoadMonstersModels()
 		for( unsigned int s= 0u; s < 3u; s++ )
 			prepare_geometry( in_model.submodels[s], out_model.submodels_geometry_description[s] );
 	}
+
+	// Prepare animations buffer
+	monsters_animations_=
+		r_BufferTexture(
+			r_BufferTexture::PixelFormat::RGBA16I,
+			animations_vertices.size() * sizeof( Model::AnimationVertex ),
+			animations_vertices.data() );
 
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );
 }
@@ -1136,9 +1200,9 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 		GL_TRIANGLES );
 
 	Model::Vertex v;
-	buffer.VertexAttribPointer(
-		0, 3, GL_FLOAT, false,
-		((char*)v.pos) - ((char*)&v) );
+	buffer.VertexAttribPointerInt(
+		0, 1, GL_UNSIGNED_SHORT,
+		((char*)&v.vertex_id) - ((char*)&v) );
 
 	buffer.VertexAttribPointer(
 		1, 3, GL_FLOAT, false,
@@ -1218,6 +1282,9 @@ void MapDrawer::DrawModels(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
+	models_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
 		if( static_model.model_id >= models_geometry_.size() ||
@@ -1231,9 +1298,9 @@ void MapDrawer::DrawModels(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			static_model.animation_frame * model_geometry.vertex_count;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			model_geometry.animations_vertex_count * static_model.animation_frame;
 
 		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
@@ -1243,13 +1310,14 @@ void MapDrawer::DrawModels(
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
+		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 
@@ -1267,6 +1335,9 @@ void MapDrawer::DrawItems(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
+	items_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
 	for( const MapState::Item& item : map_state.GetItems() )
 	{
 		if( item.picked_up || item.item_id >= items_geometry_.size() )
@@ -1279,9 +1350,9 @@ void MapDrawer::DrawItems(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			item.animation_frame * model_geometry.vertex_count;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			model_geometry.animations_vertex_count * item.animation_frame;
 
 		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
@@ -1291,13 +1362,14 @@ void MapDrawer::DrawItems(
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
+		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 
@@ -1314,6 +1386,9 @@ void MapDrawer::DrawDynamicItems(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
+	items_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
 	for( const MapState::DynamicItemsContainer::value_type& item_value : map_state.GetDynamicItems() )
 	{
 		const MapState::DynamicItem& item= item_value.second;
@@ -1325,9 +1400,9 @@ void MapDrawer::DrawDynamicItems(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			item.frame * model_geometry.vertex_count;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			model_geometry.animations_vertex_count * item.frame;
 
 		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
@@ -1337,6 +1412,7 @@ void MapDrawer::DrawDynamicItems(
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		models_shader_.Uniform( "rotation_matrix", rotation_matrix );
+		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
 		( item.fullbright ? map_light_.GetFullbrightLightmapDummy() : *active_lightmap_ ).Bind(1);
 
@@ -1345,7 +1421,7 @@ void MapDrawer::DrawDynamicItems(
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 
@@ -1360,6 +1436,9 @@ void MapDrawer::DrawMonsters(
 
 	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
+
+	monsters_animations_.Bind(2);
+	monsters_shader_.Uniform( "animations_vertices_buffer", int(2) );
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
 	{
@@ -1383,9 +1462,9 @@ void MapDrawer::DrawMonsters(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			frame * model_geometry.vertex_count;
+		const unsigned int first_animations_vertex=
+			model_geometry.first_animations_vertex +
+			frame * model_geometry.animations_vertex_count;
 
 		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
@@ -1396,6 +1475,7 @@ void MapDrawer::DrawMonsters(
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
 		monsters_shader_.Uniform( "rotation_matrix", rotation_matrix );
+		monsters_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
@@ -1405,7 +1485,7 @@ void MapDrawer::DrawMonsters(
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 
@@ -1419,6 +1499,9 @@ void MapDrawer::DrawMonstersBodyParts(
 
 	active_lightmap_->Bind(1);
 	monsters_shader_.Uniform( "lightmap", int(1) );
+
+	monsters_animations_.Bind(2);
+	monsters_shader_.Uniform( "animations_vertices_buffer", int(2) );
 
 	for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
 	{
@@ -1436,9 +1519,9 @@ void MapDrawer::DrawMonstersBodyParts(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			frame * model_geometry.vertex_count;
+		const unsigned int first_animations_vertex=
+			model_geometry.first_animations_vertex +
+			frame * model_geometry.animations_vertex_count;
 
 		m_Mat4 model_matrix, rotation_matrix;
 		m_Mat3 lightmap_matrix;
@@ -1449,6 +1532,7 @@ void MapDrawer::DrawMonstersBodyParts(
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
 		monsters_shader_.Uniform( "rotation_matrix", rotation_matrix );
+		monsters_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
 
 		monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
@@ -1458,7 +1542,7 @@ void MapDrawer::DrawMonstersBodyParts(
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 
@@ -1476,6 +1560,9 @@ void MapDrawer::DrawRockets(
 	models_shader_.Uniform( "tex", int(0) );
 	models_shader_.Uniform( "lightmap", int(1) );
 
+	rockets_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
 	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
 	{
 		const MapState::Rocket& rocket= rocket_value.second;
@@ -1488,9 +1575,9 @@ void MapDrawer::DrawRockets(
 			continue;
 
 		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
-		const unsigned int first_vertex=
-			model_geometry.first_vertex_index +
-			rocket.frame * model_geometry.vertex_count;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			rocket.frame * model_geometry.animations_vertex_count;
 
 		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
 		rotate_max_x.RotateX( rocket.angle[1] );
@@ -1504,6 +1591,7 @@ void MapDrawer::DrawRockets(
 		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
 		models_shader_.Uniform( "rotation_matrix", rotate_mat );
+		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
 		if( game_resources_->rockets_description[ rocket.rocket_id ].fullbright )
 			map_light_.GetFullbrightLightmapDummy().Bind(1);
@@ -1515,7 +1603,7 @@ void MapDrawer::DrawRockets(
 			index_count,
 			GL_UNSIGNED_SHORT,
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
-			first_vertex );
+			model_geometry.first_vertex_index );
 	}
 }
 

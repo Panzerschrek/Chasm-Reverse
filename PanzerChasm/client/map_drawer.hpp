@@ -1,5 +1,6 @@
 #pragma once
 
+#include <buffer_texture.hpp>
 #include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <polygon_buffer.hpp>
@@ -49,10 +50,15 @@ private:
 	struct ModelGeometry
 	{
 		unsigned int frame_count;
+		unsigned int animations_vertex_count;
+		unsigned int first_animations_vertex;
+
 		unsigned int vertex_count;
 		unsigned int first_vertex_index;
+
 		unsigned int first_index;
 		unsigned int index_count;
+
 		unsigned int first_transparent_index;
 		unsigned int transparent_index_count;
 	};
@@ -79,6 +85,7 @@ private:
 		const std::vector<Model>& models,
 		std::vector<ModelGeometry>& out_geometry,
 		r_PolygonBuffer& out_geometry_data,
+		r_BufferTexture& out_animations_buffer,
 		GLuint& out_textures_array ) const;
 
 	void LoadMonstersModels();
@@ -170,21 +177,26 @@ private:
 
 	std::vector<ModelGeometry> models_geometry_;
 	r_PolygonBuffer models_geometry_data_;
+	r_BufferTexture models_animations_;
 
 	std::vector<ModelGeometry> items_geometry_;
 	r_PolygonBuffer items_geometry_data_;
+	r_BufferTexture items_animations_;
 
 	std::vector<ModelGeometry> rockets_geometry_;
 	r_PolygonBuffer rockets_geometry_data_;
+	r_BufferTexture rockets_animations_;
 
 	std::vector<ModelGeometry> weapons_geometry_;
 	r_PolygonBuffer weapons_geometry_data_;
+	r_BufferTexture weapons_animations_;
 
 	r_GLSLProgram sprites_shader_;
 
 	r_GLSLProgram monsters_shader_;
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
+	r_BufferTexture monsters_animations_;
 
 	char current_sky_texture_file_name_[32];
 	r_GLSLProgram sky_shader_;

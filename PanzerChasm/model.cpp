@@ -62,31 +62,11 @@ static const float g_3o_model_coords_scale= 1.0f / 2048.0f;
 
 static const unsigned int g_car_model_texture_width= 64u;
 
-// Swap from order
-// v0.f0 v0.f1 v0.f2  v1.f0 v1.f1 v1.f2
-// to
-// v0.f0 v1.f0  v0.f1 v1.f1  v0.f2 v1.f2
-static void SwapVertexOrder(
-	Model::Vertices& in_vertices,
-	const unsigned int frame_count,
-	Model::Vertices& out_vertices )
-{
-	out_vertices.resize( in_vertices.size() );
-
-	const unsigned int out_vertex_count= in_vertices.size() / frame_count;
-
-	for( unsigned int frame= 0u; frame < frame_count; frame++ )
-	{
-		for( unsigned int v= 0u; v < out_vertex_count; v++ )
-			out_vertices[ frame * out_vertex_count + v ]=
-				in_vertices[ v * frame_count + frame ];
-	}
-}
-
 static void ClearModel( Model& model )
 {
 	model.animations.clear();
 	model.vertices.clear();
+	model.animations_vertices.clear();
 	model.regular_triangles_indeces.clear();
 	model.transparent_triangles_indeces.clear();
 	model.texture_data.clear();
@@ -158,7 +138,13 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			? 1u
 			: ( animation_file.size() - 2u ) / ( vertex_count * sizeof(Vertex_o3) );
 
-	std::vector<Model::Vertex> tmp_vertices;
+	out_model.animations_vertices.resize( out_model.frame_count * vertex_count );
+	for( unsigned int v= 0u; v < out_model.animations_vertices.size(); v++ )
+	{
+		for( unsigned int j= 0u; j < 3; j++ )
+			out_model.animations_vertices[v].pos[j]= vertices[v].xyz[j];
+	}
+
 	unsigned int current_vertex_index= 0u;
 
 	for( unsigned int p= 0u; p < polygon_count; p++ )
@@ -174,25 +160,19 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		if( polygon_is_twosided ) polygon_index_count*= 2u;
 
 		const unsigned int first_vertex_index= current_vertex_index;
-		tmp_vertices.resize( tmp_vertices.size() + polygon_vertex_count * out_model.frame_count );
-		Model::Vertex* v= tmp_vertices.data() + first_vertex_index * out_model.frame_count;
+		out_model.vertices.resize( out_model.vertices.size() + polygon_vertex_count );
+		Model::Vertex* v= out_model.vertices.data() + first_vertex_index;
 
 		const unsigned int v_offset= polygon.v_offset + v_offset_shift;
 		for( unsigned int j= 0u; j < polygon_vertex_count; j++ )
 		{
-			for( unsigned int frame= 0u; frame < out_model.frame_count; frame++ )
-			{
-				Model::Vertex& vertex= v[ frame + j * out_model.frame_count ];
-				const Vertex_o3& in_vertex= vertices[ polygon.vertices_indeces[j] + frame * vertex_count ];
+			Model::Vertex& vertex= v[j];
 
-				vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
-				vertex.tex_coord[1]= float( polygon.uv[j][1] + v_offset ) / float( out_model.texture_size[1] );
+			vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
+			vertex.tex_coord[1]= float( polygon.uv[j][1] + v_offset ) / float( out_model.texture_size[1] );
+			vertex.vertex_id= polygon.vertices_indeces[j];
 
-				for( unsigned int c= 0u; c < 3u; c++ )
-					vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
-
-				vertex.alpha_test_mask= alpha_test_mask;
-			}
+			vertex.alpha_test_mask= alpha_test_mask;
 		}
 
 		auto& dst_indeces=
@@ -230,14 +210,12 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		current_vertex_index+= polygon_vertex_count;
 	} // for polygons
 
-	SwapVertexOrder( tmp_vertices, out_model.frame_count, out_model.vertices );
-
 	// Setup animation
 	out_model.animations.resize( 1u );
 	Model::Animation& anim= out_model.animations.back();
 
 	anim.id= 0u;
-	anim.first_frame= out_model.frame_count;
+	anim.first_frame= 0u;
 	anim.frame_count= out_model.frame_count;
 }
 
@@ -335,7 +313,13 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		const Vertex_o3* const vertices, const Polygon_o3* const polygons,
 		Submodel& out_submodel )
 	{
-		std::vector<Model::Vertex> tmp_vertices;
+		out_submodel.animations_vertices.resize( out_submodel.frame_count * vertex_count );
+		for( unsigned int v= 0u; v < out_submodel.animations_vertices.size(); v++ )
+		{
+			for( unsigned int j= 0u; j < 3; j++ )
+				out_submodel.animations_vertices[v].pos[j]= vertices[v].xyz[j];
+		}
+
 		unsigned int current_vertex_index= 0u;
 
 		for( unsigned int p= 0u; p < polygon_count; p++ )
@@ -352,25 +336,18 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			if( polygon_is_twosided ) polygon_index_count*= 2u;
 
 			const unsigned int first_vertex_index= current_vertex_index;
-			tmp_vertices.resize( tmp_vertices.size() + polygon_vertex_count * out_submodel.frame_count );
-			Model::Vertex* v= tmp_vertices.data() + first_vertex_index * out_submodel.frame_count;
+			out_submodel.vertices.resize( out_submodel.vertices.size() + polygon_vertex_count );
+			Model::Vertex* v= out_submodel.vertices.data() + first_vertex_index;
 
 			for( unsigned int j= 0u; j < polygon_vertex_count; j++ )
 			{
-				for( unsigned int frame= 0u; frame < out_submodel.frame_count; frame++ )
-				{
-					Model::Vertex& vertex= v[ frame + j * out_submodel.frame_count ];
-					const Vertex_o3& in_vertex= vertices[ polygon.vertices_indeces[j] + frame * vertex_count ];
+				Model::Vertex& vertex= v[j];
 
-					vertex.tex_coord[0]= float( polygon.uv[j][0]) / float( out_model.texture_size[0] << 8u );
-					vertex.tex_coord[1]= float( polygon.uv[j][1] + 4u * polygon.v_offset ) / float( out_model.texture_size[1] << 8u );
-
-					for( unsigned int c= 0u; c < 3u; c++ )
-						vertex.pos[c]= float( in_vertex.xyz[c] ) * g_3o_model_coords_scale;
-
-					vertex.alpha_test_mask= alpha_test_mask;
-					vertex.groups_mask= groups_mask;
-				}
+				vertex.tex_coord[0]= float( polygon.uv[j][0]) / float( out_model.texture_size[0] << 8u );
+				vertex.tex_coord[1]= float( polygon.uv[j][1] + 4u * polygon.v_offset ) / float( out_model.texture_size[1] << 8u );
+				vertex.vertex_id= polygon.vertices_indeces[j];
+				vertex.alpha_test_mask= alpha_test_mask;
+				vertex.groups_mask= groups_mask;
 			}
 
 			auto& dst_indeces=
@@ -407,8 +384,6 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 			current_vertex_index+= polygon_vertex_count;
 		} // for polygons
-
-		SwapVertexOrder( tmp_vertices, out_submodel.frame_count, out_submodel.vertices );
 	};
 
 	{ // Main model

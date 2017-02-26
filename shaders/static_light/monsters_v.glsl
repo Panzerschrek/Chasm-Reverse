@@ -2,7 +2,10 @@ uniform mat4 view_matrix;
 uniform mat3 lightmap_matrix;
 uniform int enabled_groups_mask;
 
-in vec3 pos;
+uniform isamplerBuffer animations_vertices_buffer;
+uniform int first_animation_vertex_number;
+
+in int vertex_id;
 in vec2 tex_coord;
 in float alpha_test_mask;
 in int groups_mask;
@@ -14,6 +17,11 @@ out float f_discard_mask; // Polygon discard
 
 void main()
 {
+	vec3 pos=
+		vec3( texelFetch(
+			animations_vertices_buffer,
+			first_animation_vertex_number + vertex_id ).xyz ) / 2048.0;
+
 	f_tex_coord= tex_coord;
 	f_lightmap_coord= ( lightmap_matrix * vec3( pos.xy, 1.0 ) ).xy;
 	f_alpha_test_mask= alpha_test_mask;
