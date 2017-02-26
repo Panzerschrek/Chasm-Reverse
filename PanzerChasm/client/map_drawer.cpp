@@ -201,6 +201,23 @@ MapDrawer::MapDrawer(
 	LoadSprites( game_resources_->bmp_objects_sprites, bmp_objects_sprites_textures_arrays_ );
 	PrepareSkyGeometry();
 
+	// Check buffer textures limitations.
+	// Buffer textures used for models animations vertices.
+	{
+		GLint max_texture_buffer_size;
+		glGetIntegerv( GL_MAX_TEXTURE_BUFFER_SIZE, &max_texture_buffer_size );
+
+		Log::Info( "GL_MAX_TEXTURE_BUFFER_SIZE is ", max_texture_buffer_size );
+
+		const int c_min_required_size= 2 * 1024 * 1024;
+
+		if( max_texture_buffer_size < c_min_required_size )
+		{
+			Log::Warning( "Warning, GL_MAX_TEXTURE_BUFFER_SIZE is too small, required at least ", c_min_required_size );
+			// TODO - use fallback here, if buffer textures size limit is so small.
+		}
+	}
+
 	// Items
 	LoadModels(
 		game_resources_->items_models,
