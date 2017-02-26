@@ -218,7 +218,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadFloorsAndCeilings( map_file_content,*result );
 	LoadAmbientLight( map_file_content,*result );
 	LoadAmbientSoundsMap( map_file_content,*result );
-	LoadMonsters( map_file_content, *result );
+	LoadMonstersAndLights( map_file_content, *result );
 
 	// Scan resource file
 	LoadSkyTextureName( resource_file_content, *result );
@@ -388,7 +388,7 @@ void MapLoader::LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData&
 		map_data.ambient_sounds_map[ x + y * MapData::c_map_size ]= in_data[ x * MapData::c_map_size + y ];
 }
 
-void MapLoader::LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data )
+void MapLoader::LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData& map_data )
 {
 	const unsigned int c_lights_count_offset= 0x27001u;
 	const unsigned int c_lights_offset= 0x27003u;

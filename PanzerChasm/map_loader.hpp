@@ -302,7 +302,7 @@ private:
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data );
-	void LoadMonsters( const Vfs::FileContent& map_file, MapData& map_data );
+	void LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData& map_data );
 
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
