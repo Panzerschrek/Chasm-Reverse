@@ -157,6 +157,8 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 
 		if( current_map_data_ != nullptr )
 		{
+			Log::Info( "Loading sounds for map" );
+
 			// TODO reuse old sounds
 			for( unsigned int s= 0u; s < MapData::c_max_map_sounds; s++ )
 			{

@@ -183,6 +183,8 @@ void Server::Loop()
 
 bool Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty, const GameRules game_rules )
 {
+	Log::Info( "Changing server map to ", map_number );
+
 	const auto show_progress=
 	[&]( const float progress )
 	{
@@ -247,6 +249,8 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 
 void Server::DisconnectAllClients()
 {
+	Log::Info( "All clients disconnected from server" );
+
 	for( const ConnectedPlayerPtr& player : players_ )
 	{
 		if( map_ != nullptr )

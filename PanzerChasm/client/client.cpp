@@ -282,6 +282,8 @@ void Client::operator()( const Messages::MonsterSound& message )
 
 void Client::operator()( const Messages::MapChange& message )
 {
+	Log::Info( "Changing client map to ", message.map_number );
+
 	const auto show_progress=
 	[&]( const float progress )
 	{
@@ -294,8 +296,7 @@ void Client::operator()( const Messages::MapChange& message )
 	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
 	if( map_data == nullptr )
 	{
-		// TODO - handel error
-		PC_ASSERT(false);
+		Log::Warning( "Error, server requested map, which does not exist on client" );
 		return;
 	}
 

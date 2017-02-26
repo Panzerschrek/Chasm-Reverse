@@ -173,6 +173,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	if( map_number == last_loaded_map_number_ && last_loaded_map_ != nullptr )
 		return last_loaded_map_;
 
+	Log::Info( "Loading map ", map_number );
+
 	char level_path[ MapData::c_max_file_path_size ];
 	char map_file_name[ MapData::c_max_file_path_size ];
 	char resource_file_name[ MapData::c_max_file_path_size ];
@@ -195,6 +197,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 		floors_file_content.empty() ||
 		process_file_content.empty() )
 	{
+		Log::Warning( "Map ", map_number, " not found" );
 		return nullptr;
 	}
 
@@ -898,6 +901,8 @@ void MapLoader::MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out
 
 void MapLoader::LoadModels( MapData& map_data )
 {
+	Log::Info( "Loading map models" );
+
 	map_data.models.resize( map_data.models_description.size() );
 
 	Vfs::FileContent file_content;

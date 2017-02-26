@@ -625,6 +625,8 @@ void MapDrawer::LoadFloorsTextures( const MapData& map_data )
 
 void MapDrawer::LoadWallsTextures( const MapData& map_data )
 {
+	Log::Info( "Loading walls textures for map" );
+
 	const Palette& palette= game_resources_->palette;
 
 	Vfs::FileContent texture_file;
