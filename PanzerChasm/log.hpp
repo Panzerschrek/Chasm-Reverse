@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <sstream>
@@ -40,6 +41,7 @@ private:
 
 private:
 	static LogCallback log_callback_;
+	static std::ofstream log_file_;
 };
 
 template<class... Args>
@@ -62,6 +64,7 @@ void Log::FatalError( const Args&... args )
 	const std::string str= stream.str();
 
 	std::cout << str << std::endl;
+	log_file_ << str << std::endl;
 	ShowFatalMessageBox( str );
 
 	std::exit(-1);
@@ -79,10 +82,10 @@ void Log::PrinLine( const Args&... args )
 {
 	std::ostringstream stream;
 	Print( stream, args... );
-
-	std::string str= stream.str();
+	const std::string str= stream.str();
 
 	std::cout << str << std::endl;
+	log_file_ << str << std::endl;
 
 	if( log_callback_ != nullptr )
 		log_callback_( std::move(str) );

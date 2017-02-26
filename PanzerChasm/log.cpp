@@ -6,6 +6,7 @@ namespace PanzerChasm
 {
 
 Log::LogCallback Log::log_callback_;
+std::ofstream Log::log_file_{ "panzer_chasm.log" };
 
 void Log::SetLogCallback( LogCallback callback )
 {
