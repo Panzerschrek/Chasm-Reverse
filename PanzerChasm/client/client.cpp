@@ -158,6 +158,8 @@ void Client::Draw()
 {
 	if( map_state_ != nullptr )
 	{
+		PC_ASSERT( current_map_data_ != nullptr );
+
 		m_Vec3 pos= player_position_;
 		const float z_shift= camera_controller_.GetEyeZShift();
 
@@ -205,7 +207,7 @@ void Client::Draw()
 
 		hud_drawer_.DrawCrosshair();
 		hud_drawer_.DrawCurrentMessage( current_tick_time_ );
-		hud_drawer_.DrawHud( minimap_mode_ );
+		hud_drawer_.DrawHud( minimap_mode_, current_map_data_->map_name );
 	}
 }
 

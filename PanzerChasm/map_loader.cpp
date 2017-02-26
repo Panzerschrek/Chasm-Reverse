@@ -224,6 +224,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadMonstersAndLights( map_file_content, *result );
 
 	// Scan resource file
+	LoadMapName( resource_file_content, *result );
 	LoadSkyTextureName( resource_file_content, *result );
 	LoadModelsDescription( resource_file_content, *result );
 	LoadWallsTexturesDescription( resource_file_content, *result );
@@ -440,6 +441,29 @@ void MapLoader::LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData
 	}
 }
 
+void MapLoader::LoadMapName( const Vfs::FileContent& resource_file, MapData& map_data )
+{
+	map_data.map_name[0]= '\0';
+
+	const char* s= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#name" );
+	s+= std::strlen( "#name" );
+
+	// Skip '=' and spaces before '='
+	while( std::isspace(*s) ) s++;
+	s++;
+
+	char* dst= map_data.map_name;
+	while(
+		*s != '\0' &&
+		! ( *s == '\n' || *s == '\r' ) &&
+		dst < map_data.map_name + sizeof(map_data.map_name) - 1u )
+	{
+		*dst= *s; dst++; s++;
+	}
+	*dst= '\0';
+
+}
+
 void MapLoader::LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data )
 {
 	map_data.sky_texture_name[0]= '\0';
@@ -455,7 +479,10 @@ void MapLoader::LoadSkyTextureName( const Vfs::FileContent& resource_file, MapDa
 	while( std::isspace(*s) )s++;
 
 	char* dst= map_data.sky_texture_name;
-	while( *s != '\0' && !std::isspace( *s ) )
+	while(
+		*s != '\0' &&
+		!std::isspace( *s ) &&
+		dst < map_data.sky_texture_name + sizeof(map_data.sky_texture_name) - 1u )
 	{
 		*dst= *s; dst++; s++;
 	}

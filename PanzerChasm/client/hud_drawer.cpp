@@ -241,7 +241,7 @@ void HudDrawer::DrawCurrentMessage( const Time current_time )
 	}
 }
 
-void HudDrawer::DrawHud( const bool draw_second_hud )
+void HudDrawer::DrawHud( const bool draw_second_hud, const char* const map_name )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -406,6 +406,9 @@ void HudDrawer::DrawHud( const bool draw_second_hud )
 		const unsigned int c_top_y= 28u;
 		const unsigned int c_bottom_y= 14u;
 
+		const unsigned int c_text_x= 150u;
+		const unsigned int c_text_y= 27u;
+
 		if( ( player_state_.keys_mask & 1u ) != 0u )
 			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_top_y    * scale_, "\4", scale_ );
 		if( ( player_state_.keys_mask & 2u ) != 0u )
@@ -414,6 +417,15 @@ void HudDrawer::DrawHud( const bool draw_second_hud )
 			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_bottom_y * scale_, "\6", scale_ );
 		if( ( player_state_.keys_mask & 8u ) != 0u )
 			drawers_->text.Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_bottom_y * scale_, "\7", scale_ );
+
+		drawers_->text.Print(
+			hud_x + scale_ * c_text_x,
+			viewport_size_.Height() - c_text_y * scale_,
+			"Time: ", scale_ ); // TODO - print time here
+		drawers_->text.Print(
+			hud_x + scale_ * c_text_x,
+			viewport_size_.Height() - c_text_y * scale_ + scale_ * ( 3u + drawers_->text.GetLineHeight() ),
+			map_name, scale_ );
 	}
 }
 

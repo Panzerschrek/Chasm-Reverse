@@ -27,7 +27,7 @@ public:
 
 	void DrawCrosshair();
 	void DrawCurrentMessage( Time current_time );
-	void DrawHud( bool draw_second_hud );
+	void DrawHud( bool draw_second_hud, const char* map_name );
 
 private:
 	struct Vertex

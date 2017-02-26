@@ -33,6 +33,7 @@ public:
 
 	static constexpr unsigned int c_max_file_name_size= 16u;
 	static constexpr unsigned int c_max_file_path_size= 64u;
+	static constexpr unsigned int c_max_map_name_size= 64u;
 
 	 // TODO - know, how much map sounds supports original game
 	static constexpr unsigned int c_max_map_sounds= 32u;
@@ -263,6 +264,7 @@ public:
 	std::vector<Link> links;
 	std::vector<Teleport> teleports;
 
+	char map_name[ c_max_map_name_size ];
 	char sky_texture_name[ c_max_file_path_size ];
 
 	GameResources::SoundDescription map_sounds[ c_max_map_sounds ];
@@ -304,6 +306,7 @@ private:
 	void LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData& map_data );
 
+	void LoadMapName( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data );
