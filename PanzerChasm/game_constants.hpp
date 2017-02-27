@@ -13,6 +13,7 @@ constexpr unsigned int min_screen_height= 200u;
 
 constexpr unsigned int weapon_count= 8u;
 constexpr unsigned int mine_weapon_number= 6u;
+constexpr unsigned int mega_destroyer_weapon_number= 7u;
 
 constexpr unsigned int backpack_item_id= 0u;
 constexpr unsigned int mine_item_id= 30u;

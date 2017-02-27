@@ -1230,7 +1230,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 				const MonsterBasePtr& monster= it->second;
 				PC_ASSERT( monster != nullptr );
-				monster->Hit( rocket_description.power, *this, hit_result.object_index ,current_time );
+				monster->Hit(
+					rocket_description.power, rocket.normalized_direction.xy(),
+					*this,
+					hit_result.object_index ,current_time );
 			}
 		}
 
@@ -1399,7 +1402,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				// TODO - select correct monster height
 				if( !( monster.Position().z > float(cell.z_top) / 64u ||
 					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
-					monster.Hit( int( cell.damage * death_ticks ), *this, monster_value.first, current_time );
+					monster.Hit(
+						int( cell.damage * death_ticks ), m_Vec2( 0.0f, 0.0f ),
+						*this,
+						monster_value.first, current_time );
 			}
 		}
 	}
@@ -1459,7 +1465,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
 			if( monster.GetMovementRestriction().MovementIsBlocked( wall_normal ) )
-				monster.Hit( GameConstants::mortal_walls_damage, *this, monster_value.first, current_time );
+				monster.Hit(
+					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+					*this,
+					monster_value.first, current_time );
 		}
 	}
 	// Process mortal models for monsters.
@@ -1485,7 +1494,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
 			if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
-				monster.Hit( GameConstants::mortal_walls_damage, *this, monster_value.first, current_time );
+				monster.Hit(
+					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+					*this,
+					monster_value.first, current_time );
 		}
 	}
 
@@ -2237,7 +2249,10 @@ void Map::DoExplosionDamage(
 
 		const int damage= distance_to_damage(distance);
 		if( damage > 0 )
-			monster.Hit( damage, *this, monster_value.first, current_time );
+			monster.Hit(
+				damage, ( monster.Position().xy() - explosion_center.xy() ),
+				*this,
+				monster_value.first, current_time );
 	}
 
 	for( StaticModel& model : static_models_ )

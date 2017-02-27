@@ -12,6 +12,9 @@
 namespace PanzerChasm
 {
 
+static const float g_damage_acceleration_scale= 1.0f / 12.0f;
+static const float g_mega_destroyer_recoil_speed= 10.0f;
+
 Player::Player( const GameResourcesConstPtr& game_resources, const Time current_time )
 	: MonsterBase( game_resources, 0u, m_Vec3( 0.0f, 0.0f, 0.0f ), 0.0f )
 	, spawn_time_( current_time )
@@ -201,6 +204,11 @@ void Player::Tick(
 						current_time );
 				}
 
+				if( current_weapon_index_ == GameConstants::mega_destroyer_weapon_number )
+					speed_+=
+						(-g_mega_destroyer_recoil_speed) *
+						m_Vec3( view_vec_rotated.xy(), 0.0f );
+
 				map.PlayMonsterLinkedSound( monster_id, Sound::SoundId::FirstWeaponFire + current_weapon_index_ );
 			}
 
@@ -249,6 +257,7 @@ void Player::Tick(
 
 void Player::Hit(
 	const int damage,
+	const m_Vec2& hit_direction,
 	Map& map,
 	const EntityId monster_id,
 	const Time current_time )
@@ -286,6 +295,24 @@ void Player::Hit(
 		map.PlayMonsterSound(
 			monster_id,
 			random_generator_->RandBool() ? Sound::PlayerMonsterSoundId::Pain0 : Sound::PlayerMonsterSoundId::Pain1 );
+	}
+
+	// Push player, but only if hit direction length is nonzero.
+	// Zero it is for damage from environment, for example.
+
+	const float hit_direction_square_length= hit_direction.SquareLength();
+	if( hit_direction_square_length != 0.0f )
+	{
+		const m_Vec2 hit_direction_normalized= hit_direction / std::sqrt( hit_direction_square_length );
+
+		const float c_damage_acceleration_scale= 1.0f / 12.0f;
+
+		const m_Vec2 speed_delta=
+			float( std::min( damage, GameConstants::player_max_health ) ) *
+			c_damage_acceleration_scale *
+			hit_direction_normalized;
+
+		speed_+= m_Vec3( speed_delta, 0.0f );
 	}
 }
 
@@ -644,6 +671,7 @@ bool Player::Move( const Time time_delta )
 
 	// Clamp speed
 	const float new_speed_square_length= speed_.xy().SquareLength();
+	// TODO - allow bigger speed, for case of mega-destroyer recoil.
 	if( new_speed_square_length > GameConstants::player_max_speed * GameConstants::player_max_speed )
 	{
 		const float k= GameConstants::player_max_speed / std::sqrt( new_speed_square_length );

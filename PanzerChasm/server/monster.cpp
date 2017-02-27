@@ -165,7 +165,11 @@ void Monster::Tick(
 				target != nullptr &&
 				distance_for_melee_attack <= description.attack_radius  )
 			{
-				target->Hit( description.kick, map, target_.monster_id, current_time );
+				target->Hit(
+					description.kick, ( target->Position().xy() - pos_.xy() ),
+					map,
+					target_.monster_id, current_time );
+
 				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::MeleeAttack );
 
 				attack_was_done_= true;
@@ -224,10 +228,13 @@ void Monster::Tick(
 
 void Monster::Hit(
 	const int damage,
+	const m_Vec2& hit_direction,
 	Map& map,
 	const EntityId monster_id,
 	const Time current_time)
 {
+	PC_UNUSED( hit_direction );
+
 	if( state_ != State::DeathAnimation && state_ != State::Dead )
 	{
 		health_-= damage;

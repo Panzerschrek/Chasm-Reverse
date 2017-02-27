@@ -32,6 +32,7 @@ public:
 
 	virtual void Hit(
 		int damage,
+		const m_Vec2& hit_direction,
 		Map& map,
 		EntityId monster_id,
 		Time current_time ) override;
