@@ -96,6 +96,7 @@ Host::Host( const int argc, const char* const* const argv )
 
 	net_.reset( new Net() );
 
+	Log::Info( "Create system window" );
 	system_window_.reset( new SystemWindow( settings_ ) );
 	system_window_->SetTitle( base_window_title_ );
 

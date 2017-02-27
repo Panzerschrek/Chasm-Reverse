@@ -161,6 +161,8 @@ windowed:
 
 	if( fullscreen )
 	{
+		Log::Info( "Trying to switch to fullscreen mode ", width, "x", height, " ", frequency, "HZ on display ", display );
+
 		bool switched= false;
 
 		const int mode_count= SDL_GetNumDisplayModes( display );
@@ -183,12 +185,23 @@ windowed:
 		}
 
 		if( !switched ) // Abort fullscreen.
+		{
+			Log::Warning( "Can not switch to fullscreen mode, restore windowed mode" );
 			settings.SetSetting( SettingsKeys::fullscreen, false );
+		}
 	}
 
 	SDL_GL_SetSwapInterval(1);
 
 	GetGLFunctions( SDL_GL_GetProcAddress );
+
+	Log::Info("");
+	Log::Info( "OpenGL configuration: " );
+	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+	Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
+	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+	Log::Info( "Version: ", glGetString( GL_VERSION ) );
+	Log::Info("");
 }
 
 SystemWindow::~SystemWindow()
