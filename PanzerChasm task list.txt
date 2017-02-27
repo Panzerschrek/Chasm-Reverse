@@ -7,8 +7,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj".
-* Ostanovka dvižuscihsä objektov pri popadanii v ih zonu dejstvija monstrov
-  ( svojsta "checkgo" i "checkback" proçedur ).
+* Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
+  "checkback".
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
@@ -20,8 +20,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sohranenije i zagruzka igry.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
   rabotajet v originale.
-* Otdaca pri streljbe iz "Mega-destroyer". Otbrasyvanije igrokov i, vozmožno,
-  monstrov pri popadanii rakety ili puli.
 * Skriptovyje sçeny meždu urovnämi.
 
 
@@ -30,7 +28,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej.
 * Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
   proçedur.
-* Boleje ekonomnoje hranenije animaçij modelej.
 * Plavnyje animaçii, po krajnej mere casti objektov.
 * Graficeskij effekt pri vystrele iz "Mega-destroyer".
 * Otsecenije objektov po piramide vidimosti.
