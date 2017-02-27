@@ -123,7 +123,7 @@ std::string InetAddress::ToString() const
 #ifdef _WIN32
 	ip.S_un.S_addr= ::htonl( ip_address );
 #else
-	ip.s_addr= ::htonl( ip_address );
+	ip.s_addr= htonl( ip_address );
 #endif
 
 	result+= ::inet_ntoa( ip );
@@ -300,7 +300,7 @@ public: // IConnection
 		result.reserve( std::strlen( "255.255.255.255:65535") );
 
 		result+= ::inet_ntoa( destination_udp_address_.sin_addr );
-		result+= ":" + std::to_string( ::ntohs( destination_udp_address_.sin_port ) );
+		result+= ":" + std::to_string( ntohs( destination_udp_address_.sin_port ) );
 
 		return result;
 	}
@@ -360,7 +360,7 @@ public:
 		sockaddr_in udp_address;
 		udp_address.sin_family= AF_INET;
 		udp_address.sin_addr.s_addr= INADDR_ANY;
-		udp_address.sin_port= ::htons( udp_port );
+		udp_address.sin_port= htons( udp_port );
 		const int bind_result= ::bind( udp_socket_, (sockaddr*) &udp_address, sizeof(udp_address) );
 		if( bind_result != 0 )
 		{
@@ -484,7 +484,7 @@ public:
 		std::memset( &listen_socket_address, 0, sizeof(listen_socket_address) );
 		listen_socket_address.sin_family = AF_INET;
 		listen_socket_address.sin_addr.s_addr = INADDR_ANY;
-		listen_socket_address.sin_port= ::htons( listen_port_ );
+		listen_socket_address.sin_port= htons( listen_port_ );
 		const int bind_result= ::bind( listen_socket_, (sockaddr*) &listen_socket_address, sizeof(listen_socket_address) );
 		if( bind_result != 0 )
 		{
@@ -715,7 +715,7 @@ IConnectionPtr Net::ConnectToServer(
 	sockaddr_in tcp_address;
 	tcp_address.sin_family= AF_INET;
 	tcp_address.sin_addr.s_addr= INADDR_ANY;
-	tcp_address.sin_port= ::htons( in_tcp_port );
+	tcp_address.sin_port= htons( in_tcp_port );
 	if( ::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) ) != 0 )
 	{
 		Log::Warning( FUNC_NAME, " can not bind tcp socket. Error code: ", errno );
@@ -735,7 +735,7 @@ IConnectionPtr Net::ConnectToServer(
 	sockaddr_in udp_address;
 	udp_address.sin_family= AF_INET;
 	udp_address.sin_addr.s_addr= INADDR_ANY;
-	udp_address.sin_port= ::htons( in_udp_port );
+	udp_address.sin_port= htons( in_udp_port );
 	if( ::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) ) != 0 )
 	{
 		Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", errno );
@@ -748,8 +748,8 @@ IConnectionPtr Net::ConnectToServer(
 	sockaddr_in server_tcp_address;
 	std::memset( &server_tcp_address, 0, sizeof(server_tcp_address) );
 	server_tcp_address.sin_family= AF_INET;
-	server_tcp_address.sin_addr.s_addr= ::htonl( address.ip_address );
-	server_tcp_address.sin_port= ::htons( address.port );
+	server_tcp_address.sin_addr.s_addr= htonl( address.ip_address );
+	server_tcp_address.sin_port= htons( address.port );
 
 	const int connection_result= ::connect( tcp_socket, (sockaddr*) &server_tcp_address, sizeof(server_tcp_address) );
 	if( connection_result == -1 )
@@ -765,7 +765,7 @@ IConnectionPtr Net::ConnectToServer(
 	::recv( tcp_socket, (char*) &server_udp_port, sizeof(server_udp_port), 0 ); // TODO - check errors.
 	sockaddr_in server_udp_address;
 	std::memcpy( &server_udp_address, &server_tcp_address, sizeof(sockaddr_in) );
-	server_udp_address.sin_port= ::htons( server_udp_port );
+	server_udp_address.sin_port= htons( server_udp_port );
 
 	// Send to server first udp message for establishing of connection.
 	// Make NAT happy.
