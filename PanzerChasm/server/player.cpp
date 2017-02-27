@@ -135,7 +135,7 @@ void Player::Tick(
 		if( weapon_state_ == WeaponState::Reloading )
 		{
 			const float time_sinse_last_shot_s= ( current_time - last_shoot_time_ ).ToSeconds();
-			const float reloading_time= float( game_resources_->weapons_description[ current_weapon_index_ ].reloading_time ) / 100.0f;
+			const float reloading_time= float( game_resources_->weapons_description[ current_weapon_index_ ].reloading_time ) / 128.0f;
 			if( time_sinse_last_shot_s >= reloading_time )
 				weapon_state_= WeaponState::Idle;
 		}
