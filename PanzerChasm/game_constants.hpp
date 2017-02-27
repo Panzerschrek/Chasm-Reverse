@@ -63,8 +63,8 @@ constexpr float walls_height= 2.0f;
 
 constexpr float procedures_speed_scale= 1.0f / 10.0f;
 
-const float animations_frames_per_second= 20.0f;
-const float weapons_animations_frames_per_second= 30.0f;
+const float animations_frames_per_second= 18.0f;
+const float weapons_animations_frames_per_second= 40.0f;
 const float sprites_animations_frames_per_second= 15.0f;
 
 const float weapon_switch_time_s= 0.7f;
