@@ -39,6 +39,7 @@ private:
 	const RenderingContext rendering_context_;
 
 	GLuint visibility_texture_id_= ~0u;
+	GLuint dummy_visibility_texture_id_= ~0u;
 
 	MapDataConstPtr current_map_data_;
 

@@ -43,6 +43,7 @@ MinimapDrawer::MinimapDrawer(
 	PC_ASSERT( game_resources != nullptr );
 
 	glGenTextures( 1, &visibility_texture_id_ );
+	glGenTextures( 1, &dummy_visibility_texture_id_ );
 
 	lines_shader_.ShaderSource(
 		rLoadShader( "minimap_f.glsl", rendering_context.glsl_version ),
@@ -54,6 +55,7 @@ MinimapDrawer::MinimapDrawer(
 MinimapDrawer::~MinimapDrawer()
 {
 	glDeleteTextures( 1, &visibility_texture_id_ );
+	glDeleteTextures( 1, &dummy_visibility_texture_id_ );
 }
 
 void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
@@ -141,6 +143,15 @@ void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
 	glTexImage1D( GL_TEXTURE_1D, 0, GL_R8, line_count, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr );
 	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+
+	// Prepare dummy visibility texture.
+	// This is texture with all lines visible.
+	for( unsigned char& c : visibility_texture_data_ ) c= 255u;
+
+	glBindTexture( GL_TEXTURE_1D, dummy_visibility_texture_id_ );
+	glTexImage1D( GL_TEXTURE_1D, 0, GL_R8, line_count, 0, GL_RED, GL_UNSIGNED_BYTE, visibility_texture_data_.data() );
+	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 }
 
 void MinimapDrawer::Draw(
@@ -209,6 +220,12 @@ void MinimapDrawer::Draw(
 	glScissor( left, rendering_context_.viewport_size.Height() - bottom, map_viewport_width, map_viewport_height );
 	glDrawArrays( GL_LINES, 0, ( current_map_data_->static_walls.size() + current_map_data_->dynamic_walls.size() ) * 2u );
 	glDisable( GL_SCISSOR_TEST );
+
+	// Draw arrow and framing with differnet visibility texture with all lines visible.
+	// This needs, because glDrawArrays with first!= 0 generates different gl_VertexID in different OpenGL realizations.
+	// In some realizations, gl_VertexID starts with 0? even if first !=0.
+	// In this realizations reading of visibility for arrow/framing works incorrect.
+	glBindTexture( GL_TEXTURE_1D, dummy_visibility_texture_id_ );
 
 	// Arrow
 	{
