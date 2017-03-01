@@ -43,6 +43,10 @@ public: // HostCommands
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port ) override;
 
+	virtual bool SaveAvailable() const override;
+	virtual void SaveGame( unsigned int slot_number ) override;
+	virtual void LoadGame( unsigned int slot_number ) override;
+
 private:
 	class ConnectionsListenerProxy;
 
@@ -97,6 +101,7 @@ private:
 	std::unique_ptr<Client> client_;
 
 	std::string base_window_title_;
+	bool is_single_player_;
 };
 
 } // namespace PanzerChasm

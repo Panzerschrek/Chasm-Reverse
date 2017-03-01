@@ -1521,6 +1521,7 @@ public:
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
+	 HostCommands& host_commands_;
 	std::unique_ptr<MenuBase> submenus_[6];
 	int current_row_= 0;
 
@@ -1528,6 +1529,7 @@ private:
 
 MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( nullptr, sound_engine )
+	, host_commands_(host_commands)
 {
 	submenus_[0].reset( new NewGameMenu( this, sound_engine, host_commands ) );
 	submenus_[1].reset( new NetworkMenu( this, sound_engine, host_commands ) );
@@ -1562,6 +1564,8 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	};
 	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
 
+	if( !host_commands_.SaveAvailable() ) colors[2]= MenuDrawer::PictureColor::Disabled;
+
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
@@ -1584,12 +1588,18 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ - 1 + 6 ) % 6;
+
+			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+				current_row_= ( current_row_ - 1 + 6 ) % 6;
 		}
 
 		if( event.event.key.key_code == KeyCode::Down )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ + 1 + 6 ) % 6;
+
+			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+				current_row_= ( current_row_ + 1 + 6 ) % 6;
 		}
 
 		if( event.event.key.key_code == KeyCode::Enter )

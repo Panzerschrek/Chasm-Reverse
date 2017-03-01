@@ -28,10 +28,10 @@ public:
 		bool dedicated,
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port )= 0;
-	/*
-	virtual void SaveGame()= 0;
-	virtual void LoadGame()= 0;
-	*/
+
+	virtual bool SaveAvailable() const = 0;
+	virtual void SaveGame( unsigned int slot_number )= 0;
+	virtual void LoadGame( unsigned int slot_number )= 0;
 };
 
 } // namespace PanzerChasm

@@ -323,6 +323,21 @@ void Host::StartServer(
 		system_window_->SetTitle( base_window_title_ + ( dedicated ? " - multiplayer dedicated server" : " - multiplayer server" ) );
 }
 
+bool Host::SaveAvailable() const
+{
+	return is_single_player_;
+}
+
+void Host::SaveGame( const unsigned int slot_number )
+{
+	PC_UNUSED( slot_number );
+}
+
+void Host::LoadGame( const unsigned int slot_number )
+{
+	PC_UNUSED( slot_number );
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -395,6 +410,8 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 
 	if( system_window_ != nullptr )
 		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
+
+	is_single_player_= true;
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )
@@ -486,6 +503,8 @@ void Host::ClearBeforeGameStart()
 
 	if( loopback_buffer_ != nullptr )
 		loopback_buffer_->RequestDisconnect();
+
+	is_single_player_= false;
 }
 
 } // namespace PanzerChasm
