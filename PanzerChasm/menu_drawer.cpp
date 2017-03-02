@@ -52,7 +52,7 @@ static unsigned int CalculateMenuScale( const Size2& viewport_size )
 
 	 // Do not scale menu too height.
 	if( scale_f > 3.0f )
-		scale_f*= 1.0f - 0.25f * std::max( scale_f - 3.0f, 1.0f );
+		scale_f*= 1.0f - 0.25f * std::min( scale_f - 3.0f, 1.0f );
 
 	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
 }
