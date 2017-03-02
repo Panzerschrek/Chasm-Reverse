@@ -13,3 +13,7 @@ build-*
 # Objects
 *.o
 *.obj
+
+# Game log and config
+*.log
+*.cfg
