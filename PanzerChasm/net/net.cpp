@@ -512,7 +512,7 @@ public:
 			::closesocket( listen_socket_ );
 #else
 		if( listen_socket_ != INVALID_SOCKET )
-			::shutdown( listen_socket_, SHUT_RDWR );
+			::close( listen_socket_ );
 #endif
 	}
 
