@@ -65,6 +65,20 @@ const char* GetKeyName( const SystemEvent::KeyEvent::KeyCode key_code )
 	case KeyCode::K7: return "7";
 	case KeyCode::K8: return "8";
 	case KeyCode::K9: return "9";
+
+	case KeyCode::Minus: return "-";
+	case KeyCode::Equals: return "=";
+
+	case KeyCode::SquareBrackretLeft: return "[";
+	case KeyCode::SquareBrackretRight: return "]";
+
+	case KeyCode::Semicolon: return ";";
+	case KeyCode::Apostrophe: return "'";
+	case KeyCode::BackSlash: return "\\";
+
+	case KeyCode::Comma: return ",";
+	case KeyCode::Period: return ".";
+	case KeyCode::Slash: return "/";
 	};
 
 	PC_ASSERT(false);

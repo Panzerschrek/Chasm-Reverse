@@ -31,6 +31,20 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 	case SDL_SCANCODE_DOWN: return KeyCode::Down;
 	case SDL_SCANCODE_UP: return KeyCode::Up;
 
+	case SDL_SCANCODE_MINUS: return KeyCode::Minus;
+	case SDL_SCANCODE_EQUALS: return KeyCode::Equals;
+
+	case SDL_SCANCODE_LEFTBRACKET: return KeyCode::SquareBrackretLeft;
+	case SDL_SCANCODE_RIGHTBRACKET: return KeyCode::SquareBrackretRight;
+
+	case SDL_SCANCODE_SEMICOLON: return KeyCode::Semicolon;
+	case SDL_SCANCODE_APOSTROPHE: return KeyCode::Apostrophe;
+	case SDL_SCANCODE_BACKSLASH: return KeyCode::BackSlash;
+
+	case SDL_SCANCODE_COMMA: return KeyCode::Comma;
+	case SDL_SCANCODE_PERIOD: return KeyCode::Period;
+	case SDL_SCANCODE_SLASH: return KeyCode::Slash;
+
 	default:
 		if( scan_code >= SDL_SCANCODE_A && scan_code <= SDL_SCANCODE_Z )
 			return KeyCode( int(KeyCode::A) + (scan_code - SDL_SCANCODE_A) );
