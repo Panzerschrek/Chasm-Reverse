@@ -63,6 +63,7 @@ SOURCES+= \
 	server/collisions.cpp \
 	server/collision_index.cpp \
 	server/map.cpp \
+	server/map_save_load.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
 	server/movement_restriction.cpp \

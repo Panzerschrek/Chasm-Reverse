@@ -7,6 +7,7 @@
 #include "../messages_sender.hpp"
 #include "../particles.hpp"
 #include "../rand.hpp"
+#include "../save_load_streams.hpp"
 #include "../time.hpp"
 #include "collision_index.hpp"
 #include "backpack.hpp"
@@ -33,6 +34,8 @@ public:
 	~Map();
 
 	DifficultyType GetDifficulty() const;
+
+	void Save( SaveLoadBuffer& save_buffer, Time current_server_time ) const;
 
 	// Returns monster_id for spawned player
 	EntityId SpawnPlayer( const PlayerPtr& player );

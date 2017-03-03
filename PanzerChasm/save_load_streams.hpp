@@ -17,6 +17,9 @@ public:
 	~SaveStream();
 
 	template<class T>
+	void WriteBool( const T& b );
+
+	template<class T>
 	void WriteInt8  ( const T& i );
 	template<class T>
 	void WriteUInt8 ( const T& i );
@@ -73,6 +76,13 @@ private:
 	const SaveLoadBuffer& buffer_;
 	unsigned int buffer_pos_;
 };
+
+template<class T>
+void SaveStream::WriteBool( const T& b )
+{
+	static_assert( std::is_same< T, bool >::value, "Invalid type" );
+	Write( b );
+}
 
 template<class T>
 void SaveStream::WriteInt8  ( const T& i )
