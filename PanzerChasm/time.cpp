@@ -38,11 +38,21 @@ Time Time::FromSeconds( int64_t seconds )
 	return Time( seconds * c_units_in_second );
 }
 
+Time Time::FromInternalRepresentation( const int64_t r )
+{
+	return Time( r );
+}
+
 float Time::ToSeconds() const
 {
 	return
 		static_cast<float>( time_ ) /
 		static_cast<float>( c_units_in_second );
+}
+
+int64_t Time::GetInternalRepresentation() const
+{
+	return time_;
 }
 
 Time Time::operator+( const Time& other ) const
