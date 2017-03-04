@@ -334,7 +334,7 @@ void Player::Teleport( const m_Vec3& pos, const float angle )
 {
 	teleported_= true;
 	pos_= pos;
-	angle_= angle - Constants::half_pi;
+	angle_= angle;
 	speed_.x= speed_.y= speed_.z= 0.0f;
 }
 
