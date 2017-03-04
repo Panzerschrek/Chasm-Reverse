@@ -98,7 +98,7 @@ void Server::Loop()
 			map_->SendMessagesForNewlyConnectedPlayer( connected_player.connection_info.messages_sender );
 
 		Messages::PlayerSpawn spawn_message;
-		connected_player.player->BuildSpawnMessage( spawn_message );
+		connected_player.player->BuildSpawnMessage( spawn_message, true );
 		spawn_message.player_monster_id= connected_player.player_monster_id;
 		connected_player.connection_info.messages_sender.SendReliableMessage( spawn_message );
 
@@ -255,7 +255,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 		map_->SendMessagesForNewlyConnectedPlayer( messages_sender );
 
 		Messages::PlayerSpawn spawn_message;
-		connected_player->player->BuildSpawnMessage( spawn_message );
+		connected_player->player->BuildSpawnMessage( spawn_message, true );
 		spawn_message.player_monster_id= connected_player->player_monster_id;
 		messages_sender.SendReliableMessage( spawn_message );
 
@@ -387,7 +387,7 @@ void Server::operator()( const Messages::PlayerMove& message )
 
 				// Send spawn message.
 				Messages::PlayerSpawn spawn_message;
-				current_player_->player->BuildSpawnMessage( spawn_message );
+				current_player_->player->BuildSpawnMessage( spawn_message, true );
 				spawn_message.player_monster_id= current_player_->player_monster_id;
 				current_player_->connection_info.messages_sender.SendReliableMessage( spawn_message );
 			}

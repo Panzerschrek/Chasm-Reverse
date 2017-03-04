@@ -503,9 +503,9 @@ void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) co
 	out_weapon_message.switch_stage= static_cast<unsigned int>( weapon_switch_stage_ * 254.9f );
 }
 
-bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const
+bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, const bool force ) const
 {
-	if( !teleported_ )
+	if( !teleported_ && !force )
 		return false;
 
 	PositionToMessagePosition( pos_, out_spawn_message.xyz );

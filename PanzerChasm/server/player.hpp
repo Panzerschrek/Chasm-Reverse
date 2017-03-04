@@ -50,7 +50,7 @@ public:
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
-	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const; // returns tru, if newly-spawned
+	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, bool force= false ) const; // returns true, if newly-spawned
 
 	void OnMapChange();
 	void UpdateMovement( const Messages::PlayerMove& move_message );
