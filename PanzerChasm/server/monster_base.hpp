@@ -18,6 +18,9 @@ public:
 		const GameResourcesConstPtr& game_resources,
 		unsigned char monster_id,
 		const m_Vec3& pos, float angle );
+	MonsterBase(
+		const GameResourcesConstPtr &game_resources,
+		unsigned char monster_id, LoadStream& load_stream );
 	virtual ~MonsterBase();
 
 	virtual void Save( SaveStream& save_stream );

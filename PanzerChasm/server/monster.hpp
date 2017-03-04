@@ -21,6 +21,11 @@ public:
 		const GameResourcesConstPtr& game_resources,
 		const LongRandPtr& random_generator,
 		Time spawn_time );
+	Monster(
+		unsigned char monster_id,
+		const GameResourcesConstPtr& game_resources,
+		const LongRandPtr& random_generator,
+		LoadStream& load_stream );
 
 	virtual ~Monster() override;
 
@@ -70,7 +75,7 @@ private:
 
 	State state_= State::Idle;
 
-	Time current_animation_start_time_;
+	Time current_animation_start_time_= Time::FromSeconds(0);
 
 	float vertical_speed_= 0.0f;
 

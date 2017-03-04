@@ -429,6 +429,28 @@ void MonsterBase::Save( SaveStream& save_stream )
 	save_stream.WriteUInt32( current_animation_frame_ );
 }
 
+MonsterBase::MonsterBase(
+	const GameResourcesConstPtr &game_resources,
+	unsigned char monster_id, LoadStream& load_stream )
+	: game_resources_(game_resources)
+	, monster_id_(monster_id)
+{
+	PC_ASSERT( game_resources_ != nullptr );
+	PC_ASSERT( monster_id_ < game_resources_->monsters_description.size() );
+
+	load_stream.ReadBool( have_left_hand_ );
+	load_stream.ReadBool( have_right_hand_ );
+	load_stream.ReadBool( have_head_ );
+	load_stream.ReadBool( fragmented_ );
+	load_stream.ReadFloat( pos_.x );
+	load_stream.ReadFloat( pos_.y );
+	load_stream.ReadFloat( pos_.z );
+	load_stream.ReadFloat( angle_ );
+	load_stream.ReadInt32( health_ );
+	load_stream.ReadUInt32( current_animation_ );
+	load_stream.ReadUInt32( current_animation_frame_ );
+}
+
 void Monster::Save( SaveStream& save_stream )
 {
 	MonsterBase::Save( save_stream );
@@ -443,6 +465,30 @@ void Monster::Save( SaveStream& save_stream )
 	save_stream.WriteFloat( target_position_.y );
 	save_stream.WriteFloat( target_position_.z );
 	save_stream.WriteTime( target_change_time_ );
+}
+
+Monster::Monster(
+	unsigned char monster_id,
+	const GameResourcesConstPtr& game_resources,
+	const LongRandPtr& random_generator,
+	LoadStream& load_stream )
+	: MonsterBase( game_resources, monster_id, load_stream )
+	, random_generator_(random_generator)
+{
+	PC_ASSERT( random_generator_ != nullptr );
+
+	unsigned int state;
+	load_stream.ReadUInt32( state );
+	state_= static_cast<State>(state);
+	load_stream.ReadTime( current_animation_start_time_ );
+	load_stream.ReadFloat( vertical_speed_ );
+	load_stream.ReadBool( attack_was_done_ );
+	load_stream.ReadUInt16( target_.monster_id );
+	// monster weak ptr - TODO
+	load_stream.ReadFloat( target_position_.x );
+	load_stream.ReadFloat( target_position_.y );
+	load_stream.ReadFloat( target_position_.z );
+	load_stream.ReadTime( target_change_time_ );
 }
 
 void Player::Save( SaveStream& save_stream )
@@ -484,6 +530,50 @@ void Player::Save( SaveStream& save_stream )
 	save_stream.WriteTime( weapon_animation_state_change_time_ );
 	save_stream.WriteTime( last_pain_sound_time_ );
 	save_stream.WriteTime( last_step_sound_time_ );
+}
+
+Player::Player( const GameResourcesConstPtr& game_resources, LoadStream& load_stream )
+	: MonsterBase( game_resources, 0u, load_stream )
+{
+	load_stream.ReadTime( spawn_time_ );
+	load_stream.ReadFloat( speed_.x );
+	load_stream.ReadFloat( speed_.y );
+	load_stream.ReadFloat( speed_.z );
+	load_stream.ReadBool( on_floor_ );
+	load_stream.ReadBool( noclip_ );
+	load_stream.ReadBool( god_mode_ );
+	load_stream.ReadBool( teleported_ );
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+	{
+		load_stream.ReadUInt8( ammo_[i] );
+		load_stream.ReadBool( have_weapon_[i] );
+	}
+	load_stream.ReadInt32( armor_ );
+	load_stream.ReadBool( have_red_key_   );
+	load_stream.ReadBool( have_green_key_ );
+	load_stream.ReadBool( have_blue_key_  );
+	load_stream.ReadFloat( mevement_acceleration_ );
+	load_stream.ReadFloat( movement_direction_ );
+	load_stream.ReadBool( jump_pessed_ );
+	unsigned int state;
+	load_stream.ReadUInt32( (state) );
+	state_= static_cast<State>(state);
+	load_stream.ReadTime( last_state_change_time_ );
+	unsigned int weapon_state;
+	load_stream.ReadUInt32( weapon_state );
+	weapon_state_= static_cast<WeaponState>(weapon_state);
+	load_stream.ReadFloat( view_angle_x_ );
+	load_stream.ReadFloat( view_angle_z_ );
+	load_stream.ReadBool( shoot_pressed_ );
+	load_stream.ReadTime( last_shoot_time_ );
+	load_stream.ReadUInt32( current_weapon_index_ );
+	load_stream.ReadUInt32( requested_weapon_index_ );
+	load_stream.ReadFloat( weapon_switch_stage_ );
+	load_stream.ReadUInt32( current_weapon_animation_ );
+	load_stream.ReadUInt32( current_weapon_animation_frame_ );
+	load_stream.ReadTime( weapon_animation_state_change_time_ );
+	load_stream.ReadTime( last_pain_sound_time_ );
+	load_stream.ReadTime( last_step_sound_time_ );
 }
 
 } // namespace PanzerChasm
