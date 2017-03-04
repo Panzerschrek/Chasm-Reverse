@@ -28,6 +28,7 @@ Server::Server(
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
 	, draw_loading_callback_(draw_loading_callback)
+	, map_end_callback_( [this]{ map_end_triggered_= true; } )
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
 	, last_tick_duration_( Time::FromSeconds(0) )
@@ -211,7 +212,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 			map_data,
 			game_resources_,
 			server_accumulated_time_,
-			[this](){ map_end_triggered_= true; } ) );
+			map_end_callback_ ) );
 
 	map_end_triggered_= false;
 
@@ -247,8 +248,81 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	return true;
 }
 
+void Server::Save( SaveLoadBuffer& buffer )
+{
+	PC_ASSERT( map_ != nullptr );
+	if( map_ == nullptr ) return;
+
+	SaveStream save_stream( buffer );
+
+	save_stream.WriteUInt32( static_cast<uint32_t>( game_rules_ ) );
+	save_stream.WriteUInt32( current_map_number_ );
+	save_stream.WriteUInt32( static_cast<uint32_t>( map_->GetDifficulty() ) );
+
+	map_->Save( buffer, server_accumulated_time_ );
+}
+
+bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
+{
+	DisconnectAllClients();
+
+	Log::Info( "Loading save for server " );
+
+	const auto show_progress=
+	[&]( const float progress )
+	{
+		if( draw_loading_callback_ != nullptr )
+			draw_loading_callback_( progress, "Server" );
+	};
+
+	show_progress( 0.0f );
+
+	LoadStream load_stream( buffer, buffer_pos );
+
+	unsigned int game_rules;
+	load_stream.ReadUInt32( game_rules );
+
+	unsigned int map_number;
+	load_stream.ReadUInt32( map_number );
+
+	unsigned int difficulty;
+	load_stream.ReadUInt32( difficulty );
+
+	buffer_pos= load_stream.GetBufferPos();
+
+	Log::Info( "Changing server map to ", map_number );
+
+	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
+	if( map_data == nullptr )
+	{
+		Log::Warning( "Can not load map ", map_number );
+		return false;
+	}
+
+	show_progress( 0.5f );
+
+	game_rules_= static_cast<GameRules>( game_rules );
+	current_map_number_= map_number;
+	current_map_data_= map_data;
+	map_.reset(
+		new Map(
+			static_cast<DifficultyType>(difficulty),
+			map_data,
+			buffer, buffer_pos,
+			game_resources_,
+			server_accumulated_time_,
+			map_end_callback_ ) );
+
+	show_progress( 1.0f );
+
+	return true;
+}
+
 void Server::DisconnectAllClients()
 {
+	if( players_.empty() )
+		return;
+
 	Log::Info( "All clients disconnected from server" );
 
 	for( const ConnectedPlayerPtr& player : players_ )

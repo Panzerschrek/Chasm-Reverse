@@ -13,7 +13,7 @@ typedef std::vector<unsigned char> SaveLoadBuffer;
 class SaveStream final
 {
 public:
-	SaveStream( SaveLoadBuffer& out_buffer, Time base_time );
+	explicit SaveStream( SaveLoadBuffer& out_buffer, Time base_time= Time::FromSeconds(0) );
 	~SaveStream();
 
 	template<class T>
@@ -51,7 +51,7 @@ private:
 class LoadStream final
 {
 public:
-	LoadStream( const SaveLoadBuffer& in_buffer, unsigned int buffer_pos, Time base_time );
+	LoadStream( const SaveLoadBuffer& in_buffer, unsigned int buffer_pos, Time base_time= Time::FromSeconds(0) );
 	~LoadStream();
 
 	unsigned int GetBufferPos() const;

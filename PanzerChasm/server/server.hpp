@@ -2,6 +2,7 @@
 
 #include "../commands_processor.hpp"
 #include "../connection_info.hpp"
+#include "../save_load_streams.hpp"
 #include "../time.hpp"
 #include "i_connections_listener.hpp"
 #include "fwd.hpp"
@@ -25,6 +26,9 @@ public:
 
 	// Returns true, if map successfully changed or restarted.
 	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
+
+	void Save( SaveLoadBuffer& buffer );
+	bool Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
 
 	void DisconnectAllClients();
 
@@ -63,6 +67,8 @@ private:
 	const MapLoaderPtr map_loader_;
 	const IConnectionsListenerPtr connections_listener_;
 	const DrawLoadingCallback draw_loading_callback_;
+
+	const Map::MapEndCallback map_end_callback_;
 
 	CommandsMapConstPtr commands_;
 
