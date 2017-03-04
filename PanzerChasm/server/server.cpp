@@ -67,8 +67,26 @@ void Server::Loop()
 
 		if( map_ != nullptr )
 		{
-			connected_player.player_monster_id=
-				map_->SpawnPlayer( connected_player.player );
+			// Hack for game loading.
+			// If flag "join_first_client_with_existing_player_" is set, and level
+			// containts just one player - link with new client this player.
+			bool player_joined= false;
+			if( join_first_client_with_existing_player_ )
+			{
+				join_first_client_with_existing_player_= false;
+
+				const Map::PlayersContainer& players= map_->GetPlayers();
+				if( players.size() == 1u )
+				{
+					connected_player.player= players.begin()->second;
+					connected_player.player_monster_id= players.begin()->first;
+					player_joined= true;
+				}
+			}
+
+			if( !player_joined )
+				connected_player.player_monster_id=
+					map_->SpawnPlayer( connected_player.player );
 		}
 
 		Messages::MapChange map_change_msg;
@@ -215,6 +233,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 			map_end_callback_ ) );
 
 	map_end_triggered_= false;
+	join_first_client_with_existing_player_= false;
 
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
@@ -312,6 +331,9 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 			game_resources_,
 			server_accumulated_time_,
 			map_end_callback_ ) );
+
+	map_end_triggered_= false;
+	join_first_client_with_existing_player_= true;
 
 	show_progress( 1.0f );
 

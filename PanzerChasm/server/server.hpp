@@ -78,6 +78,7 @@ private:
 	std::unique_ptr<Map> map_;
 
 	bool map_end_triggered_= false;
+	bool join_first_client_with_existing_player_= false;
 
 	std::vector<ConnectedPlayerPtr> players_;
 	ConnectedPlayer* current_player_= nullptr;
