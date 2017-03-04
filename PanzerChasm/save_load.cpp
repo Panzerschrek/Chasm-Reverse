@@ -51,6 +51,7 @@ SaveHeader::HashType SaveHeader::CalculateHash( const unsigned char* data, unsig
 
 void SaveData(
 	const char* file_name,
+	const SaveComment& save_comment,
 	const SaveLoadBuffer& data )
 {
 	FILE* f= std::fopen( file_name, "wb" );
@@ -67,6 +68,7 @@ void SaveData(
 	header.content_hash= SaveHeader::CalculateHash( data.data(), data.size() );
 
 	FileWrite( f, &header, sizeof(SaveHeader) );
+	FileWrite( f, save_comment.data(), sizeof(SaveComment) );
 	FileWrite( f, data.data(), data.size() );
 
 	std::fclose(f);
@@ -88,7 +90,7 @@ bool LoadData(
 	const unsigned int file_size= std::ftell( f );
 	std::fseek( f, 0, SEEK_SET );
 
-	if( file_size < sizeof(SaveHeader) )
+	if( file_size < sizeof(SaveHeader) + sizeof(SaveComment) )
 	{
 		Log::Warning( "Save file is broken - it is too small." );
 		std::fclose(f);
@@ -111,13 +113,16 @@ bool LoadData(
 		return false;
 	}
 
-	const unsigned int content_size= file_size - sizeof(SaveHeader);
+	const unsigned int content_size= file_size - ( sizeof(SaveHeader) + sizeof(SaveComment) );
 	if( header.content_size != content_size )
 	{
 		Log::Warning( "Save file has content size, different from actual file size." );
 		std::fclose(f);
 		return false;
 	}
+
+	SaveComment save_comment;
+	FileRead( f, save_comment.data(), sizeof(SaveComment) );
 
 	out_data.resize( content_size );
 	FileRead( f, out_data.data(), out_data.size() );
@@ -130,6 +135,34 @@ bool LoadData(
 		std::fclose(f);
 		return false;
 	}
+
+	std::fclose(f);
+	return true;
+}
+
+bool LoadSaveComment(
+	const char* file_name,
+	SaveComment& out_save_comment )
+{
+	FILE* const f= std::fopen( file_name, "rb" );
+	if( f == nullptr )
+	{
+		Log::Warning( "Can not read save \"", file_name, "\"." );
+		return false;
+	}
+
+	std::fseek( f, 0, SEEK_END );
+	const unsigned int file_size= std::ftell( f );
+	std::fseek( f, 0, SEEK_SET );
+
+	if( file_size < sizeof(SaveHeader) + sizeof(SaveComment) )
+	{
+		Log::Warning( "Save file is broken - it is too small." );
+		std::fclose(f);
+		return false;
+	}
+
+	FileRead( f, out_save_comment.data(), sizeof(SaveComment) );
 
 	std::fclose(f);
 	return true;

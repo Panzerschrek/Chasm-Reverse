@@ -461,7 +461,10 @@ void Host::DoSave( const char* const save_file_name )
 	local_server_->Save( buffer );
 	client_->Save( buffer );
 
-	SaveData( save_file_name, buffer );
+	SaveComment save_comment;
+	std::strcpy( save_comment.data(), "Save comment" );
+
+	SaveData( save_file_name, save_comment, buffer );
 }
 
 void Host::DoLoad( const char* const save_file_name )
