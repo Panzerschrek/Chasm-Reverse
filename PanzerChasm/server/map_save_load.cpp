@@ -149,7 +149,9 @@ void Map::Save( SaveLoadBuffer& save_buffer, const Time current_server_time ) co
 	save_stream.WriteUInt32( static_cast<uint32_t>( monsters_.size() ) );
 	for( const MonstersContainer::value_type& monster_value : monsters_ )
 	{
-		// TODO
+		save_stream.WriteUInt16( monster_value.first );
+		save_stream.WriteUInt8( monster_value.second->MonsterId() );
+		monster_value.second->Save( save_stream );
 	}
 
 	// Next monster id
@@ -371,7 +373,24 @@ Map::Map(
 	load_stream.ReadUInt32( monster_count );
 	for( unsigned int i= 0u; i < monster_count; i++ )
 	{
-		// TODO
+		EntityId id;
+		load_stream.ReadUInt16( id );
+
+		unsigned char monster_id;
+		load_stream.ReadUInt8( monster_id );
+
+		if( monster_id == 0u )
+		{
+			const PlayerPtr player= std::make_shared<Player>( game_resources_, load_stream );
+			player->SetRandomGenerator( random_generator_ );
+			players_[id]= player;
+			monsters_[id]= player;
+		}
+		else
+		{
+			const MonsterPtr monster= std::make_shared<Monster>( monster_id, game_resources_, random_generator_, load_stream );
+			monsters_[id]= monster;
+		}
 	}
 
 	// Next monster id
