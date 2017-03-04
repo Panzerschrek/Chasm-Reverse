@@ -297,7 +297,7 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 
 	show_progress( 0.0f );
 
-	LoadStream load_stream( buffer, buffer_pos );
+	LoadStream load_stream( buffer, buffer_pos, server_accumulated_time_ );
 
 	unsigned int game_rules;
 	load_stream.ReadUInt32( game_rules );
