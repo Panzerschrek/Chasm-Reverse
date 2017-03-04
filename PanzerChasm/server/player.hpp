@@ -17,7 +17,10 @@ class Player final : public MonsterBase
 {
 public:
 	Player( const GameResourcesConstPtr& game_resources, Time current_time );
+	Player( const GameResourcesConstPtr& game_resources, LoadStream& load_stream );
 	virtual ~Player() override;
+
+	virtual void Save( SaveStream& save_stream ) override;
 
 	virtual void Tick(
 		Map& map,
@@ -47,7 +50,7 @@ public:
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
-	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message ) const; // returns tru, if newly-spawned
+	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, bool force= false ) const; // returns true, if newly-spawned
 
 	void OnMapChange();
 	void UpdateMovement( const Messages::PlayerMove& move_message );
@@ -97,7 +100,7 @@ private:
 	};
 
 private:
-	const Time spawn_time_;
+	Time spawn_time_= Time::FromSeconds(0);
 
 	LongRandPtr random_generator_;
 
@@ -120,14 +123,14 @@ private:
 	bool jump_pessed_= false;
 
 	State state_= State::Alive;
-	Time last_state_change_time_;
+	Time last_state_change_time_= Time::FromSeconds(0);
 
 	WeaponState weapon_state_= WeaponState::Switching;
 
 	float view_angle_x_= 0.0f;
 	float view_angle_z_= 0.0f;
 	bool shoot_pressed_= false;
-	Time last_shoot_time_;
+	Time last_shoot_time_= Time::FromSeconds(0);
 
 	unsigned int current_weapon_index_= 0u;
 	unsigned int requested_weapon_index_= 0u;
@@ -135,10 +138,10 @@ private:
 
 	unsigned int current_weapon_animation_= 0u;
 	unsigned int current_weapon_animation_frame_= 0u;
-	Time weapon_animation_state_change_time_;
+	Time weapon_animation_state_change_time_= Time::FromSeconds(0);
 
-	Time last_pain_sound_time_;
-	Time last_step_sound_time_;
+	Time last_pain_sound_time_= Time::FromSeconds(0);
+	Time last_step_sound_time_= Time::FromSeconds(0);
 
 	unsigned int last_activated_procedure_= ~0u; // Inv zero is dummy.
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);

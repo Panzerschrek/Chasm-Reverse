@@ -43,6 +43,11 @@ public: // HostCommands
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port ) override;
 
+	virtual void GetSavesNames( SavesNames& out_saves_names ) override;
+	virtual bool SaveAvailable() const override;
+	virtual void SaveGame( unsigned int slot_number ) override;
+	virtual void LoadGame( unsigned int slot_number ) override;
+
 private:
 	class ConnectionsListenerProxy;
 
@@ -52,8 +57,12 @@ private:
 	void ConnectCommand( const CommandsArguments& args );
 	void DisconnectCommand();
 	void RunServerCommand( const CommandsArguments& args );
+	void SaveCommand( const CommandsArguments& args );
+	void LoadCommand( const CommandsArguments& args );
 
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
+	void DoSave( const char* save_file_name );
+	void DoLoad( const char* save_file_name );
 
 	void DrawLoadingFrame( float progress, const char* caption );
 
@@ -97,6 +106,7 @@ private:
 	std::unique_ptr<Client> client_;
 
 	std::string base_window_title_;
+	bool is_single_player_;
 };
 
 } // namespace PanzerChasm

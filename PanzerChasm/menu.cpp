@@ -45,6 +45,7 @@ public:
 	virtual ~MenuBase();
 
 	virtual MenuBase* GetParent();
+	virtual void OnActivated();
 	void PlayMenuSound( unsigned int sound_id );
 
 	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) = 0;
@@ -69,6 +70,9 @@ MenuBase* MenuBase::GetParent()
 {
 	return parent_menu_;
 }
+
+void MenuBase::OnActivated()
+{}
 
 void MenuBase::PlayMenuSound( const unsigned int sound_id )
 {
@@ -627,6 +631,126 @@ MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
 			return submenus_[ current_row_ ].get();
 		}
 	}
+	return this;
+}
+
+
+class SaveLoadMenu final : public MenuBase
+{
+public:
+	enum class What
+	{
+		Save, Load
+	};
+
+	SaveLoadMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands, What what );
+	~SaveLoadMenu() override;
+
+	virtual void OnActivated() override;
+
+	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	HostCommands& host_commands_;
+	const What what_;
+	int current_row_= 0;
+
+	HostCommands::SavesNames saves_names_;
+
+	static constexpr int c_rows= HostCommands::c_save_slots;
+};
+
+SaveLoadMenu::SaveLoadMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands, What what )
+	: MenuBase( parent, sound_engine )
+	, host_commands_(host_commands)
+	, what_(what)
+{
+	for( SaveComment& save_comment : saves_names_ )
+		save_comment[0]= '\0';
+}
+
+SaveLoadMenu::~SaveLoadMenu()
+{}
+
+void SaveLoadMenu::OnActivated()
+{
+	host_commands_.GetSavesNames( saves_names_ );
+}
+
+void SaveLoadMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 180u, text_draw.GetLineHeight() * c_rows };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_x= x + scale * 20;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		what_ == What::Load ? "Load" : "Save",
+		scale,
+		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+
+	for( int i= 0u; i < c_rows; i++ )
+	{
+		const bool active= current_row_ == i;
+
+		text_draw.Print(
+			param_x, y + i * ( scale * int(text_draw.GetLineHeight()) ),
+			saves_names_[i][0] == '\0' ? "..." : saves_names_[i].data(),
+			scale,
+			active ? TextDraw::FontColor::DarkYellow: TextDraw::FontColor::White,
+			TextDraw::Alignment::Left );
+	}
+}
+
+MenuBase* SaveLoadMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key &&
+		event.event.key.pressed )
+	{
+		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + c_rows ) % c_rows;
+		}
+
+		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 ) % c_rows;
+		}
+
+		if( event.event.key.key_code == KeyCode::Enter )
+		{
+			if( what_ == What::Save )
+			{
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				host_commands_.SaveGame( current_row_ );
+				return nullptr;
+			}
+			else if( what_ == What::Load )
+			{
+				if( saves_names_[current_row_][0] != '\0' )
+				{
+					host_commands_.LoadGame( current_row_ );
+					return nullptr;
+				}
+			}
+			else
+			{
+				PC_ASSERT( false );
+			}
+		}
+	}
+
 	return this;
 }
 
@@ -1521,6 +1645,7 @@ public:
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
+	 HostCommands& host_commands_;
 	std::unique_ptr<MenuBase> submenus_[6];
 	int current_row_= 0;
 
@@ -1528,9 +1653,12 @@ private:
 
 MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( nullptr, sound_engine )
+	, host_commands_(host_commands)
 {
 	submenus_[0].reset( new NewGameMenu( this, sound_engine, host_commands ) );
 	submenus_[1].reset( new NetworkMenu( this, sound_engine, host_commands ) );
+	submenus_[2].reset( new SaveLoadMenu( this, sound_engine, host_commands, SaveLoadMenu::What::Save ) );
+	submenus_[3].reset( new SaveLoadMenu( this, sound_engine, host_commands, SaveLoadMenu::What::Load ) );
 	submenus_[4].reset( new OptionsMenu( this, sound_engine, host_commands ) );
 	submenus_[5].reset( new QuitMenu( this, sound_engine, host_commands ) );
 }
@@ -1562,6 +1690,8 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	};
 	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
 
+	if( !host_commands_.SaveAvailable() ) colors[2]= MenuDrawer::PictureColor::Disabled;
+
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
@@ -1584,12 +1714,18 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ - 1 + 6 ) % 6;
+
+			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+				current_row_= ( current_row_ - 1 + 6 ) % 6;
 		}
 
 		if( event.event.key.key_code == KeyCode::Down )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ + 1 + 6 ) % 6;
+
+			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+				current_row_= ( current_row_ + 1 + 6 ) % 6;
 		}
 
 		if( event.event.key.key_code == KeyCode::Enter )
@@ -1638,12 +1774,19 @@ void Menu::ProcessEvents( const SystemEvents& events )
 				if( current_menu_ != nullptr )
 				{
 					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
-					current_menu_= current_menu_->GetParent();
+					MenuBase* const new_menu= current_menu_->GetParent();
+					if( new_menu != current_menu_ )
+					{
+						if( new_menu != nullptr )
+							new_menu->OnActivated();
+						current_menu_= new_menu;
+					}
 				}
 				else
 				{
 					current_menu_= root_menu_.get();
 					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+					current_menu_->OnActivated();
 				}
 			}
 			break;
@@ -1656,7 +1799,15 @@ void Menu::ProcessEvents( const SystemEvents& events )
 		};
 
 		if( current_menu_ != nullptr )
-			current_menu_= current_menu_->ProcessEvent( event );
+		{
+			MenuBase* const new_menu= current_menu_->ProcessEvent( event );
+			if( new_menu != current_menu_ )
+			{
+				if( new_menu != nullptr )
+					new_menu->OnActivated();
+				current_menu_= new_menu;
+			}
+		}
 	}
 }
 

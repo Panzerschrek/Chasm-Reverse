@@ -30,9 +30,20 @@ public:
 		const GameResourcesConstPtr& game_resources,
 		Time map_start_time,
 		MapEndCallback map_end_callback );
+
+	// Construct from save
+	Map(
+		DifficultyType difficulty,
+		const MapDataConstPtr& map_data,
+		LoadStream& load_stream,
+		const GameResourcesConstPtr& game_resources,
+		MapEndCallback map_end_callback );
+
 	~Map();
 
 	DifficultyType GetDifficulty() const;
+
+	void Save( SaveStream& save_stream ) const;
 
 	// Returns monster_id for spawned player
 	EntityId SpawnPlayer( const PlayerPtr& player );
@@ -167,6 +178,7 @@ private:
 
 	struct Rocket
 	{
+		Rocket(){} // Empty constructor - for deserialization
 		Rocket(
 			EntityId in_rocket_id,
 			EntityId in_owner_id,
@@ -178,7 +190,7 @@ private:
 		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
 
 		// Start parameters
-		Time start_time;
+		Time start_time= Time::FromSeconds(0);
 		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
 		EntityId rocket_id;
@@ -291,6 +303,10 @@ private:
 	EntityId GetLightSourceId( unsigned int parent_procedure_number, unsigned int light_source_coomand_number ) const;
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
+	static void PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message );
+	static void PrepareMineBirthMessage( const Mine& mine, Messages::DynamicItemBirth& message );
+	static void PrepareBackpackBirthMessage( const Backpack& backpack, EntityId backpack_id, Messages::DynamicItemBirth& message );
+	static void PrepareLightSourceBirthMessage( const LightSource& light_source, EntityId light_source_id, Messages::LightSourceBirth& message );
 
 	void EmitModelDestructionEffects( unsigned int model_number );
 	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );

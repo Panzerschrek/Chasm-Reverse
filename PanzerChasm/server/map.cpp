@@ -327,10 +327,7 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	next_rocket_id_++;
 
 	dynamic_items_birth_messages_.emplace_back();
-	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
-	message.item_id= mine.id;
-	message.item_type_id= GameConstants::mine_item_id;
-	PositionToMessagePosition( mine.pos, message.xyz );
+	PrepareMineBirthMessage( mine, dynamic_items_birth_messages_.back() );
 }
 
 void Map::SpawnBackpack( BackpackPtr backpack )
@@ -347,10 +344,7 @@ void Map::SpawnBackpack( BackpackPtr backpack )
 	inserted_backpack.vertical_speed= GameConstants::vertical_acceleration * -0.2f;
 
 	dynamic_items_birth_messages_.emplace_back();
-	Messages::DynamicItemBirth& message= dynamic_items_birth_messages_.back();
-	message.item_id= id;
-	message.item_type_id= GameConstants::backpack_item_id;
-	PositionToMessagePosition( inserted_backpack.pos, message.xyz );
+	PrepareBackpackBirthMessage( inserted_backpack, id, dynamic_items_birth_messages_.back() );
 }
 
 void Map::SpawnMonsterBodyPart(
@@ -1612,6 +1606,49 @@ void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender )
 	}
 
 	// TODO - rockets, light sources, dynamic items
+	for( const Rocket& rocket : rockets_ )
+	{
+		Messages::RocketBirth message;
+		message.rocket_type= rocket.rocket_type_id;
+		PrepareRocketStateMessage( rocket, message );
+
+		messages_sender.SendUnreliableMessage( message );
+	}
+
+	for( const Mine& mine : mines_ )
+	{
+		Messages::DynamicItemBirth message;
+		PrepareMineBirthMessage( mine, message );
+		messages_sender.SendUnreliableMessage( message );
+	}
+
+	for( const std::unordered_map<EntityId, BackpackPtr>::value_type& backpack_value : backpacks_ )
+	{
+		Messages::DynamicItemBirth message;
+		PrepareBackpackBirthMessage( *backpack_value.second, backpack_value.first, message );
+		messages_sender.SendUnreliableMessage( message );
+	}
+
+	for( const LightSourcesContainer::value_type& light_source_value : light_sources_ )
+	{
+		Messages::LightSourceBirth message;
+		PrepareLightSourceBirthMessage( light_source_value.second, light_source_value.first, message );
+		messages_sender.SendReliableMessage( message );
+	}
+
+	for( const StaticModel& model : static_models_ )
+	{
+		if( model.linked_rotating_light == nullptr )
+			continue;
+
+		Messages::RotatingLightSourceBirth message;
+		message.light_source_id= &model - static_models_.data();
+		PositionToMessagePosition( model.pos.xy(), message.xy );
+		message.radius= CoordToMessageCoord( model.linked_rotating_light->radius );
+		message.brightness= static_cast<unsigned char>( model.linked_rotating_light->brightness );
+
+		messages_sender.SendReliableMessage( message );
+	}
 }
 
 void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
@@ -1718,15 +1755,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	for( const Rocket& rocket : rockets_ )
 	{
 		Messages::RocketState rocket_message;
-
-		rocket_message.rocket_id= rocket.rocket_id;
-		PositionToMessagePosition( rocket.previous_position, rocket_message.xyz );
-
-		float angle[2];
-		VecToAngles( rocket.normalized_direction, angle );
-		for( unsigned int j= 0u; j < 2u; j++ )
-			rocket_message.angle[j]= AngleToMessageAngle( angle[j] );
-
+		PrepareRocketStateMessage( rocket, rocket_message );
 		messages_sender.SendUnreliableMessage( rocket_message );
 	}
 
@@ -2057,11 +2086,7 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 			// Send light birth message.
 			light_sources_birth_messages_.emplace_back();
 			Messages::LightSourceBirth& message= light_sources_birth_messages_.back();
-			message.light_source_id= id;
-			PositionToMessagePosition( source.pos, message.xy );
-			message.radius= CoordToMessageCoord( source.radius );
-			message.brightness= static_cast<unsigned char>( source.brightness );
-			message.turn_on_time_ms= source.turn_on_time_ms;
+			PrepareLightSourceBirthMessage( source, id, message );
 		}
 		// TODO - process other commands
 		else
@@ -2770,6 +2795,40 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.body_parts_mask= monster.GetBodyPartsMask();
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
+}
+
+void Map::PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message )
+{
+	message.rocket_id= rocket.rocket_id;
+	PositionToMessagePosition( rocket.previous_position, message.xyz );
+
+	float angle[2];
+	VecToAngles( rocket.normalized_direction, angle );
+	for( unsigned int j= 0u; j < 2u; j++ )
+		message.angle[j]= AngleToMessageAngle( angle[j] );
+}
+
+void Map::PrepareMineBirthMessage( const Mine& mine, Messages::DynamicItemBirth& message )
+{
+	message.item_id= mine.id;
+	message.item_type_id= GameConstants::mine_item_id;
+	PositionToMessagePosition( mine.pos, message.xyz );
+}
+
+void Map::PrepareBackpackBirthMessage( const Backpack& backpack, const EntityId backpack_id, Messages::DynamicItemBirth& message )
+{
+	message.item_id= backpack_id;
+	message.item_type_id= GameConstants::backpack_item_id;
+	PositionToMessagePosition( backpack.pos, message.xyz );
+}
+
+void Map::PrepareLightSourceBirthMessage( const LightSource& light_source, const EntityId light_source_id, Messages::LightSourceBirth& message )
+{
+	message.light_source_id= light_source_id;
+	PositionToMessagePosition( light_source.pos, message.xy );
+	message.radius= CoordToMessageCoord( light_source.radius );
+	message.brightness= static_cast<unsigned char>( light_source.brightness );
+	message.turn_on_time_ms= light_source.turn_on_time_ms;
 }
 
 void Map::EmitModelDestructionEffects( const unsigned int model_number )

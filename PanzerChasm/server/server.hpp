@@ -26,6 +26,9 @@ public:
 	// Returns true, if map successfully changed or restarted.
 	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
 
+	void Save( SaveLoadBuffer& buffer );
+	bool Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
+
 	void DisconnectAllClients();
 
 public: // Messages handlers
@@ -64,6 +67,8 @@ private:
 	const IConnectionsListenerPtr connections_listener_;
 	const DrawLoadingCallback draw_loading_callback_;
 
+	const Map::MapEndCallback map_end_callback_;
+
 	CommandsMapConstPtr commands_;
 
 	GameRules game_rules_= GameRules::SinglePlayer;
@@ -72,6 +77,7 @@ private:
 	std::unique_ptr<Map> map_;
 
 	bool map_end_triggered_= false;
+	bool join_first_client_with_existing_player_= false;
 
 	std::vector<ConnectedPlayerPtr> players_;
 	ConnectedPlayer* current_player_= nullptr;

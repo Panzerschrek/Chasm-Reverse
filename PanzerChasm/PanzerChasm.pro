@@ -59,9 +59,12 @@ SOURCES+= \
 	obj.cpp \
 	program_arguments.cpp \
 	rand.cpp \
+	save_load.cpp \
+	save_load_streams.cpp \
 	server/collisions.cpp \
 	server/collision_index.cpp \
 	server/map.cpp \
+	server/map_save_load.cpp \
 	server/monster.cpp \
 	server/monster_base.cpp \
 	server/movement_restriction.cpp \
@@ -120,6 +123,8 @@ HEADERS+= \
 	program_arguments.hpp \
 	rand.hpp \
 	rendering_context.hpp \
+	save_load.hpp \
+	save_load_streams.hpp \
 	server/a_code.hpp \
 	server/backpack.hpp \
 	server/collisions.hpp \

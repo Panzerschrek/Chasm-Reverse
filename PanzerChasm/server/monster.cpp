@@ -30,9 +30,7 @@ Monster::Monster(
 	, random_generator_(random_generator)
 	, current_animation_start_time_(spawn_time)
 {
-	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( random_generator_ != nullptr );
-	PC_ASSERT( monster_id_ < game_resources_->monsters_models.size() );
 
 	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
 

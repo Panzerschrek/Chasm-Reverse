@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "../save_load_streams.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
 
@@ -11,6 +12,13 @@
 
 namespace PanzerChasm
 {
+
+struct Client::LoadedMinimapState
+{
+	unsigned int map_number;
+	MinimapState::WallsVisibility static_walls_visibility ;
+	MinimapState::WallsVisibility dynamic_walls_visibility;
+};
 
 Client::Client(
 	Settings& settings,
@@ -42,6 +50,68 @@ Client::Client(
 
 Client::~Client()
 {}
+
+void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
+{
+	PC_ASSERT( current_map_number_ != ~0u );
+	PC_ASSERT( minimap_state_ != nullptr );
+	if( minimap_state_ == nullptr ) return;
+
+	SaveStream save_stream( buffer );
+
+	save_stream.WriteUInt32( requested_weapon_index_ );
+	save_stream.WriteBool( minimap_mode_ );
+	save_stream.WriteUInt32( current_map_number_ );
+
+	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state_->GetStaticWallsVisibility ();
+	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state_->GetDynamicWallsVisibility();
+
+	// TODO - write bools in more compact form
+
+	save_stream.WriteUInt32( static_walls_visibility .size() );
+	for( const bool& wall_visibility : static_walls_visibility  )
+		save_stream.WriteBool( wall_visibility );
+
+	save_stream.WriteUInt32( dynamic_walls_visibility.size() );
+	for( const bool& wall_visibility : dynamic_walls_visibility )
+		save_stream.WriteBool( wall_visibility );
+
+	// Write comment
+	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_number_, player_state_.health );
+}
+
+void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
+{
+	LoadStream load_stream( buffer, buffer_pos );
+
+	loaded_minimap_state_.reset( new LoadedMinimapState );
+
+	load_stream.ReadUInt32( requested_weapon_index_ );
+	load_stream.ReadBool( minimap_mode_ );
+	load_stream.ReadUInt32( loaded_minimap_state_->map_number );
+
+	unsigned int static_walls_count ;
+	load_stream.ReadUInt32( static_walls_count  );
+	loaded_minimap_state_->static_walls_visibility .resize( static_walls_count  );
+	for( unsigned int i= 0u; i < static_walls_count ; i++ )
+	{
+		bool b;
+		load_stream.ReadBool( b );
+		loaded_minimap_state_->static_walls_visibility [i]= b;
+	}
+
+	unsigned int dynamic_walls_count;
+	load_stream.ReadUInt32( dynamic_walls_count );
+	loaded_minimap_state_->dynamic_walls_visibility .resize( dynamic_walls_count );
+	for( unsigned int i= 0u; i < dynamic_walls_count; i++ )
+	{
+		bool b;
+		load_stream.ReadBool( b );
+		loaded_minimap_state_->dynamic_walls_visibility[i]= b;
+	}
+
+	buffer_pos= load_stream.GetBufferPos();
+}
 
 void Client::SetConnection( IConnectionPtr connection )
 {
@@ -220,7 +290,7 @@ void Client::operator()( const Messages::MessageBase& message )
 void Client::operator()( const Messages::PlayerSpawn& message )
 {
 	MessagePositionToPosition( message.xyz, player_position_ );
-	camera_controller_.SetAngles( MessageAngleToAngle( message.direction ), 0.0f );
+	camera_controller_.SetAngles( MessageAngleToAngle( message.direction ) - Constants::half_pi, 0.0f );
 	player_monster_id_= message.player_monster_id;
 }
 
@@ -310,12 +380,22 @@ void Client::operator()( const Messages::MapChange& message )
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 	minimap_state_.reset( new MinimapState( map_data ) );
 
+	if( loaded_minimap_state_ != nullptr &&
+		loaded_minimap_state_->map_number == message.map_number )
+	{
+		minimap_state_->SetState(
+			loaded_minimap_state_->static_walls_visibility ,
+			loaded_minimap_state_->dynamic_walls_visibility );
+	}
+	loaded_minimap_state_= nullptr;
+
 	show_progress( 0.8f );
 	if( sound_engine_ != nullptr )
 		sound_engine_->SetMap( map_data );
 
 	hud_drawer_.ResetMessage();
 
+	current_map_number_= message.map_number;
 	current_map_data_= map_data;
 
 	show_progress( 1.0f );

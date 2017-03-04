@@ -29,6 +29,9 @@ public:
 
 	~Client();
 
+	void Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment );
+	void Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
+
 	void SetConnection( IConnectionPtr connection );
 	bool Disconnected() const;
 
@@ -36,6 +39,9 @@ public:
 
 	void Loop( const KeyboardState& keyboard_state );
 	void Draw();
+
+private:
+	struct LoadedMinimapState;
 
 public: // Messages handlers
 
@@ -87,9 +93,11 @@ private:
 
 	MapDrawer map_drawer_;
 	MinimapDrawer minimap_drawer_;
+	unsigned int current_map_number_= ~0u;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
 	std::unique_ptr<MinimapState> minimap_state_;
+	std::unique_ptr<LoadedMinimapState> loaded_minimap_state_;
 
 	WeaponState weapon_state_;
 	bool shoot_pressed_= false;

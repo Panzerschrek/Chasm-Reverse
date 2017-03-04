@@ -14,6 +14,11 @@ build-*
 *.o
 *.obj
 
+
 # Game log and config
 *.log
 *.cfg
+
+
+# Game saves
+saves/*

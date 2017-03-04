@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <glsl_program.hpp>
 #include <shaders_loading.hpp>
 
@@ -5,6 +7,7 @@
 #include "game_resources.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
+#include "save_load.hpp"
 #include "sound/sound_engine.hpp"
 
 #include "host.hpp"
@@ -70,6 +73,8 @@ Host::Host( const int argc, const char* const* const argv )
 		commands->emplace( "connect", std::bind( &Host::ConnectCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "disconnect", std::bind( &Host::DisconnectCommand, this ) );
 		commands->emplace( "runserver", std::bind( &Host::RunServerCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "save", std::bind( &Host::SaveCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "load", std::bind( &Host::LoadCommand, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
 		commands_processor_.RegisterCommands( host_commands_ );
@@ -323,6 +328,42 @@ void Host::StartServer(
 		system_window_->SetTitle( base_window_title_ + ( dedicated ? " - multiplayer dedicated server" : " - multiplayer server" ) );
 }
 
+bool Host::SaveAvailable() const
+{
+	return is_single_player_;
+}
+
+void Host::GetSavesNames( SavesNames& out_saves_names )
+{
+	//for( SaveComment& save_comment : out_saves_names )
+	for( unsigned int slot= 0u; slot < c_save_slots; slot++ )
+	{
+		SaveComment& out_save_comment= out_saves_names[slot];
+
+		char file_name[32];
+		GetSaveFileNameForSlot( slot, file_name, sizeof(file_name) );
+
+		if( LoadSaveComment( file_name, out_save_comment ) )
+		{ /* all ok */ }
+		else
+			out_save_comment[0]= '\0';
+	}
+}
+
+void Host::SaveGame( const unsigned int slot_number )
+{
+	char file_name[64];
+	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
+	DoSave( file_name );
+}
+
+void Host::LoadGame( const unsigned int slot_number )
+{
+	char file_name[64];
+	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
+	DoLoad( file_name );
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -373,6 +414,28 @@ void Host::RunServerCommand( const CommandsArguments& args )
 	StartServer( 1u, Difficulty::Normal, false, 0u, 0u );
 }
 
+void Host::SaveCommand( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Warning( "Expected save name" );
+		return;
+	}
+
+	DoSave( args.front().c_str() );
+}
+
+void Host::LoadCommand( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Warning( "Expected save name" );
+		return;
+	}
+
+	DoLoad( args.front().c_str() );
+}
+
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
 {
 	EnsureClient();
@@ -395,6 +458,72 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 
 	if( system_window_ != nullptr )
 		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
+
+	is_single_player_= true;
+}
+
+void Host::DoSave( const char* const save_file_name )
+{
+	if( !( local_server_ != nullptr && client_ != nullptr && is_single_player_ ) )
+	{
+		Log::Warning( "Can not save now" );
+		return;
+	}
+
+	Log::Info( "Save game" );
+
+	SaveLoadBuffer buffer;
+	SaveComment save_comment;
+
+	local_server_->Save( buffer );
+	client_->Save( buffer, save_comment );
+
+	if( SaveData( save_file_name, save_comment, buffer ) )
+		Log::Info( "Game saved" );
+}
+
+void Host::DoLoad( const char* const save_file_name )
+{
+	SaveLoadBuffer save_buffer;
+	unsigned int save_buffer_pos= 0u;
+
+	Log::Info( "Load game" );
+
+	if( !LoadData( save_file_name, save_buffer ) )
+	{
+		Log::Info( "Loading failed" );
+		return;
+	}
+
+	EnsureClient();
+	EnsureServer();
+	EnsureLoopbackBuffer();
+
+	ClearBeforeGameStart();
+
+	const bool map_changed=
+		local_server_->Load( save_buffer, save_buffer_pos );
+	if( !map_changed )
+	{
+		Log::Info( "Loading failed" );
+		return;
+	}
+
+	client_->Load( save_buffer, save_buffer_pos );
+
+	// Making server listen connections from loopback buffer.
+	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
+	loopback_buffer_->RequestConnect();
+
+	// Make client working with loopback buffer connection.
+	client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
+
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
+
+	is_single_player_= true;
+
+	Log::Info( "Game loaded" );
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )
@@ -486,6 +615,8 @@ void Host::ClearBeforeGameStart()
 
 	if( loopback_buffer_ != nullptr )
 		loopback_buffer_->RequestDisconnect();
+
+	is_single_player_= false;
 }
 
 } // namespace PanzerChasm

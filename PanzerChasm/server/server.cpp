@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "../save_load_streams.hpp"
 #include "player.hpp"
 
 #include "server.hpp"
@@ -28,6 +29,7 @@ Server::Server(
 	, map_loader_(map_loader)
 	, connections_listener_(connections_listener)
 	, draw_loading_callback_(draw_loading_callback)
+	, map_end_callback_( [this]{ map_end_triggered_= true; } )
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
 	, last_tick_duration_( Time::FromSeconds(0) )
@@ -66,8 +68,26 @@ void Server::Loop()
 
 		if( map_ != nullptr )
 		{
-			connected_player.player_monster_id=
-				map_->SpawnPlayer( connected_player.player );
+			// Hack for game loading.
+			// If flag "join_first_client_with_existing_player_" is set, and level
+			// containts just one player - link with new client this player.
+			bool player_joined= false;
+			if( join_first_client_with_existing_player_ )
+			{
+				join_first_client_with_existing_player_= false;
+
+				const Map::PlayersContainer& players= map_->GetPlayers();
+				if( players.size() == 1u )
+				{
+					connected_player.player= players.begin()->second;
+					connected_player.player_monster_id= players.begin()->first;
+					player_joined= true;
+				}
+			}
+
+			if( !player_joined )
+				connected_player.player_monster_id=
+					map_->SpawnPlayer( connected_player.player );
 		}
 
 		Messages::MapChange map_change_msg;
@@ -79,7 +99,7 @@ void Server::Loop()
 			map_->SendMessagesForNewlyConnectedPlayer( connected_player.connection_info.messages_sender );
 
 		Messages::PlayerSpawn spawn_message;
-		connected_player.player->BuildSpawnMessage( spawn_message );
+		connected_player.player->BuildSpawnMessage( spawn_message, true );
 		spawn_message.player_monster_id= connected_player.player_monster_id;
 		connected_player.connection_info.messages_sender.SendReliableMessage( spawn_message );
 
@@ -211,9 +231,10 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 			map_data,
 			game_resources_,
 			server_accumulated_time_,
-			[this](){ map_end_triggered_= true; } ) );
+			map_end_callback_ ) );
 
 	map_end_triggered_= false;
+	join_first_client_with_existing_player_= false;
 
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
@@ -235,7 +256,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 		map_->SendMessagesForNewlyConnectedPlayer( messages_sender );
 
 		Messages::PlayerSpawn spawn_message;
-		connected_player->player->BuildSpawnMessage( spawn_message );
+		connected_player->player->BuildSpawnMessage( spawn_message, true );
 		spawn_message.player_monster_id= connected_player->player_monster_id;
 		messages_sender.SendReliableMessage( spawn_message );
 
@@ -247,8 +268,83 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	return true;
 }
 
+void Server::Save( SaveLoadBuffer& buffer )
+{
+	PC_ASSERT( map_ != nullptr );
+	if( map_ == nullptr ) return;
+
+	SaveStream save_stream( buffer, server_accumulated_time_ );
+
+	save_stream.WriteUInt32( static_cast<uint32_t>( game_rules_ ) );
+	save_stream.WriteUInt32( current_map_number_ );
+	save_stream.WriteUInt32( static_cast<uint32_t>( map_->GetDifficulty() ) );
+
+	map_->Save( save_stream );
+}
+
+bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
+{
+	DisconnectAllClients();
+
+	Log::Info( "Loading save for server " );
+
+	const auto show_progress=
+	[&]( const float progress )
+	{
+		if( draw_loading_callback_ != nullptr )
+			draw_loading_callback_( progress, "Server" );
+	};
+
+	show_progress( 0.0f );
+
+	LoadStream load_stream( buffer, buffer_pos, server_accumulated_time_ );
+
+	unsigned int game_rules;
+	load_stream.ReadUInt32( game_rules );
+
+	unsigned int map_number;
+	load_stream.ReadUInt32( map_number );
+
+	unsigned int difficulty;
+	load_stream.ReadUInt32( difficulty );
+
+	Log::Info( "Changing server map to ", map_number );
+
+	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
+	if( map_data == nullptr )
+	{
+		Log::Warning( "Can not load map ", map_number );
+		return false;
+	}
+
+	show_progress( 0.5f );
+
+	game_rules_= static_cast<GameRules>( game_rules );
+	current_map_number_= map_number;
+	current_map_data_= map_data;
+	map_.reset(
+		new Map(
+			static_cast<DifficultyType>(difficulty),
+			map_data,
+			load_stream,
+			game_resources_,
+			map_end_callback_ ) );
+
+	map_end_triggered_= false;
+	join_first_client_with_existing_player_= true;
+
+	show_progress( 1.0f );
+
+	buffer_pos= load_stream.GetBufferPos();
+
+	return true;
+}
+
 void Server::DisconnectAllClients()
 {
+	if( players_.empty() )
+		return;
+
 	Log::Info( "All clients disconnected from server" );
 
 	for( const ConnectedPlayerPtr& player : players_ )
@@ -291,7 +387,7 @@ void Server::operator()( const Messages::PlayerMove& message )
 
 				// Send spawn message.
 				Messages::PlayerSpawn spawn_message;
-				current_player_->player->BuildSpawnMessage( spawn_message );
+				current_player_->player->BuildSpawnMessage( spawn_message, true );
 				spawn_message.player_monster_id= current_player_->player_monster_id;
 				current_player_->connection_info.messages_sender.SendReliableMessage( spawn_message );
 			}

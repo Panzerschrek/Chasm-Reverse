@@ -3,6 +3,7 @@
 #include "../assert.hpp"
 #include "../math_utils.hpp"
 #include "../game_constants.hpp"
+#include "../log.hpp"
 #include "../map_loader.hpp"
 
 #include "map_state.hpp"
@@ -87,6 +88,21 @@ MinimapState::MinimapState( const MapDataConstPtr& map_data )
 
 MinimapState::~MinimapState()
 {
+}
+
+void MinimapState::SetState(
+	const WallsVisibility& static_walls_visibility ,
+	const WallsVisibility& dynamic_walls_visibility )
+{
+	if( static_walls_visibility .size() != static_walls_visibility_ .size() ||
+		dynamic_walls_visibility.size() != dynamic_walls_visibility_.size() )
+	{
+		Log::Warning( "Invalide minimap state" );
+		return;
+	}
+
+	static_walls_visibility_ = static_walls_visibility ;
+	dynamic_walls_visibility_= dynamic_walls_visibility;
 }
 
 void MinimapState::Update(
