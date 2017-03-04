@@ -29,6 +29,11 @@ public:
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port )= 0;
 
+	static constexpr unsigned int c_save_slots= 10u;
+	typedef std::array< SaveComment, c_save_slots > SavesNames;
+
+	virtual void GetSavesNames( SavesNames& out_saves_names )= 0;
+
 	virtual bool SaveAvailable() const = 0;
 	virtual void SaveGame( unsigned int slot_number )= 0;
 	virtual void LoadGame( unsigned int slot_number )= 0;

@@ -43,6 +43,7 @@ public: // HostCommands
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port ) override;
 
+	virtual void GetSavesNames( SavesNames& out_saves_names ) override;
 	virtual bool SaveAvailable() const override;
 	virtual void SaveGame( unsigned int slot_number ) override;
 	virtual void LoadGame( unsigned int slot_number ) override;

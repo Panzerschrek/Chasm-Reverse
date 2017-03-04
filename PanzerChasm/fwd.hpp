@@ -8,6 +8,9 @@
 namespace PanzerChasm
 {
 
+constexpr unsigned int g_max_save_comment_size= 32u;
+typedef std::array< char, g_max_save_comment_size > SaveComment;
+
 typedef std::function< void( float progress, const char* caption ) > DrawLoadingCallback;
 
 class IConnection;

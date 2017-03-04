@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <glsl_program.hpp>
 #include <shaders_loading.hpp>
 
@@ -329,6 +331,14 @@ void Host::StartServer(
 bool Host::SaveAvailable() const
 {
 	return is_single_player_;
+}
+
+void Host::GetSavesNames( SavesNames& out_saves_names )
+{
+	for( SaveComment& save_comment : out_saves_names )
+		save_comment[0]= '\0';
+
+	std::strcpy( out_saves_names[2].data(), "level 01 health 14" );
 }
 
 void Host::SaveGame( const unsigned int slot_number )
