@@ -305,7 +305,10 @@ Map::Map(
 	{
 		EntityId id;
 		load_stream.ReadUInt16( id );
-		Backpack& backpack= *(backpacks_[id]);
+
+		BackpackPtr& backpack_ptr= backpacks_[id];
+		backpack_ptr.reset( new Backpack );
+		Backpack& backpack= *backpack_ptr;
 
 		load_stream.ReadVec3( backpack.pos );
 		load_stream.ReadFloat( backpack.vertical_speed );
