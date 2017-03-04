@@ -8,7 +8,7 @@
 namespace PanzerChasm
 {
 
-typedef std::vector<char> SaveLoadBuffer;
+typedef std::vector<unsigned char> SaveLoadBuffer;
 
 class SaveStream final
 {
