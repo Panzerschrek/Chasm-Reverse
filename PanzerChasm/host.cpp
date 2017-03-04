@@ -473,15 +473,13 @@ void Host::DoSave( const char* const save_file_name )
 	Log::Info( "Save game" );
 
 	SaveLoadBuffer buffer;
-	local_server_->Save( buffer );
-	client_->Save( buffer );
-
 	SaveComment save_comment;
-	std::strcpy( save_comment.data(), "Save comment" );
+
+	local_server_->Save( buffer );
+	client_->Save( buffer, save_comment );
 
 	if( SaveData( save_file_name, save_comment, buffer ) )
 		Log::Info( "Game saved" );
-
 }
 
 void Host::DoLoad( const char* const save_file_name )

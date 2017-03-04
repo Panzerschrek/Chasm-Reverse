@@ -29,7 +29,7 @@ public:
 
 	~Client();
 
-	void Save( SaveLoadBuffer& buffer );
+	void Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment );
 	void Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
 
 	void SetConnection( IConnectionPtr connection );

@@ -51,7 +51,7 @@ Client::Client(
 Client::~Client()
 {}
 
-void Client::Save( SaveLoadBuffer& buffer )
+void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 {
 	PC_ASSERT( current_map_number_ != ~0u );
 	PC_ASSERT( minimap_state_ != nullptr );
@@ -75,6 +75,9 @@ void Client::Save( SaveLoadBuffer& buffer )
 	save_stream.WriteUInt32( dynamic_walls_visibility.size() );
 	for( const bool& wall_visibility : dynamic_walls_visibility )
 		save_stream.WriteBool( wall_visibility );
+
+	// Write comment
+	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_number_, player_state_.health );
 }
 
 void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
