@@ -24,6 +24,8 @@ public:
 
 	virtual ~Monster() override;
 
+	virtual void Save( SaveStream& save_stream ) override;
+
 	virtual void Tick(
 		Map& map,
 		EntityId monster_id,

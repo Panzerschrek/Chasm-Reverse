@@ -1,4 +1,6 @@
 #include "map.hpp"
+#include "monster.hpp"
+#include "player.hpp"
 
 namespace PanzerChasm
 {
@@ -410,6 +412,78 @@ Map::Map(
 
 
 	save_buffer_pos= load_stream.GetBufferPos();
+}
+
+void MonsterBase::Save( SaveStream& save_stream )
+{
+	save_stream.WriteBool( have_left_hand_ );
+	save_stream.WriteBool( have_right_hand_ );
+	save_stream.WriteBool( have_head_ );
+	save_stream.WriteBool( fragmented_ );
+	save_stream.WriteFloat( pos_.x );
+	save_stream.WriteFloat( pos_.y );
+	save_stream.WriteFloat( pos_.z );
+	save_stream.WriteFloat( angle_ );
+	save_stream.WriteInt32( health_ );
+	save_stream.WriteUInt32( current_animation_ );
+	save_stream.WriteUInt32( current_animation_frame_ );
+}
+
+void Monster::Save( SaveStream& save_stream )
+{
+	MonsterBase::Save( save_stream );
+
+	save_stream.WriteUInt32( static_cast<uint32_t>(state_) );
+	save_stream.WriteTime( current_animation_start_time_ );
+	save_stream.WriteFloat( vertical_speed_ );
+	save_stream.WriteBool( attack_was_done_ );
+	save_stream.WriteUInt16( target_.monster_id );
+	// monster weak ptr - TODO
+	save_stream.WriteFloat( target_position_.x );
+	save_stream.WriteFloat( target_position_.y );
+	save_stream.WriteFloat( target_position_.z );
+	save_stream.WriteTime( target_change_time_ );
+}
+
+void Player::Save( SaveStream& save_stream )
+{
+	MonsterBase::Save( save_stream );
+
+	save_stream.WriteTime( spawn_time_ );
+	save_stream.WriteFloat( speed_.x );
+	save_stream.WriteFloat( speed_.y );
+	save_stream.WriteFloat( speed_.z );
+	save_stream.WriteBool( on_floor_ );
+	save_stream.WriteBool( noclip_ );
+	save_stream.WriteBool( god_mode_ );
+	save_stream.WriteBool( teleported_ );
+	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+	{
+		save_stream.WriteUInt8( ammo_[i] );
+		save_stream.WriteBool( have_weapon_[i] );
+	}
+	save_stream.WriteInt32( armor_ );
+	save_stream.WriteBool( have_red_key_   );
+	save_stream.WriteBool( have_green_key_ );
+	save_stream.WriteBool( have_blue_key_  );
+	save_stream.WriteFloat( mevement_acceleration_ );
+	save_stream.WriteFloat( movement_direction_ );
+	save_stream.WriteBool( jump_pessed_ );
+	save_stream.WriteUInt32( static_cast<uint32_t>( state_ ) );
+	save_stream.WriteTime( last_state_change_time_ );
+	save_stream.WriteUInt32( static_cast<uint32_t>( weapon_state_ ) );
+	save_stream.WriteFloat( view_angle_x_ );
+	save_stream.WriteFloat( view_angle_z_ );
+	save_stream.WriteBool( shoot_pressed_ );
+	save_stream.WriteTime( last_shoot_time_ );
+	save_stream.WriteUInt32( current_weapon_index_ );
+	save_stream.WriteUInt32( requested_weapon_index_ );
+	save_stream.WriteFloat( weapon_switch_stage_ );
+	save_stream.WriteUInt32( current_weapon_animation_ );
+	save_stream.WriteUInt32( current_weapon_animation_frame_ );
+	save_stream.WriteTime( weapon_animation_state_change_time_ );
+	save_stream.WriteTime( last_pain_sound_time_ );
+	save_stream.WriteTime( last_step_sound_time_ );
 }
 
 } // namespace PanzerChasm

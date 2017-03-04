@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../fwd.hpp"
+#include "../save_load_streams.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"
 #include "movement_restriction.hpp"
@@ -18,6 +19,8 @@ public:
 		unsigned char monster_id,
 		const m_Vec3& pos, float angle );
 	virtual ~MonsterBase();
+
+	virtual void Save( SaveStream& save_stream );
 
 	unsigned char MonsterId() const;
 

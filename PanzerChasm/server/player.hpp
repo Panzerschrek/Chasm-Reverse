@@ -19,6 +19,8 @@ public:
 	Player( const GameResourcesConstPtr& game_resources, Time current_time );
 	virtual ~Player() override;
 
+	virtual void Save( SaveStream& save_stream ) override;
+
 	virtual void Tick(
 		Map& map,
 		EntityId monster_id,
