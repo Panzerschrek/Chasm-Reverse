@@ -730,6 +730,24 @@ MenuBase* SaveLoadMenu::ProcessEvent( const SystemEvent& event )
 
 		if( event.event.key.key_code == KeyCode::Enter )
 		{
+			if( what_ == What::Save )
+			{
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				host_commands_.SaveGame( current_row_ );
+				return nullptr;
+			}
+			else if( what_ == What::Load )
+			{
+				if( saves_names_[current_row_][0] != '\0' )
+				{
+					host_commands_.LoadGame( current_row_ );
+					return nullptr;
+				}
+			}
+			else
+			{
+				PC_ASSERT( false );
+			}
 		}
 	}
 

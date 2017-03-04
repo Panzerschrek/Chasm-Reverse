@@ -13,3 +13,6 @@ build-*
 # Objects
 *.o
 *.obj
+
+# Game saves
+saves/*

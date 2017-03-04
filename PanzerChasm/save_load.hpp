@@ -25,7 +25,8 @@ public:
 
 SIZE_ASSERT( SaveHeader, 20u );
 
-void SaveData(
+// Returns true, if all ok
+bool SaveData(
 	const char* file_name,
 	const SaveComment& save_comment,
 	const SaveLoadBuffer& data );
@@ -38,5 +39,10 @@ bool LoadData(
 bool LoadSaveComment(
 	const char* file_name,
 	SaveComment& out_save_comment );
+
+void GetSaveFileNameForSlot(
+	unsigned int slot_number,
+	char* out_file_name,
+	unsigned int out_file_name_max_length );
 
 } // namespace PanzerChasm

@@ -335,20 +335,33 @@ bool Host::SaveAvailable() const
 
 void Host::GetSavesNames( SavesNames& out_saves_names )
 {
-	for( SaveComment& save_comment : out_saves_names )
-		save_comment[0]= '\0';
+	//for( SaveComment& save_comment : out_saves_names )
+	for( unsigned int slot= 0u; slot < c_save_slots; slot++ )
+	{
+		SaveComment& out_save_comment= out_saves_names[slot];
 
-	std::strcpy( out_saves_names[2].data(), "level 01 health 14" );
+		char file_name[32];
+		GetSaveFileNameForSlot( slot, file_name, sizeof(file_name) );
+
+		if( LoadSaveComment( file_name, out_save_comment ) )
+		{ /* all ok */ }
+		else
+			out_save_comment[0]= '\0';
+	}
 }
 
 void Host::SaveGame( const unsigned int slot_number )
 {
-	PC_UNUSED( slot_number );
+	char file_name[64];
+	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
+	DoSave( file_name );
 }
 
 void Host::LoadGame( const unsigned int slot_number )
 {
-	PC_UNUSED( slot_number );
+	char file_name[64];
+	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
+	DoLoad( file_name );
 }
 
 void Host::NewGameCommand( const CommandsArguments& args )
@@ -457,6 +470,8 @@ void Host::DoSave( const char* const save_file_name )
 		return;
 	}
 
+	Log::Info( "Save game" );
+
 	SaveLoadBuffer buffer;
 	local_server_->Save( buffer );
 	client_->Save( buffer );
@@ -464,7 +479,9 @@ void Host::DoSave( const char* const save_file_name )
 	SaveComment save_comment;
 	std::strcpy( save_comment.data(), "Save comment" );
 
-	SaveData( save_file_name, save_comment, buffer );
+	if( SaveData( save_file_name, save_comment, buffer ) )
+		Log::Info( "Game saved" );
+
 }
 
 void Host::DoLoad( const char* const save_file_name )
@@ -472,8 +489,11 @@ void Host::DoLoad( const char* const save_file_name )
 	SaveLoadBuffer save_buffer;
 	unsigned int save_buffer_pos= 0u;
 
+	Log::Info( "Load game" );
+
 	if( !LoadData( save_file_name, save_buffer ) )
 	{
+		Log::Info( "Loading failed" );
 		return;
 	}
 
@@ -486,7 +506,10 @@ void Host::DoLoad( const char* const save_file_name )
 	const bool map_changed=
 		local_server_->Load( save_buffer, save_buffer_pos );
 	if( !map_changed )
+	{
+		Log::Info( "Loading failed" );
 		return;
+	}
 
 	client_->Load( save_buffer, save_buffer_pos );
 
@@ -501,6 +524,8 @@ void Host::DoLoad( const char* const save_file_name )
 		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
 
 	is_single_player_= true;
+
+	Log::Info( "Game loaded" );
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )

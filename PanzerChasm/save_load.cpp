@@ -49,7 +49,7 @@ SaveHeader::HashType SaveHeader::CalculateHash( const unsigned char* data, unsig
 	return crc;
 }
 
-void SaveData(
+bool SaveData(
 	const char* file_name,
 	const SaveComment& save_comment,
 	const SaveLoadBuffer& data )
@@ -58,7 +58,7 @@ void SaveData(
 	if( f == nullptr )
 	{
 		Log::Warning( "Can not write save \"", file_name, "\"" );
-		return;
+		return false;
 	}
 
 	SaveHeader header;
@@ -72,6 +72,7 @@ void SaveData(
 	FileWrite( f, data.data(), data.size() );
 
 	std::fclose(f);
+	return true;
 }
 
 // Returns true, if all ok
@@ -147,7 +148,6 @@ bool LoadSaveComment(
 	FILE* const f= std::fopen( file_name, "rb" );
 	if( f == nullptr )
 	{
-		Log::Warning( "Can not read save \"", file_name, "\"." );
 		return false;
 	}
 
@@ -157,15 +157,23 @@ bool LoadSaveComment(
 
 	if( file_size < sizeof(SaveHeader) + sizeof(SaveComment) )
 	{
-		Log::Warning( "Save file is broken - it is too small." );
 		std::fclose(f);
 		return false;
 	}
 
+	std::fseek( f, sizeof(SaveHeader), SEEK_SET );
 	FileRead( f, out_save_comment.data(), sizeof(SaveComment) );
 
 	std::fclose(f);
 	return true;
+}
+
+void GetSaveFileNameForSlot(
+	const unsigned int slot_number,
+	char* const out_file_name,
+	const unsigned int out_file_name_max_length )
+{
+	std::snprintf( out_file_name, out_file_name_max_length, "saves/save_%02d.pcs", slot_number );
 }
 
 } // namespace PanzerChasm
