@@ -441,7 +441,7 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 
 void Host::DoSave( const char* const save_file_name )
 {
-	if( !( local_server_ != nullptr && is_single_player_ ) )
+	if( !( local_server_ != nullptr && client_ != nullptr && is_single_player_ ) )
 	{
 		Log::Warning( "Can not save now" );
 		return;
@@ -449,6 +449,7 @@ void Host::DoSave( const char* const save_file_name )
 
 	SaveLoadBuffer buffer;
 	local_server_->Save( buffer );
+	client_->Save( buffer );
 
 	SaveData( save_file_name, buffer );
 }
@@ -473,6 +474,8 @@ void Host::DoLoad( const char* const save_file_name )
 		local_server_->Load( save_buffer, save_buffer_pos );
 	if( !map_changed )
 		return;
+
+	client_->Load( save_buffer, save_buffer_pos );
 
 	// Making server listen connections from loopback buffer.
 	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );

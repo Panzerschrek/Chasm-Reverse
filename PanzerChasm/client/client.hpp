@@ -3,6 +3,7 @@
 #include "../connection_info.hpp"
 #include "../loopback_buffer.hpp"
 #include "../rendering_context.hpp"
+#include "../save_load_streams.hpp" // TODO - include fwd
 #include "../system_event.hpp"
 #include "hud_drawer.hpp"
 #include "map_drawer.hpp"
@@ -29,6 +30,9 @@ public:
 
 	~Client();
 
+	void Save( SaveLoadBuffer& buffer );
+	void Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
+
 	void SetConnection( IConnectionPtr connection );
 	bool Disconnected() const;
 
@@ -36,6 +40,9 @@ public:
 
 	void Loop( const KeyboardState& keyboard_state );
 	void Draw();
+
+private:
+	struct LoadedMinimapState;
 
 public: // Messages handlers
 
@@ -87,9 +94,11 @@ private:
 
 	MapDrawer map_drawer_;
 	MinimapDrawer minimap_drawer_;
+	unsigned int current_map_number_= ~0u;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
 	std::unique_ptr<MinimapState> minimap_state_;
+	std::unique_ptr<LoadedMinimapState> loaded_minimap_state_;
 
 	WeaponState weapon_state_;
 	bool shoot_pressed_= false;

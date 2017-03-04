@@ -17,6 +17,10 @@ public:
 	explicit MinimapState( const MapDataConstPtr& map_data );
 	~MinimapState();
 
+	void SetState(
+		const WallsVisibility& static_walls_visibility ,
+		const WallsVisibility& dynamic_walls_visibility );
+
 	void Update(
 		const MapState& map_state,
 		const m_Vec2& camera_position,
