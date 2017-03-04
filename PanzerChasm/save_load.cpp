@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "../Common/files.hpp"
 using namespace ChasmReverse;
 

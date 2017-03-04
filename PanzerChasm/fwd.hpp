@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <memory>
+#include <vector>
 
 // Forward declarations, basic typedefs here.
 
@@ -36,6 +37,10 @@ class LongRand;
 typedef std::shared_ptr<LongRand> LongRandPtr;
 
 struct ObjSprite;
+
+typedef std::vector<unsigned char> SaveLoadBuffer;
+class SaveStream;
+class LoadStream;
 
 class Settings;
 

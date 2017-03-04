@@ -3,6 +3,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "../save_load_streams.hpp"
 #include "player.hpp"
 
 #include "server.hpp"

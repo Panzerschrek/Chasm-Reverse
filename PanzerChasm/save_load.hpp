@@ -1,6 +1,6 @@
 #pragma once
 #include "assert.hpp"
-#include "save_load_streams.hpp"
+#include "fwd.hpp"
 
 namespace PanzerChasm
 {

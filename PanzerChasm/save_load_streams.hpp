@@ -3,12 +3,11 @@
 #include <cstring>
 #include <vector>
 
+#include "fwd.hpp"
 #include "time.hpp"
 
 namespace PanzerChasm
 {
-
-typedef std::vector<unsigned char> SaveLoadBuffer;
 
 class SaveStream final
 {

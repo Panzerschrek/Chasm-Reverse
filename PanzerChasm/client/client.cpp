@@ -4,6 +4,7 @@
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
+#include "../save_load_streams.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
 

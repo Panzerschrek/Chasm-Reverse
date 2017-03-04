@@ -1,3 +1,4 @@
+#include "../save_load_streams.hpp"
 #include "map.hpp"
 #include "monster.hpp"
 #include "player.hpp"
