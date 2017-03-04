@@ -303,6 +303,10 @@ private:
 	EntityId GetLightSourceId( unsigned int parent_procedure_number, unsigned int light_source_coomand_number ) const;
 
 	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
+	static void PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message );
+	static void PrepareMineBirthMessage( const Mine& mine, Messages::DynamicItemBirth& message );
+	static void PrepareBackpackBirthMessage( const Backpack& backpack, EntityId backpack_id, Messages::DynamicItemBirth& message );
+	static void PrepareLightSourceBirthMessage( const LightSource& light_source, EntityId light_source_id, Messages::LightSourceBirth& message );
 
 	void EmitModelDestructionEffects( unsigned int model_number );
 	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );

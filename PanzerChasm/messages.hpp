@@ -210,21 +210,19 @@ struct RocketDeath : public MessageBase
 	EntityId rocket_id;
 };
 
-struct DynamicItemBirth : public MessageBase
-{
-	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemBirth)
-
-	EntityId item_id;
-	unsigned char item_type_id;
-	CoordType xyz[3];
-};
-
 struct DynamicItemUpdate : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemUpdate)
 
 	EntityId item_id;
 	CoordType xyz[3];
+};
+
+struct DynamicItemBirth : public DynamicItemUpdate
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicItemBirth)
+
+	unsigned char item_type_id;
 };
 
 struct DynamicItemDeath : public MessageBase
