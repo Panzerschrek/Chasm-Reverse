@@ -59,6 +59,7 @@ SOURCES+= \
 	obj.cpp \
 	program_arguments.cpp \
 	rand.cpp \
+	save_load.cpp \
 	save_load_streams.cpp \
 	server/collisions.cpp \
 	server/collision_index.cpp \
@@ -122,6 +123,7 @@ HEADERS+= \
 	program_arguments.hpp \
 	rand.hpp \
 	rendering_context.hpp \
+	save_load.hpp \
 	save_load_streams.hpp \
 	server/a_code.hpp \
 	server/backpack.hpp \
