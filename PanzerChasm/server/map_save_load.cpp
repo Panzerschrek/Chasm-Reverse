@@ -186,4 +186,230 @@ void Map::Save( SaveLoadBuffer& save_buffer, const Time current_server_time ) co
 	}
 }
 
+Map::Map(
+	const DifficultyType difficulty,
+	const MapDataConstPtr& map_data,
+	const SaveLoadBuffer& save_buffer, unsigned int& save_buffer_pos,
+	const GameResourcesConstPtr& game_resources,
+	const Time map_start_time,
+	MapEndCallback map_end_callback )
+	: difficulty_(difficulty)
+	, map_data_(map_data)
+	, game_resources_(game_resources)
+	, map_end_callback_( std::move( map_end_callback ) )
+	, random_generator_( std::make_shared<LongRand>() )
+	, collision_index_( map_data )
+{
+	PC_ASSERT( map_data_ != nullptr );
+	PC_ASSERT( game_resources_ != nullptr );
+
+	LoadStream load_stream( save_buffer, save_buffer_pos, map_start_time );
+
+	// Dynamic walls
+	unsigned int dynamic_walls_count;
+	load_stream.ReadUInt32( dynamic_walls_count );
+	PC_ASSERT( dynamic_walls_count == map_data_->dynamic_walls.size() );
+	dynamic_walls_.resize( dynamic_walls_count );
+	for( DynamicWall& wall : dynamic_walls_ )
+	{
+		load_stream.ReadFloat( wall.vert_pos[0].x );
+		load_stream.ReadFloat( wall.vert_pos[0].y );
+		load_stream.ReadFloat( wall.vert_pos[1].x );
+		load_stream.ReadFloat( wall.vert_pos[1].y );
+		load_stream.ReadFloat( wall.z );
+		load_stream.ReadUInt8( wall.texture_id );
+		load_stream.ReadBool( wall.mortal );
+	}
+
+	// Procedures
+	unsigned int procedures_count;
+	load_stream.ReadUInt32( procedures_count );
+	PC_ASSERT( procedures_count == map_data_->procedures.size() );
+	procedures_.resize( procedures_count );
+	for( ProcedureState& procedure_state : procedures_ )
+	{
+		load_stream.ReadBool( procedure_state.locked );
+		load_stream.ReadBool( procedure_state.first_message_printed );
+		unsigned int movement_state;
+		load_stream.ReadUInt32( movement_state );
+		procedure_state.movement_state= static_cast<ProcedureState::MovementState>( movement_state );
+		// save_stream.WriteUInt32( procedure_state.movement_loop_iteration ); // TODO - does this needs ?
+		load_stream.ReadFloat( procedure_state.movement_stage );
+		load_stream.ReadTime( procedure_state.last_state_change_time );
+	}
+
+	// Map end flag
+	load_stream.ReadBool( map_end_triggered_ );
+
+	// Static models
+	unsigned int static_models_count;
+	load_stream.ReadUInt32( static_models_count );
+	PC_ASSERT( static_models_count == map_data_->static_models.size() );
+	static_models_.resize( static_models_count );
+	for( StaticModel& model : static_models_ )
+	{
+		// TODO - add save-load methods for vectors
+		load_stream.ReadFloat( model.pos.x );
+		load_stream.ReadFloat( model.pos.y );
+		load_stream.ReadFloat( model.pos.y );
+		load_stream.ReadFloat( model.baze_z );
+		load_stream.ReadFloat( model.angle );
+		load_stream.ReadUInt8( model.model_id );
+		load_stream.ReadInt32( model.health );
+		unsigned int animation_state;
+		load_stream.ReadUInt32( animation_state );
+		model.animation_state= static_cast<StaticModel::AnimationState>(animation_state);
+		load_stream.ReadTime( model.animation_start_time );
+		load_stream.ReadUInt32( model.animation_start_frame );
+		load_stream.ReadUInt32( model.current_animation_frame );
+		load_stream.ReadBool( model.picked );
+		load_stream.ReadBool( model.mortal );
+
+		// Load optional rotating light
+		bool is_rotating_light;
+		load_stream.ReadBool( is_rotating_light );
+		if( is_rotating_light )
+		{
+			model.linked_rotating_light.reset( new RotatingLightEffect );
+			load_stream.ReadTime( model.linked_rotating_light->start_time );
+			load_stream.ReadTime( model.linked_rotating_light->end_time );
+			load_stream.ReadFloat( model.linked_rotating_light->radius );
+			load_stream.ReadFloat( model.linked_rotating_light->brightness );
+		}
+	}
+
+	// Items
+	unsigned int item_count;
+	load_stream.ReadUInt32( item_count );
+	PC_ASSERT( item_count == map_data_->items.size() );
+	items_.resize( item_count );
+	for( Item& item : items_ )
+	{
+		// TODO - position really needs?
+		load_stream.ReadFloat( item.pos.x );
+		load_stream.ReadFloat( item.pos.y );
+		load_stream.ReadFloat( item.pos.z );
+		// TODO - item id is constant. remove it ?
+		load_stream.ReadUInt8( item.item_id );
+		load_stream.ReadBool( item.picked_up );
+		load_stream.ReadBool( item.enabled );
+	}
+
+	// Rockets
+	unsigned int rocket_count;
+	load_stream.ReadUInt32( rocket_count );
+	rockets_.resize( rocket_count );
+	for( Rocket& rocket : rockets_ )
+	{
+		load_stream.ReadTime( rocket.start_time );
+		load_stream.ReadFloat( rocket.start_point.x );
+		load_stream.ReadFloat( rocket.start_point.y );
+		load_stream.ReadFloat( rocket.start_point.z );
+		load_stream.ReadFloat( rocket.normalized_direction.x );
+		load_stream.ReadFloat( rocket.normalized_direction.y );
+		load_stream.ReadFloat( rocket.normalized_direction.z );
+		load_stream.ReadUInt16( rocket.rocket_id );
+		load_stream.ReadUInt16( rocket.owner_id );
+		load_stream.ReadUInt8( rocket.rocket_type_id );
+		load_stream.ReadFloat( rocket.previous_position.x );
+		load_stream.ReadFloat( rocket.previous_position.y );
+		load_stream.ReadFloat( rocket.previous_position.z );
+		load_stream.ReadFloat( rocket.track_length );
+		load_stream.ReadFloat( rocket.speed.x );
+		load_stream.ReadFloat( rocket.speed.y );
+		load_stream.ReadFloat( rocket.speed.z );
+	}
+
+	// Mines
+	unsigned int mine_count;
+	load_stream.ReadUInt32( mine_count );
+	mines_.resize( mine_count );
+	for( Mine& mine : mines_ )
+	{
+		load_stream.ReadTime( mine.planting_time );
+		load_stream.ReadFloat( mine.pos.x );
+		load_stream.ReadFloat( mine.pos.y );
+		load_stream.ReadFloat( mine.pos.z );
+		load_stream.ReadUInt16( mine.id );
+		load_stream.ReadBool( mine.turned_on );
+	}
+
+	// Backpacks
+	unsigned int backpack_count;
+	load_stream.ReadUInt32( backpack_count );
+	for( unsigned int i= 0u; i < backpack_count; i++ )
+	{
+		EntityId id;
+		load_stream.ReadUInt16( id );
+		Backpack& backpack= *(backpacks_[id]);
+
+		load_stream.ReadFloat( backpack.pos.x );
+		load_stream.ReadFloat( backpack.pos.y );
+		load_stream.ReadFloat( backpack.pos.z );
+		load_stream.ReadFloat( backpack.vertical_speed );
+		load_stream.ReadFloat( backpack.min_z );
+		for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
+		{
+			load_stream.ReadBool( backpack.weapon[i] );
+			load_stream.ReadUInt8( backpack.ammo[i] );
+		}
+		load_stream.ReadBool( backpack.red_key   );
+		load_stream.ReadBool( backpack.green_key );
+		load_stream.ReadBool( backpack.blue_key  );
+		load_stream.ReadUInt8( backpack.armor );
+	}
+
+	// Next rocket id
+	load_stream.ReadUInt16( next_rocket_id_ );
+
+	// Players - do not save it. Save it as monsters
+
+	// Monsters
+	unsigned int monster_count;
+	load_stream.ReadUInt32( monster_count );
+	for( unsigned int i= 0u; i < monster_count; i++ )
+	{
+		// TODO
+	}
+
+	// Next monster id
+	load_stream.ReadUInt16( next_monster_id_ );
+
+	// Light sources
+	unsigned int light_source_count;
+	load_stream.ReadUInt32( light_source_count );
+	for( unsigned int i= 0u; i < light_source_count; i++ )
+	{
+		EntityId id;
+		load_stream.ReadUInt16( id );
+		LightSource& light_source= light_sources_[id];
+
+		load_stream.ReadTime( light_source.birth_time );
+		load_stream.ReadFloat( light_source.pos.x );
+		load_stream.ReadFloat( light_source.pos.y );
+		load_stream.ReadFloat( light_source.radius );
+		load_stream.ReadFloat( light_source.brightness );
+		load_stream.ReadUInt16( light_source.turn_on_time_ms );
+	}
+
+	// Wind field
+	// TODO - optimize large arrays saving
+	for( char* const wind_field_cell : wind_field_ )
+	{
+		load_stream.ReadInt8( reinterpret_cast<int8_t&>(wind_field_cell[0]) );
+		load_stream.ReadInt8( reinterpret_cast<int8_t&>(wind_field_cell[1]) );
+	}
+
+	// Death field
+	for( DamageFiledCell& damage_field_cell : death_field_ )
+	{
+		load_stream.ReadUInt8( damage_field_cell.damage );
+		load_stream.ReadUInt8( damage_field_cell.z_bottom );
+		load_stream.ReadUInt8( damage_field_cell.z_top );
+	}
+
+
+	save_buffer_pos= load_stream.GetBufferPos();
+}
+
 } // namespace PanzerChasm

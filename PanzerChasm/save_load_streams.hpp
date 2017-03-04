@@ -51,17 +51,19 @@ private:
 class LoadStream final
 {
 public:
-	LoadStream( const SaveLoadBuffer& in_buffer, unsigned int buffer_pos );
+	LoadStream( const SaveLoadBuffer& in_buffer, unsigned int buffer_pos, Time base_time );
 	~LoadStream();
 
 	unsigned int GetBufferPos() const;
+
+	void ReadBool( bool& b );
 
 	void ReadInt8  ( int8_t  & i );
 	void ReadUInt8 ( uint8_t & i );
 	void ReadInt16 ( int16_t & i );
 	void ReadUInt16( uint16_t& i );
-	void ReadInt32 ( int16_t & i );
-	void ReadUInt32( uint16_t& i );
+	void ReadInt32 ( int32_t & i );
+	void ReadUInt32( uint32_t& i );
 
 	void ReadFloat( float& f );
 	void ReadDouble( double& f );
@@ -75,6 +77,8 @@ private:
 private:
 	const SaveLoadBuffer& buffer_;
 	unsigned int buffer_pos_;
+
+	Time base_time_;
 };
 
 template<class T>

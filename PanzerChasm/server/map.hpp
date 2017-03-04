@@ -31,6 +31,16 @@ public:
 		const GameResourcesConstPtr& game_resources,
 		Time map_start_time,
 		MapEndCallback map_end_callback );
+
+	// Construct from save
+	Map(
+		DifficultyType difficulty,
+		const MapDataConstPtr& map_data,
+		const SaveLoadBuffer& save_buffer, unsigned int& save_buffer_pos,
+		const GameResourcesConstPtr& game_resources,
+		Time map_start_time,
+		MapEndCallback map_end_callback );
+
 	~Map();
 
 	DifficultyType GetDifficulty() const;
@@ -170,6 +180,7 @@ private:
 
 	struct Rocket
 	{
+		Rocket(){} // Empty constructor - for deserialization
 		Rocket(
 			EntityId in_rocket_id,
 			EntityId in_owner_id,
@@ -181,7 +192,7 @@ private:
 		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
 
 		// Start parameters
-		Time start_time;
+		Time start_time= Time::FromSeconds(0);
 		m_Vec3 start_point;
 		m_Vec3 normalized_direction;
 		EntityId rocket_id;

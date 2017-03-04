@@ -13,9 +13,10 @@ SaveStream::SaveStream( SaveLoadBuffer& out_buffer, const Time base_time )
 SaveStream::~SaveStream()
 {}
 
-LoadStream::LoadStream( const SaveLoadBuffer& in_buffer, const unsigned int buffer_pos )
+LoadStream::LoadStream( const SaveLoadBuffer& in_buffer, const unsigned int buffer_pos, const Time base_time )
 	: buffer_(in_buffer)
 	, buffer_pos_(buffer_pos)
+	, base_time_(base_time)
 {}
 
 LoadStream::~LoadStream()
@@ -43,6 +44,11 @@ void LoadStream::Read( T& t )
 	buffer_pos_+= sizeof(T);
 }
 
+void LoadStream::ReadBool( bool& b )
+{
+	Read(b);
+}
+
 void LoadStream::ReadInt8  ( int8_t  & i )
 {
 	Read(i);
@@ -63,12 +69,12 @@ void LoadStream::ReadUInt16( uint16_t& i )
 	Read(i);
 }
 
-void LoadStream::ReadInt32 ( int16_t & i )
+void LoadStream::ReadInt32 ( int32_t & i )
 {
 	Read(i);
 }
 
-void LoadStream::ReadUInt32( uint16_t& i )
+void LoadStream::ReadUInt32( uint32_t& i )
 {
 	Read(i);
 }
@@ -88,7 +94,7 @@ void LoadStream::ReadTime( Time& time )
 	int64_t time_internal_representation;
 	Read( time_internal_representation );
 
-	time= Time::FromInternalRepresentation( time_internal_representation );
+	time= Time::FromInternalRepresentation( time_internal_representation ) + base_time_;
 }
 
 } // namespace PanzerChasm
