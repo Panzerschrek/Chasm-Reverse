@@ -159,7 +159,7 @@ void SaveStream::Write( const T& t )
 		"Expected basic types" );
 
 	const size_t pos= buffer_.size();
-	buffer_.resize( sizeof(T) );
+	buffer_.resize( pos + sizeof(T) );
 	std::memcpy(
 		buffer_.data() + pos,
 		&t,

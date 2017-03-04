@@ -56,8 +56,12 @@ private:
 	void ConnectCommand( const CommandsArguments& args );
 	void DisconnectCommand();
 	void RunServerCommand( const CommandsArguments& args );
+	void SaveCommand( const CommandsArguments& args );
+	void LoadCommand( const CommandsArguments& args );
 
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
+	void DoSave( const char* save_file_name );
+	void DoLoad( const char* save_file_name );
 
 	void DrawLoadingFrame( float progress, const char* caption );
 

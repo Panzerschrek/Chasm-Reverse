@@ -5,6 +5,7 @@
 #include "game_resources.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
+#include "save_load.hpp"
 #include "sound/sound_engine.hpp"
 
 #include "host.hpp"
@@ -70,6 +71,8 @@ Host::Host( const int argc, const char* const* const argv )
 		commands->emplace( "connect", std::bind( &Host::ConnectCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "disconnect", std::bind( &Host::DisconnectCommand, this ) );
 		commands->emplace( "runserver", std::bind( &Host::RunServerCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "save", std::bind( &Host::SaveCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "load", std::bind( &Host::LoadCommand, this, std::placeholders::_1 ) );
 
 		host_commands_= std::move( commands );
 		commands_processor_.RegisterCommands( host_commands_ );
@@ -388,6 +391,28 @@ void Host::RunServerCommand( const CommandsArguments& args )
 	StartServer( 1u, Difficulty::Normal, false, 0u, 0u );
 }
 
+void Host::SaveCommand( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Warning( "Expected save name" );
+		return;
+	}
+
+	DoSave( args.front().c_str() );
+}
+
+void Host::LoadCommand( const CommandsArguments& args )
+{
+	if( args.empty() )
+	{
+		Log::Warning( "Expected save name" );
+		return;
+	}
+
+	DoLoad( args.front().c_str() );
+}
+
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )
 {
 	EnsureClient();
@@ -398,6 +423,54 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 
 	const bool map_changed=
 		local_server_->ChangeMap( map_number, difficulty, GameRules::SinglePlayer );
+	if( !map_changed )
+		return;
+
+	// Making server listen connections from loopback buffer.
+	connections_listener_proxy_->AddConnectionsListener( loopback_buffer_ );
+	loopback_buffer_->RequestConnect();
+
+	// Make client working with loopback buffer connection.
+	client_->SetConnection( loopback_buffer_->GetClientSideConnection() );
+
+	if( system_window_ != nullptr )
+		system_window_->SetTitle( base_window_title_ + " - singleplayer" );
+
+	is_single_player_= true;
+}
+
+void Host::DoSave( const char* const save_file_name )
+{
+	if( !( local_server_ != nullptr && is_single_player_ ) )
+	{
+		Log::Warning( "Can not save now" );
+		return;
+	}
+
+	SaveLoadBuffer buffer;
+	local_server_->Save( buffer );
+
+	SaveData( save_file_name, buffer );
+}
+
+void Host::DoLoad( const char* const save_file_name )
+{
+	SaveLoadBuffer save_buffer;
+	unsigned int save_buffer_pos= 0u;
+
+	if( !LoadData( save_file_name, save_buffer ) )
+	{
+		return;
+	}
+
+	EnsureClient();
+	EnsureServer();
+	EnsureLoopbackBuffer();
+
+	ClearBeforeGameStart();
+
+	const bool map_changed=
+		local_server_->Load( save_buffer, save_buffer_pos );
 	if( !map_changed )
 		return;
 
