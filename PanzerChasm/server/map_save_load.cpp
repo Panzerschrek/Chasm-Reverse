@@ -12,10 +12,8 @@ void Map::Save( SaveStream& save_stream ) const
 	save_stream.WriteUInt32( static_cast<uint32_t>( dynamic_walls_.size() ) );
 	for( const DynamicWall& wall : dynamic_walls_ )
 	{
-		save_stream.WriteFloat( wall.vert_pos[0].x );
-		save_stream.WriteFloat( wall.vert_pos[0].y );
-		save_stream.WriteFloat( wall.vert_pos[1].x );
-		save_stream.WriteFloat( wall.vert_pos[1].y );
+		save_stream.WriteVec2( wall.vert_pos[0] );
+		save_stream.WriteVec2( wall.vert_pos[1] );
 		save_stream.WriteFloat( wall.z );
 		save_stream.WriteUInt8( wall.texture_id );
 		save_stream.WriteBool( wall.mortal );
@@ -41,9 +39,7 @@ void Map::Save( SaveStream& save_stream ) const
 	for( const StaticModel& model : static_models_ )
 	{
 		// TODO - add save-load methods for vectors
-		save_stream.WriteFloat( model.pos.x );
-		save_stream.WriteFloat( model.pos.y );
-		save_stream.WriteFloat( model.pos.y );
+		save_stream.WriteVec3( model.pos );
 		save_stream.WriteFloat( model.baze_z );
 		save_stream.WriteFloat( model.angle );
 		save_stream.WriteUInt8( model.model_id );
@@ -71,9 +67,7 @@ void Map::Save( SaveStream& save_stream ) const
 	for( const Item& item : items_ )
 	{
 		// TODO - position really needs?
-		save_stream.WriteFloat( item.pos.x );
-		save_stream.WriteFloat( item.pos.y );
-		save_stream.WriteFloat( item.pos.z );
+		save_stream.WriteVec3( item.pos );
 		// TODO - item id is constant. remove it ?
 		save_stream.WriteUInt8( item.item_id );
 		save_stream.WriteBool( item.picked_up );
@@ -85,22 +79,14 @@ void Map::Save( SaveStream& save_stream ) const
 	for( const Rocket& rocket : rockets_ )
 	{
 		save_stream.WriteTime( rocket.start_time );
-		save_stream.WriteFloat( rocket.start_point.x );
-		save_stream.WriteFloat( rocket.start_point.y );
-		save_stream.WriteFloat( rocket.start_point.z );
-		save_stream.WriteFloat( rocket.normalized_direction.x );
-		save_stream.WriteFloat( rocket.normalized_direction.y );
-		save_stream.WriteFloat( rocket.normalized_direction.z );
+		save_stream.WriteVec3( rocket.start_point );
+		save_stream.WriteVec3( rocket.normalized_direction );
 		save_stream.WriteUInt16( rocket.rocket_id );
 		save_stream.WriteUInt16( rocket.owner_id );
 		save_stream.WriteUInt8( rocket.rocket_type_id );
-		save_stream.WriteFloat( rocket.previous_position.x );
-		save_stream.WriteFloat( rocket.previous_position.y );
-		save_stream.WriteFloat( rocket.previous_position.z );
+		save_stream.WriteVec3( rocket.previous_position );
 		save_stream.WriteFloat( rocket.track_length );
-		save_stream.WriteFloat( rocket.speed.x );
-		save_stream.WriteFloat( rocket.speed.y );
-		save_stream.WriteFloat( rocket.speed.z );
+		save_stream.WriteVec3( rocket.speed );
 	}
 
 	// Mines
@@ -108,9 +94,7 @@ void Map::Save( SaveStream& save_stream ) const
 	for( const Mine& mine : mines_ )
 	{
 		save_stream.WriteTime( mine.planting_time );
-		save_stream.WriteFloat( mine.pos.x );
-		save_stream.WriteFloat( mine.pos.y );
-		save_stream.WriteFloat( mine.pos.z );
+		save_stream.WriteVec3( mine.pos );
 		save_stream.WriteUInt16( mine.id );
 		save_stream.WriteBool( mine.turned_on );
 	}
@@ -123,9 +107,7 @@ void Map::Save( SaveStream& save_stream ) const
 
 		save_stream.WriteUInt16( backpack_value.first );
 
-		save_stream.WriteFloat( backpack.pos.x );
-		save_stream.WriteFloat( backpack.pos.y );
-		save_stream.WriteFloat( backpack.pos.z );
+		save_stream.WriteVec3( backpack.pos );
 		save_stream.WriteFloat( backpack.vertical_speed );
 		save_stream.WriteFloat( backpack.min_z );
 		for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
@@ -165,8 +147,7 @@ void Map::Save( SaveStream& save_stream ) const
 		save_stream.WriteUInt16( light_source_value.first );
 
 		save_stream.WriteTime( light_source.birth_time );
-		save_stream.WriteFloat( light_source.pos.x );
-		save_stream.WriteFloat( light_source.pos.y );
+		save_stream.WriteVec2( light_source.pos );
 		save_stream.WriteFloat( light_source.radius );
 		save_stream.WriteFloat( light_source.brightness );
 		save_stream.WriteUInt16( light_source.turn_on_time_ms );
@@ -212,10 +193,8 @@ Map::Map(
 	dynamic_walls_.resize( dynamic_walls_count );
 	for( DynamicWall& wall : dynamic_walls_ )
 	{
-		load_stream.ReadFloat( wall.vert_pos[0].x );
-		load_stream.ReadFloat( wall.vert_pos[0].y );
-		load_stream.ReadFloat( wall.vert_pos[1].x );
-		load_stream.ReadFloat( wall.vert_pos[1].y );
+		load_stream.ReadVec2( wall.vert_pos[0] );
+		load_stream.ReadVec2( wall.vert_pos[1] );
 		load_stream.ReadFloat( wall.z );
 		load_stream.ReadUInt8( wall.texture_id );
 		load_stream.ReadBool( wall.mortal );
@@ -248,10 +227,7 @@ Map::Map(
 	static_models_.resize( static_models_count );
 	for( StaticModel& model : static_models_ )
 	{
-		// TODO - add save-load methods for vectors
-		load_stream.ReadFloat( model.pos.x );
-		load_stream.ReadFloat( model.pos.y );
-		load_stream.ReadFloat( model.pos.y );
+		load_stream.ReadVec3( model.pos );
 		load_stream.ReadFloat( model.baze_z );
 		load_stream.ReadFloat( model.angle );
 		load_stream.ReadUInt8( model.model_id );
@@ -286,9 +262,7 @@ Map::Map(
 	for( Item& item : items_ )
 	{
 		// TODO - position really needs?
-		load_stream.ReadFloat( item.pos.x );
-		load_stream.ReadFloat( item.pos.y );
-		load_stream.ReadFloat( item.pos.z );
+		load_stream.ReadVec3( item.pos );
 		// TODO - item id is constant. remove it ?
 		load_stream.ReadUInt8( item.item_id );
 		load_stream.ReadBool( item.picked_up );
@@ -302,22 +276,14 @@ Map::Map(
 	for( Rocket& rocket : rockets_ )
 	{
 		load_stream.ReadTime( rocket.start_time );
-		load_stream.ReadFloat( rocket.start_point.x );
-		load_stream.ReadFloat( rocket.start_point.y );
-		load_stream.ReadFloat( rocket.start_point.z );
-		load_stream.ReadFloat( rocket.normalized_direction.x );
-		load_stream.ReadFloat( rocket.normalized_direction.y );
-		load_stream.ReadFloat( rocket.normalized_direction.z );
+		load_stream.ReadVec3( rocket.start_point );
+		load_stream.ReadVec3( rocket.normalized_direction );
 		load_stream.ReadUInt16( rocket.rocket_id );
 		load_stream.ReadUInt16( rocket.owner_id );
 		load_stream.ReadUInt8( rocket.rocket_type_id );
-		load_stream.ReadFloat( rocket.previous_position.x );
-		load_stream.ReadFloat( rocket.previous_position.y );
-		load_stream.ReadFloat( rocket.previous_position.z );
+		load_stream.ReadVec3( rocket.previous_position );
 		load_stream.ReadFloat( rocket.track_length );
-		load_stream.ReadFloat( rocket.speed.x );
-		load_stream.ReadFloat( rocket.speed.y );
-		load_stream.ReadFloat( rocket.speed.z );
+		load_stream.ReadVec3( rocket.speed );
 	}
 
 	// Mines
@@ -327,9 +293,7 @@ Map::Map(
 	for( Mine& mine : mines_ )
 	{
 		load_stream.ReadTime( mine.planting_time );
-		load_stream.ReadFloat( mine.pos.x );
-		load_stream.ReadFloat( mine.pos.y );
-		load_stream.ReadFloat( mine.pos.z );
+		load_stream.ReadVec3( mine.pos );
 		load_stream.ReadUInt16( mine.id );
 		load_stream.ReadBool( mine.turned_on );
 	}
@@ -343,9 +307,7 @@ Map::Map(
 		load_stream.ReadUInt16( id );
 		Backpack& backpack= *(backpacks_[id]);
 
-		load_stream.ReadFloat( backpack.pos.x );
-		load_stream.ReadFloat( backpack.pos.y );
-		load_stream.ReadFloat( backpack.pos.z );
+		load_stream.ReadVec3( backpack.pos );
 		load_stream.ReadFloat( backpack.vertical_speed );
 		load_stream.ReadFloat( backpack.min_z );
 		for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
@@ -402,8 +364,7 @@ Map::Map(
 		LightSource& light_source= light_sources_[id];
 
 		load_stream.ReadTime( light_source.birth_time );
-		load_stream.ReadFloat( light_source.pos.x );
-		load_stream.ReadFloat( light_source.pos.y );
+		load_stream.ReadVec2( light_source.pos );
 		load_stream.ReadFloat( light_source.radius );
 		load_stream.ReadFloat( light_source.brightness );
 		load_stream.ReadUInt16( light_source.turn_on_time_ms );
@@ -432,9 +393,7 @@ void MonsterBase::Save( SaveStream& save_stream )
 	save_stream.WriteBool( have_right_hand_ );
 	save_stream.WriteBool( have_head_ );
 	save_stream.WriteBool( fragmented_ );
-	save_stream.WriteFloat( pos_.x );
-	save_stream.WriteFloat( pos_.y );
-	save_stream.WriteFloat( pos_.z );
+	save_stream.WriteVec3( pos_ );
 	save_stream.WriteFloat( angle_ );
 	save_stream.WriteInt32( health_ );
 	save_stream.WriteUInt32( current_animation_ );
@@ -454,9 +413,7 @@ MonsterBase::MonsterBase(
 	load_stream.ReadBool( have_right_hand_ );
 	load_stream.ReadBool( have_head_ );
 	load_stream.ReadBool( fragmented_ );
-	load_stream.ReadFloat( pos_.x );
-	load_stream.ReadFloat( pos_.y );
-	load_stream.ReadFloat( pos_.z );
+	load_stream.ReadVec3( pos_ );
 	load_stream.ReadFloat( angle_ );
 	load_stream.ReadInt32( health_ );
 	load_stream.ReadUInt32( current_animation_ );
@@ -473,9 +430,7 @@ void Monster::Save( SaveStream& save_stream )
 	save_stream.WriteBool( attack_was_done_ );
 	save_stream.WriteUInt16( target_.monster_id );
 	// monster weak ptr - TODO
-	save_stream.WriteFloat( target_position_.x );
-	save_stream.WriteFloat( target_position_.y );
-	save_stream.WriteFloat( target_position_.z );
+	save_stream.WriteVec3( target_position_ );
 	save_stream.WriteTime( target_change_time_ );
 }
 
@@ -497,9 +452,7 @@ Monster::Monster(
 	load_stream.ReadBool( attack_was_done_ );
 	load_stream.ReadUInt16( target_.monster_id );
 	// monster weak ptr - TODO
-	load_stream.ReadFloat( target_position_.x );
-	load_stream.ReadFloat( target_position_.y );
-	load_stream.ReadFloat( target_position_.z );
+	load_stream.ReadVec3( target_position_ );
 	load_stream.ReadTime( target_change_time_ );
 }
 
@@ -508,9 +461,7 @@ void Player::Save( SaveStream& save_stream )
 	MonsterBase::Save( save_stream );
 
 	save_stream.WriteTime( spawn_time_ );
-	save_stream.WriteFloat( speed_.x );
-	save_stream.WriteFloat( speed_.y );
-	save_stream.WriteFloat( speed_.z );
+	save_stream.WriteVec3( speed_ );
 	save_stream.WriteBool( on_floor_ );
 	save_stream.WriteBool( noclip_ );
 	save_stream.WriteBool( god_mode_ );
@@ -548,9 +499,7 @@ Player::Player( const GameResourcesConstPtr& game_resources, LoadStream& load_st
 	: MonsterBase( game_resources, 0u, load_stream )
 {
 	load_stream.ReadTime( spawn_time_ );
-	load_stream.ReadFloat( speed_.x );
-	load_stream.ReadFloat( speed_.y );
-	load_stream.ReadFloat( speed_.z );
+	load_stream.ReadVec3( speed_ );
 	load_stream.ReadBool( on_floor_ );
 	load_stream.ReadBool( noclip_ );
 	load_stream.ReadBool( god_mode_ );

@@ -3,6 +3,8 @@
 #include <cstring>
 #include <vector>
 
+#include <vec.hpp>
+
 #include "fwd.hpp"
 #include "time.hpp"
 
@@ -36,6 +38,11 @@ public:
 	template<class T>
 	void WriteDouble( const T& f );
 
+	template<class T>
+	void WriteVec2( const T& v );
+	template<class T>
+	void WriteVec3( const T& v );
+
 	void WriteTime( const Time& time );
 
 private:
@@ -66,6 +73,9 @@ public:
 
 	void ReadFloat( float& f );
 	void ReadDouble( double& f );
+
+	void ReadVec2( m_Vec2& v );
+	void ReadVec3( m_Vec3& v );
 
 	void ReadTime( Time& time );
 
@@ -142,6 +152,25 @@ void SaveStream::WriteDouble( const T& f )
 {
 	static_assert( std::is_same< T, double >::value, "Invalid type" );
 	Write( f );
+}
+
+template<class T>
+void SaveStream::WriteVec2( const T& v )
+{
+	static_assert( std::is_same< T, m_Vec2 >::value, "Invalid type" );
+
+	Write( v.x );
+	Write( v.y );
+}
+
+template<class T>
+void SaveStream::WriteVec3( const T& v )
+{
+	static_assert( std::is_same< T, m_Vec3 >::value, "Invalid type" );
+
+	Write( v.x );
+	Write( v.y );
+	Write( v.z );
 }
 
 inline void SaveStream::WriteTime( const Time& time )

@@ -89,6 +89,19 @@ void LoadStream::ReadDouble( double& f )
 	Read(f);
 }
 
+void LoadStream::ReadVec2( m_Vec2& v )
+{
+	Read( v.x );
+	Read( v.y );
+}
+
+void LoadStream::ReadVec3( m_Vec3& v )
+{
+	Read( v.x );
+	Read( v.y );
+	Read( v.z );
+}
+
 void LoadStream::ReadTime( Time& time )
 {
 	int64_t time_internal_representation;
