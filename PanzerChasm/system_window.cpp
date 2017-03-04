@@ -45,6 +45,8 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 	case SDL_SCANCODE_PERIOD: return KeyCode::Period;
 	case SDL_SCANCODE_SLASH: return KeyCode::Slash;
 
+	case SDL_SCANCODE_PAUSE: return KeyCode::Pause;
+
 	default:
 		if( scan_code >= SDL_SCANCODE_A && scan_code <= SDL_SCANCODE_Z )
 			return KeyCode( int(KeyCode::A) + (scan_code - SDL_SCANCODE_A) );

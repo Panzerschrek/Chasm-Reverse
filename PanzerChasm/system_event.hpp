@@ -48,6 +48,7 @@ struct SystemEvent
 			Semicolon, Apostrophe, BackSlash,
 			Comma, Period, Slash,
 
+			Pause,
 			// Put it last here.
 			KeyCount
 		};

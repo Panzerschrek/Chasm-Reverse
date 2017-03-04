@@ -79,6 +79,8 @@ const char* GetKeyName( const SystemEvent::KeyEvent::KeyCode key_code )
 	case KeyCode::Comma: return ",";
 	case KeyCode::Period: return ".";
 	case KeyCode::Slash: return "/";
+
+	case KeyCode::Pause: return "Pause";
 	};
 
 	PC_ASSERT(false);
