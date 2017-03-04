@@ -5,10 +5,8 @@
 namespace PanzerChasm
 {
 
-void Map::Save( SaveLoadBuffer& save_buffer, const Time current_server_time ) const
+void Map::Save( SaveStream& save_stream ) const
 {
-	SaveStream save_stream( save_buffer, current_server_time );
-
 	// Dynamic walls
 	save_stream.WriteUInt32( static_cast<uint32_t>( dynamic_walls_.size() ) );
 	for( const DynamicWall& wall : dynamic_walls_ )
@@ -193,9 +191,8 @@ void Map::Save( SaveLoadBuffer& save_buffer, const Time current_server_time ) co
 Map::Map(
 	const DifficultyType difficulty,
 	const MapDataConstPtr& map_data,
-	const SaveLoadBuffer& save_buffer, unsigned int& save_buffer_pos,
+	LoadStream& load_stream,
 	const GameResourcesConstPtr& game_resources,
-	const Time map_start_time,
 	MapEndCallback map_end_callback )
 	: difficulty_(difficulty)
 	, map_data_(map_data)
@@ -206,8 +203,6 @@ Map::Map(
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
-
-	LoadStream load_stream( save_buffer, save_buffer_pos, map_start_time );
 
 	// Dynamic walls
 	unsigned int dynamic_walls_count;
@@ -428,9 +423,6 @@ Map::Map(
 		load_stream.ReadUInt8( damage_field_cell.z_bottom );
 		load_stream.ReadUInt8( damage_field_cell.z_top );
 	}
-
-
-	save_buffer_pos= load_stream.GetBufferPos();
 }
 
 void MonsterBase::Save( SaveStream& save_stream )

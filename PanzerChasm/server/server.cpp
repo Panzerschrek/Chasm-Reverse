@@ -272,13 +272,13 @@ void Server::Save( SaveLoadBuffer& buffer )
 	PC_ASSERT( map_ != nullptr );
 	if( map_ == nullptr ) return;
 
-	SaveStream save_stream( buffer );
+	SaveStream save_stream( buffer, server_accumulated_time_ );
 
 	save_stream.WriteUInt32( static_cast<uint32_t>( game_rules_ ) );
 	save_stream.WriteUInt32( current_map_number_ );
 	save_stream.WriteUInt32( static_cast<uint32_t>( map_->GetDifficulty() ) );
 
-	map_->Save( buffer, server_accumulated_time_ );
+	map_->Save( save_stream );
 }
 
 bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
@@ -307,8 +307,6 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 	unsigned int difficulty;
 	load_stream.ReadUInt32( difficulty );
 
-	buffer_pos= load_stream.GetBufferPos();
-
 	Log::Info( "Changing server map to ", map_number );
 
 	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
@@ -327,15 +325,16 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 		new Map(
 			static_cast<DifficultyType>(difficulty),
 			map_data,
-			buffer, buffer_pos,
+			load_stream,
 			game_resources_,
-			server_accumulated_time_,
 			map_end_callback_ ) );
 
 	map_end_triggered_= false;
 	join_first_client_with_existing_player_= true;
 
 	show_progress( 1.0f );
+
+	buffer_pos= load_stream.GetBufferPos();
 
 	return true;
 }

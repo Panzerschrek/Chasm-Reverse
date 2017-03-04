@@ -36,16 +36,15 @@ public:
 	Map(
 		DifficultyType difficulty,
 		const MapDataConstPtr& map_data,
-		const SaveLoadBuffer& save_buffer, unsigned int& save_buffer_pos,
+		LoadStream& load_stream,
 		const GameResourcesConstPtr& game_resources,
-		Time map_start_time,
 		MapEndCallback map_end_callback );
 
 	~Map();
 
 	DifficultyType GetDifficulty() const;
 
-	void Save( SaveLoadBuffer& save_buffer, Time current_server_time ) const;
+	void Save( SaveStream& save_stream ) const;
 
 	// Returns monster_id for spawned player
 	EntityId SpawnPlayer( const PlayerPtr& player );
