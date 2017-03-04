@@ -17,7 +17,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Issledovanije vlijanija urovnej složnosti na uron.
-* Sohranenije i zagruzka igry.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
   rabotajet v originale.
 * Skriptovyje sçeny meždu urovnämi.
@@ -51,6 +50,10 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Menü "save" i "load".
 * Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
   mašine.
+* Dorabotka sohranenija i zagruzki igry. Sohranenije vmeste s sostojanijem
+  urovnä kontroljnoj summy ishodnoj karty, ctoby predotvratitj zagruzku urovnej
+  s tem že imenem no raznymi fajlami. Dobavlenije kommentarija sohranenija k
+  kontroljnoj summe.
 
 
 [SETJ]
