@@ -18,7 +18,7 @@ out float f_light;
 void main()
 {
 	f_tex_coord= tex_coord[ gl_VertexID ];
-	f_light= texture( lightmap, lightmap_coord ).x;
+	f_light= c_static_light_scale * texture( lightmap, lightmap_coord ).x;
 
 	gl_Position= view_matrix * vec4( coord[ gl_VertexID ].x, 0.0, coord[ gl_VertexID ].y, 1.0 );
 }
