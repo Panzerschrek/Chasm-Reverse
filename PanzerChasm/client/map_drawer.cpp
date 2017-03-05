@@ -317,9 +317,14 @@ MapDrawer::MapDrawer(
 	models_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	models_shader_.Create();
 
-	sprites_shader_.ShaderSource(
-		rLoadShader( "sprites_f.glsl", rendering_context.glsl_version ),
-		rLoadShader( "sprites_v.glsl", rendering_context.glsl_version ) );
+	if( use_hd_dynamic_lightmap_ )
+		sprites_shader_.ShaderSource(
+			rLoadShader( "sprites_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "sprites_v.glsl", rendering_context.glsl_version ) );
+	else
+		sprites_shader_.ShaderSource(
+			rLoadShader( "sprites_f.glsl", rendering_context.glsl_version ),
+			rLoadShader( "static_light/sprites_v.glsl", rendering_context.glsl_version ) );
 	sprites_shader_.SetAttribLocation( "pos", 0u );
 	sprites_shader_.Create();
 
@@ -1657,7 +1662,6 @@ void MapDrawer::DrawBMPObjectsSprites(
 	const float sprites_frame= map_state.GetSpritesFrame();
 
 	sprites_shader_.Bind();
-	glActiveTexture( GL_TEXTURE0 + 0 );
 
 	for( const MapState::StaticModel& model : map_state.GetStaticModels() )
 	{
@@ -1672,7 +1676,11 @@ void MapDrawer::DrawBMPObjectsSprites(
 		const GameResources::BMPObjectDescription& bmp_description= game_resources_->bmp_objects_description[ bmp_obj_id ];
 		const ObjSprite& sprite_picture= game_resources_->bmp_objects_sprites[ bmp_obj_id ];
 
+		glActiveTexture( GL_TEXTURE0 + 0 );
 		glBindTexture( GL_TEXTURE_2D_ARRAY, bmp_objects_sprites_textures_arrays_[ bmp_obj_id ] );
+
+		// Force fullbright. Fetch light, as with outher sprites, if this needed.
+		map_light_.GetFullbrightLightmapDummy().Bind(1);
 
 		const float additional_scale= ( bmp_description.half_size ? 0.5f : 1.0f ) / 128.0f;
 		const m_Vec3 scale_vec(
@@ -1694,15 +1702,13 @@ void MapDrawer::DrawBMPObjectsSprites(
 
 		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_z * shift_mat * view_matrix );
 		sprites_shader_.Uniform( "tex", int(0) );
+		sprites_shader_.Uniform( "lightmap", int(1) );
 
 		// Generate pseudo-random animation phase for sprite, because synchronous animation of nearby sprites looks ugly.
 		const unsigned int phase= static_cast<unsigned int>( pos.x * 13.0f + pos.y * 19.0f + model.angle * 29.0f );
 		const unsigned int frame= static_cast<unsigned int>( sprites_frame + phase ) % sprite_picture.frame_count;
 		sprites_shader_.Uniform( "frame", float(frame) );
-
-		// Force fullbright. Fetch light, as with outher sprites, if this needed.
-		float light= 1.0f;
-		sprites_shader_.Uniform( "light", light );
+		sprites_shader_.Uniform( "lightmap_coord", pos.xy() / float(MapData::c_map_size) );
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
@@ -1731,7 +1737,6 @@ void MapDrawer::DrawEffectsSprites(
 		});
 
 	sprites_shader_.Bind();
-	glActiveTexture( GL_TEXTURE0 + 0 );
 
 	for( const MapState::SpriteEffect* const sprite_ptr : sorted_sprites_ )
 	{
@@ -1740,7 +1745,13 @@ void MapDrawer::DrawEffectsSprites(
 		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
 		const ObjSprite& sprite_picture= game_resources_->effects_sprites[ sprite.effect_id ];
 
+		glActiveTexture( GL_TEXTURE0 + 0 );
 		glBindTexture( GL_TEXTURE_2D_ARRAY, sprites_textures_arrays_[ sprite.effect_id ] );
+
+		if( !sprite_description.light_on )
+			map_light_.GetFloorLightmap().Bind(1);
+		else
+			map_light_.GetFullbrightLightmapDummy().Bind(1);
 
 		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
 		float sprite_angles[2];
@@ -1760,20 +1771,9 @@ void MapDrawer::DrawEffectsSprites(
 
 		sprites_shader_.Uniform( "view_matrix", scale_mat * rotate_x * rotate_z * shift_mat * view_matrix );
 		sprites_shader_.Uniform( "tex", int(0) );
+		sprites_shader_.Uniform( "lightmap", int(1) );
 		sprites_shader_.Uniform( "frame", sprite.frame );
-
-		float light= 1.0f;
-		// TODO - check fullbright criteria
-		if( !sprite_description.light_on )
-		{
-			const int sx= static_cast<int>( sprite.pos.x * float(MapData::c_lightmap_scale) );
-			const int sy= static_cast<int>( sprite.pos.y * float(MapData::c_lightmap_scale) );
-			if( sx >= 0 && sx < int( MapData::c_lightmap_size ) &&
-				sy >= 0 && sy < int( MapData::c_lightmap_size ) )
-				light= float( current_map_data_->lightmap[ sx + sy * int( MapData::c_lightmap_size ) ] ) / 255.0f;
-		}
-
-		sprites_shader_.Uniform( "light", light );
+		sprites_shader_.Uniform( "lightmap_coord", sprite.pos.xy() / float(MapData::c_map_size) );
 
 		glDrawArrays( GL_TRIANGLES, 0, 6 );
 	}
