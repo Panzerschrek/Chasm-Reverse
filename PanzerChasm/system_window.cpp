@@ -79,6 +79,24 @@ static SystemEvent::KeyEvent::ModifiersMask TranslateKeyModifiers( const Uint16 
 	return result;
 }
 
+#ifdef DEBUG
+static void APIENTRY GLDebugMessageCallback(
+	GLenum source, GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length, const GLchar *message,
+	void *userParam )
+{
+	(void)source;
+	(void)type;
+	(void)id;
+	(void)severity;
+	(void)length;
+	(void)userParam;
+	Log::Info( message );
+}
+#endif
+
 SystemWindow::SystemWindow( Settings& settings )
 {
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
@@ -158,6 +176,10 @@ windowed:
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
+	#ifdef DEBUG
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
+	#endif
+
 	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
 
@@ -210,6 +232,11 @@ windowed:
 	SDL_GL_SetSwapInterval(1);
 
 	GetGLFunctions( SDL_GL_GetProcAddress );
+
+	#ifdef DEBUG
+	if( glDebugMessageCallback != nullptr )
+		glDebugMessageCallback( &GLDebugMessageCallback, NULL );
+	#endif
 
 	Log::Info("");
 	Log::Info( "OpenGL configuration: " );
