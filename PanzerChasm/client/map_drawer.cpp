@@ -1624,8 +1624,14 @@ void MapDrawer::DrawRockets(
 		const m_Mat4 rotate_mat= rotate_max_x * rotate_mat_z;
 		const m_Mat4 model_mat= rotate_mat * shift_mat;
 
+		m_Mat3 lightmap_fetch_mat, lightmap_shift_mat, lightmap_scale_mat, lightmap_mat;
+		lightmap_fetch_mat.Scale( 0.0f ); // Convert coordinates to zero - fetch lightmap from one point for whole model.
+		lightmap_shift_mat.Translate( rocket.pos.xy() );
+		lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+		lightmap_mat= lightmap_fetch_mat * lightmap_shift_mat * lightmap_scale_mat;
+
 		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
-		models_shader_.Uniform( "lightmap_matrix", model_mat * scale_mat );
+		models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
 		models_shader_.Uniform( "rotation_matrix", rotate_mat );
 		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
