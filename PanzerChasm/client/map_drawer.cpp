@@ -1041,6 +1041,7 @@ void MapDrawer::LoadModels(
 
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LOD, 1 );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
 	// Prepare animations buffer
