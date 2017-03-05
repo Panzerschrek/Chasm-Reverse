@@ -1,6 +1,5 @@
 #pragma once
 
-#include <buffer_texture.hpp>
 #include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <polygon_buffer.hpp>
@@ -8,6 +7,7 @@
 
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
+#include "animations_buffer.hpp"
 #include "fwd.hpp"
 #include "map_light.hpp"
 #include "map_state.hpp"
@@ -85,7 +85,7 @@ private:
 		const std::vector<Model>& models,
 		std::vector<ModelGeometry>& out_geometry,
 		r_PolygonBuffer& out_geometry_data,
-		r_BufferTexture& out_animations_buffer,
+		AnimationsBuffer& out_animations_buffer,
 		GLuint& out_textures_array ) const;
 
 	void LoadMonstersModels();
@@ -149,6 +149,7 @@ private:
 
 	MapDataConstPtr current_map_data_;
 
+	bool use_2d_textures_for_animations_= false;
 	bool use_hd_dynamic_lightmap_;
 	const r_Texture* active_lightmap_= nullptr; // Build-in or hd lightmap
 
@@ -177,26 +178,26 @@ private:
 
 	std::vector<ModelGeometry> models_geometry_;
 	r_PolygonBuffer models_geometry_data_;
-	r_BufferTexture models_animations_;
+	AnimationsBuffer models_animations_;
 
 	std::vector<ModelGeometry> items_geometry_;
 	r_PolygonBuffer items_geometry_data_;
-	r_BufferTexture items_animations_;
+	AnimationsBuffer items_animations_;
 
 	std::vector<ModelGeometry> rockets_geometry_;
 	r_PolygonBuffer rockets_geometry_data_;
-	r_BufferTexture rockets_animations_;
+	AnimationsBuffer rockets_animations_;
 
 	std::vector<ModelGeometry> weapons_geometry_;
 	r_PolygonBuffer weapons_geometry_data_;
-	r_BufferTexture weapons_animations_;
+	AnimationsBuffer weapons_animations_;
 
 	r_GLSLProgram sprites_shader_;
 
 	r_GLSLProgram monsters_shader_;
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
-	r_BufferTexture monsters_animations_;
+	AnimationsBuffer monsters_animations_;
 
 	char current_sky_texture_file_name_[32];
 	r_GLSLProgram sky_shader_;

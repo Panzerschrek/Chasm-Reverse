@@ -206,15 +206,32 @@ MapDrawer::MapDrawer(
 	{
 		GLint max_texture_buffer_size;
 		glGetIntegerv( GL_MAX_TEXTURE_BUFFER_SIZE, &max_texture_buffer_size );
-
 		Log::Info( "GL_MAX_TEXTURE_BUFFER_SIZE is ", max_texture_buffer_size );
 
-		const int c_min_required_size= 2 * 1024 * 1024;
+		const int c_min_required_texture_buffer_size= 2 * 1024 * 1024;
 
-		if( max_texture_buffer_size < c_min_required_size )
+		// 0 - auto, 1 - force buffer texture, 2 - force 2d texture.
+		const int animations_storage= settings.GetOrSetInt( "r_animatins_storage", 0 );
+
+		if( animations_storage == 1 )
+			use_2d_textures_for_animations_= false;
+		else if( animations_storage == 2 )
+			use_2d_textures_for_animations_= true;
+		else
 		{
-			Log::Warning( "Warning, GL_MAX_TEXTURE_BUFFER_SIZE is too small, required at least ", c_min_required_size );
-			// TODO - use fallback here, if buffer textures size limit is so small.
+			if( animations_storage != 0 )
+				settings.SetSetting( "r_animatins_storage", int(0) );
+
+			use_2d_textures_for_animations_= max_texture_buffer_size < c_min_required_texture_buffer_size;
+		}
+
+		if( use_2d_textures_for_animations_ )
+			Log::Info( "Use 2d textures as animations storage" );
+		else
+		{
+			if( max_texture_buffer_size < c_min_required_texture_buffer_size )
+				Log::Warning( "Warning, GL_MAX_TEXTURE_BUFFER_SIZE is too small, required at least ", c_min_required_texture_buffer_size );
+			Log::Info( "Use buffer textures as animations storage" );
 		}
 	}
 
@@ -251,6 +268,13 @@ MapDrawer::MapDrawer(
 
 	const std::vector<std::string> defines{ lightmap_scale };
 
+	std::vector<std::string> models_defines;
+	if( use_2d_textures_for_animations_ )
+	{
+		models_defines.emplace_back( "USE_2D_TEXTURES_FOR_ANIMATIONS" );
+		models_defines.emplace_back( "ANIMATION_TEXTURE_WIDTH " + std::to_string( AnimationsBuffer::c_2d_texture_width ) );
+	}
+
 	if( use_hd_dynamic_lightmap_ )
 		floors_shader_.ShaderSource(
 			rLoadShader( "floors_f.glsl", rendering_context.glsl_version ),
@@ -281,12 +305,12 @@ MapDrawer::MapDrawer(
 	if( use_hd_dynamic_lightmap_ )
 		models_shader_.ShaderSource(
 			rLoadShader( "models_f.glsl", rendering_context.glsl_version ),
-			rLoadShader( "models_v.glsl", rendering_context.glsl_version ),
+			rLoadShader( "models_v.glsl", rendering_context.glsl_version, models_defines ),
 			rLoadShader( "models_g.glsl", rendering_context.glsl_version ) );
 	else
 		models_shader_.ShaderSource(
 			rLoadShader( "static_light/models_f.glsl", rendering_context.glsl_version ),
-			rLoadShader( "static_light/models_v.glsl", rendering_context.glsl_version ));
+			rLoadShader( "static_light/models_v.glsl", rendering_context.glsl_version, models_defines ));
 	models_shader_.SetAttribLocation( "vertex_id", 0u );
 	models_shader_.SetAttribLocation( "tex_coord", 1u );
 	models_shader_.SetAttribLocation( "tex_id", 2u );
@@ -302,12 +326,12 @@ MapDrawer::MapDrawer(
 	if( use_hd_dynamic_lightmap_ )
 		monsters_shader_.ShaderSource(
 			rLoadShader( "monsters_f.glsl", rendering_context.glsl_version ),
-			rLoadShader( "monsters_v.glsl", rendering_context.glsl_version ),
+			rLoadShader( "monsters_v.glsl", rendering_context.glsl_version, models_defines ),
 			rLoadShader( "monsters_g.glsl", rendering_context.glsl_version ) );
 	else
 		monsters_shader_.ShaderSource(
 			rLoadShader( "static_light/monsters_f.glsl", rendering_context.glsl_version ),
-			rLoadShader( "static_light/monsters_v.glsl", rendering_context.glsl_version ) );
+			rLoadShader( "static_light/monsters_v.glsl", rendering_context.glsl_version, models_defines ) );
 	monsters_shader_.SetAttribLocation( "vertex_id", 0u );
 	monsters_shader_.SetAttribLocation( "tex_coord", 1u );
 	monsters_shader_.SetAttribLocation( "tex_id", 2u );
@@ -895,7 +919,7 @@ void MapDrawer::LoadModels(
 	const std::vector<Model>& models,
 	std::vector<ModelGeometry>& out_geometry,
 	r_PolygonBuffer& out_geometry_data,
-	r_BufferTexture& out_animations_buffer,
+	AnimationsBuffer& out_animations_buffer,
 	GLuint& out_textures_array ) const
 {
 	const Palette& palette= game_resources_->palette;
@@ -1015,11 +1039,16 @@ void MapDrawer::LoadModels(
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
 	// Prepare animations buffer
-	out_animations_buffer=
-		r_BufferTexture(
-			r_BufferTexture::PixelFormat::RGBA16I,
-			animations_vertices.size() * sizeof( Model::AnimationVertex ),
-			animations_vertices.data() );
+	if( use_2d_textures_for_animations_ )
+		out_animations_buffer=
+			AnimationsBuffer::As2dTexture(
+				animations_vertices.data(),
+				animations_vertices.size() );
+	else
+		out_animations_buffer=
+			AnimationsBuffer::AsTextureBuffer(
+				animations_vertices.data(),
+				animations_vertices.size() );
 
 	PrepareModelsPolygonBuffer( vertices, indeces, out_geometry_data );
 }
@@ -1120,11 +1149,16 @@ void MapDrawer::LoadMonstersModels()
 	}
 
 	// Prepare animations buffer
-	monsters_animations_=
-		r_BufferTexture(
-			r_BufferTexture::PixelFormat::RGBA16I,
-			animations_vertices.size() * sizeof( Model::AnimationVertex ),
-			animations_vertices.data() );
+	if( use_2d_textures_for_animations_ )
+		monsters_animations_=
+			AnimationsBuffer::As2dTexture(
+				animations_vertices.data(),
+				animations_vertices.size() );
+	else
+		monsters_animations_=
+			AnimationsBuffer::AsTextureBuffer(
+				animations_vertices.data(),
+				animations_vertices.size() );
 
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );
 }

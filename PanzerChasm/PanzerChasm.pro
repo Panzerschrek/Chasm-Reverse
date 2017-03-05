@@ -28,6 +28,7 @@ INCLUDEPATH+= ../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
+	client/animations_buffer.cpp \
 	client/client.cpp \
 	client/hud_drawer.cpp \
 	client/map_drawer.cpp \
@@ -84,6 +85,7 @@ SOURCES+= \
 
 HEADERS+= \
 	assert.hpp \
+	client/animations_buffer.hpp \
 	client/client.hpp \
 	client/fwd.hpp \
 	client/hud_drawer.hpp \
