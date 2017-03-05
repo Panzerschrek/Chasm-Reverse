@@ -7,12 +7,18 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj".
+* Vozmožnostj prohoditj skvozj steny, jesli podojti k nim s obratnoj storony.
 * Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
   "checkback".
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
 * Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
 * Dorabotka bossov.
+* Kalibrovka castoty animaçij oružija, monstrov, objektov urovnä, podbirajemyh
+  predmetov, raket.
+* Kalibrovka konstanty masštaba skorosti perezarädki oružija.
+* Kalibrovka skorosti proçedur. Vyjasnenije nalicija ili otsutstvija skorosti ot
+  priväzannyh k proçedure dvižuscihsä sten i procih objektov.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
@@ -24,7 +30,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [GRAFIKA]
 * Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
-* Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej.
+* Regulirovka jarkosti.
+* Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej. Naloženije
+  tenej na dinamiceskije steny.
 * Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
   proçedur.
 * Plavnyje animaçii, po krajnej mere casti objektov.
@@ -33,6 +41,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
 * Sglaživanije.
 * Risovanije modelej igrokov raznym çvetom.
+* Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
 
 
 [ZVUK]
@@ -47,13 +56,14 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [OBSCEJE]
 * Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
-* Menü "save" i "load".
 * Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
   mašine.
 * Dorabotka sohranenija i zagruzki igry. Sohranenije vmeste s sostojanijem
   urovnä kontroljnoj summy ishodnoj karty, ctoby predotvratitj zagruzku urovnej
   s tem že imenem no raznymi fajlami. Dobavlenije kommentarija sohranenija k
   kontroljnoj summe.
+* Pri realjnom prekrascenii igry grohatj klijentskuju castj logiki urovnä.
+  Vyklücatj zvuki urovnä.
 
 
 [SETJ]
