@@ -211,7 +211,7 @@ MapDrawer::MapDrawer(
 		const int c_min_required_texture_buffer_size= 2 * 1024 * 1024;
 
 		// 0 - auto, 1 - force buffer texture, 2 - force 2d texture.
-		const int animations_storage= settings.GetOrSetInt( "r_animatins_storage", 0 );
+		const int animations_storage= settings.GetOrSetInt( "r_animations_storage", 0 );
 
 		if( animations_storage == 1 )
 			use_2d_textures_for_animations_= false;
@@ -220,7 +220,7 @@ MapDrawer::MapDrawer(
 		else
 		{
 			if( animations_storage != 0 )
-				settings.SetSetting( "r_animatins_storage", int(0) );
+				settings.SetSetting( "r_animations_storage", int(0) );
 
 			use_2d_textures_for_animations_= max_texture_buffer_size < c_min_required_texture_buffer_size;
 		}
