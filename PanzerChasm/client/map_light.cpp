@@ -44,12 +44,12 @@ const r_OGLState g_light_pass_state(
 static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd_dynamic_lightmap )
 {
 	constexpr unsigned int c_size= 4u;
-	unsigned char data[ c_size * c_size ];
+	unsigned char data[ c_size * c_size * 4u ];
 	std::memset( data, use_hd_dynamic_lightmap ? 128u : 255u, sizeof(data) );
 
 	texture=
 		r_Texture(
-			r_Texture::PixelFormat::R8,
+			use_hd_dynamic_lightmap ? r_Texture::PixelFormat::RGBA8 : r_Texture::PixelFormat::R8,
 			c_size, c_size,
 			data );
 
