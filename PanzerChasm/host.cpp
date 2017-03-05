@@ -164,15 +164,22 @@ bool Host::Loop()
 		if( event.type == SystemEvent::Type::Quit )
 			quit_requested_= true;
 
-		if( event.type == SystemEvent::Type::Key &&
-			event.event.key.pressed &&
-			event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::BackQuote &&
-			console_ != nullptr )
-			console_->Toggle();
+		if( event.type == SystemEvent::Type::Key && event.event.key.pressed  )
+		{
+			if( event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::BackQuote &&
+				console_ != nullptr )
+				console_->Toggle();
+			if( event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::Pause &&
+				is_single_player_ )
+				paused_= !paused_;
+		}
+
 	}
 
 	const bool input_goes_to_console= console_ != nullptr && console_->IsActive();
 	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
+
+	const bool really_paused= paused_ || ( is_single_player_ && menu_ != nullptr && menu_->IsActive() );
 
 	system_window_->CaptureMouse( !input_goes_to_console && !input_goes_to_menu );
 
@@ -182,7 +189,7 @@ bool Host::Loop()
 	if( menu_ != nullptr && !input_goes_to_console )
 		menu_->ProcessEvents( events_ );
 
-	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu )
+	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu && !really_paused )
 		client_->ProcessEvents( events_ );
 
 	if( sound_engine_ != nullptr )
@@ -190,7 +197,7 @@ bool Host::Loop()
 
 	// Loop operations
 	if( local_server_ != nullptr )
-		local_server_->Loop();
+		local_server_->Loop( really_paused );
 
 	if( client_ != nullptr )
 	{
@@ -198,10 +205,10 @@ bool Host::Loop()
 		{
 			KeyboardState dummy_keyboard_state;
 			dummy_keyboard_state.reset();
-			client_->Loop( dummy_keyboard_state );
+			client_->Loop( dummy_keyboard_state, really_paused );
 		}
 		else
-			client_->Loop( keyboard_state );
+			client_->Loop( keyboard_state, really_paused );
 	}
 
 	// Draw operations
@@ -211,7 +218,12 @@ bool Host::Loop()
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		if( client_ != nullptr && !client_->Disconnected() )
+		{
 			client_->Draw();
+
+			if( paused_ )
+				drawers_->menu.DrawPaused();
+		}
 		else
 			drawers_->menu.DrawGameBackground();
 
@@ -617,6 +629,7 @@ void Host::ClearBeforeGameStart()
 		loopback_buffer_->RequestDisconnect();
 
 	is_single_player_= false;
+	paused_= false;
 }
 
 } // namespace PanzerChasm

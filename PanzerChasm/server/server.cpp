@@ -56,8 +56,14 @@ Server::Server(
 Server::~Server()
 {}
 
-void Server::Loop()
+void Server::Loop( bool paused )
 {
+	if( paused )
+	{
+		last_tick_= Time::CurrentTime();
+		return;
+	}
+
 	// Accept new connections.
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{

@@ -107,6 +107,7 @@ private:
 
 	std::string base_window_title_;
 	bool is_single_player_;
+	bool paused_= false;
 };
 
 } // namespace PanzerChasm

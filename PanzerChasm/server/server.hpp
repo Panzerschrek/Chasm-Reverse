@@ -21,7 +21,7 @@ public:
 		const DrawLoadingCallback& draw_loading_callback );
 	~Server();
 
-	void Loop();
+	void Loop( bool paused );
 
 	// Returns true, if map successfully changed or restarted.
 	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );

@@ -52,6 +52,7 @@ public:
 
 	void DrawConsoleBackground( float console_pos );
 	void DrawLoading( float progress );
+	void DrawPaused();
 	void DrawGameBackground();
 
 private:
@@ -69,6 +70,7 @@ private:
 	r_GLSLProgram menu_background_shader_;
 	r_Texture tiles_texture_;
 	r_Texture loading_texture_;
+	r_Texture pause_texture_;
 	r_Texture game_background_texture_;
 
 	r_GLSLProgram menu_picture_shader_;
