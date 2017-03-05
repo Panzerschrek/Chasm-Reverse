@@ -37,7 +37,7 @@ public:
 
 	void ProcessEvents( const SystemEvents& events );
 
-	void Loop( const KeyboardState& keyboard_state );
+	void Loop( const KeyboardState& keyboard_state, bool paused );
 	void Draw();
 
 private:
@@ -81,8 +81,12 @@ private:
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 
-	// Client uses real time.
+	// Client uses real time minus pauses accumulated time.
 	Time current_tick_time_;
+	Time accumulated_pauses_time_= Time::FromSeconds(0);
+
+	Time pause_start_time_= Time::FromSeconds(0); // Real time
+	bool paused_= false;
 
 	m_Vec3 player_position_;
 	EntityId player_monster_id_= 0u;

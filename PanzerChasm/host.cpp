@@ -196,19 +196,19 @@ bool Host::Loop()
 		sound_engine_->Tick();
 
 	// Loop operations
-	if( local_server_ != nullptr && !really_paused )
-		local_server_->Loop();
+	if( local_server_ != nullptr )
+		local_server_->Loop( really_paused );
 
-	if( client_ != nullptr && !really_paused )
+	if( client_ != nullptr )
 	{
 		if( input_goes_to_console || input_goes_to_menu )
 		{
 			KeyboardState dummy_keyboard_state;
 			dummy_keyboard_state.reset();
-			client_->Loop( dummy_keyboard_state );
+			client_->Loop( dummy_keyboard_state, really_paused );
 		}
 		else
-			client_->Loop( keyboard_state );
+			client_->Loop( keyboard_state, really_paused );
 	}
 
 	// Draw operations

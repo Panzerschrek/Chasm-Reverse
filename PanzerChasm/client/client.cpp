@@ -167,9 +167,27 @@ void Client::ProcessEvents( const SystemEvents& events )
 	} // for events
 }
 
-void Client::Loop( const KeyboardState& keyboard_state )
+void Client::Loop( const KeyboardState& keyboard_state, const bool paused )
 {
-	current_tick_time_= Time::CurrentTime();
+	const Time current_real_time= Time::CurrentTime();
+
+	// Calculate time, which we spend in pause.
+	// Subtract time, spended in pauses, from real time.
+	if( paused && !paused_ )
+	{
+		paused_= paused;
+		pause_start_time_= current_real_time;
+	}
+	if( paused )
+		return;
+	if( !paused && paused_ )
+	{
+		paused_= paused;
+		accumulated_pauses_time_+= current_real_time - pause_start_time_;
+		pause_start_time_= Time::FromSeconds(0);
+	}
+
+	current_tick_time_= current_real_time - accumulated_pauses_time_;
 
 	if( connection_info_ != nullptr )
 		connection_info_->messages_extractor.ProcessMessages( *this );
