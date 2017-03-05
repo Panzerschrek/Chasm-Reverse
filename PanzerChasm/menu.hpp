@@ -22,6 +22,8 @@ public:
 	~Menu();
 
 	bool IsActive() const;
+	void Deactivate();
+
 	void ProcessEvents( const SystemEvents& events );
 	void Draw();
 

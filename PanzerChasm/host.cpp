@@ -628,6 +628,10 @@ void Host::ClearBeforeGameStart()
 	if( loopback_buffer_ != nullptr )
 		loopback_buffer_->RequestDisconnect();
 
+	// Force close menu before game start.
+	if( menu_ != nullptr )
+		menu_->Deactivate();
+
 	is_single_player_= false;
 	paused_= false;
 }
