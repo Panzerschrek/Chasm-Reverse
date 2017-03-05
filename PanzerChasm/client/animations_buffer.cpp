@@ -33,7 +33,28 @@ AnimationsBuffer AnimationsBuffer::As2dTexture(
 			r_Texture::PixelFormat::RGBA16I,
 			c_2d_texture_width,
 			height,
-			reinterpret_cast<const unsigned char*>(vertices) );
+			static_cast<const unsigned char*>(nullptr) );
+
+	glTexSubImage2D(
+		GL_TEXTURE_2D, 0,
+		0, 0,
+		c_2d_texture_width, animation_vertex_count / c_2d_texture_width,
+		GL_RGBA_INTEGER,
+		GL_SHORT,
+		vertices );
+
+	if( ( animation_vertex_count % c_2d_texture_width ) != 0u )
+	{
+		unsigned int last_line_vertex_count= animation_vertex_count - ( height - 1u ) * c_2d_texture_width;
+
+		glTexSubImage2D(
+			GL_TEXTURE_2D, 0,
+			0, height - 1u,
+			last_line_vertex_count, 1u,
+			GL_RGBA_INTEGER,
+			GL_SHORT,
+			vertices + animation_vertex_count - last_line_vertex_count );
+	}
 
 	result.texture_2d_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 
