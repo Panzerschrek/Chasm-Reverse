@@ -68,11 +68,11 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 
 	// TODO - write bools in more compact form
 
-	save_stream.WriteUInt32( static_walls_visibility .size() );
+	save_stream.WriteUInt32( static_cast<uint32_t>(static_walls_visibility .size()) );
 	for( const bool& wall_visibility : static_walls_visibility  )
 		save_stream.WriteBool( wall_visibility );
 
-	save_stream.WriteUInt32( dynamic_walls_visibility.size() );
+	save_stream.WriteUInt32( static_cast<uint32_t>(dynamic_walls_visibility.size()) );
 	for( const bool& wall_visibility : dynamic_walls_visibility )
 		save_stream.WriteBool( wall_visibility );
 
