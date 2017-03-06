@@ -106,7 +106,7 @@ private:
 	std::unique_ptr<Client> client_;
 
 	std::string base_window_title_;
-	bool is_single_player_;
+	bool is_single_player_= false;
 	bool paused_= false;
 };
 
