@@ -33,6 +33,7 @@ struct Submodel
 	SIZE_ASSERT( AnimationVertex, 8u );
 
 	typedef std::vector<Vertex> Vertices;
+	typedef std::vector<AnimationVertex> AnimationsVertices;
 
 	struct Animation
 	{

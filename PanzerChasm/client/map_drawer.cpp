@@ -1046,15 +1046,9 @@ void MapDrawer::LoadModels(
 
 	// Prepare animations buffer
 	if( use_2d_textures_for_animations_ )
-		out_animations_buffer=
-			AnimationsBuffer::As2dTexture(
-				animations_vertices.data(),
-				animations_vertices.size() );
+		out_animations_buffer= AnimationsBuffer::As2dTexture( animations_vertices );
 	else
-		out_animations_buffer=
-			AnimationsBuffer::AsTextureBuffer(
-				animations_vertices.data(),
-				animations_vertices.size() );
+		out_animations_buffer= AnimationsBuffer::AsTextureBuffer( animations_vertices );
 
 	PrepareModelsPolygonBuffer( vertices, indeces, out_geometry_data );
 }
@@ -1156,15 +1150,9 @@ void MapDrawer::LoadMonstersModels()
 
 	// Prepare animations buffer
 	if( use_2d_textures_for_animations_ )
-		monsters_animations_=
-			AnimationsBuffer::As2dTexture(
-				animations_vertices.data(),
-				animations_vertices.size() );
+		monsters_animations_= AnimationsBuffer::As2dTexture( animations_vertices );
 	else
-		monsters_animations_=
-			AnimationsBuffer::AsTextureBuffer(
-				animations_vertices.data(),
-				animations_vertices.size() );
+		monsters_animations_= AnimationsBuffer::AsTextureBuffer( animations_vertices );
 
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );
 }

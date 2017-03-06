@@ -5,35 +5,35 @@
 namespace PanzerChasm
 {
 
-AnimationsBuffer AnimationsBuffer::AsTextureBuffer(
-	const Model::AnimationVertex* const vertices,
-	const unsigned int animation_vertex_count )
+AnimationsBuffer AnimationsBuffer::AsTextureBuffer( Model::AnimationsVertices& vertices )
 {
 	AnimationsBuffer result;
 
 	result.buffer_texture_=
 		r_BufferTexture(
 			r_Texture::PixelFormat::RGBA16I,
-			animation_vertex_count * sizeof(Model::AnimationVertex),
-			vertices );
+			vertices.size() * sizeof(Model::AnimationVertex),
+			vertices.data() );
 
 	return result;
 }
 
-AnimationsBuffer AnimationsBuffer::As2dTexture(
-	const Model::AnimationVertex* const vertices,
-	const unsigned int animation_vertex_count )
+AnimationsBuffer AnimationsBuffer::As2dTexture( Model::AnimationsVertices& vertices )
 {
 	AnimationsBuffer result;
 
-	const unsigned int height= ( animation_vertex_count + (c_2d_texture_width-1u) ) / c_2d_texture_width;
+	const unsigned int height= ( vertices.size() + (c_2d_texture_width-1u) ) / c_2d_texture_width;
+
+	// Resize vector. We must have valid memory block of size width * height.
+	const Model::AnimationVertex zero_vertex{ 0, 0, 0, 0 };
+	vertices.resize( c_2d_texture_width * height, zero_vertex );
 
 	result.texture_2d_=
 		r_Texture(
 			r_Texture::PixelFormat::RGBA16I,
 			c_2d_texture_width,
 			height,
-			reinterpret_cast<const unsigned char*>(vertices) );
+			reinterpret_cast<const unsigned char*>(vertices.data()) );
 
 	result.texture_2d_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 

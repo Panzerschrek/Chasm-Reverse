@@ -13,8 +13,9 @@ class AnimationsBuffer final
 public:
 	static constexpr unsigned int c_2d_texture_width= 1024u;
 
-	static AnimationsBuffer AsTextureBuffer( const Model::AnimationVertex* vertices, unsigned int animation_vertex_count );
-	static AnimationsBuffer As2dTexture( const Model::AnimationVertex* vertices, unsigned int animation_vertex_count );
+	// Functions can modyfy input vertices vector.
+	static AnimationsBuffer AsTextureBuffer( Model::AnimationsVertices& vertices );
+	static AnimationsBuffer As2dTexture( Model::AnimationsVertices& vertices  );
 
 	AnimationsBuffer();
 	AnimationsBuffer( AnimationsBuffer&& other );
