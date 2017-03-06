@@ -204,6 +204,10 @@ void Server::Loop( bool paused )
 			current_map_number_++;
 			ChangeMap( current_map_number_, map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty(), game_rules_ );
 		}
+		else
+		{
+			// TODO - maybe stop map here ?
+		}
 	}
 }
 
@@ -272,6 +276,15 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	show_progress( 1.0f );
 
 	return true;
+}
+
+void Server::StopMap()
+{
+	Log::Info( "Stopping server map" );
+
+	current_map_number_= ~0u;
+	current_map_data_= 0u;
+	map_= nullptr;
 }
 
 void Server::Save( SaveLoadBuffer& buffer )

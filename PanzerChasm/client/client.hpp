@@ -71,6 +71,7 @@ public: // Messages handlers
 	void operator()( const Messages::TextMessage& message );
 
 private:
+	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
 
 private:

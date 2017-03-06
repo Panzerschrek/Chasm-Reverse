@@ -25,6 +25,7 @@ public:
 
 	// Returns true, if map successfully changed or restarted.
 	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
+	void StopMap();
 
 	void Save( SaveLoadBuffer& buffer );
 	bool Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );

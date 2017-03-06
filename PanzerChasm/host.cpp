@@ -620,7 +620,10 @@ void Host::ClearBeforeGameStart()
 		client_->SetConnection( nullptr );
 
 	if( local_server_ != nullptr )
+	{
 		local_server_->DisconnectAllClients();
+		local_server_->StopMap();
+	}
 
 	if( connections_listener_proxy_ != nullptr )
 		connections_listener_proxy_->ClearConnectionsListeners();

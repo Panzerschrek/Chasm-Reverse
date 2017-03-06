@@ -62,8 +62,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   urovnä kontroljnoj summy ishodnoj karty, ctoby predotvratitj zagruzku urovnej
   s tem že imenem no raznymi fajlami. Dobavlenije kommentarija sohranenija k
   kontroljnoj summe.
-* Pri realjnom prekrascenii igry grohatj klijentskuju castj logiki urovnä.
-  Vyklücatj zvuki urovnä.
 
 
 [SETJ]

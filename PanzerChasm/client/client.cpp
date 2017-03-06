@@ -116,7 +116,10 @@ void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 void Client::SetConnection( IConnectionPtr connection )
 {
 	if( connection == nullptr )
+	{
 		connection_info_= nullptr;
+		StopMap();
+	}
 	else
 		connection_info_.reset( new ConnectionInfo( connection ) );
 }
@@ -190,7 +193,12 @@ void Client::Loop( const KeyboardState& keyboard_state, const bool paused )
 	current_tick_time_= current_real_time - accumulated_pauses_time_;
 
 	if( connection_info_ != nullptr )
-		connection_info_->messages_extractor.ProcessMessages( *this );
+	{
+		if( connection_info_->connection->Disconnected() )
+			StopMap();
+		else
+			connection_info_->messages_extractor.ProcessMessages( *this );
+	}
 
 	camera_controller_.Tick( keyboard_state );
 
@@ -432,6 +440,17 @@ void Client::operator()( const Messages::TextMessage& message )
 				sound_engine_->PlayHeadSound( Sound::SoundId::Message );
 		}
 	}
+}
+
+void Client::StopMap()
+{
+	if( current_map_data_ != nullptr )
+		sound_engine_->SetMap( nullptr );
+
+	current_map_number_= ~0u;
+	current_map_data_= nullptr;
+	map_state_= nullptr;
+	minimap_state_= nullptr;
 }
 
 void Client::TrySwitchWeaponOnOutOfAmmo()
