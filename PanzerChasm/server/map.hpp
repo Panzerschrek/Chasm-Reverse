@@ -107,7 +107,6 @@ private:
 		bool first_message_printed= false;
 
 		MovementState movement_state= MovementState::None;
-		unsigned int movement_loop_iteration= 0u;
 		float movement_stage= 0.0f; // stage of current movement state [0; 1]
 		Time last_state_change_time= Time::FromSeconds(0);
 	};

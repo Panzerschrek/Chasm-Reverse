@@ -26,7 +26,6 @@ void Map::Save( SaveStream& save_stream ) const
 		save_stream.WriteBool( procedure_state.locked );
 		save_stream.WriteBool( procedure_state.first_message_printed );
 		save_stream.WriteUInt32( static_cast<uint32_t>( procedure_state.movement_state ) );
-		// save_stream.WriteUInt32( procedure_state.movement_loop_iteration ); // TODO - does this needs ?
 		save_stream.WriteFloat( procedure_state.movement_stage );
 		save_stream.WriteTime( procedure_state.last_state_change_time );
 	}
@@ -212,7 +211,6 @@ Map::Map(
 		unsigned int movement_state;
 		load_stream.ReadUInt32( movement_state );
 		procedure_state.movement_state= static_cast<ProcedureState::MovementState>( movement_state );
-		// save_stream.WriteUInt32( procedure_state.movement_loop_iteration ); // TODO - does this needs ?
 		load_stream.ReadFloat( procedure_state.movement_stage );
 		load_stream.ReadTime( procedure_state.last_state_change_time );
 	}
