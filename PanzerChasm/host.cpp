@@ -1,12 +1,15 @@
 #include <cstring>
 
+#include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <shaders_loading.hpp>
 
-#include "drawers.hpp"
+#include "drawers_factory_gl.hpp"
 #include "game_resources.hpp"
+#include "i_menu_drawer.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
+#include "shared_drawers.hpp"
 #include "save_load.hpp"
 #include "sound/sound_engine.hpp"
 
@@ -120,11 +123,11 @@ Host::Host( const int argc, const char* const* const argv )
 
 	RenderingContext rendering_context;
 	CreateRenderingContext( rendering_context );
-
-	drawers_= std::make_shared<Drawers>( rendering_context, *game_resources_ );
+	drawers_factory_= std::make_shared<DrawersFactoryGL>( settings_, game_resources_, rendering_context );
+	shared_drawers_= std::make_shared<SharedDrawers>( * drawers_factory_ );
 
 	Log::Info( "Initialize console" );
-	console_.reset( new Console( commands_processor_, drawers_ ) );
+	console_.reset( new Console( commands_processor_, shared_drawers_ ) );
 
 	if( !settings_.GetOrSetBool( "s_nosound", false ) )
 	{
@@ -138,7 +141,7 @@ Host::Host( const int argc, const char* const* const argv )
 	menu_.reset(
 		new Menu(
 			*this,
-			drawers_,
+			shared_drawers_,
 			sound_engine_ ) );
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
@@ -221,10 +224,10 @@ bool Host::Loop()
 			client_->Draw();
 
 			if( paused_ )
-				drawers_->menu.DrawPaused();
+				shared_drawers_->menu->DrawPaused();
 		}
 		else
-			drawers_->menu.DrawGameBackground();
+			shared_drawers_->menu->DrawGameBackground();
 
 		if( menu_ != nullptr )
 			menu_->Draw();
@@ -542,9 +545,9 @@ void Host::DrawLoadingFrame( const float progress, const char* const caption )
 	// TODO - use this.
 	PC_UNUSED( caption );
 
-	if( system_window_ != nullptr && drawers_ != nullptr )
+	if( system_window_ != nullptr && shared_drawers_ != nullptr )
 	{
-		drawers_->menu.DrawLoading( progress );
+		shared_drawers_->menu->DrawLoading( progress );
 		system_window_->SwapBuffers();
 	}
 }
@@ -565,16 +568,13 @@ void Host::EnsureClient()
 	const DrawLoadingCallback draw_loading_callback=
 		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
 
-	RenderingContext rendering_context;
-	CreateRenderingContext( rendering_context );
-
 	client_.reset(
 		new Client(
 			settings_,
 			game_resources_,
 			map_loader_,
-			rendering_context,
-			drawers_,
+			*drawers_factory_,
+			shared_drawers_,
 			sound_engine_,
 			draw_loading_callback ) );
 }

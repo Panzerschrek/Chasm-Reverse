@@ -94,7 +94,8 @@ private:
 
 	Sound::SoundEnginePtr sound_engine_;
 
-	DrawersPtr drawers_;
+	IDrawersFactoryPtr drawers_factory_;
+	SharedDrawersPtr shared_drawers_;
 	std::unique_ptr<Console> console_;
 	std::unique_ptr<Menu> menu_;
 

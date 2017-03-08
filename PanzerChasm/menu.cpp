@@ -1,9 +1,11 @@
 #include <cstring>
 
 #include "assert.hpp"
-#include "drawers.hpp"
+#include "i_menu_drawer.hpp"
+#include "i_text_drawer.hpp"
 #include "net/net.hpp"
 #include "settings.hpp"
+#include "shared_drawers.hpp"
 #include "shared_settings_keys.hpp"
 #include "sound/sound_engine.hpp"
 #include "sound/sound_id.hpp"
@@ -48,7 +50,7 @@ public:
 	virtual void OnActivated();
 	void PlayMenuSound( unsigned int sound_id );
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) = 0;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) = 0;
 
 	// Returns next menu after event
 	virtual MenuBase* ProcessEvent( const SystemEvent& event )= 0;
@@ -88,7 +90,7 @@ public:
 	NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~NewGameMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -104,9 +106,9 @@ NewGameMenu::NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 NewGameMenu::~NewGameMenu()
 {}
 
-void NewGameMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void NewGameMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
-	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::New );
+	const Size2 pic_size= menu_drawer.GetPictureSize( IMenuDrawer::MenuPicture::New );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
@@ -117,24 +119,24 @@ void NewGameMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		x, y,
 		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
-	MenuDrawer::PictureColor colors[3]=
+	IMenuDrawer::PictureColor colors[3]=
 	{
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
 	};
-	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
+	colors[ current_row_ ]= IMenuDrawer::PictureColor::Active;
 
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Difficulty",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	menu_drawer.DrawMenuPicture(
 		x, y,
-		MenuDrawer::MenuPicture::New, colors );
+		IMenuDrawer::MenuPicture::New, colors );
 }
 
 MenuBase* NewGameMenu::ProcessEvent( const SystemEvent& event )
@@ -180,7 +182,7 @@ public:
 	NetworkConnectMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~NetworkConnectMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -204,7 +206,7 @@ NetworkConnectMenu::NetworkConnectMenu( MenuBase* parent, const Sound::SoundEngi
 NetworkConnectMenu::~NetworkConnectMenu()
 {}
 
-void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void NetworkConnectMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -221,7 +223,7 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Join setup",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	static const char* const texts[4u]
 	{
@@ -236,8 +238,8 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 			x + 135 * scale, row_y,
 			texts[i],
 			scale,
-			TextDraw::FontColor::White,
-			TextDraw::Alignment::Right );
+			ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
 
 		char value_with_cursor[ c_value_max_size + 2u ];
 		std::snprintf( value_with_cursor, sizeof(value_with_cursor), "%s%s", values_[i], active ? "_" : "" );
@@ -246,16 +248,16 @@ void NetworkConnectMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 			x + 145 * scale, row_y,
 			value_with_cursor,
 			scale,
-			active ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-			TextDraw::Alignment::Left );
+			active ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
 	}
 
 	text_draw.Print(
 		int(viewport_size.xy[0] >> 1u), y + scale * int( 4u * text_draw.GetLineHeight() ),
 		"connect",
 		scale,
-		current_row_ == 4 ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
-		TextDraw::Alignment::Center );
+		current_row_ == 4 ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Center );
 }
 
 MenuBase* NetworkConnectMenu::ProcessEvent( const SystemEvent& event )
@@ -317,7 +319,7 @@ public:
 	NetworkCreateServerMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~NetworkCreateServerMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -355,7 +357,7 @@ NetworkCreateServerMenu::NetworkCreateServerMenu( MenuBase* parent, const Sound:
 NetworkCreateServerMenu::~NetworkCreateServerMenu()
 {}
 
-void NetworkCreateServerMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void NetworkCreateServerMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -375,69 +377,69 @@ void NetworkCreateServerMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Start server",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Map * y_step,
 		"map:", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	char map_name[ 64 ];
 	std::snprintf( map_name, sizeof(map_name), "map%02d", map_number_ ); // TODO - show real man name here
 	text_draw.Print(
 		param_x, y + Row::Map * y_step,
 		map_name, scale,
-		current_row_ == Row::Map ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Map ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Difficulty * y_step,
 		"difficulty:", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Difficulty * y_step,
 		GetDifficultyStr(), scale,
-		current_row_ == Row::Difficulty ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Difficulty ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Dedicated * y_step,
 		"dedicated:", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Dedicated * y_step,
 		dedicated_ ? g_yes : g_no, scale,
-		current_row_ == Row::Dedicated ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Dedicated ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	char port_str_with_cursor[ c_port_str_max_size + 2u ];
 
 	text_draw.Print(
 		param_descr_x, y + Row::TCPPort * y_step,
 		"tcp port:", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	std::snprintf( port_str_with_cursor, sizeof(port_str_with_cursor), "%s%s", tcp_port_, current_row_ == Row::TCPPort ? "_" : "" );
 	text_draw.Print(
 		param_x, y + Row::TCPPort * y_step,
 		port_str_with_cursor, scale,
-		current_row_ == Row::TCPPort ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::TCPPort ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::UDPBasePort * y_step,
 		"base udp port:", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	std::snprintf( port_str_with_cursor, sizeof(port_str_with_cursor), "%s%s", base_udp_port_, current_row_ == Row::UDPBasePort ? "_" : "" );
 	text_draw.Print(
 		param_x, y + Row::UDPBasePort * y_step,
 		port_str_with_cursor, scale,
-		current_row_ == Row::UDPBasePort ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::UDPBasePort ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ), y + Row::Start * y_step,
 		"start", scale,
-		current_row_ == Row::Start ? TextDraw::FontColor::Golden : TextDraw::FontColor::White,
-		TextDraw::Alignment::Center );
+		current_row_ == Row::Start ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Center );
 }
 
 MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
@@ -554,7 +556,7 @@ public:
 	NetworkMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~NetworkMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -574,9 +576,9 @@ NetworkMenu::NetworkMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 NetworkMenu::~NetworkMenu()
 {}
 
-void NetworkMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void NetworkMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
-	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::Network );
+	const Size2 pic_size= menu_drawer.GetPictureSize( IMenuDrawer::MenuPicture::Network );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
@@ -587,25 +589,25 @@ void NetworkMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		x, y,
 		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
-	MenuDrawer::PictureColor colors[4]=
+	IMenuDrawer::PictureColor colors[4]=
 	{
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Disabled,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Disabled,
 	};
-	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
+	colors[ current_row_ ]= IMenuDrawer::PictureColor::Active;
 
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Network",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	menu_drawer.DrawMenuPicture(
 		x, y,
-		MenuDrawer::MenuPicture::Network, colors );
+		IMenuDrawer::MenuPicture::Network, colors );
 }
 
 MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
@@ -648,7 +650,7 @@ public:
 
 	virtual void OnActivated() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -678,7 +680,7 @@ void SaveLoadMenu::OnActivated()
 	host_commands_.GetSavesNames( saves_names_ );
 }
 
-void SaveLoadMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void SaveLoadMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -696,7 +698,7 @@ void SaveLoadMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		what_ == What::Load ? "Load" : "Save",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	for( int i= 0u; i < c_rows; i++ )
 	{
@@ -706,8 +708,8 @@ void SaveLoadMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 			param_x, y + i * ( scale * int(text_draw.GetLineHeight()) ),
 			saves_names_[i][0] == '\0' ? "..." : saves_names_[i].data(),
 			scale,
-			active ? TextDraw::FontColor::DarkYellow: TextDraw::FontColor::White,
-			TextDraw::Alignment::Left );
+			active ? ITextDrawer::FontColor::DarkYellow: ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Left );
 	}
 }
 
@@ -765,7 +767,7 @@ public:
 	// Hack for escape pressing in key set mode.
 	virtual MenuBase* GetParent() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -813,7 +815,7 @@ ControlsMenu::ControlsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound
 ControlsMenu::~ControlsMenu()
 {}
 
-void ControlsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void ControlsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -833,7 +835,7 @@ void ControlsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Controls",
 		scale,
-		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White,ITextDrawer::Alignment::Center );
 
 	for( unsigned int i= 0u; i < c_key_setting_count; i++ )
 	{
@@ -845,14 +847,14 @@ void ControlsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		text_draw.Print(
 			param_descr_x, y + int(i) * y_step,
 			setting.name, scale,
-			active ? ( in_set_mode_ ?  TextDraw::FontColor::Golden : TextDraw::FontColor::YellowGreen ) : TextDraw::FontColor::White,
-			TextDraw::Alignment::Right );
+			active ? ( in_set_mode_ ?  ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::YellowGreen ) : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
 		text_draw.Print(
 			param_x, y + int(i) * y_step,
 			( active && in_set_mode_ ) ? "?" : GetKeyName( key_code ),
 			scale,
-			( active && in_set_mode_ ) ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+			( active && in_set_mode_ ) ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 	}
 }
 
@@ -902,7 +904,7 @@ public:
 	VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~VideoMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -974,7 +976,7 @@ VideoMenu::VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engin
 VideoMenu::~VideoMenu()
 {}
 
-void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -994,38 +996,38 @@ void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Video",
 		scale,
-		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White,ITextDrawer::Alignment::Center );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Fullscreen * y_step,
 		"Fullscreen", scale,
-		current_row_ == Row::Fullscreen ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::Fullscreen ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Fullscreen * y_step,
 		settings_.GetOrSetBool( SettingsKeys::fullscreen, false ) ? g_on : g_off,
 		scale,
-		current_row_ == Row::Fullscreen ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Fullscreen ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Display * y_step,
 		"Display", scale,
-		current_row_ == Row::Display ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::Display ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	char display[32];
 	std::snprintf( display, sizeof(display), "%d", display_ );
 	text_draw.Print(
 		param_x, y + Row::Display * y_step,
 		display, scale,
-		current_row_ == Row::Display ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Display ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::FullscreenResolution * y_step,
 		"Fullscreen Resolution", scale,
-		current_row_ == Row::FullscreenResolution ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::FullscreenResolution ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 
 	if( !video_modes_.empty() && ! video_modes_[display_].empty() )
 	{
@@ -1037,15 +1039,15 @@ void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		text_draw.Print(
 			param_x, y + Row::FullscreenResolution * y_step,
 			str, scale,
-			current_row_ == Row::FullscreenResolution ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-			TextDraw::Alignment::Left );
+			current_row_ == Row::FullscreenResolution ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
 	}
 
 	text_draw.Print(
 		param_descr_x, y + Row::Frequency * y_step,
 		"Fullscreen Refresh Rate", scale,
-		current_row_ == Row::Frequency ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::Frequency ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 
 	if( !video_modes_.empty() && !video_modes_[display_].empty() && !video_modes_[display_][resolution_].supported_frequencies.empty() )
 	{
@@ -1057,8 +1059,8 @@ void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		text_draw.Print(
 			param_x, y + Row::Frequency * y_step,
 			str, scale,
-			current_row_ == Row::Frequency ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-			TextDraw::Alignment::Left );
+			current_row_ == Row::Frequency ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
 	}
 
 	char size_str[32];
@@ -1066,26 +1068,26 @@ void VideoMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 	text_draw.Print(
 		param_descr_x, y + Row::WindowWidth * y_step,
 		"Windowed width", scale,
-		current_row_ == Row::WindowWidth ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::WindowWidth ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	std::snprintf( size_str, sizeof(size_str), current_row_ == Row::WindowWidth ? "%s_" : "%s", window_width_ );
 	text_draw.Print(
 		param_x, y + Row::WindowWidth * y_step,
 		size_str, scale,
-		current_row_ == Row::WindowWidth ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::WindowWidth ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::WindowHeight * y_step,
 		"Windowed height", scale,
-		current_row_ == Row::WindowHeight ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::WindowHeight ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	std::snprintf( size_str, sizeof(size_str), current_row_ == Row::WindowHeight ? "%s_" : "%s", window_height_ );
 	text_draw.Print(
 		param_x, y + Row::WindowHeight * y_step,
 		size_str, scale,
-		current_row_ == Row::WindowHeight ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::WindowHeight ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 }
 
 MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
@@ -1279,7 +1281,7 @@ public:
 	OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~OptionsMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -1327,7 +1329,7 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 OptionsMenu::~OptionsMenu()
 {}
 
-void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -1347,115 +1349,115 @@ void OptionsMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Options",
 		scale,
-		TextDraw::FontColor::White,TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White,ITextDrawer::Alignment::Center );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Controls * y_step,
 		"Controls...", scale,
-		current_row_ == Row::Controls ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::Controls ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_descr_x, y + Row::Video * y_step,
 		"Video...", scale,
-		current_row_ == Row::Video ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::Video ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 
 	text_draw.Print(
 		param_descr_x, y + Row::AlwaysRun * y_step,
 		"Alaways Run", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::AlwaysRun * y_step,
 		always_run_ ? g_on : g_off, scale,
-		current_row_ == Row::AlwaysRun ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::AlwaysRun ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::Crosshair * y_step,
 		"Crosshair", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::Crosshair * y_step,
 		crosshair_ ? g_on : g_off, scale,
-		current_row_ == Row::Crosshair ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::Crosshair ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::RevertMouse * y_step,
 		"Reverse Mouse", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::RevertMouse * y_step,
 		reverse_mouse_ ? g_on : g_off, scale,
-		current_row_ == Row::RevertMouse ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::RevertMouse ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::WeaponReset * y_step,
 		"Weapon Reset", scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Right );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::WeaponReset * y_step,
 		weapon_reset_ ? g_on : g_off, scale,
-		current_row_ == Row::WeaponReset ? TextDraw::FontColor::Golden : TextDraw::FontColor::DarkYellow,
-		TextDraw::Alignment::Left );
+		current_row_ == Row::WeaponReset ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
 
 	char slider_back_text[ 1u + 7u + 1u + 1u ];
-	slider_back_text[0]= TextDraw::c_slider_left_letter_code;
-	std::memset( slider_back_text + 1u, TextDraw::c_slider_back_letter_code, 7u );
-	slider_back_text[8]= TextDraw::c_slider_right_letter_code;
+	slider_back_text[0]= ITextDrawer::c_slider_left_letter_code;
+	std::memset( slider_back_text + 1u, ITextDrawer::c_slider_back_letter_code, 7u );
+	slider_back_text[8]= ITextDrawer::c_slider_right_letter_code;
 	slider_back_text[9]= '\0';
-	static const char slder_text[]= { TextDraw::c_slider_letter_code, '\0' };
+	static const char slder_text[]= { ITextDrawer::c_slider_letter_code, '\0' };
 
 	const int c_slider_pos_scale= 7;
 
 	text_draw.Print(
 		param_descr_x, y + Row::FXVolume * y_step,
 		"FX Volume", scale,
-		current_row_ == Row::FXVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::FXVolume ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::FXVolume * y_step,
 		slider_back_text, scale,
-		TextDraw::FontColor::White,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Left );
 	text_draw.Print(
 		param_x + fx_volume_ * c_slider_pos_scale, y + Row::FXVolume * y_step,
 		slder_text, scale,
-		TextDraw::FontColor::Golden,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::Golden,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::CDVolume * y_step,
 		"CD Volume", scale,
-		current_row_ == Row::CDVolume ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::CDVolume ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::CDVolume * y_step,
 		slider_back_text, scale,
-		TextDraw::FontColor::White,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Left );
 	text_draw.Print(
 		param_x + cd_volume_ * c_slider_pos_scale, y + Row::CDVolume * y_step,
 		slder_text, scale,
-		TextDraw::FontColor::Golden,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::Golden,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::MouseSEnsitivity * y_step,
 		"Mouse Sensetivity", scale,
-		current_row_ == Row::MouseSEnsitivity ? TextDraw::FontColor::YellowGreen : TextDraw::FontColor::White,
-		TextDraw::Alignment::Right );
+		current_row_ == Row::MouseSEnsitivity ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::MouseSEnsitivity * y_step,
 		slider_back_text, scale,
-		TextDraw::FontColor::White,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Left );
 	text_draw.Print(
 		param_x + mouse_sensetivity_ * c_slider_pos_scale, y + Row::MouseSEnsitivity * y_step,
 		slder_text, scale,
-		TextDraw::FontColor::Golden,
-		TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::Golden,
+		ITextDrawer::Alignment::Left );
 }
 
 MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
@@ -1572,7 +1574,7 @@ public:
 	QuitMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~QuitMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -1587,7 +1589,7 @@ QuitMenu::QuitMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine,
 QuitMenu::~QuitMenu()
 {}
 
-void QuitMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void QuitMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
@@ -1604,13 +1606,13 @@ void QuitMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Quit",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 	text_draw.Print(
 		viewport_size.xy[0] >> 1u, y,
 		"Do you really want\nto quit this game?\n(enter/esc)",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 }
 
 MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
@@ -1641,7 +1643,7 @@ public:
 	 MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
 	~MainMenu() override;
 
-	virtual void Draw( MenuDrawer& menu_drawer, TextDraw& text_draw ) override;
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
@@ -1666,9 +1668,9 @@ MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& hos
 MainMenu::~MainMenu()
 {}
 
-void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
+void MainMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 {
-	const Size2 pic_size= menu_drawer.GetPictureSize( MenuDrawer::MenuPicture::Main );
+	const Size2 pic_size= menu_drawer.GetPictureSize( IMenuDrawer::MenuPicture::Main );
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
@@ -1679,30 +1681,30 @@ void MainMenu::Draw( MenuDrawer& menu_drawer, TextDraw& text_draw )
 		x, y,
 		pic_size.xy[0] * scale, pic_size.xy[1] * scale );
 
-	MenuDrawer::PictureColor colors[6]=
+	IMenuDrawer::PictureColor colors[6]=
 	{
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
-		MenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
+		IMenuDrawer::PictureColor::Unactive,
 	};
-	colors[ current_row_ ]= MenuDrawer::PictureColor::Active;
+	colors[ current_row_ ]= IMenuDrawer::PictureColor::Active;
 
-	if( !host_commands_.SaveAvailable() ) colors[2]= MenuDrawer::PictureColor::Disabled;
+	if( !host_commands_.SaveAvailable() ) colors[2]= IMenuDrawer::PictureColor::Disabled;
 
 	text_draw.Print(
 		int( viewport_size.xy[0] >> 1u ),
 		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
 		"Main",
 		scale,
-		TextDraw::FontColor::White, TextDraw::Alignment::Center );
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
 
 	menu_drawer.DrawMenuPicture(
 		x, y,
-		MenuDrawer::MenuPicture::Main, colors );
+		IMenuDrawer::MenuPicture::Main, colors );
 }
 
 MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
@@ -1741,12 +1743,12 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 
 Menu::Menu(
 	HostCommands& host_commands,
-	const DrawersPtr& drawers,
+	const SharedDrawersPtr& shared_drawers,
 	const Sound::SoundEnginePtr& sound_engine )
-	: drawers_(drawers)
+	: shared_drawers_(shared_drawers)
 	, root_menu_( new MainMenu( sound_engine, host_commands ) )
 {
-	PC_ASSERT( drawers_ != nullptr );
+	PC_ASSERT( shared_drawers_ != nullptr );
 
 	current_menu_= root_menu_.get();
 }
@@ -1819,7 +1821,7 @@ void Menu::ProcessEvents( const SystemEvents& events )
 void Menu::Draw()
 {
 	if( current_menu_ )
-		current_menu_->Draw( drawers_->menu, drawers_->text );
+		current_menu_->Draw( *shared_drawers_->menu, *shared_drawers_->text );
 }
 
 } // namespace PanzerChasm

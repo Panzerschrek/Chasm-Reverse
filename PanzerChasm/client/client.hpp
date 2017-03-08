@@ -4,8 +4,6 @@
 #include "../loopback_buffer.hpp"
 #include "../rendering_context.hpp"
 #include "../system_event.hpp"
-#include "hud_drawer.hpp"
-#include "map_drawer.hpp"
 #include "map_state.hpp"
 #include "minimap_drawer.hpp"
 #include "minimap_state.hpp"
@@ -22,8 +20,8 @@ public:
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
-		const RenderingContext& rendering_context,
-		const DrawersPtr& drawers,
+		IDrawersFactory& drawers_factory,
+		const SharedDrawersPtr& shared_drawers,
 		const Sound::SoundEnginePtr& sound_engine,
 		const DrawLoadingCallback& draw_loading_callback );
 
@@ -96,8 +94,8 @@ private:
 	MovementController camera_controller_;
 	bool minimap_mode_= false;
 
-	MapDrawer map_drawer_;
-	MinimapDrawer minimap_drawer_;
+	IMapDrawerPtr map_drawer_;
+	IMinimapDrawerPtr minimap_drawer_;
 	unsigned int current_map_number_= ~0u;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
@@ -107,7 +105,7 @@ private:
 	WeaponState weapon_state_;
 	bool shoot_pressed_= false;
 
-	HudDrawer hud_drawer_;
+	IHudDrawerPtr hud_drawer_;
 };
 
 } // PanzerChasm

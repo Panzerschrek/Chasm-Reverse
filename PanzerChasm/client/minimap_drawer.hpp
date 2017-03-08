@@ -6,25 +6,26 @@
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
+#include "i_minimap_drawer.hpp"
 #include "minimap_state.hpp"
 
 namespace PanzerChasm
 {
 
-class MinimapDrawer final
+class MinimapDrawer final : public IMinimapDrawer
 {
 public:
 	MinimapDrawer(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
-	~MinimapDrawer();
+	virtual ~MinimapDrawer() override;
 
-	void SetMap( const MapDataConstPtr& map_data );
+	virtual void SetMap( const MapDataConstPtr& map_data ) override;
 
-	void Draw(
+	virtual void Draw(
 		const MapState& map_state, const MinimapState& minimap_state,
-		const m_Vec2& camera_position, float view_angle );
+		const m_Vec2& camera_position, float view_angle ) override;
 
 private:
 	void BindColor( unsigned char color_index );

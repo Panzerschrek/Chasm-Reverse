@@ -8,26 +8,27 @@
 #include "../messages.hpp"
 #include "../rendering_context.hpp"
 #include "../time.hpp"
+#include "i_hud_drawer.hpp"
 
 namespace PanzerChasm
 {
 
-class HudDrawer final
+class HudDrawer final : public IHudDrawer
 {
 public:
 	HudDrawer(
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context,
-		const DrawersPtr& drawers );
-	~HudDrawer();
+		const SharedDrawersPtr& shared_drawers );
+	virtual ~HudDrawer() override;
 
-	void AddMessage( const MapData::Message& message, Time current_time );
-	void ResetMessage();
-	void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number );
+	virtual void AddMessage( const MapData::Message& message, Time current_time ) override;
+	virtual void ResetMessage() override;
+	virtual void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number ) override;
 
-	void DrawCrosshair();
-	void DrawCurrentMessage( Time current_time );
-	void DrawHud( bool draw_second_hud, const char* map_name );
+	virtual void DrawCrosshair() override;
+	virtual void DrawCurrentMessage( Time current_time ) override;
+	virtual void DrawHud( bool draw_second_hud, const char* map_name ) override;
 
 private:
 	struct Vertex
@@ -42,7 +43,7 @@ private:
 private:
 	const GameResourcesConstPtr game_resources_;
 	const Size2 viewport_size_;
-	const DrawersPtr drawers_;
+	const SharedDrawersPtr shared_drawers_;
 	const unsigned int scale_;
 
 	r_GLSLProgram hud_shader_;

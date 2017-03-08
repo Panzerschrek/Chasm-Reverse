@@ -1,19 +1,23 @@
 #include <cstring>
 
 #include "assert.hpp"
-#include "drawers.hpp"
+#include "i_menu_drawer.hpp"
+#include "i_text_drawer.hpp"
 #include "log.hpp"
+#include "shared_drawers.hpp"
 
 #include "console.hpp"
 
 namespace PanzerChasm
 {
 
-Console::Console( CommandsProcessor& commands_processor, const DrawersPtr& drawers )
+Console::Console( CommandsProcessor& commands_processor, const SharedDrawersPtr& shared_drawers )
 	: commands_processor_(commands_processor)
-	, drawers_(drawers)
+	, shared_drawers_(shared_drawers)
 	, last_draw_time_(Time::CurrentTime())
 {
+	PC_ASSERT( shared_drawers_ != nullptr );
+
 	input_line_[0]= '\0';
 
 	Log::SetLogCallback( std::bind( &Console::LogCallback, this, std::placeholders::_1 ) );
@@ -139,14 +143,14 @@ void Console::Draw()
 	if( position_ <= 0.0f )
 		return;
 
-	drawers_->menu.DrawConsoleBackground( position_ );
+	shared_drawers_->menu->DrawConsoleBackground( position_ );
 
-	const int letter_height= int( drawers_->text.GetLineHeight() );
-	const int scale= int( drawers_->menu.GetConsoleScale() );
+	const int letter_height= int( shared_drawers_->text->GetLineHeight() );
+	const int scale= int( shared_drawers_->menu->GetConsoleScale() );
 
 	const unsigned int c_x_offset= 5u;
 	int y= static_cast<int>(
-		position_ * float( drawers_->menu.GetViewportSize().Height() / 2u ) -
+		position_ * float( shared_drawers_->menu->GetViewportSize().Height() / 2u ) -
 		float( letter_height * scale ) ) - 4 * scale;
 
 	const bool draw_cursor= ( int( current_time.ToSeconds() * 3.0f ) & 1u ) != 0u;
@@ -154,10 +158,10 @@ void Console::Draw()
 	char line_with_cursor[ c_max_input_line_length + 3u ];
 	std::snprintf( line_with_cursor, sizeof(line_with_cursor), draw_cursor ? ">%s_" : ">%s", input_line_ );
 
-	drawers_->text.Print(
+	shared_drawers_->text->Print(
 		scale * c_x_offset, y,
 		line_with_cursor, scale,
-		TextDraw::FontColor::Golden, TextDraw::Alignment::Left );
+		ITextDrawer::FontColor::Golden, ITextDrawer::Alignment::Left );
 	y-= ( letter_height + 2 ) * scale;
 
 	if( lines_position_ > 0u )
@@ -165,10 +169,10 @@ void Console::Draw()
 		const char* const str=
 		"  ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^    ^  ";
 
-		drawers_->text.Print(
+		shared_drawers_->text->Print(
 			scale * c_x_offset, y,
 			str, scale,
-			TextDraw::FontColor::White, TextDraw::Alignment::Left );
+			ITextDrawer::FontColor::White, ITextDrawer::Alignment::Left );
 		y-= letter_height * scale;
 	}
 
@@ -179,10 +183,10 @@ void Console::Draw()
 		if( y < -letter_height * scale )
 			break;
 
-		drawers_->text.Print(
+		shared_drawers_->text->Print(
 			scale * c_x_offset, y,
 			it->c_str(), scale,
-			TextDraw::FontColor::White, TextDraw::Alignment::Left );
+			ITextDrawer::FontColor::White, ITextDrawer::Alignment::Left );
 		y-= letter_height * scale;
 	}
 }

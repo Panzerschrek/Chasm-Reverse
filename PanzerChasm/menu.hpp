@@ -17,7 +17,7 @@ class Menu final
 public:
 	Menu(
 		HostCommands& host_commands,
-		const DrawersPtr& drawers,
+		const SharedDrawersPtr& shared_drawers,
 		const Sound::SoundEnginePtr& sound_engine );
 	~Menu();
 
@@ -28,7 +28,7 @@ public:
 	void Draw();
 
 private:
-	const DrawersPtr drawers_;
+	const SharedDrawersPtr shared_drawers_;
 
 	std::unique_ptr<MenuBase> root_menu_;
 	MenuBase* current_menu_= nullptr;

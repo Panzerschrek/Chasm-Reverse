@@ -5,55 +5,40 @@
 #include <texture.hpp>
 
 #include "fwd.hpp"
+#include "i_menu_drawer.hpp"
 #include "rendering_context.hpp"
 
 namespace PanzerChasm
 {
 
-class MenuDrawer final
+class MenuDrawer final : public IMenuDrawer
 {
 public:
-	enum class MenuPicture
-	{
-		Main,
-		New,
-		Network,
-
-		PicturesCount
-	};
-
-	enum class PictureColor
-	{
-		Unactive,
-		Active,
-		Disabled
-	};
-
 	MenuDrawer(
 		const RenderingContext& rendering_context,
 		const GameResources& game_resources );
 
-	~MenuDrawer();
+	virtual ~MenuDrawer();
 
-	Size2 GetViewportSize() const;
-	unsigned int GetMenuScale() const;
-	unsigned int GetConsoleScale() const;
+	virtual Size2 GetViewportSize() const override;
+	virtual unsigned int GetMenuScale() const override;
+	virtual unsigned int GetConsoleScale() const override;
 
-	Size2 GetPictureSize( MenuPicture picture ) const;
+	virtual Size2 GetPictureSize( MenuPicture picture ) const override;
 
-	void DrawMenuBackground(
+	virtual void DrawMenuBackground(
 		int x, int y,
-		unsigned int width, unsigned int height );
+		unsigned int width, unsigned int height ) override;
 
-	void DrawMenuPicture(
+	virtual void DrawMenuPicture(
 		int x, int y,
 		MenuPicture picture,
-		const PictureColor* rows_colors );
+		const PictureColor* rows_colors ) override;
 
-	void DrawConsoleBackground( float console_pos );
-	void DrawLoading( float progress );
-	void DrawPaused();
-	void DrawGameBackground();
+	virtual void DrawConsoleBackground( float console_pos ) override;
+	virtual void DrawLoading( float progress ) override;
+	virtual void DrawPaused() override;
+	virtual void DrawGameBackground() override;
 
 private:
 	struct Vertex

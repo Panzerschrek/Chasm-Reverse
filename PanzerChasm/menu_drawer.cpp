@@ -11,7 +11,7 @@
 namespace PanzerChasm
 {
 
-static const char* const g_menu_pictures[ size_t(MenuDrawer::MenuPicture::PicturesCount) ]=
+static const char* const g_menu_pictures[ size_t(IMenuDrawer::MenuPicture::PicturesCount) ]=
 {
 	"M_MAIN.CEL",
 	"M_NEW.CEL",

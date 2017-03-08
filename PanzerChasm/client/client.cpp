@@ -1,12 +1,17 @@
 #include "../assert.hpp"
-#include "../drawers.hpp"
 #include "../game_constants.hpp"
+#include "../i_drawers_factory.hpp"
+#include "../i_menu_drawer.hpp"
 #include "../log.hpp"
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
 #include "../save_load_streams.hpp"
+#include "../shared_drawers.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
+#include "i_hud_drawer.hpp"
+#include "i_map_drawer.hpp"
+#include "i_minimap_drawer.hpp"
 
 #include "client.hpp"
 
@@ -24,8 +29,8 @@ Client::Client(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
-	const RenderingContext& rendering_context,
-	const DrawersPtr& drawers,
+	IDrawersFactory& drawers_factory,
+	const SharedDrawersPtr& shared_drawers,
 	const Sound::SoundEnginePtr& sound_engine,
 	const DrawLoadingCallback& draw_loading_callback )
 	: game_resources_(game_resources)
@@ -36,14 +41,17 @@ Client::Client(
 	, camera_controller_(
 		settings,
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
-		float(rendering_context.viewport_size.Width()) / float(rendering_context.viewport_size.Height()) )
-	, map_drawer_( settings, game_resources, rendering_context )
-	, minimap_drawer_( settings, game_resources, rendering_context )
+		shared_drawers->menu->GetViewportSize().GetWidthToHeightRatio() )
+	, map_drawer_( drawers_factory.CreateMapDrawer() )
+	, minimap_drawer_( drawers_factory.CreateMinimapDrawer() )
 	, weapon_state_( game_resources )
-	, hud_drawer_( game_resources, rendering_context, drawers )
+	, hud_drawer_( drawers_factory.CreateHUDDrawer( shared_drawers ) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
+	PC_ASSERT( map_drawer_ != nullptr );
+	PC_ASSERT( minimap_drawer_ != nullptr );
+	PC_ASSERT( hud_drawer_ != nullptr );
 
 	std::memset( &player_state_, 0, sizeof(player_state_) );
 }
@@ -209,7 +217,7 @@ void Client::Loop( const InputState& input_state, const bool paused )
 			sound_engine_->UpdateMapState( *map_state_ );
 	}
 
-	hud_drawer_.SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
+	hud_drawer_->SetPlayerState( player_state_, weapon_state_.CurrentWeaponIndex() );
 
 	if( player_state_.ammo[ requested_weapon_index_ ] == 0u )
 		TrySwitchWeaponOnOutOfAmmo();
@@ -264,7 +272,7 @@ void Client::Draw()
 		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
 		camera_controller_.GetViewProjectionMatrix( projection_matrix );
 
-		map_drawer_.Draw(
+		map_drawer_->Draw(
 			*map_state_,
 			view_rotation_and_projection_matrix,
 			pos,
@@ -282,7 +290,7 @@ void Client::Draw()
 			m_Mat4 weapon_shift_matrix;
 			weapon_shift_matrix.Translate( m_Vec3( 0.0f, weapon_shift_y, weapon_shift_z ) );
 
-			map_drawer_.DrawWeapon(
+			map_drawer_->DrawWeapon(
 				weapon_state_,
 				weapon_shift_matrix * projection_matrix,
 				pos,
@@ -292,14 +300,14 @@ void Client::Draw()
 
 		if( minimap_mode_ && map_state_ != nullptr && minimap_state_ != nullptr )
 		{
-			minimap_drawer_.Draw(
+			minimap_drawer_->Draw(
 				*map_state_, *minimap_state_,
 				player_position_.xy(), camera_controller_.GetViewAngleZ() );
 		}
 
-		hud_drawer_.DrawCrosshair();
-		hud_drawer_.DrawCurrentMessage( current_tick_time_ );
-		hud_drawer_.DrawHud( minimap_mode_, current_map_data_->map_name );
+		hud_drawer_->DrawCrosshair();
+		hud_drawer_->DrawCurrentMessage( current_tick_time_ );
+		hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
 	}
 }
 
@@ -395,8 +403,8 @@ void Client::operator()( const Messages::MapChange& message )
 	}
 
 	show_progress( 0.333f );
-	map_drawer_.SetMap( map_data );
-	minimap_drawer_.SetMap( map_data );
+	map_drawer_->SetMap( map_data );
+	minimap_drawer_->SetMap( map_data );
 
 	show_progress( 0.666f );
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
@@ -415,7 +423,7 @@ void Client::operator()( const Messages::MapChange& message )
 	if( sound_engine_ != nullptr )
 		sound_engine_->SetMap( map_data );
 
-	hud_drawer_.ResetMessage();
+	hud_drawer_->ResetMessage();
 
 	current_map_number_= message.map_number;
 	current_map_data_= map_data;
@@ -429,7 +437,7 @@ void Client::operator()( const Messages::TextMessage& message )
 	{
 		if( message.text_message_number < current_map_data_->messages.size() )
 		{
-			hud_drawer_.AddMessage( current_map_data_->messages[ message.text_message_number ], current_tick_time_ );
+			hud_drawer_->AddMessage( current_map_data_->messages[ message.text_message_number ], current_tick_time_ );
 
 			// TODO - start playing text message sound from server, as monster-linked sound.
 			if( sound_engine_ != nullptr )

@@ -40,8 +40,8 @@ SOURCES+= \
 	client/weapon_state.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
-	drawers.cpp \
 	console.cpp \
+	drawers_factory_gl.cpp \
 	game_resources.cpp \
 	host.cpp \
 	images.cpp \
@@ -72,6 +72,7 @@ SOURCES+= \
 	server/player.cpp \
 	server/server.cpp \
 	settings.cpp \
+	shared_drawers.cpp \
 	sound/ambient_sound_processor.cpp \
 	sound/driver.cpp \
 	sound/objects_sounds_processor.cpp \
@@ -88,6 +89,9 @@ HEADERS+= \
 	client/animations_buffer.hpp \
 	client/client.hpp \
 	client/fwd.hpp \
+	client/i_hud_drawer.hpp \
+	client/i_map_drawer.hpp \
+	client/i_minimap_drawer.hpp \
 	client/hud_drawer.hpp \
 	client/map_drawer.hpp \
 	client/map_light.hpp \
@@ -99,13 +103,16 @@ HEADERS+= \
 	commands_processor.hpp \
 	connection_info.hpp \
 	console.hpp \
-	drawers.hpp \
+	drawers_factory_gl.hpp \
 	fwd.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \
 	host_commands.hpp \
 	i_connection.hpp \
+	i_drawers_factory.hpp \
+	i_menu_drawer.hpp \
+	i_text_drawer.hpp \
 	images.hpp \
 	log.hpp \
 	loopback_buffer.hpp \
@@ -140,6 +147,7 @@ HEADERS+= \
 	server/player.hpp \
 	server/server.hpp \
 	settings.hpp \
+	shared_drawers.hpp \
 	shared_settings_keys.hpp \
 	size.hpp \
 	sound/ambient_sound_processor.hpp \
