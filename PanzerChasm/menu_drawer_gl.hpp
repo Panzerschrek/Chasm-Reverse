@@ -11,14 +11,14 @@
 namespace PanzerChasm
 {
 
-class MenuDrawer final : public IMenuDrawer
+class MenuDrawerGL final : public IMenuDrawer
 {
 public:
-	MenuDrawer(
+	MenuDrawerGL(
 		const RenderingContext& rendering_context,
 		const GameResources& game_resources );
 
-	virtual ~MenuDrawer();
+	virtual ~MenuDrawerGL();
 
 	virtual Size2 GetViewportSize() const override;
 	virtual unsigned int GetMenuScale() const override;

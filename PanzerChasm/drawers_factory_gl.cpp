@@ -1,8 +1,8 @@
-#include "client/hud_drawer.hpp"
-#include "client/map_drawer.hpp"
-#include "client/minimap_drawer.hpp"
-#include "menu_drawer.hpp"
-#include "text_draw.hpp"
+#include "client/hud_drawer_gl.hpp"
+#include "client/map_drawer_gl.hpp"
+#include "client/minimap_drawer_gl.hpp"
+#include "menu_drawer_gl.hpp"
+#include "text_drawer_gl.hpp"
 
 #include "drawers_factory_gl.hpp"
 
@@ -25,12 +25,12 @@ DrawersFactoryGL::~DrawersFactoryGL()
 
 ITextDrawerPtr DrawersFactoryGL::CreateTextDrawer()
 {
-	return ITextDrawerPtr( new TextDraw( rendering_context_, *game_resources_ ) );
+	return ITextDrawerPtr( new TextDrawerGL( rendering_context_, *game_resources_ ) );
 }
 
 IMenuDrawerPtr DrawersFactoryGL::CreateMenuDrawer()
 {
-	return IMenuDrawerPtr( new MenuDrawer( rendering_context_, *game_resources_ ) );
+	return IMenuDrawerPtr( new MenuDrawerGL( rendering_context_, *game_resources_ ) );
 }
 
 IHudDrawerPtr DrawersFactoryGL::CreateHUDDrawer( const SharedDrawersPtr& shared_drawers )
@@ -39,7 +39,7 @@ IHudDrawerPtr DrawersFactoryGL::CreateHUDDrawer( const SharedDrawersPtr& shared_
 
 	return
 		IHudDrawerPtr(
-			new HudDrawer(
+			new HudDrawerGL(
 				game_resources_,
 				rendering_context_,
 				shared_drawers ) );
@@ -49,7 +49,7 @@ IMapDrawerPtr DrawersFactoryGL::CreateMapDrawer()
 {
 	return
 		IMapDrawerPtr(
-			new MapDrawer(
+			new MapDrawerGL(
 				settings_,
 				game_resources_,
 				rendering_context_ ) );
@@ -59,7 +59,7 @@ IMinimapDrawerPtr DrawersFactoryGL::CreateMinimapDrawer()
 {
 	return
 		IMinimapDrawerPtr(
-			new MinimapDrawer(
+			new MinimapDrawerGL(
 				settings_,
 				game_resources_,
 				rendering_context_ ) );

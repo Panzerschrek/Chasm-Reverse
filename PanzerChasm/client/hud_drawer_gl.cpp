@@ -10,7 +10,7 @@
 #include "../i_text_drawer.hpp"
 #include "../shared_drawers.hpp"
 
-#include "hud_drawer.hpp"
+#include "hud_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -76,7 +76,7 @@ static unsigned int CalculateHudScale( const Size2& viewport_size )
 	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
 }
 
-HudDrawer::HudDrawer(
+HudDrawerGL::HudDrawerGL(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context,
 	const SharedDrawersPtr& shared_drawers )
@@ -135,27 +135,27 @@ HudDrawer::HudDrawer(
 	hud_shader_.Create();
 }
 
-HudDrawer::~HudDrawer()
+HudDrawerGL::~HudDrawerGL()
 {}
 
-void HudDrawer::AddMessage( const MapData::Message& message, const Time current_time )
+void HudDrawerGL::AddMessage( const MapData::Message& message, const Time current_time )
 {
 	current_message_= message;
 	current_message_time_= current_time;
 }
 
-void HudDrawer::ResetMessage()
+void HudDrawerGL::ResetMessage()
 {
 	current_message_time_= Time::FromSeconds(0);
 }
 
-void HudDrawer::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
+void HudDrawerGL::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
 {
 	player_state_= player_state;
 	current_weapon_number_= current_weapon_number;
 }
 
-void HudDrawer::DrawCrosshair()
+void HudDrawerGL::DrawCrosshair()
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -211,7 +211,7 @@ void HudDrawer::DrawCrosshair()
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void HudDrawer::DrawCurrentMessage( const Time current_time )
+void HudDrawerGL::DrawCurrentMessage( const Time current_time )
 {
 	if( current_message_time_.ToSeconds() == 0.0f )
 		return;
@@ -243,7 +243,7 @@ void HudDrawer::DrawCurrentMessage( const Time current_time )
 	}
 }
 
-void HudDrawer::DrawHud( const bool draw_second_hud, const char* const map_name )
+void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_name )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -431,7 +431,7 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const char* const map_name 
 	}
 }
 
-void HudDrawer::LoadTexture(
+void HudDrawerGL::LoadTexture(
 	const char* const file_name,
 	const unsigned char alpha_color_index,
 	r_Texture& out_texture )

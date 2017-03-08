@@ -13,14 +13,14 @@
 namespace PanzerChasm
 {
 
-class HudDrawer final : public IHudDrawer
+class HudDrawerGL final : public IHudDrawer
 {
 public:
-	HudDrawer(
+	HudDrawerGL(
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context,
 		const SharedDrawersPtr& shared_drawers );
-	virtual ~HudDrawer() override;
+	virtual ~HudDrawerGL() override;
 
 	virtual void AddMessage( const MapData::Message& message, Time current_time ) override;
 	virtual void ResetMessage() override;

@@ -12,14 +12,14 @@
 namespace PanzerChasm
 {
 
-class MinimapDrawer final : public IMinimapDrawer
+class MinimapDrawerGL final : public IMinimapDrawer
 {
 public:
-	MinimapDrawer(
+	MinimapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
-	virtual ~MinimapDrawer() override;
+	virtual ~MinimapDrawerGL() override;
 
 	virtual void SetMap( const MapDataConstPtr& map_data ) override;
 

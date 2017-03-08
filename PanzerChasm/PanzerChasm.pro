@@ -30,10 +30,10 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 SOURCES+= \
 	client/animations_buffer.cpp \
 	client/client.cpp \
-	client/hud_drawer.cpp \
-	client/map_drawer.cpp \
+	client/hud_drawer_gl.cpp \
+	client/map_drawer_gl.cpp \
 	client/map_light.cpp \
-	client/minimap_drawer.cpp \
+	client/minimap_drawer_gl.cpp \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
@@ -51,7 +51,7 @@ SOURCES+= \
 	map_loader.cpp \
 	math_utils.cpp \
 	menu.cpp \
-	menu_drawer.cpp \
+	menu_drawer_gl.cpp \
 	messages.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
@@ -81,7 +81,7 @@ SOURCES+= \
 	system_event.cpp \
 	system_window.cpp \
 	time.cpp \
-	text_draw.cpp \
+	text_drawer_gl.cpp \
 	vfs.cpp \
 
 HEADERS+= \
@@ -92,11 +92,11 @@ HEADERS+= \
 	client/i_hud_drawer.hpp \
 	client/i_map_drawer.hpp \
 	client/i_minimap_drawer.hpp \
-	client/hud_drawer.hpp \
-	client/map_drawer.hpp \
+	client/hud_drawer_gl.hpp \
+	client/map_drawer_gl.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
-	client/minimap_drawer.hpp \
+	client/minimap_drawer_gl.hpp \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
 	client/weapon_state.hpp \
@@ -119,7 +119,7 @@ HEADERS+= \
 	map_loader.hpp \
 	math_utils.hpp \
 	menu.hpp \
-	menu_drawer.hpp \
+	menu_drawer_gl.hpp \
 	messages.hpp \
 	messages_extractor.hpp \
 	messages_extractor.inl \
@@ -159,7 +159,7 @@ HEADERS+= \
 	sound/sounds_loader.hpp \
 	system_event.hpp \
 	system_window.hpp \
-	text_draw.hpp \
+	text_drawer_gl.hpp \
 	time.hpp \
 	vfs.hpp \
 

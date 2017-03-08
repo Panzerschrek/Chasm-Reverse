@@ -11,13 +11,13 @@
 namespace PanzerChasm
 {
 
-class TextDraw final : public ITextDrawer
+class TextDrawerGL final : public ITextDrawer
 {
 public:
-	TextDraw(
+	TextDrawerGL(
 		const RenderingContext& rendering_context,
 		const GameResources& game_resources );
-	virtual ~TextDraw() override;
+	virtual ~TextDrawerGL() override;
 
 	virtual unsigned int GetLineHeight() const override;
 

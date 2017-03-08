@@ -18,14 +18,14 @@ namespace PanzerChasm
 
 struct WallVertex;
 
-class MapDrawer final : public IMapDrawer
+class MapDrawerGL final : public IMapDrawer
 {
 public:
-	MapDrawer(
+	MapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContext& rendering_context );
-	virtual ~MapDrawer() override;
+	virtual ~MapDrawerGL() override;
 
 	virtual void SetMap( const MapDataConstPtr& map_data ) override;
 

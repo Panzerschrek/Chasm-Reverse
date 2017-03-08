@@ -7,7 +7,7 @@
 #include "images.hpp"
 #include "vfs.hpp"
 
-#include "text_draw.hpp"
+#include "text_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -70,7 +70,7 @@ static void CalculateLettersWidth(
 	out_width[' ']= g_space_width;
 }
 
-TextDraw::TextDraw(
+TextDrawerGL::TextDrawerGL(
 	const RenderingContext& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
@@ -166,15 +166,15 @@ TextDraw::TextDraw(
 	shader_.Create();
 }
 
-TextDraw::~TextDraw()
+TextDrawerGL::~TextDrawerGL()
 {}
 
-unsigned int TextDraw::GetLineHeight() const
+unsigned int TextDrawerGL::GetLineHeight() const
 {
 	return g_letter_height;
 }
 
-void TextDraw::Print(
+void TextDrawerGL::Print(
 	const int x, const int y,
 	const char* text,
 	const unsigned int scale,

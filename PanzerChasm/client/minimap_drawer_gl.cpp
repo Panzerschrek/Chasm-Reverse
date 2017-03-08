@@ -6,7 +6,7 @@
 #include "../map_loader.hpp"
 #include "map_state.hpp"
 
-#include "minimap_drawer.hpp"
+#include "minimap_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -32,7 +32,7 @@ static unsigned int CalculateMinimapScale( const Size2& viewport_size )
 	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
 }
 
-MinimapDrawer::MinimapDrawer(
+MinimapDrawerGL::MinimapDrawerGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContext& rendering_context )
@@ -52,13 +52,13 @@ MinimapDrawer::MinimapDrawer(
 	lines_shader_.Create();
 }
 
-MinimapDrawer::~MinimapDrawer()
+MinimapDrawerGL::~MinimapDrawerGL()
 {
 	glDeleteTextures( 1, &visibility_texture_id_ );
 	glDeleteTextures( 1, &dummy_visibility_texture_id_ );
 }
 
-void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
+void MinimapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 {
 	if( current_map_data_ == map_data )
 		return;
@@ -154,7 +154,7 @@ void MinimapDrawer::SetMap( const MapDataConstPtr& map_data )
 	glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 }
 
-void MinimapDrawer::Draw(
+void MinimapDrawerGL::Draw(
 	const MapState& map_state, const MinimapState& minimap_state,
 	const m_Vec2& camera_position, const float view_angle )
 {
@@ -262,7 +262,7 @@ void MinimapDrawer::Draw(
 	glLineWidth( 1.0f );
 }
 
-void MinimapDrawer::BindColor( const unsigned char color_index )
+void MinimapDrawerGL::BindColor( const unsigned char color_index )
 {
 	const Palette& palette= game_resources_->palette;
 
@@ -274,7 +274,7 @@ void MinimapDrawer::BindColor( const unsigned char color_index )
 		0.7f );
 }
 
-void MinimapDrawer::UpdateDynamicWalls( const MapState& map_state )
+void MinimapDrawerGL::UpdateDynamicWalls( const MapState& map_state )
 {
 	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
 
@@ -292,7 +292,7 @@ void MinimapDrawer::UpdateDynamicWalls( const MapState& map_state )
 		first_dynamic_walls_vertex_ * sizeof(WallLineVertex) );
 }
 
-void MinimapDrawer::UpdateWallsVisibility( const MinimapState& minimap_state )
+void MinimapDrawerGL::UpdateWallsVisibility( const MinimapState& minimap_state )
 {
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state.GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state.GetDynamicWallsVisibility();

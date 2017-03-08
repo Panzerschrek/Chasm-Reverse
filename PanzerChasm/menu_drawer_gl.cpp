@@ -5,8 +5,9 @@
 
 #include "game_constants.hpp"
 #include "game_resources.hpp"
-#include "menu_drawer.hpp"
 #include "vfs.hpp"
+
+#include "menu_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -77,7 +78,7 @@ static unsigned int CalculateConsoleScale( const Size2& viewport_size )
 	return 1u << scale_log2;
 }
 
-MenuDrawer::MenuDrawer(
+MenuDrawerGL::MenuDrawerGL(
 	const RenderingContext& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
@@ -322,32 +323,32 @@ MenuDrawer::MenuDrawer(
 	menu_picture_shader_.Create();
 }
 
-MenuDrawer::~MenuDrawer()
+MenuDrawerGL::~MenuDrawerGL()
 {
 }
 
-Size2 MenuDrawer::GetViewportSize() const
+Size2 MenuDrawerGL::GetViewportSize() const
 {
 	return viewport_size_;
 }
 
-unsigned int MenuDrawer::GetMenuScale() const
+unsigned int MenuDrawerGL::GetMenuScale() const
 {
 	return menu_scale_;
 }
 
-unsigned int MenuDrawer::GetConsoleScale() const
+unsigned int MenuDrawerGL::GetConsoleScale() const
 {
 	return console_scale_;
 }
 
-Size2 MenuDrawer::GetPictureSize( MenuPicture picture ) const
+Size2 MenuDrawerGL::GetPictureSize( MenuPicture picture ) const
 {
 	const r_Texture& tex= menu_pictures_[ size_t(picture) ];
 	return Size2( tex.Width(), tex.Height() / g_menu_pictures_shifts_count );
 }
 
-void MenuDrawer::DrawMenuBackground(
+void MenuDrawerGL::DrawMenuBackground(
 	const int x, const int y,
 	const unsigned int width, const unsigned int height )
 {
@@ -433,7 +434,7 @@ void MenuDrawer::DrawMenuBackground(
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void MenuDrawer::DrawMenuPicture(
+void MenuDrawerGL::DrawMenuPicture(
 	const int x, const int y0,
 	const MenuPicture pic,
 	const PictureColor* const rows_colors )
@@ -505,7 +506,7 @@ void MenuDrawer::DrawMenuPicture(
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void MenuDrawer::DrawConsoleBackground( float console_pos )
+void MenuDrawerGL::DrawConsoleBackground( float console_pos )
 {
 	Vertex vertices[ 4u ];
 
@@ -555,7 +556,7 @@ void MenuDrawer::DrawConsoleBackground( float console_pos )
 	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void MenuDrawer::DrawLoading( const float progress )
+void MenuDrawerGL::DrawLoading( const float progress )
 {
 	const float progress_corrected= std::min( std::max( progress, 0.0f ), 1.0f );
 
@@ -630,7 +631,7 @@ void MenuDrawer::DrawLoading( const float progress )
 	glDrawElements( GL_TRIANGLES, 2u * 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void MenuDrawer::DrawPaused()
+void MenuDrawerGL::DrawPaused()
 {
 	Vertex vertices[ 4u ];
 
@@ -683,7 +684,7 @@ void MenuDrawer::DrawPaused()
 	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void MenuDrawer::DrawGameBackground()
+void MenuDrawerGL::DrawGameBackground()
 {
 	Vertex vertices[ 4u ];
 
