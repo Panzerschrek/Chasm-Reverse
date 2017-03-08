@@ -7,7 +7,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj".
-* Vozmožnostj prohoditj skvozj steny, jesli podojti k nim s obratnoj storony.
 * Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
   "checkback".
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
