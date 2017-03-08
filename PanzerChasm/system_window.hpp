@@ -37,7 +37,7 @@ public:
 	void SetTitle( const std::string& title );
 
 	void GetInput( SystemEvents& out_events );
-	void GetKeyboardState( KeyboardState& out_keyboard_state );
+	void GetInputState( InputState& out_input_state );
 	void CaptureMouse( bool need_capture );
 
 private:

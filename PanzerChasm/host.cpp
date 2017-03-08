@@ -151,12 +151,12 @@ Host::~Host()
 bool Host::Loop()
 {
 	// Events processing
-	KeyboardState keyboard_state;
+	InputState input_state;
 	if( system_window_ != nullptr )
 	{
 		events_.clear();
 		system_window_->GetInput( events_ );
-		system_window_->GetKeyboardState( keyboard_state );
+		system_window_->GetInputState( input_state );
 	}
 
 	for( const SystemEvent& event : events_ )
@@ -203,12 +203,11 @@ bool Host::Loop()
 	{
 		if( input_goes_to_console || input_goes_to_menu )
 		{
-			KeyboardState dummy_keyboard_state;
-			dummy_keyboard_state.reset();
-			client_->Loop( dummy_keyboard_state, really_paused );
+			InputState dummy_input_state;
+			client_->Loop( dummy_input_state, really_paused );
 		}
 		else
-			client_->Loop( keyboard_state, really_paused );
+			client_->Loop( input_state, really_paused );
 	}
 
 	// Draw operations

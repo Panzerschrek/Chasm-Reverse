@@ -60,6 +60,19 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 	return KeyCode::Unknown;
 }
 
+static SystemEvent::MouseKeyEvent::Button TranslateMouseButton( const Uint8 button )
+{
+	using Button= SystemEvent::MouseKeyEvent::Button;
+	switch(button)
+	{
+	case SDL_BUTTON_LEFT: return Button::Left;
+	case SDL_BUTTON_RIGHT: return Button::Right;
+	case SDL_BUTTON_MIDDLE: return Button::Middle;
+	};
+
+	return Button::Unknown;
+}
+
 static SystemEvent::KeyEvent::ModifiersMask TranslateKeyModifiers( const Uint16 modifiers )
 {
 	SystemEvent::KeyEvent::ModifiersMask result= 0u;
@@ -309,7 +322,7 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 		case SDL_MOUSEBUTTONDOWN:
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::MouseKey;
-			out_events.back().event.mouse_key.mouse_button= event.button.button;
+			out_events.back().event.mouse_key.mouse_button= TranslateMouseButton( event.button.button );
 			out_events.back().event.mouse_key.x= event.button.x;
 			out_events.back().event.mouse_key.y= event.button.y;
 			out_events.back().event.mouse_key.pressed= event.type == SDL_MOUSEBUTTONUP ? false : true;
@@ -341,9 +354,9 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 	} // while events
 }
 
-void SystemWindow::GetKeyboardState( KeyboardState& out_keyboard_state )
+void SystemWindow::GetInputState( InputState& out_input_state )
 {
-	out_keyboard_state.reset();
+	out_input_state.keyboard.reset();
 
 	int key_count;
 	const Uint8* const keyboard_state= SDL_GetKeyboardState( &key_count );
@@ -352,7 +365,16 @@ void SystemWindow::GetKeyboardState( KeyboardState& out_keyboard_state )
 	{
 		SystemEvent::KeyEvent::KeyCode code= TranslateKey( SDL_Scancode(i) );
 		if( code < SystemEvent::KeyEvent::KeyCode::KeyCount && code != SystemEvent::KeyEvent::KeyCode::Unknown  )
-			out_keyboard_state[ static_cast<unsigned int>(code) ]= keyboard_state[i] != 0;
+			out_input_state.keyboard[ static_cast<unsigned int>(code) ]= keyboard_state[i] != 0;
+	}
+
+	out_input_state.mouse.reset();
+
+	const Uint32 mouse_state= SDL_GetMouseState( nullptr, nullptr );
+	for( unsigned int i= SDL_BUTTON_LEFT; i <= SDL_BUTTON_RIGHT; i++ )
+	{
+		out_input_state.mouse[ static_cast<unsigned int>(TranslateMouseButton(i)) ]=
+			( SDL_BUTTON(i) & mouse_state )!= 0u;
 	}
 }
 

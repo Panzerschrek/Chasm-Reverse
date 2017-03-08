@@ -37,7 +37,7 @@ public:
 
 	void ProcessEvents( const SystemEvents& events );
 
-	void Loop( const KeyboardState& keyboard_state, bool paused );
+	void Loop( const InputState& input_state, bool paused );
 	void Draw();
 
 private:

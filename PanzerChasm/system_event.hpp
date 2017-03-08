@@ -74,7 +74,14 @@ struct SystemEvent
 
 	struct MouseKeyEvent
 	{
-		unsigned int mouse_button;
+		enum class Button
+		{
+			Unknown= 0,
+			Left, Right, Middle,
+			ButtonCount
+		};
+
+		Button mouse_button;
 		unsigned int x, y;
 		bool pressed;
 	};
@@ -106,6 +113,13 @@ struct SystemEvent
 typedef std::vector<SystemEvent> SystemEvents;
 
 typedef std::bitset< static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::KeyCount ) > KeyboardState;
+typedef std::bitset< static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::ButtonCount ) > MouseState;
+
+struct InputState
+{
+	KeyboardState keyboard;
+	MouseState mouse;
+};
 
 const char* GetKeyName( SystemEvent::KeyEvent::KeyCode key_code );
 

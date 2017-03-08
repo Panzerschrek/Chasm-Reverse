@@ -138,12 +138,7 @@ void Client::ProcessEvents( const SystemEvents& events )
 
 	for( const SystemEvent& event : events )
 	{
-		if( event.type == SystemEvent::Type::MouseKey &&
-			event.event.mouse_key.mouse_button == 1u )
-		{
-			shoot_pressed_= event.event.mouse_key.pressed;
-		}
-		else if( event.type == SystemEvent::Type::MouseMove )
+		if( event.type == SystemEvent::Type::MouseMove )
 		{
 			camera_controller_.ControllerRotate(
 				event.event.mouse_move.dy,
@@ -170,7 +165,7 @@ void Client::ProcessEvents( const SystemEvents& events )
 	} // for events
 }
 
-void Client::Loop( const KeyboardState& keyboard_state, const bool paused )
+void Client::Loop( const InputState& input_state, const bool paused )
 {
 	const Time current_real_time= Time::CurrentTime();
 
@@ -200,7 +195,8 @@ void Client::Loop( const KeyboardState& keyboard_state, const bool paused )
 			connection_info_->messages_extractor.ProcessMessages( *this );
 	}
 
-	camera_controller_.Tick( keyboard_state );
+	shoot_pressed_= input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
+	camera_controller_.Tick( input_state.keyboard );
 
 	if( sound_engine_ != nullptr )
 	{
@@ -232,7 +228,7 @@ void Client::Loop( const KeyboardState& keyboard_state, const bool paused )
 	if( connection_info_ != nullptr )
 	{
 		float move_direction, move_acceleration;
-		camera_controller_.GetAcceleration( keyboard_state, move_direction, move_acceleration );
+		camera_controller_.GetAcceleration( input_state.keyboard, move_direction, move_acceleration );
 
 		Messages::PlayerMove message;
 		message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
