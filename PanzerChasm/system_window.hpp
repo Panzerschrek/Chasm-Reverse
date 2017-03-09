@@ -48,6 +48,7 @@ private:
 	void GetVideoModes();
 
 private:
+	Settings& settings_;
 	Size2 viewport_size_;
 
 	SDL_Window* window_= nullptr;

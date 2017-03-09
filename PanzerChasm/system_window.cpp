@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <panzer_ogl_lib.hpp>
 
 #include "assert.hpp"
@@ -112,6 +114,7 @@ static void APIENTRY GLDebugMessageCallback(
 #endif
 
 SystemWindow::SystemWindow( Settings& settings )
+	: settings_(settings)
 {
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		Log::FatalError( "Can not initialize sdl video" );
@@ -331,14 +334,22 @@ RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
 
 void SystemWindow::BeginFrame()
 {
+	const bool need_clear= settings_.GetOrSetBool( "r_clear", false );
+
 	if( IsOpenGLRenderer() )
 	{
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		glClear( ( need_clear ? GL_COLOR_BUFFER_BIT : 0 ) | GL_DEPTH_BUFFER_BIT );
 	}
 	else
 	{
 		if( SDL_MUSTLOCK( surface_ ) )
 			SDL_LockSurface( surface_ );
+
+		if( need_clear )
+			std::memset(
+				surface_->pixels,
+				0,
+				surface_->pitch * surface_->h );
 	}
 }
 
