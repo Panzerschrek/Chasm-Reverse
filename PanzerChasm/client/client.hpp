@@ -5,7 +5,6 @@
 #include "../rendering_context.hpp"
 #include "../system_event.hpp"
 #include "map_state.hpp"
-#include "minimap_drawer.hpp"
 #include "minimap_state.hpp"
 #include "movement_controller.hpp"
 #include "weapon_state.hpp"
