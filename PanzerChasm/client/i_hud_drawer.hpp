@@ -1,4 +1,5 @@
 #pragma once
+#include "../map_loader.hpp"
 #include "../messages.hpp"
 #include "../time.hpp"
 

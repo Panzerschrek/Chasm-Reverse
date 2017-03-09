@@ -5,6 +5,7 @@
 #include <shaders_loading.hpp>
 
 #include "drawers_factory_gl.hpp"
+#include "drawers_factory_soft.hpp"
 #include "game_resources.hpp"
 #include "i_menu_drawer.hpp"
 #include "log.hpp"
@@ -121,11 +122,22 @@ Host::Host( const int argc, const char* const* const argv )
 	}
 	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
 
-	drawers_factory_=
-		std::make_shared<DrawersFactoryGL>(
-			settings_,
-			game_resources_,
-			system_window_->GetRenderingContextGL() );
+	if( system_window_->IsOpenGLRenderer() )
+	{
+		drawers_factory_=
+			std::make_shared<DrawersFactoryGL>(
+				settings_,
+				game_resources_,
+				system_window_->GetRenderingContextGL() );
+	}
+	else
+	{
+		drawers_factory_=
+			std::make_shared<DrawersFactorySoft>(
+				settings_,
+				game_resources_,
+				system_window_->GetRenderingContextSoft() );
+	}
 
 	shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );
 

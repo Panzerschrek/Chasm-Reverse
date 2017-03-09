@@ -7,7 +7,6 @@
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
 #include "i_minimap_drawer.hpp"
-#include "minimap_state.hpp"
 
 namespace PanzerChasm
 {

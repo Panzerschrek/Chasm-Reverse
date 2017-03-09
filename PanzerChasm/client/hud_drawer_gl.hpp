@@ -4,8 +4,6 @@
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
 
-#include "../map_loader.hpp"
-#include "../messages.hpp"
 #include "../rendering_context.hpp"
 #include "../time.hpp"
 #include "i_hud_drawer.hpp"

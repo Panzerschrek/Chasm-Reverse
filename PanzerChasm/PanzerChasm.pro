@@ -31,9 +31,12 @@ SOURCES+= \
 	client/animations_buffer.cpp \
 	client/client.cpp \
 	client/hud_drawer_gl.cpp \
+	client/hud_drawer_soft.cpp \
 	client/map_drawer_gl.cpp \
+	client/map_drawer_soft.cpp \
 	client/map_light.cpp \
 	client/minimap_drawer_gl.cpp \
+	client/minimap_drawer_soft.cpp \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
@@ -42,6 +45,7 @@ SOURCES+= \
 	connection_info.cpp \
 	console.cpp \
 	drawers_factory_gl.cpp \
+	drawers_factory_soft.cpp \
 	game_resources.cpp \
 	host.cpp \
 	images.cpp \
@@ -52,6 +56,7 @@ SOURCES+= \
 	math_utils.cpp \
 	menu.cpp \
 	menu_drawer_gl.cpp \
+	menu_drawer_soft.cpp \
 	messages.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
@@ -82,6 +87,7 @@ SOURCES+= \
 	system_window.cpp \
 	time.cpp \
 	text_drawer_gl.cpp \
+	text_drawer_soft.cpp \
 	vfs.cpp \
 
 HEADERS+= \
@@ -93,7 +99,9 @@ HEADERS+= \
 	client/i_map_drawer.hpp \
 	client/i_minimap_drawer.hpp \
 	client/hud_drawer_gl.hpp \
+	client/hud_drawer_soft.hpp \
 	client/map_drawer_gl.hpp \
+	client/map_drawer_gsoft.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
 	client/minimap_drawer_gl.hpp \
@@ -104,6 +112,7 @@ HEADERS+= \
 	connection_info.hpp \
 	console.hpp \
 	drawers_factory_gl.hpp \
+	drawers_factory_soft.hpp \
 	fwd.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
@@ -120,6 +129,7 @@ HEADERS+= \
 	math_utils.hpp \
 	menu.hpp \
 	menu_drawer_gl.hpp \
+	menu_drawer_soft.hpp \
 	messages.hpp \
 	messages_extractor.hpp \
 	messages_extractor.inl \
@@ -160,6 +170,7 @@ HEADERS+= \
 	system_event.hpp \
 	system_window.hpp \
 	text_drawer_gl.hpp \
+	text_drawer_soft.hpp \
 	time.hpp \
 	vfs.hpp \
 
