@@ -132,11 +132,25 @@ Host::Host( const int argc, const char* const* const argv )
 	}
 	else
 	{
+		// TODO - generate transformed palette in other place
+		RenderingContextSoft rendering_context= system_window_->GetRenderingContextSoft();
+		rendering_context.palette_transformed= std::make_shared<PaletteTransformed>();
+
+		const Palette& in_palette= game_resources_->palette;
+		for( unsigned int i= 0u; i < 256u; i++ )
+		{
+			unsigned char rgba[4];
+			rgba[0]= in_palette[ i * 3u + 2u ];
+			rgba[1]= in_palette[ i * 3u + 1u ];
+			rgba[2]= in_palette[ i * 3u + 0u ];
+			std::memcpy( &(*rendering_context.palette_transformed)[i], &rgba, 4u );
+		}
+
 		drawers_factory_=
 			std::make_shared<DrawersFactorySoft>(
 				settings_,
 				game_resources_,
-				system_window_->GetRenderingContextSoft() );
+				rendering_context );
 	}
 
 	shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );

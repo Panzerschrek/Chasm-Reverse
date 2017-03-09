@@ -5,6 +5,7 @@
 
 #include "game_resources.hpp"
 #include "images.hpp"
+#include "text_drawers_common.hpp"
 #include "vfs.hpp"
 
 #include "text_drawer_gl.hpp"
@@ -12,63 +13,12 @@
 namespace PanzerChasm
 {
 
-static const unsigned int g_max_letters_per_print= 2048u;
-
-static const int g_letter_place_width= 16u;
-static const int g_letter_place_height= 10u;
-static const int g_letter_u_offset= 2u;
-static const int g_letter_v_offset= 1u;
-static const int g_letter_height= 9u;
-static const int g_space_width= 6u;
-
-static const unsigned int g_atlas_width = 16u * g_letter_place_width ;
-static const unsigned int g_atlas_height= 16u * g_letter_place_height;
-
-static const unsigned int g_colors_variations= 4u;
-
-// Indeces of colors, used in font as inner for letters.
-static const unsigned char g_start_inner_color= 4u;
-static const unsigned char g_end_inner_color= 16u;
-
-static const int g_color_shifts[ g_colors_variations ]=
-{
-	  0, // white
-	 38, // dark-yellow
-	176, // golden
-	194, // dark-yellow with green
-};
+const unsigned int g_max_letters_per_print= 2048u;
 
 static const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
 static const r_OGLState g_gl_state(
 	false, false, false, false,
 	g_gl_state_blend_func );
-
-static void CalculateLettersWidth(
-	const unsigned char* const texture_data,
-	unsigned char* const out_width )
-{
-	for( unsigned int code= 0u; code < 256u; code++ )
-	{
-		const unsigned int tc_u= ( code & 15u ) * g_letter_place_width;
-		const unsigned int tc_v= ( code >> 4u ) * g_letter_place_height;
-
-		unsigned int max_x= 0u;
-		for( unsigned int y= tc_v + g_letter_v_offset; y < tc_v + g_letter_height; y++ )
-		{
-			unsigned int max_line_x= tc_u + g_letter_u_offset;
-			for( unsigned int x= tc_u + g_letter_u_offset; x < tc_u + g_letter_place_width; x++ )
-			{
-				if( texture_data[ x + y * g_atlas_width  ] != 255 )
-					max_line_x= std::max( max_line_x, x );
-			}
-			max_x= std::max( max_x, max_line_x );
-		}
-
-		out_width[code]= 1u + max_x - tc_u - g_letter_u_offset;
-	}
-
-	out_width[' ']= g_space_width;
-}
 
 TextDrawerGL::TextDrawerGL(
 	const RenderingContextGL& rendering_context,
@@ -76,28 +26,28 @@ TextDrawerGL::TextDrawerGL(
 	: viewport_size_(rendering_context.viewport_size)
 {
 	// Texture
-	const Vfs::FileContent font_file= game_resources.vfs->ReadFile( "FONT256.CEL" );
+	const Vfs::FileContent font_file= game_resources.vfs->ReadFile( FontParams::font_file_name );
 	const CelTextureHeader* const cel_header= reinterpret_cast<const CelTextureHeader*>( font_file.data() );
-	const unsigned char* const fond_data= font_file.data() + sizeof(CelTextureHeader);
+	const unsigned char* const font_data= font_file.data() + sizeof(CelTextureHeader);
 
 	const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
-	std::vector<unsigned char> font_rgba( g_colors_variations * 4u * pixel_count );
+	std::vector<unsigned char> font_rgba( FontParams::colors_variations * 4u * pixel_count );
 
 	std::vector<unsigned char> font_data_shifted( pixel_count );
-	for( unsigned int c= 0u; c < g_colors_variations; c++ )
+	for( unsigned int c= 0u; c < FontParams::colors_variations; c++ )
 	{
 		ColorShift(
-			g_start_inner_color, g_end_inner_color,
-			g_color_shifts[c],
+			FontParams::start_inner_color, FontParams::end_inner_color,
+			FontParams::color_shifts[c],
 			pixel_count,
-			fond_data, font_data_shifted.data() );
+			font_data, font_data_shifted.data() );
 
 		// Hack. Move "slider" letter from code '\0';
-		for( unsigned int y= 0; y < g_letter_place_height; y++ )
+		for( unsigned int y= 0; y < FontParams::letter_place_height; y++ )
 			std::memcpy(
-				font_data_shifted.data() + g_atlas_width * y + g_letter_place_width * ( c_slider_back_letter_code & 15u ) +  g_atlas_width * g_letter_place_height * ( c_slider_back_letter_code >> 4u ),
-				font_data_shifted.data() + g_atlas_width * y,
-				g_letter_place_width );
+				font_data_shifted.data() + FontParams::atlas_width * y + FontParams::letter_place_width * ( c_slider_back_letter_code & 15u ) +  FontParams::atlas_width * FontParams::letter_place_height * ( c_slider_back_letter_code >> 4u ),
+				font_data_shifted.data() + FontParams::atlas_width * y,
+				FontParams::letter_place_width );
 
 		ConvertToRGBA(
 			pixel_count,
@@ -108,7 +58,7 @@ TextDrawerGL::TextDrawerGL(
 	}
 
 	CalculateLettersWidth(
-		fond_data,
+		font_data,
 		letters_width_ );
 
 	letters_width_[ c_slider_back_letter_code ]= letters_width_[0]; // Move slider letter.
@@ -117,7 +67,7 @@ TextDrawerGL::TextDrawerGL(
 		r_Texture(
 			r_Texture::PixelFormat::RGBA8,
 			cel_header->size[0],
-			cel_header->size[1] * g_colors_variations,
+			cel_header->size[1] * FontParams::colors_variations,
 			font_rgba.data() );
 
 	texture_.SetFiltration(
@@ -171,7 +121,7 @@ TextDrawerGL::~TextDrawerGL()
 
 unsigned int TextDrawerGL::GetLineHeight() const
 {
-	return g_letter_height;
+	return FontParams::letter_height;
 }
 
 void TextDrawerGL::Print(
@@ -182,11 +132,11 @@ void TextDrawerGL::Print(
 	const Alignment alignment )
 {
 	const int scale_i= int(scale);
-	const int d_tc_v= int(color) * int(g_atlas_height);
+	const int d_tc_v= int(color) * int(FontParams::atlas_height);
 
 	Vertex* v= vertex_buffer_.data();
 	int current_x= x;
-	int current_y= viewport_size_.Height() - y - scale * g_letter_height;
+	int current_y= viewport_size_.Height() - y - scale * FontParams::letter_height;
 
 	Vertex* last_newline_vertex_index= v;
 	while( 1 )
@@ -215,34 +165,34 @@ void TextDrawerGL::Print(
 			}
 
 			current_x= x;
-			current_y-= int(g_letter_height * scale);
+			current_y-= int(FontParams::letter_height * scale);
 			text++;
 
 			if( code == '\0' ) break;
 			else continue;
 		}
 
-		const unsigned int tc_u= ( code & 15u ) * g_letter_place_width  + g_letter_u_offset;
-		const unsigned int tc_v= ( code >> 4u ) * g_letter_place_height + g_letter_v_offset + d_tc_v;
+		const unsigned int tc_u= ( code & 15u ) * FontParams::letter_place_width  + FontParams::letter_u_offset;
+		const unsigned int tc_v= ( code >> 4u ) * FontParams::letter_place_height + FontParams::letter_v_offset + d_tc_v;
 		const unsigned char letter_width= letters_width_[code];
 
 		v[0].xy[0]= current_x;
 		v[0].xy[1]= current_y;
 		v[0].tex_coord[0]= tc_u;
-		v[0].tex_coord[1]= tc_v + g_letter_height;
+		v[0].tex_coord[1]= tc_v + FontParams::letter_height;
 
 		v[1].xy[0]= current_x + letter_width * scale_i;
 		v[1].xy[1]= current_y;
 		v[1].tex_coord[0]= tc_u + letter_width;
-		v[1].tex_coord[1]= tc_v + g_letter_height;
+		v[1].tex_coord[1]= tc_v + FontParams::letter_height;
 
 		v[2].xy[0]= current_x + letter_width  * scale_i;
-		v[2].xy[1]= current_y + g_letter_height * scale_i;
+		v[2].xy[1]= current_y + FontParams::letter_height * scale_i;
 		v[2].tex_coord[0]= tc_u + letter_width;
 		v[2].tex_coord[1]= tc_v;
 
 		v[3].xy[0]= current_x;
-		v[3].xy[1]= current_y + g_letter_height * scale_i;
+		v[3].xy[1]= current_y + FontParams::letter_height * scale_i;
 		v[3].tex_coord[0]= tc_u;
 		v[3].tex_coord[1]= tc_v;
 

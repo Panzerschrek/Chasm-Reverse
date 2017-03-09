@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 
 #include <shaders_loading.hpp>
 
@@ -13,12 +14,17 @@ struct RenderingContextGL
 	r_GLSLVersion glsl_version;
 };
 
+typedef std::array< uint32_t, 256u > PaletteTransformed;
+typedef std::shared_ptr< PaletteTransformed > PaletteTransformedPtr;
+
 struct RenderingContextSoft
 {
 	Size2 viewport_size;
 	unsigned int row_pixels;
 
 	uint32_t* window_surface_data;
+
+	PaletteTransformedPtr palette_transformed;
 };
 
 } // namespace PanzerChasm

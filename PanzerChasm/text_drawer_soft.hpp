@@ -3,6 +3,7 @@
 #include "fwd.hpp"
 #include "i_text_drawer.hpp"
 #include "rendering_context.hpp"
+#include "text_drawers_common.hpp"
 
 namespace PanzerChasm
 {
@@ -25,7 +26,10 @@ public:
 		Alignment alignment ) override;
 
 private:
+	const RenderingContextSoft rendering_context_;
+	unsigned char letters_width_[256];
 
+	unsigned char font_texture_data_[ FontParams::atlas_width * FontParams::atlas_height * FontParams::colors_variations ];
 };
 
 } // namespace PanzerChasm

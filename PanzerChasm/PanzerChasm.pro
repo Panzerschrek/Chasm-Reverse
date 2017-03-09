@@ -86,6 +86,7 @@ SOURCES+= \
 	system_event.cpp \
 	system_window.cpp \
 	time.cpp \
+	text_drawers_common.cpp \
 	text_drawer_gl.cpp \
 	text_drawer_soft.cpp \
 	vfs.cpp \
@@ -169,6 +170,7 @@ HEADERS+= \
 	sound/sounds_loader.hpp \
 	system_event.hpp \
 	system_window.hpp \
+	text_drawers_common.hpp \
 	text_drawer_gl.hpp \
 	text_drawer_soft.hpp \
 	time.hpp \
