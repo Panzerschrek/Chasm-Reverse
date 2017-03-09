@@ -78,7 +78,7 @@ static unsigned int CalculateHudScale( const Size2& viewport_size )
 
 HudDrawerGL::HudDrawerGL(
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context,
+	const RenderingContextGL& rendering_context,
 	const SharedDrawersPtr& shared_drawers )
 	: game_resources_(game_resources)
 	, viewport_size_( rendering_context.viewport_size )

@@ -15,7 +15,7 @@ class MenuDrawerGL final : public IMenuDrawer
 {
 public:
 	MenuDrawerGL(
-		const RenderingContext& rendering_context,
+		const RenderingContextGL& rendering_context,
 		const GameResources& game_resources );
 
 	virtual ~MenuDrawerGL();

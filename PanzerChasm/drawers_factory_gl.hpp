@@ -11,7 +11,7 @@ public:
 	DrawersFactoryGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
+		const RenderingContextGL& rendering_context );
 
 	virtual ~DrawersFactoryGL() override;
 
@@ -24,7 +24,7 @@ public:
 private:
 	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
-	const RenderingContext rendering_context_;
+	const RenderingContextGL rendering_context_;
 };
 
 } // namespace PanzerChasm

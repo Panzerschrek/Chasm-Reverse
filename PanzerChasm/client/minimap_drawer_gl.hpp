@@ -18,7 +18,7 @@ public:
 	MinimapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
+		const RenderingContextGL& rendering_context );
 	virtual ~MinimapDrawerGL() override;
 
 	virtual void SetMap( const MapDataConstPtr& map_data ) override;
@@ -37,7 +37,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-	const RenderingContext rendering_context_;
+	const RenderingContextGL rendering_context_;
 
 	GLuint visibility_texture_id_= ~0u;
 	GLuint dummy_visibility_texture_id_= ~0u;

@@ -18,7 +18,7 @@ class HudDrawerGL final : public IHudDrawer
 public:
 	HudDrawerGL(
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context,
+		const RenderingContextGL& rendering_context,
 		const SharedDrawersPtr& shared_drawers );
 	virtual ~HudDrawerGL() override;
 

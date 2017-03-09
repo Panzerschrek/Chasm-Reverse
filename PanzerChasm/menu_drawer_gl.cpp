@@ -79,7 +79,7 @@ static unsigned int CalculateConsoleScale( const Size2& viewport_size )
 }
 
 MenuDrawerGL::MenuDrawerGL(
-	const RenderingContext& rendering_context,
+	const RenderingContextGL& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
 	, menu_scale_( CalculateMenuScale( rendering_context.viewport_size ) )

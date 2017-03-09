@@ -71,7 +71,7 @@ static void CalculateLettersWidth(
 }
 
 TextDrawerGL::TextDrawerGL(
-	const RenderingContext& rendering_context,
+	const RenderingContextGL& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
 {

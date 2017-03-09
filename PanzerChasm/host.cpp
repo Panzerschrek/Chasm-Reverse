@@ -121,10 +121,13 @@ Host::Host( const int argc, const char* const* const argv )
 	}
 	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
 
-	RenderingContext rendering_context;
-	CreateRenderingContext( rendering_context );
-	drawers_factory_= std::make_shared<DrawersFactoryGL>( settings_, game_resources_, rendering_context );
-	shared_drawers_= std::make_shared<SharedDrawers>( * drawers_factory_ );
+	drawers_factory_=
+		std::make_shared<DrawersFactoryGL>(
+			settings_,
+			game_resources_,
+			system_window_->GetRenderingContextGL() );
+
+	shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );
 
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, shared_drawers_ ) );
@@ -216,8 +219,7 @@ bool Host::Loop()
 	// Draw operations
 	if( system_window_ )
 	{
-		// TODO - remove draww stuff from here
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		system_window_->BeginFrame();
 
 		if( client_ != nullptr && !client_->Disconnected() )
 		{
@@ -235,7 +237,7 @@ bool Host::Loop()
 		if( console_ != nullptr )
 			console_->Draw();
 
-		system_window_->SwapBuffers();
+		system_window_->EndFrame();
 	}
 
 	return !quit_requested_;
@@ -547,15 +549,10 @@ void Host::DrawLoadingFrame( const float progress, const char* const caption )
 
 	if( system_window_ != nullptr && shared_drawers_ != nullptr )
 	{
+		system_window_->BeginFrame();
 		shared_drawers_->menu->DrawLoading( progress );
-		system_window_->SwapBuffers();
+		system_window_->EndFrame();
 	}
-}
-
-void Host::CreateRenderingContext( RenderingContext& out_context )
-{
-	out_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
-	out_context.viewport_size= system_window_->GetViewportSize();
 }
 
 void Host::EnsureClient()

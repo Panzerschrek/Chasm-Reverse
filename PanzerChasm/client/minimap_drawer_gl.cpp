@@ -35,7 +35,7 @@ static unsigned int CalculateMinimapScale( const Size2& viewport_size )
 MinimapDrawerGL::MinimapDrawerGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContextGL& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
 {

@@ -66,8 +66,6 @@ private:
 
 	void DrawLoadingFrame( float progress, const char* caption );
 
-	void CreateRenderingContext( RenderingContext& out_context );
-
 	void EnsureClient();
 	void EnsureServer();
 	void EnsureLoopbackBuffer();

@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include "fwd.hpp"
+#include "rendering_context.hpp"
 #include "size.hpp"
 #include "system_event.hpp"
 
@@ -27,12 +28,15 @@ public:
 	explicit SystemWindow( Settings& settings );
 	~SystemWindow();
 
+	bool IsOpenGLRenderer() const;
 	Size2 GetViewportSize() const;
 	const DispaysVideoModes& GetSupportedVideoModes() const;
 
-	// Commit any draw operations and show frame.
-	// May wait for vsync.
-	void SwapBuffers();
+	RenderingContextGL GetRenderingContextGL() const;
+	RenderingContextSoft GetRenderingContextSoft() const;
+
+	void BeginFrame();
+	void EndFrame();
 
 	void SetTitle( const std::string& title );
 
@@ -47,7 +51,8 @@ private:
 	Size2 viewport_size_;
 
 	SDL_Window* window_= nullptr;
-	SDL_GLContext gl_context_= nullptr;
+	SDL_GLContext gl_context_= nullptr; // If not null - current mode is OpenGL, else - software.
+	SDL_Surface* surface_= nullptr;
 
 	bool mouse_captured_= false;
 

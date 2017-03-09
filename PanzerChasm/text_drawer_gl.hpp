@@ -15,7 +15,7 @@ class TextDrawerGL final : public ITextDrawer
 {
 public:
 	TextDrawerGL(
-		const RenderingContext& rendering_context,
+		const RenderingContextGL& rendering_context,
 		const GameResources& game_resources );
 	virtual ~TextDrawerGL() override;
 

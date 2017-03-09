@@ -58,7 +58,7 @@ static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd
 
 MapLight::MapLight(
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context,
+	const RenderingContextGL& rendering_context,
 	const bool use_hd_dynamic_lightmap )
 	: game_resources_(game_resources)
 	, use_hd_dynamic_lightmap_(use_hd_dynamic_lightmap)

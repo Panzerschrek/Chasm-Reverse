@@ -24,7 +24,7 @@ public:
 	MapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
+		const RenderingContextGL& rendering_context );
 	virtual ~MapDrawerGL() override;
 
 	virtual void SetMap( const MapDataConstPtr& map_data ) override;
@@ -146,7 +146,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-	const RenderingContext rendering_context_;
+	const RenderingContextGL rendering_context_;
 
 	MapDataConstPtr current_map_data_;
 

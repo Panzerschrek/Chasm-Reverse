@@ -179,7 +179,7 @@ static void CreateModelMatrices(
 MapDrawerGL::MapDrawerGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContextGL& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
 	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( "r_dynamic_lighting", true ) )

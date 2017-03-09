@@ -12,7 +12,7 @@ namespace PanzerChasm
 DrawersFactoryGL::DrawersFactoryGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContextGL& rendering_context )
 	: settings_(settings)
 	, game_resources_(game_resources)
 	, rendering_context_(rendering_context)

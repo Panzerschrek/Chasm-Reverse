@@ -1,5 +1,6 @@
 #include <panzer_ogl_lib.hpp>
 
+#include "assert.hpp"
 #include "game_constants.hpp"
 #include "log.hpp"
 #include "settings.hpp"
@@ -117,6 +118,8 @@ SystemWindow::SystemWindow( Settings& settings )
 
 	GetVideoModes();
 
+	const bool is_opengl= ! settings.GetOrSetBool( "r_software_rendering", false );
+
 	int width= 0, height= 0;
 	unsigned int frequency= 0u, display= 0u;
 	if( settings.GetOrSetBool( SettingsKeys::fullscreen, false ) )
@@ -185,30 +188,36 @@ windowed:
 	viewport_size_.Width ()= static_cast<unsigned int>( width  );
 	viewport_size_.Height()= static_cast<unsigned int>( height );
 
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+	if( is_opengl )
+	{
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
-	#ifdef DEBUG
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
-	#endif
+		#ifdef DEBUG
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
+		#endif
 
-	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+	}
 
 	window_=
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height,
-			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) );
+			( is_opengl ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
 		Log::FatalError( "Can not create window" );
 
-	gl_context_= SDL_GL_CreateContext( window_ );
-	if( gl_context_ == nullptr )
-		Log::FatalError( "Can not create OpenGL context" );
+	if( is_opengl )
+	{
+		gl_context_= SDL_GL_CreateContext( window_ );
+		if( gl_context_ == nullptr )
+			Log::FatalError( "Can not create OpenGL context" );
+	}
 
 	if( fullscreen )
 	{
@@ -242,29 +251,46 @@ windowed:
 		}
 	}
 
-	SDL_GL_SetSwapInterval(1);
+	if( is_opengl )
+	{
+		SDL_GL_SetSwapInterval(1);
 
-	GetGLFunctions( SDL_GL_GetProcAddress );
+		GetGLFunctions( SDL_GL_GetProcAddress );
 
-	#ifdef DEBUG
-	if( glDebugMessageCallback != nullptr )
-		glDebugMessageCallback( &GLDebugMessageCallback, NULL );
-	#endif
+		#ifdef DEBUG
+		if( glDebugMessageCallback != nullptr )
+			glDebugMessageCallback( &GLDebugMessageCallback, NULL );
+		#endif
 
-	Log::Info("");
-	Log::Info( "OpenGL configuration: " );
-	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-	Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
-	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-	Log::Info( "Version: ", glGetString( GL_VERSION ) );
-	Log::Info("");
+		Log::Info("");
+		Log::Info( "OpenGL configuration: " );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Version: ", glGetString( GL_VERSION ) );
+		Log::Info("");
+	}
+	else
+	{
+		surface_= SDL_GetWindowSurface( window_ );
+		if( surface_ == nullptr )
+			Log::FatalError( "Can not get window surface" );
+	}
 }
 
 SystemWindow::~SystemWindow()
 {
-	SDL_GL_DeleteContext( gl_context_ );
+	if( gl_context_ != nullptr )
+		SDL_GL_DeleteContext( gl_context_ );
+
 	SDL_DestroyWindow( window_ );
+
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
+}
+
+bool SystemWindow::IsOpenGLRenderer() const
+{
+	return gl_context_ != nullptr;
 }
 
 Size2 SystemWindow::GetViewportSize() const
@@ -277,9 +303,58 @@ const SystemWindow::DispaysVideoModes& SystemWindow::GetSupportedVideoModes() co
 	return displays_video_modes_;
 }
 
-void SystemWindow::SwapBuffers()
+RenderingContextGL SystemWindow::GetRenderingContextGL() const
 {
-	SDL_GL_SwapWindow( window_ );
+	PC_ASSERT( IsOpenGLRenderer() );
+
+	RenderingContextGL result;
+
+	result.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
+	result.viewport_size= viewport_size_;
+
+	return result;
+}
+
+RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
+{
+	PC_ASSERT( ! IsOpenGLRenderer() );
+	PC_ASSERT( surface_ != nullptr );
+
+	RenderingContextSoft result;
+
+	result.viewport_size= viewport_size_;
+	result.row_pixels= surface_->pitch / 4u;
+	result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
+
+	return result;
+}
+
+void SystemWindow::BeginFrame()
+{
+	if( IsOpenGLRenderer() )
+	{
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	}
+	else
+	{
+		if( SDL_MUSTLOCK( surface_ ) )
+			SDL_LockSurface( surface_ );
+	}
+}
+
+void SystemWindow::EndFrame()
+{
+	if( IsOpenGLRenderer() )
+	{
+		SDL_GL_SwapWindow( window_ );
+	}
+	else
+	{
+		if( SDL_MUSTLOCK( surface_ ) )
+			SDL_UnlockSurface( surface_ );
+
+		SDL_UpdateWindowSurface( window_ );
+	}
 }
 
 void SystemWindow::SetTitle( const std::string& title )
