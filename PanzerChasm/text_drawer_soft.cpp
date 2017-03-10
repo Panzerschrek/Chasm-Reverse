@@ -109,7 +109,7 @@ void TextDrawerSoft::Print(
 					font_texture_data_[
 						( glyph_tc_u + glyph_x ) +
 						( glyph_tc_v + glyph_y ) * int(FontParams::atlas_width) ];
-				if( color_index == 0 )
+				if( color_index == 255u )
 					continue;
 
 				const uint32_t color= palette[color_index];
