@@ -5,37 +5,13 @@
 
 #include "game_constants.hpp"
 #include "game_resources.hpp"
+#include "menu_drawers_common.hpp"
 #include "vfs.hpp"
 
 #include "menu_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
-
-static const char* const g_menu_pictures[ size_t(IMenuDrawer::MenuPicture::PicturesCount) ]=
-{
-	"M_MAIN.CEL",
-	"M_NEW.CEL",
-	"M_NETWRK.CEL",
-};
-
-static const unsigned int g_menu_pictures_shifts_count= 3u;
-static const int g_menu_pictures_shifts[ g_menu_pictures_shifts_count ]=
-{
-	 0,
-	64, // golden
-	96, // dark-yellow
-};
-
-// Indeces of colors, used in ,enu pictures as inner for letters.
-static const unsigned char g_start_inner_color= 7u * 16u;
-static const unsigned char g_end_inner_color= 8u * 16u;
-
-static const unsigned int g_menu_picture_row_height= 20u;
-static const unsigned int g_menu_picture_horizontal_border= 4u;
-
-static const unsigned int g_menu_border= 3u;
-static const unsigned int g_menu_caption= 10u;
 
 static const unsigned int g_max_quads= 512u;
 
@@ -44,39 +20,6 @@ static const r_OGLState g_gl_state(
 	false, false, false, false,
 	g_gl_state_blend_func );
 
-static unsigned int CalculateMenuScale( const Size2& viewport_size )
-{
-	float scale_f=
-		std::min(
-			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
-			float( viewport_size.Height() ) / float( GameConstants::min_screen_height ) );
-
-	 // Do not scale menu too height.
-	if( scale_f > 3.0f )
-		scale_f*= 1.0f - 0.25f * std::min( scale_f - 3.0f, 1.0f );
-
-	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
-}
-
-static unsigned int CalculateConsoleScale( const Size2& viewport_size )
-{
-	float scale_f=
-		std::min(
-			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
-			float( viewport_size.Height() ) / float( GameConstants::min_screen_height ) );
-
-	scale_f*= 0.75f; // Do not scale console too height
-
-	const unsigned int scale_i= std::max( 1u, static_cast<unsigned int>( scale_f ) );
-
-	// Find nearest powert of two scale, lowest, then scale_i.
-	unsigned int scale_log2= 0u;
-	while( scale_i >= ( 1u << scale_log2 ) )
-		scale_log2++;
-	scale_log2--;
-
-	return 1u << scale_log2;
-}
 
 MenuDrawerGL::MenuDrawerGL(
 	const RenderingContextGL& rendering_context,
@@ -115,10 +58,10 @@ MenuDrawerGL::MenuDrawerGL(
 			r_Texture::Filtration::Nearest );
 	};
 
-	load_texture( "M_TILE1.CEL", tiles_texture_ );
-	load_texture( "COMMON/LOADING.CEL", loading_texture_ );
-	load_texture( "GROUND.CEL", game_background_texture_ );
-	load_texture( "M_PAUSE.CEL", pause_texture_ );
+	load_texture( MenuParams::tile_picture, tiles_texture_ );
+	load_texture( MenuParams::loading_picture, loading_texture_ );
+	load_texture( MenuParams::background_picture, game_background_texture_ );
+	load_texture( MenuParams::pause_picture, pause_texture_ );
 
 	{ // Menu pictures
 		Vfs::FileContent picture_file;
@@ -127,28 +70,28 @@ MenuDrawerGL::MenuDrawerGL(
 
 		for( unsigned int i= 0u; i < size_t(MenuPicture::PicturesCount); i++ )
 		{
-			game_resources.vfs->ReadFile( g_menu_pictures[i], picture_file );
+			game_resources.vfs->ReadFile( MenuParams::menu_pictures[i], picture_file );
 
 			const CelTextureHeader* const cel_header=
 				reinterpret_cast<const CelTextureHeader*>( picture_file.data() );
 
-			const unsigned int height_with_border= cel_header->size[1] + g_menu_picture_horizontal_border * 2u;
+			const unsigned int height_with_border= cel_header->size[1] + MenuParams::menu_picture_horizontal_border * 2u;
 
 			const unsigned int in_pixel_count= cel_header->size[0] * cel_header->size[1];
 			const unsigned int out_pixel_count= cel_header->size[0] * height_with_border;
-			picture_data_rgba.resize( 4u * g_menu_pictures_shifts_count * out_pixel_count );
+			picture_data_rgba.resize( 4u * MenuParams::menu_pictures_shifts_count * out_pixel_count );
 			picture_data_shifted.resize( in_pixel_count );
 
-			for( unsigned int s= 0u; s < g_menu_pictures_shifts_count; s++ )
+			for( unsigned int s= 0u; s < MenuParams::menu_pictures_shifts_count; s++ )
 			{
 				ColorShift(
-					g_start_inner_color, g_end_inner_color,
-					g_menu_pictures_shifts[ s ],
+					MenuParams::start_inner_color, MenuParams::end_inner_color,
+					MenuParams::menu_pictures_shifts[ s ],
 					in_pixel_count,
 					picture_file.data() + sizeof(CelTextureHeader),
 					picture_data_shifted.data() );
 
-				const unsigned int border_size_bytes= 4u * g_menu_picture_horizontal_border * cel_header->size[0];
+				const unsigned int border_size_bytes= 4u * MenuParams::menu_picture_horizontal_border * cel_header->size[0];
 
 				ConvertToRGBA(
 					in_pixel_count,
@@ -172,7 +115,7 @@ MenuDrawerGL::MenuDrawerGL(
 				r_Texture(
 					r_Texture::PixelFormat::RGBA8,
 					cel_header->size[0],
-					height_with_border * g_menu_pictures_shifts_count,
+					height_with_border * MenuParams::menu_pictures_shifts_count,
 					picture_data_rgba.data() );
 
 			menu_pictures_[i].SetFiltration(
@@ -266,7 +209,7 @@ MenuDrawerGL::MenuDrawerGL(
 			viewport_size_.Width () / console_scale_,
 			viewport_size_.Height() / console_scale_ );
 
-		CreateConsoleBackground(
+		CreateConsoleBackgroundRGBA(
 			console_size, *game_resources.vfs, game_resources.palette, texture_data_rgba );
 
 		console_background_texture_=
@@ -345,7 +288,7 @@ unsigned int MenuDrawerGL::GetConsoleScale() const
 Size2 MenuDrawerGL::GetPictureSize( MenuPicture picture ) const
 {
 	const r_Texture& tex= menu_pictures_[ size_t(picture) ];
-	return Size2( tex.Width(), tex.Height() / g_menu_pictures_shifts_count );
+	return Size2( tex.Width(), tex.Height() / MenuParams::menu_pictures_shifts_count );
 }
 
 void MenuDrawerGL::DrawMenuBackground(
@@ -357,17 +300,17 @@ void MenuDrawerGL::DrawMenuBackground(
 
 	const int quad_x[4]=
 	{
-		x - int( g_menu_border * menu_scale_ ),
+		x - int( MenuParams::menu_border * menu_scale_ ),
 		x,
 		x + int( width ),
-		x + int( width + g_menu_border * menu_scale_ ),
+		x + int( width + MenuParams::menu_border * menu_scale_ ),
 	};
 	const int quad_y[4]=
 	{
-		y - int( g_menu_border * menu_scale_ ),
+		y - int( MenuParams::menu_border * menu_scale_ ),
 		y,
 		y + int( height ),
-		y + int( height + ( g_menu_border + g_menu_caption ) * menu_scale_ ),
+		y + int( height + ( MenuParams::menu_border + MenuParams::menu_caption ) * menu_scale_ ),
 	};
 
 	Vertex* v= vertices;
@@ -444,17 +387,17 @@ void MenuDrawerGL::DrawMenuPicture(
 	// Gen quad
 	Vertex vertices[ g_max_quads * 4u ];
 
-	const int height= int( picture.Height() / g_menu_pictures_shifts_count );
+	const int height= int( picture.Height() / MenuParams::menu_pictures_shifts_count );
 	const int scale_i= int(menu_scale_);
-	const int raw_height= int(g_menu_picture_row_height);
+	const int raw_height= int(MenuParams::menu_picture_row_height);
 
-	const unsigned int row_count= picture.Height() / ( g_menu_picture_row_height * g_menu_pictures_shifts_count );
+	const unsigned int row_count= picture.Height() / ( MenuParams::menu_picture_row_height * MenuParams::menu_pictures_shifts_count );
 
 	for( unsigned int r= 0u; r < row_count; r++ )
 	{
 		Vertex* const v= vertices + r * 4u;
-		const int y= y0 + int( ( row_count - 1u - r ) * g_menu_picture_row_height ) * scale_i;
-		const int tc_y= int(g_menu_picture_row_height * r) + height * static_cast<int>(rows_colors[r]);
+		const int y= y0 + int( ( row_count - 1u - r ) * MenuParams::menu_picture_row_height ) * scale_i;
+		const int tc_y= int(MenuParams::menu_picture_row_height * r) + height * static_cast<int>(rows_colors[r]);
 
 		v[0].xy[0]= x;
 		v[0].xy[1]= y;

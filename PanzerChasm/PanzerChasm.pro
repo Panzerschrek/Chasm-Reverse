@@ -55,6 +55,7 @@ SOURCES+= \
 	map_loader.cpp \
 	math_utils.cpp \
 	menu.cpp \
+	menu_drawers_common.cpp \
 	menu_drawer_gl.cpp \
 	menu_drawer_soft.cpp \
 	messages.cpp \
@@ -129,6 +130,7 @@ HEADERS+= \
 	map_loader.hpp \
 	math_utils.hpp \
 	menu.hpp \
+	menu_drawers_common.hpp \
 	menu_drawer_gl.hpp \
 	menu_drawer_soft.hpp \
 	messages.hpp \

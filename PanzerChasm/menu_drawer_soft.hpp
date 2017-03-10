@@ -37,7 +37,25 @@ public:
 	virtual void DrawGameBackground() override;
 
 private:
-	const Size2 viewport_size_;
+	struct Picture
+	{
+		unsigned int size[2];
+		std::vector<unsigned char> data;
+	};
+
+private:
+	const RenderingContextSoft rendering_context_;
+	const unsigned int menu_scale_;
+	const unsigned int console_scale_;
+
+	Picture menu_pictures_[ size_t(MenuPicture::PicturesCount) ];
+
+	Picture tiles_picture_;
+	Picture loading_picture_;
+	Picture game_background_picture_;
+	Picture pause_picture_;
+
+	Picture console_background_picture_;
 };
 
 } // namespace PanzerChasm
