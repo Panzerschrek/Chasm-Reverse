@@ -39,8 +39,43 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Otsecenije objektov po piramide vidimosti.
 * Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
 * Sglaživanije.
+* Teni pod objektami, dlä kotoryh stoit flag "shadow".
 * Risovanije modelej igrokov raznym çvetom.
 * Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
+
+[SOFTWARE RENDERER]
+* Proverka na 32-bitnyj çvet okna.
+* Postrojenije 32-bitnoj palitry na osnove dannyh o porädke çvetov v sistemnom
+  okne.
+* Risovanije prostyh zateksturirovanyh treugoljnikov bez Z-korrekçii, no s
+  teksturnymi vyborkami strogo v graniçah treugoljnika.
+* Risovanije zateksturirovanyh treugoljnikov s Z-korrekçijej toljko dlä X-linij.
+  Eto nužno dlä risovanija polov i potolkov.
+* Risovanije zateksturirovanyh treugoljnikov s polnoj Z-korrekçijej.
+* Risovanije treugoljnikov s popolnenijem Depth-buffera.
+* Depth-test.
+* Test zakrašivanija - dlä treugoljnikov sten, polov, potolkov.
+* Postrojenije BSP-dereva iz sten urovnä. Nužno dlä ih uporädocivanija ot
+  bližnih k daljnim.
+* Dobavlenije v BSP-derevo dinamiceskih sten.
+* Optimizaçija testa zakrašivanija, naprimer, cerez postrojenije ijerarhii.
+* Surface-cache. Po krajnej mere dlä sten, polov, potolkov.
+* Issledovanije vozmožnosti ispoljzovanija Surface-cache dlä modelej.
+* Risovanije neba.
+* Rosovanije Billboardov.
+* Aplha-test. Zamena alpha-testa na usecenije poligonov, dlä sten, u kotoryh
+  prozracnyje tekseli jestj toljko rovnymi linijami sverhu i snizu.
+* Alpha-blending.
+* Postrojenije ijerarhiceskogo buffera glubiny - dlä bystrogo otsecenija
+  nevidimyh modelej çelikom.
+* Otsecenije poligonov po piramide vidimosti pered rasterizaçijej. Bystroje
+  opredelenije neobhodimosti otsecenija cerez test ogranicevajuscego
+  parallelepipeda.
+* Vytaskivanije iz modelej ishodnyh cetyröhugoljnikov, a ne toljko gotovogo
+  razbijenija na treugoljniki.
+* Risovanije minikarty.
+* Dinamiceskoje osvescenije.
+* Teni.
 
 
 [ZVUK]
