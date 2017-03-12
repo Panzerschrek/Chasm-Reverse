@@ -139,11 +139,12 @@ Host::Host( const int argc, const char* const* const argv )
 		const Palette& in_palette= game_resources_->palette;
 		for( unsigned int i= 0u; i < 256u; i++ )
 		{
-			unsigned char rgba[4];
-			rgba[0]= in_palette[ i * 3u + 2u ];
-			rgba[1]= in_palette[ i * 3u + 1u ];
-			rgba[2]= in_palette[ i * 3u + 0u ];
-			std::memcpy( &(*rendering_context.palette_transformed)[i], &rgba, 4u );
+			unsigned char components[4];
+			components[ rendering_context.color_indeces_rgba[0] ]= in_palette[ i * 3u + 0u ];
+			components[ rendering_context.color_indeces_rgba[1] ]= in_palette[ i * 3u + 1u ];
+			components[ rendering_context.color_indeces_rgba[2] ]= in_palette[ i * 3u + 2u ];
+			components[ rendering_context.color_indeces_rgba[3] ]= 0u;
+			std::memcpy( &(*rendering_context.palette_transformed)[i], &components, 4u );
 		}
 
 		drawers_factory_=

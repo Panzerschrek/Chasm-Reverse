@@ -44,9 +44,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
 
 [SOFTWARE RENDERER]
-* Proverka na 32-bitnyj çvet okna.
-* Postrojenije 32-bitnoj palitry na osnove dannyh o porädke çvetov v sistemnom
-  okne.
 * Risovanije prostyh zateksturirovanyh treugoljnikov bez Z-korrekçii, no s
   teksturnymi vyborkami strogo v graniçah treugoljnika.
 * Risovanije zateksturirovanyh treugoljnikov s Z-korrekçijej toljko dlä X-linij.

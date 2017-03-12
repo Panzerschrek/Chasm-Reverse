@@ -45,6 +45,13 @@ public:
 	void CaptureMouse( bool need_capture );
 
 private:
+	struct PixelColorsOrder
+	{
+		enum Component{ R, G, B, A };
+		unsigned char components_indeces[4];
+	};
+
+private:
 	void GetVideoModes();
 
 private:
@@ -54,6 +61,7 @@ private:
 	SDL_Window* window_= nullptr;
 	SDL_GLContext gl_context_= nullptr; // If not null - current mode is OpenGL, else - software.
 	SDL_Surface* surface_= nullptr;
+	PixelColorsOrder pixel_colors_order_;
 
 	bool mouse_captured_= false;
 

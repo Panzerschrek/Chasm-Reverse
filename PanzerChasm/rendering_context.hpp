@@ -24,6 +24,8 @@ struct RenderingContextSoft
 
 	uint32_t* window_surface_data;
 
+	unsigned char color_indeces_rgba[4];
+
 	PaletteTransformedPtr palette_transformed;
 };
 

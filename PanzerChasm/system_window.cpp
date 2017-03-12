@@ -278,6 +278,42 @@ windowed:
 		surface_= SDL_GetWindowSurface( window_ );
 		if( surface_ == nullptr )
 			Log::FatalError( "Can not get window surface" );
+
+		if( surface_->format == nullptr ||
+			surface_->format->BytesPerPixel != 4 )
+			Log::FatalError( "Unexpected window pixel depth. Expected 32 bit" );
+
+		const SDL_PixelFormat& pixel_format= *surface_->format;
+			 if (pixel_format.Rmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 0u;
+		else if (pixel_format.Rmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 1u;
+		else if (pixel_format.Rmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 2u;
+		else if (pixel_format.Rmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 255u;
+			 if (pixel_format.Gmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 0u;
+		else if (pixel_format.Gmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 1u;
+		else if (pixel_format.Gmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 2u;
+		else if (pixel_format.Gmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 255u;
+			 if (pixel_format.Bmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 0u;
+		else if (pixel_format.Bmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 1u;
+		else if (pixel_format.Bmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 2u;
+		else if (pixel_format.Bmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 255u;
+			 if (pixel_format.Amask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 0u;
+		else if (pixel_format.Amask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 1u;
+		else if (pixel_format.Amask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 2u;
+		else if (pixel_format.Amask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 255u;
+
+		if( pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] == 255u ||
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] == 255u ||
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] == 255u )
+		{
+			Log::Warning( "Unnknown pixels colors order" );
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 0u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 1u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 2u;
+		}
 	}
 }
 
@@ -328,6 +364,11 @@ RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
 	result.viewport_size= viewport_size_;
 	result.row_pixels= surface_->pitch / 4u;
 	result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
+
+	result.color_indeces_rgba[0]= pixel_colors_order_.components_indeces[ PixelColorsOrder::R ];
+	result.color_indeces_rgba[1]= pixel_colors_order_.components_indeces[ PixelColorsOrder::G ];
+	result.color_indeces_rgba[2]= pixel_colors_order_.components_indeces[ PixelColorsOrder::B ];
+	result.color_indeces_rgba[3]= pixel_colors_order_.components_indeces[ PixelColorsOrder::A ];
 
 	return result;
 }
