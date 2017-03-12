@@ -12,6 +12,7 @@
 #include "settings.hpp"
 #include "system_event.hpp"
 #include "system_window.hpp"
+#include "ticks_counter.hpp"
 
 namespace PanzerChasm
 {
@@ -81,6 +82,8 @@ private:
 	Settings settings_;
 	CommandsProcessor commands_processor_;
 	CommandsMapConstPtr host_commands_;
+
+	TicksCounter loops_counter_;
 
 	VfsPtr vfs_;
 	GameResourcesConstPtr game_resources_;
