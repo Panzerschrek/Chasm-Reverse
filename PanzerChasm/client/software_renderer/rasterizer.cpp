@@ -127,10 +127,16 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertexSimple* const 
 void Rasterizer::DrawAffineColoredTrianglePart( const uint32_t color )
 {
 	const fixed16_t dy= triangle_part_vertices_simple_[1].y - triangle_part_vertices_simple_[0].y;
+	if( dy <= 0 )
+		return;
+
 	const fixed16_t dx_left = triangle_part_vertices_simple_[1].x - triangle_part_vertices_simple_[0].x;
 	const fixed16_t dx_right= triangle_part_vertices_simple_[3].x - triangle_part_vertices_simple_[2].x;
 	const fixed16_t x_left_step = Fixed16Div( dx_left , dy );
 	const fixed16_t x_right_step= Fixed16Div( dx_right, dy );
+
+	PC_ASSERT( std::abs( Fixed16Mul( x_left_step , dy ) ) <= std::abs( dx_left  ) );
+	PC_ASSERT( std::abs( Fixed16Mul( x_right_step, dy ) ) <= std::abs( dx_right ) );
 
 	const int y_start= std::max( 0, Fixed16RoundToInt( triangle_part_vertices_simple_[0].y ) );
 	const int y_end  = std::min( viewport_size_y_, Fixed16RoundToInt( triangle_part_vertices_simple_[1].y ) );

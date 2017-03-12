@@ -52,6 +52,11 @@ private:
 	const uint32_t* texture_data_= nullptr;
 
 	// Intermediate variables
+
+	// 0 - lower left
+	// 1 - upper left
+	// 2 - lower right
+	// 3 - upper right
 	RasterizerVertexSimple triangle_part_vertices_simple_[4];
 };
 

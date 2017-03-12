@@ -2,6 +2,7 @@
 
 #include "../rendering_context.hpp"
 #include "i_map_drawer.hpp"
+#include "software_renderer/rasterizer.hpp"
 
 namespace PanzerChasm
 {
@@ -30,6 +31,12 @@ public:
 		float x_angle, float z_angle ) override;
 
 private:
+	const GameResourcesConstPtr game_resources_;
+	const RenderingContextSoft rendering_context_;
+
+	Rasterizer rasterizer_;
+
+	MapDataConstPtr current_map_data_;
 };
 
 } // PanzerChasm
