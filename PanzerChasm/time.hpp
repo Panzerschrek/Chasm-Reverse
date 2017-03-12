@@ -4,6 +4,8 @@
 namespace PanzerChasm
 {
 
+// Time class.
+// Internal represintation is integer, therefore there are no precision lost in time delta calculations.
 class Time final
 {
 public:

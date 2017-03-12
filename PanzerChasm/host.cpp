@@ -8,6 +8,7 @@
 #include "drawers_factory_soft.hpp"
 #include "game_resources.hpp"
 #include "i_menu_drawer.hpp"
+#include "i_text_drawer.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
 #include "shared_drawers.hpp"
@@ -264,8 +265,20 @@ bool Host::Loop()
 		if( console_ != nullptr )
 			console_->Draw();
 
+		if( settings_.GetOrSetBool( "cl_draw_fps", false ) )
+		{
+			char str[16];
+			std::snprintf( str, sizeof(str), "fps: %02.2f", loops_counter_.GetTicksFrequency() );
+			const unsigned int scale= 1u;
+			shared_drawers_->text->Print(
+				shared_drawers_->menu->GetViewportSize().Width() - 72u * scale, 0u,
+				str, scale, ITextDrawer::FontColor::Golden );
+		}
+
 		system_window_->EndFrame();
 	}
+
+	loops_counter_.Tick();
 
 	return !quit_requested_;
 }

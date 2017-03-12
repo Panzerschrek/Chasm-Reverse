@@ -86,6 +86,7 @@ SOURCES+= \
 	sound/sounds_loader.cpp \
 	system_event.cpp \
 	system_window.cpp \
+	ticks_counter.cpp \
 	time.cpp \
 	text_drawers_common.cpp \
 	text_drawer_gl.cpp \
@@ -172,6 +173,7 @@ HEADERS+= \
 	sound/sounds_loader.hpp \
 	system_event.hpp \
 	system_window.hpp \
+	ticks_counter.hpp \
 	text_drawers_common.hpp \
 	text_drawer_gl.hpp \
 	text_drawer_soft.hpp \
