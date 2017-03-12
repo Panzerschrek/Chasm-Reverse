@@ -6,25 +6,25 @@
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "fwd.hpp"
-#include "minimap_state.hpp"
+#include "i_minimap_drawer.hpp"
 
 namespace PanzerChasm
 {
 
-class MinimapDrawer final
+class MinimapDrawerGL final : public IMinimapDrawer
 {
 public:
-	MinimapDrawer(
+	MinimapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
-	~MinimapDrawer();
+		const RenderingContextGL& rendering_context );
+	virtual ~MinimapDrawerGL() override;
 
-	void SetMap( const MapDataConstPtr& map_data );
+	virtual void SetMap( const MapDataConstPtr& map_data ) override;
 
-	void Draw(
+	virtual void Draw(
 		const MapState& map_state, const MinimapState& minimap_state,
-		const m_Vec2& camera_position, float view_angle );
+		const m_Vec2& camera_position, float view_angle ) override;
 
 private:
 	void BindColor( unsigned char color_index );
@@ -36,7 +36,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-	const RenderingContext rendering_context_;
+	const RenderingContextGL rendering_context_;
 
 	GLuint visibility_texture_id_= ~0u;
 	GLuint dummy_visibility_texture_id_= ~0u;

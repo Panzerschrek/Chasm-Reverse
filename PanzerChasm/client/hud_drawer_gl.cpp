@@ -4,11 +4,13 @@
 #include <shaders_loading.hpp>
 
 #include "../assert.hpp"
-#include "../drawers.hpp"
 #include "../game_resources.hpp"
 #include "../images.hpp"
+#include "../i_menu_drawer.hpp"
+#include "../i_text_drawer.hpp"
+#include "../shared_drawers.hpp"
 
-#include "hud_drawer.hpp"
+#include "hud_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -74,17 +76,17 @@ static unsigned int CalculateHudScale( const Size2& viewport_size )
 	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
 }
 
-HudDrawer::HudDrawer(
+HudDrawerGL::HudDrawerGL(
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context,
-	const DrawersPtr& drawers )
+	const RenderingContextGL& rendering_context,
+	const SharedDrawersPtr& shared_drawers )
 	: game_resources_(game_resources)
 	, viewport_size_( rendering_context.viewport_size )
-	, drawers_(drawers)
+	, shared_drawers_(shared_drawers)
 	, scale_( CalculateHudScale( rendering_context.viewport_size ) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
-	PC_ASSERT( drawers_ != nullptr );
+	PC_ASSERT( shared_drawers_ != nullptr );
 
 	std::memset( &player_state_, 0u, sizeof(player_state_) );
 
@@ -133,27 +135,27 @@ HudDrawer::HudDrawer(
 	hud_shader_.Create();
 }
 
-HudDrawer::~HudDrawer()
+HudDrawerGL::~HudDrawerGL()
 {}
 
-void HudDrawer::AddMessage( const MapData::Message& message, const Time current_time )
+void HudDrawerGL::AddMessage( const MapData::Message& message, const Time current_time )
 {
 	current_message_= message;
 	current_message_time_= current_time;
 }
 
-void HudDrawer::ResetMessage()
+void HudDrawerGL::ResetMessage()
 {
 	current_message_time_= Time::FromSeconds(0);
 }
 
-void HudDrawer::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
+void HudDrawerGL::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
 {
 	player_state_= player_state;
 	current_weapon_number_= current_weapon_number;
 }
 
-void HudDrawer::DrawCrosshair()
+void HudDrawerGL::DrawCrosshair()
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -209,7 +211,7 @@ void HudDrawer::DrawCrosshair()
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void HudDrawer::DrawCurrentMessage( const Time current_time )
+void HudDrawerGL::DrawCurrentMessage( const Time current_time )
 {
 	if( current_message_time_.ToSeconds() == 0.0f )
 		return;
@@ -221,27 +223,27 @@ void HudDrawer::DrawCurrentMessage( const Time current_time )
 	for( const  MapData::Message::Text& text : current_message_.texts )
 	{
 		int x;
-		TextDraw::Alignment alignemnt;
+		ITextDrawer::Alignment alignemnt;
 		if( text.x == -1 )
 		{
-			x= drawers_->menu.GetViewportSize().Width() / 2u;
-			alignemnt= TextDraw::Alignment::Center;
+			x= shared_drawers_->menu->GetViewportSize().Width() / 2u;
+			alignemnt= ITextDrawer::Alignment::Center;
 		}
 		else
 		{
 			x= text.x * scale_;
-			alignemnt= TextDraw::Alignment::Left;
+			alignemnt= ITextDrawer::Alignment::Left;
 		}
 
-		drawers_->text.Print(
+		shared_drawers_->text->Print(
 			x, text.y * scale_,
 			text.data.c_str(),
 			scale_,
-			TextDraw::FontColor::YellowGreen, alignemnt );
+			ITextDrawer::FontColor::YellowGreen, alignemnt );
 	}
 }
 
-void HudDrawer::DrawHud( const bool draw_second_hud, const char* const map_name )
+void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_name )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -410,26 +412,26 @@ void HudDrawer::DrawHud( const bool draw_second_hud, const char* const map_name 
 		const unsigned int c_text_y= 27u;
 
 		if( ( player_state_.keys_mask & 1u ) != 0u )
-			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_top_y    * scale_, "\4", scale_ );
+			shared_drawers_->text->Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_top_y    * scale_, "\4", scale_ );
 		if( ( player_state_.keys_mask & 2u ) != 0u )
-			drawers_->text.Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_top_y    * scale_, "\5", scale_ );
+			shared_drawers_->text->Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_top_y    * scale_, "\5", scale_ );
 		if( ( player_state_.keys_mask & 4u ) != 0u )
-			drawers_->text.Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_bottom_y * scale_, "\6", scale_ );
+			shared_drawers_->text->Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_bottom_y * scale_, "\6", scale_ );
 		if( ( player_state_.keys_mask & 8u ) != 0u )
-			drawers_->text.Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_bottom_y * scale_, "\7", scale_ );
+			shared_drawers_->text->Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_bottom_y * scale_, "\7", scale_ );
 
-		drawers_->text.Print(
+		shared_drawers_->text->Print(
 			hud_x + scale_ * c_text_x,
 			viewport_size_.Height() - c_text_y * scale_,
 			"Time: ", scale_ ); // TODO - print time here
-		drawers_->text.Print(
+		shared_drawers_->text->Print(
 			hud_x + scale_ * c_text_x,
-			viewport_size_.Height() - c_text_y * scale_ + scale_ * ( 3u + drawers_->text.GetLineHeight() ),
+			viewport_size_.Height() - c_text_y * scale_ + scale_ * ( 3u + shared_drawers_->text->GetLineHeight() ),
 			map_name, scale_ );
 	}
 }
 
-void HudDrawer::LoadTexture(
+void HudDrawerGL::LoadTexture(
 	const char* const file_name,
 	const unsigned char alpha_color_index,
 	r_Texture& out_texture )

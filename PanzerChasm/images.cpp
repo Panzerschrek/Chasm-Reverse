@@ -94,14 +94,13 @@ void LoadPalette(
 void CreateConsoleBackground(
 	const Size2& size,
 	const Vfs& vfs,
-	const Palette& palette,
-	std::vector<unsigned char>& out_data_rgba )
+	std::vector<unsigned char>& out_data_indexed )
 {
 	const Vfs::FileContent texture_file= vfs.ReadFile( "CONSOLE.CEL" );
 	const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( texture_file.data() );
 	const unsigned char* const texture_data= texture_file.data() + sizeof(CelTextureHeader);
 
-	out_data_rgba.resize( size.Width() * size.Height() * 4u, 0u );
+	out_data_indexed.resize( size.Width() * size.Height(), 0u );
 
 	const auto fill_rect=
 	[&](
@@ -118,10 +117,8 @@ void CreateConsoleBackground(
 		for( unsigned int x= 0u; x < width ; x++ )
 		{
 			const unsigned char color_index= texture_data[ src_x + x + ( src_y + y ) * header.size[0] ];
-			unsigned char* const dst= out_data_rgba.data() + 4u * ( dst_x + x + ( dst_y + y ) * size.Width() );
-			for( unsigned int j= 0u; j < 3u; j++ )
-				dst[j]= palette[ color_index * 3u + j ];
-			dst[3]= 255u;
+			unsigned char* const dst= out_data_indexed.data() + ( dst_x + x + ( dst_y + y ) * size.Width() );
+			*dst= color_index;
 		}
 	};
 
@@ -200,6 +197,26 @@ void CreateConsoleBackground(
 			c_src_texture_x_start + c_left_border, c_upper_border,
 			x, y,
 			width, height );
+	}
+}
+
+void CreateConsoleBackgroundRGBA(
+	const Size2& size,
+	const Vfs& vfs,
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba )
+{
+	std::vector<unsigned char> data_indexed;
+	CreateConsoleBackground( size, vfs, data_indexed );
+	out_data_rgba.resize( data_indexed.size() * 4u );
+
+	for( unsigned int i= 0u; i < data_indexed.size(); i++ )
+	{
+		const unsigned char color_index= data_indexed[i];
+		out_data_rgba[ i * 4u + 0u ]= palette[ color_index * 3u + 0u ];
+		out_data_rgba[ i * 4u + 1u ]= palette[ color_index * 3u + 1u ];
+		out_data_rgba[ i * 4u + 2u ]= palette[ color_index * 3u + 2u ];
+		out_data_rgba[ i * 4u + 3u ]= 255u;
 	}
 }
 

@@ -30,18 +30,22 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 SOURCES+= \
 	client/animations_buffer.cpp \
 	client/client.cpp \
-	client/hud_drawer.cpp \
-	client/map_drawer.cpp \
+	client/hud_drawer_gl.cpp \
+	client/hud_drawer_soft.cpp \
+	client/map_drawer_gl.cpp \
+	client/map_drawer_soft.cpp \
 	client/map_light.cpp \
-	client/minimap_drawer.cpp \
+	client/minimap_drawer_gl.cpp \
+	client/minimap_drawer_soft.cpp \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
 	client/weapon_state.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
-	drawers.cpp \
 	console.cpp \
+	drawers_factory_gl.cpp \
+	drawers_factory_soft.cpp \
 	game_resources.cpp \
 	host.cpp \
 	images.cpp \
@@ -51,7 +55,9 @@ SOURCES+= \
 	map_loader.cpp \
 	math_utils.cpp \
 	menu.cpp \
-	menu_drawer.cpp \
+	menu_drawers_common.cpp \
+	menu_drawer_gl.cpp \
+	menu_drawer_soft.cpp \
 	messages.cpp \
 	messages_extractor.cpp \
 	messages_sender.cpp \
@@ -72,6 +78,7 @@ SOURCES+= \
 	server/player.cpp \
 	server/server.cpp \
 	settings.cpp \
+	shared_drawers.cpp \
 	sound/ambient_sound_processor.cpp \
 	sound/driver.cpp \
 	sound/objects_sounds_processor.cpp \
@@ -80,7 +87,9 @@ SOURCES+= \
 	system_event.cpp \
 	system_window.cpp \
 	time.cpp \
-	text_draw.cpp \
+	text_drawers_common.cpp \
+	text_drawer_gl.cpp \
+	text_drawer_soft.cpp \
 	vfs.cpp \
 
 HEADERS+= \
@@ -88,31 +97,42 @@ HEADERS+= \
 	client/animations_buffer.hpp \
 	client/client.hpp \
 	client/fwd.hpp \
-	client/hud_drawer.hpp \
-	client/map_drawer.hpp \
+	client/i_hud_drawer.hpp \
+	client/i_map_drawer.hpp \
+	client/i_minimap_drawer.hpp \
+	client/hud_drawer_gl.hpp \
+	client/hud_drawer_soft.hpp \
+	client/map_drawer_gl.hpp \
+	client/map_drawer_gsoft.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
-	client/minimap_drawer.hpp \
+	client/minimap_drawer_gl.hpp \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
 	connection_info.hpp \
 	console.hpp \
-	drawers.hpp \
+	drawers_factory_gl.hpp \
+	drawers_factory_soft.hpp \
 	fwd.hpp \
 	game_constants.hpp \
 	game_resources.hpp \
 	host.hpp \
 	host_commands.hpp \
 	i_connection.hpp \
+	i_drawers_factory.hpp \
+	i_menu_drawer.hpp \
+	i_text_drawer.hpp \
 	images.hpp \
 	log.hpp \
 	loopback_buffer.hpp \
 	map_loader.hpp \
 	math_utils.hpp \
 	menu.hpp \
-	menu_drawer.hpp \
+	menu_drawers_common.hpp \
+	menu_drawer_gl.hpp \
+	menu_drawer_soft.hpp \
 	messages.hpp \
 	messages_extractor.hpp \
 	messages_extractor.inl \
@@ -140,6 +160,7 @@ HEADERS+= \
 	server/player.hpp \
 	server/server.hpp \
 	settings.hpp \
+	shared_drawers.hpp \
 	shared_settings_keys.hpp \
 	size.hpp \
 	sound/ambient_sound_processor.hpp \
@@ -151,7 +172,9 @@ HEADERS+= \
 	sound/sounds_loader.hpp \
 	system_event.hpp \
 	system_window.hpp \
-	text_draw.hpp \
+	text_drawers_common.hpp \
+	text_drawer_gl.hpp \
+	text_drawer_soft.hpp \
 	time.hpp \
 	vfs.hpp \
 

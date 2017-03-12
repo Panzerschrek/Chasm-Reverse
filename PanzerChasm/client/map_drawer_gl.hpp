@@ -8,6 +8,7 @@
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
 #include "animations_buffer.hpp"
+#include "i_map_drawer.hpp"
 #include "fwd.hpp"
 #include "map_light.hpp"
 #include "map_state.hpp"
@@ -17,28 +18,28 @@ namespace PanzerChasm
 
 struct WallVertex;
 
-class MapDrawer final
+class MapDrawerGL final : public IMapDrawer
 {
 public:
-	MapDrawer(
+	MapDrawerGL(
 		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context );
-	~MapDrawer();
+		const RenderingContextGL& rendering_context );
+	virtual ~MapDrawerGL() override;
 
-	void SetMap( const MapDataConstPtr& map_data );
+	virtual void SetMap( const MapDataConstPtr& map_data ) override;
 
-	void Draw(
+	virtual void Draw(
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position,
-		EntityId player_monster_id );
+		EntityId player_monster_id ) override;
 
-	void DrawWeapon(
+	virtual void DrawWeapon(
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
 		const m_Vec3& camera_position,
-		float x_angle, float z_angle );
+		float x_angle, float z_angle ) override;
 
 private:
 	struct FloorGeometryInfo
@@ -145,7 +146,7 @@ private:
 
 private:
 	const GameResourcesConstPtr game_resources_;
-	const RenderingContext rendering_context_;
+	const RenderingContextGL rendering_context_;
 
 	MapDataConstPtr current_map_data_;
 

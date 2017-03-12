@@ -1,5 +1,8 @@
+#include <cstring>
+
 #include <panzer_ogl_lib.hpp>
 
+#include "assert.hpp"
 #include "game_constants.hpp"
 #include "log.hpp"
 #include "settings.hpp"
@@ -111,11 +114,14 @@ static void APIENTRY GLDebugMessageCallback(
 #endif
 
 SystemWindow::SystemWindow( Settings& settings )
+	: settings_(settings)
 {
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
 		Log::FatalError( "Can not initialize sdl video" );
 
 	GetVideoModes();
+
+	const bool is_opengl= ! settings.GetOrSetBool( "r_software_rendering", false );
 
 	int width= 0, height= 0;
 	unsigned int frequency= 0u, display= 0u;
@@ -185,30 +191,36 @@ windowed:
 	viewport_size_.Width ()= static_cast<unsigned int>( width  );
 	viewport_size_.Height()= static_cast<unsigned int>( height );
 
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+	if( is_opengl )
+	{
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
-	#ifdef DEBUG
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
-	#endif
+		#ifdef DEBUG
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
+		#endif
 
-	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+	}
 
 	window_=
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height,
-			SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) );
+			( is_opengl ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
 		Log::FatalError( "Can not create window" );
 
-	gl_context_= SDL_GL_CreateContext( window_ );
-	if( gl_context_ == nullptr )
-		Log::FatalError( "Can not create OpenGL context" );
+	if( is_opengl )
+	{
+		gl_context_= SDL_GL_CreateContext( window_ );
+		if( gl_context_ == nullptr )
+			Log::FatalError( "Can not create OpenGL context" );
+	}
 
 	if( fullscreen )
 	{
@@ -242,29 +254,82 @@ windowed:
 		}
 	}
 
-	SDL_GL_SetSwapInterval(1);
+	if( is_opengl )
+	{
+		SDL_GL_SetSwapInterval(1);
 
-	GetGLFunctions( SDL_GL_GetProcAddress );
+		GetGLFunctions( SDL_GL_GetProcAddress );
 
-	#ifdef DEBUG
-	if( glDebugMessageCallback != nullptr )
-		glDebugMessageCallback( &GLDebugMessageCallback, NULL );
-	#endif
+		#ifdef DEBUG
+		if( glDebugMessageCallback != nullptr )
+			glDebugMessageCallback( &GLDebugMessageCallback, NULL );
+		#endif
 
-	Log::Info("");
-	Log::Info( "OpenGL configuration: " );
-	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-	Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
-	Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-	Log::Info( "Version: ", glGetString( GL_VERSION ) );
-	Log::Info("");
+		Log::Info("");
+		Log::Info( "OpenGL configuration: " );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Version: ", glGetString( GL_VERSION ) );
+		Log::Info("");
+	}
+	else
+	{
+		surface_= SDL_GetWindowSurface( window_ );
+		if( surface_ == nullptr )
+			Log::FatalError( "Can not get window surface" );
+
+		if( surface_->format == nullptr ||
+			surface_->format->BytesPerPixel != 4 )
+			Log::FatalError( "Unexpected window pixel depth. Expected 32 bit" );
+
+		const SDL_PixelFormat& pixel_format= *surface_->format;
+			 if (pixel_format.Rmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 0u;
+		else if (pixel_format.Rmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 1u;
+		else if (pixel_format.Rmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 2u;
+		else if (pixel_format.Rmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] = 255u;
+			 if (pixel_format.Gmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 0u;
+		else if (pixel_format.Gmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 1u;
+		else if (pixel_format.Gmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 2u;
+		else if (pixel_format.Gmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] = 255u;
+			 if (pixel_format.Bmask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 0u;
+		else if (pixel_format.Bmask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 1u;
+		else if (pixel_format.Bmask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 2u;
+		else if (pixel_format.Bmask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] = 255u;
+			 if (pixel_format.Amask ==       0xFF) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 0u;
+		else if (pixel_format.Amask ==     0xFF00) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 1u;
+		else if (pixel_format.Amask ==   0xFF0000) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 2u;
+		else if (pixel_format.Amask == 0xFF000000) pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 3u;
+		else pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] = 255u;
+
+		if( pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] == 255u ||
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] == 255u ||
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::B ] == 255u )
+		{
+			Log::Warning( "Unnknown pixels colors order" );
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 0u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 1u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 2u;
+		}
+	}
 }
 
 SystemWindow::~SystemWindow()
 {
-	SDL_GL_DeleteContext( gl_context_ );
+	if( gl_context_ != nullptr )
+		SDL_GL_DeleteContext( gl_context_ );
+
 	SDL_DestroyWindow( window_ );
+
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
+}
+
+bool SystemWindow::IsOpenGLRenderer() const
+{
+	return gl_context_ != nullptr;
 }
 
 Size2 SystemWindow::GetViewportSize() const
@@ -277,9 +342,71 @@ const SystemWindow::DispaysVideoModes& SystemWindow::GetSupportedVideoModes() co
 	return displays_video_modes_;
 }
 
-void SystemWindow::SwapBuffers()
+RenderingContextGL SystemWindow::GetRenderingContextGL() const
 {
-	SDL_GL_SwapWindow( window_ );
+	PC_ASSERT( IsOpenGLRenderer() );
+
+	RenderingContextGL result;
+
+	result.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
+	result.viewport_size= viewport_size_;
+
+	return result;
+}
+
+RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
+{
+	PC_ASSERT( ! IsOpenGLRenderer() );
+	PC_ASSERT( surface_ != nullptr );
+
+	RenderingContextSoft result;
+
+	result.viewport_size= viewport_size_;
+	result.row_pixels= surface_->pitch / 4u;
+	result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
+
+	result.color_indeces_rgba[0]= pixel_colors_order_.components_indeces[ PixelColorsOrder::R ];
+	result.color_indeces_rgba[1]= pixel_colors_order_.components_indeces[ PixelColorsOrder::G ];
+	result.color_indeces_rgba[2]= pixel_colors_order_.components_indeces[ PixelColorsOrder::B ];
+	result.color_indeces_rgba[3]= pixel_colors_order_.components_indeces[ PixelColorsOrder::A ];
+
+	return result;
+}
+
+void SystemWindow::BeginFrame()
+{
+	const bool need_clear= settings_.GetOrSetBool( "r_clear", false );
+
+	if( IsOpenGLRenderer() )
+	{
+		glClear( ( need_clear ? GL_COLOR_BUFFER_BIT : 0 ) | GL_DEPTH_BUFFER_BIT );
+	}
+	else
+	{
+		if( SDL_MUSTLOCK( surface_ ) )
+			SDL_LockSurface( surface_ );
+
+		if( need_clear )
+			std::memset(
+				surface_->pixels,
+				0,
+				surface_->pitch * surface_->h );
+	}
+}
+
+void SystemWindow::EndFrame()
+{
+	if( IsOpenGLRenderer() )
+	{
+		SDL_GL_SwapWindow( window_ );
+	}
+	else
+	{
+		if( SDL_MUSTLOCK( surface_ ) )
+			SDL_UnlockSurface( surface_ );
+
+		SDL_UpdateWindowSurface( window_ );
+	}
 }
 
 void SystemWindow::SetTitle( const std::string& title )

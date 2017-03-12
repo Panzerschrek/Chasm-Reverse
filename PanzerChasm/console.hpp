@@ -12,7 +12,7 @@ namespace PanzerChasm
 class Console final
 {
 public:
-	Console( CommandsProcessor& commands_processor, const DrawersPtr& drawers );
+	Console( CommandsProcessor& commands_processor, const SharedDrawersPtr& shared_drawers );
 	~Console();
 
 	void Toggle();
@@ -33,7 +33,7 @@ private:
 	static constexpr unsigned int c_max_history= 64u;
 
 	CommandsProcessor& commands_processor_;
-	const DrawersPtr drawers_;
+	const SharedDrawersPtr shared_drawers_;
 
 	float position_= 0.0f;
 	float current_speed_= -1.0f;

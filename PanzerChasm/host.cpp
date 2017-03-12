@@ -1,12 +1,16 @@
 #include <cstring>
 
+#include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <shaders_loading.hpp>
 
-#include "drawers.hpp"
+#include "drawers_factory_gl.hpp"
+#include "drawers_factory_soft.hpp"
 #include "game_resources.hpp"
+#include "i_menu_drawer.hpp"
 #include "log.hpp"
 #include "map_loader.hpp"
+#include "shared_drawers.hpp"
 #include "save_load.hpp"
 #include "sound/sound_engine.hpp"
 
@@ -118,13 +122,42 @@ Host::Host( const int argc, const char* const* const argv )
 	}
 	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
 
-	RenderingContext rendering_context;
-	CreateRenderingContext( rendering_context );
+	if( system_window_->IsOpenGLRenderer() )
+	{
+		drawers_factory_=
+			std::make_shared<DrawersFactoryGL>(
+				settings_,
+				game_resources_,
+				system_window_->GetRenderingContextGL() );
+	}
+	else
+	{
+		// TODO - generate transformed palette in other place
+		RenderingContextSoft rendering_context= system_window_->GetRenderingContextSoft();
+		rendering_context.palette_transformed= std::make_shared<PaletteTransformed>();
 
-	drawers_= std::make_shared<Drawers>( rendering_context, *game_resources_ );
+		const Palette& in_palette= game_resources_->palette;
+		for( unsigned int i= 0u; i < 256u; i++ )
+		{
+			unsigned char components[4];
+			components[ rendering_context.color_indeces_rgba[0] ]= in_palette[ i * 3u + 0u ];
+			components[ rendering_context.color_indeces_rgba[1] ]= in_palette[ i * 3u + 1u ];
+			components[ rendering_context.color_indeces_rgba[2] ]= in_palette[ i * 3u + 2u ];
+			components[ rendering_context.color_indeces_rgba[3] ]= 0u;
+			std::memcpy( &(*rendering_context.palette_transformed)[i], &components, 4u );
+		}
+
+		drawers_factory_=
+			std::make_shared<DrawersFactorySoft>(
+				settings_,
+				game_resources_,
+				rendering_context );
+	}
+
+	shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );
 
 	Log::Info( "Initialize console" );
-	console_.reset( new Console( commands_processor_, drawers_ ) );
+	console_.reset( new Console( commands_processor_, shared_drawers_ ) );
 
 	if( !settings_.GetOrSetBool( "s_nosound", false ) )
 	{
@@ -138,7 +171,7 @@ Host::Host( const int argc, const char* const* const argv )
 	menu_.reset(
 		new Menu(
 			*this,
-			drawers_,
+			shared_drawers_,
 			sound_engine_ ) );
 
 	map_loader_= std::make_shared<MapLoader>( vfs_ );
@@ -213,18 +246,17 @@ bool Host::Loop()
 	// Draw operations
 	if( system_window_ )
 	{
-		// TODO - remove draww stuff from here
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+		system_window_->BeginFrame();
 
 		if( client_ != nullptr && !client_->Disconnected() )
 		{
 			client_->Draw();
 
 			if( paused_ )
-				drawers_->menu.DrawPaused();
+				shared_drawers_->menu->DrawPaused();
 		}
 		else
-			drawers_->menu.DrawGameBackground();
+			shared_drawers_->menu->DrawGameBackground();
 
 		if( menu_ != nullptr )
 			menu_->Draw();
@@ -232,7 +264,7 @@ bool Host::Loop()
 		if( console_ != nullptr )
 			console_->Draw();
 
-		system_window_->SwapBuffers();
+		system_window_->EndFrame();
 	}
 
 	return !quit_requested_;
@@ -542,17 +574,12 @@ void Host::DrawLoadingFrame( const float progress, const char* const caption )
 	// TODO - use this.
 	PC_UNUSED( caption );
 
-	if( system_window_ != nullptr && drawers_ != nullptr )
+	if( system_window_ != nullptr && shared_drawers_ != nullptr )
 	{
-		drawers_->menu.DrawLoading( progress );
-		system_window_->SwapBuffers();
+		system_window_->BeginFrame();
+		shared_drawers_->menu->DrawLoading( progress );
+		system_window_->EndFrame();
 	}
-}
-
-void Host::CreateRenderingContext( RenderingContext& out_context )
-{
-	out_context.glsl_version= r_GLSLVersion( r_GLSLVersion::v330, r_GLSLVersion::Profile::Core );
-	out_context.viewport_size= system_window_->GetViewportSize();
 }
 
 void Host::EnsureClient()
@@ -565,16 +592,13 @@ void Host::EnsureClient()
 	const DrawLoadingCallback draw_loading_callback=
 		std::bind( &Host::DrawLoadingFrame, this, std::placeholders::_1, std::placeholders::_2 );
 
-	RenderingContext rendering_context;
-	CreateRenderingContext( rendering_context );
-
 	client_.reset(
 		new Client(
 			settings_,
 			game_resources_,
 			map_loader_,
-			rendering_context,
-			drawers_,
+			*drawers_factory_,
+			shared_drawers_,
 			sound_engine_,
 			draw_loading_callback ) );
 }

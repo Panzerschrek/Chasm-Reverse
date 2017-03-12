@@ -5,47 +5,28 @@
 #include <texture.hpp>
 
 #include "fwd.hpp"
+#include "i_text_drawer.hpp"
 #include "rendering_context.hpp"
 
 namespace PanzerChasm
 {
 
-class TextDraw final
+class TextDrawerGL final : public ITextDrawer
 {
 public:
-	enum class FontColor
-	{
-		White= 0u,
-		DarkYellow,
-		Golden,
-		YellowGreen,
-	};
-
-	enum class Alignment
-	{
-		Left,
-		Center,
-		Right,
-	};
-
-	static constexpr unsigned char c_slider_back_letter_code= 8u;
-	static constexpr unsigned char c_slider_left_letter_code = 1u;
-	static constexpr unsigned char c_slider_right_letter_code= 2u;
-	static constexpr unsigned char c_slider_letter_code= 3u;
-
-	TextDraw(
-		const RenderingContext& rendering_context,
+	TextDrawerGL(
+		const RenderingContextGL& rendering_context,
 		const GameResources& game_resources );
-	~TextDraw();
+	virtual ~TextDrawerGL() override;
 
-	unsigned int GetLineHeight() const;
+	virtual unsigned int GetLineHeight() const override;
 
-	void Print(
+	virtual void Print(
 		int x, int y,
 		const char* text,
 		unsigned int scale,
 		FontColor color= FontColor::White,
-		Alignment alignment= Alignment::Left );
+		Alignment alignment= Alignment::Left ) override;
 
 private:
 	struct Vertex

@@ -18,7 +18,7 @@ class MapLight final
 public:
 	MapLight(
 		const GameResourcesConstPtr& game_resources,
-		const RenderingContext& rendering_context,
+		const RenderingContextGL& rendering_context,
 		bool use_hd_dynamic_lightmap );
 	~MapLight();
 

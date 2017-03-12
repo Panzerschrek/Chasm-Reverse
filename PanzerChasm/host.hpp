@@ -66,8 +66,6 @@ private:
 
 	void DrawLoadingFrame( float progress, const char* caption );
 
-	void CreateRenderingContext( RenderingContext& out_context );
-
 	void EnsureClient();
 	void EnsureServer();
 	void EnsureLoopbackBuffer();
@@ -94,7 +92,8 @@ private:
 
 	Sound::SoundEnginePtr sound_engine_;
 
-	DrawersPtr drawers_;
+	IDrawersFactoryPtr drawers_factory_;
+	SharedDrawersPtr shared_drawers_;
 	std::unique_ptr<Console> console_;
 	std::unique_ptr<Menu> menu_;
 

@@ -47,6 +47,11 @@ void LoadPalette(
 void CreateConsoleBackground(
 	const Size2& size,
 	const Vfs& vfs,
+	std::vector<unsigned char>& out_data_indexed );
+
+void CreateConsoleBackgroundRGBA(
+	const Size2& size,
+	const Vfs& vfs,
 	const Palette& palette,
 	std::vector<unsigned char>& out_data_rgba );
 

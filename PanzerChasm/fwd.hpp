@@ -19,9 +19,6 @@ typedef std::shared_ptr<IConnection> IConnectionPtr;
 class IConnectionsListener;
 typedef std::shared_ptr<IConnectionsListener> IConnectionsListenerPtr;
 
-struct Drawers;
-typedef std::shared_ptr<Drawers> DrawersPtr;
-
 struct GameResources;
 typedef std::shared_ptr<GameResources> GameResourcesPtr;
 typedef std::shared_ptr<const GameResources> GameResourcesConstPtr;
@@ -53,6 +50,29 @@ typedef std::shared_ptr<Vfs> VfsPtr;
 class SystemWindow;
 
 typedef unsigned short EntityId;
+
+// Draw stuff
+
+class ITextDrawer;
+typedef std::unique_ptr<ITextDrawer> ITextDrawerPtr;
+
+class IMenuDrawer;
+typedef std::unique_ptr<IMenuDrawer> IMenuDrawerPtr;
+
+class IHudDrawer;
+typedef std::unique_ptr<IHudDrawer> IHudDrawerPtr;
+
+class IMapDrawer;
+typedef std::unique_ptr<IMapDrawer> IMapDrawerPtr;
+
+class IMinimapDrawer;
+typedef std::unique_ptr<IMinimapDrawer> IMinimapDrawerPtr;
+
+struct SharedDrawers;
+typedef std::shared_ptr<const SharedDrawers> SharedDrawersPtr;
+
+class IDrawersFactory;
+typedef std::shared_ptr<IDrawersFactory> IDrawersFactoryPtr;
 
 struct Difficulty
 {

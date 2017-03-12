@@ -19,6 +19,8 @@ struct Size2
 
 	unsigned int Width () const { return xy[0]; }
 	unsigned int Height() const { return xy[1]; }
+
+	float GetWidthToHeightRatio() const { return float( Width() ) / float( Height() ); }
 };
 
 inline bool operator==( const Size2& l, const Size2& r )

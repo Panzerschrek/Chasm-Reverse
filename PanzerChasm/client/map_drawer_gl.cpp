@@ -12,7 +12,7 @@
 #include "../settings.hpp"
 #include "weapon_state.hpp"
 
-#include "map_drawer.hpp"
+#include "map_drawer_gl.hpp"
 
 namespace PanzerChasm
 {
@@ -176,10 +176,10 @@ static void CreateModelMatrices(
 	out_lightmap_matrix= rotate_z * shift_xy * scale;
 }
 
-MapDrawer::MapDrawer(
+MapDrawerGL::MapDrawerGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
-	const RenderingContext& rendering_context )
+	const RenderingContextGL& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
 	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( "r_dynamic_lighting", true ) )
@@ -351,7 +351,7 @@ MapDrawer::MapDrawer(
 	sky_shader_.Create();
 }
 
-MapDrawer::~MapDrawer()
+MapDrawerGL::~MapDrawerGL()
 {
 	glDeleteTextures( 1, &floor_textures_array_id_ );
 	glDeleteTextures( 1, &wall_textures_array_id_ );
@@ -364,7 +364,7 @@ MapDrawer::~MapDrawer()
 	glDeleteTextures( bmp_objects_sprites_textures_arrays_.size(), bmp_objects_sprites_textures_arrays_.data() );
 }
 
-void MapDrawer::SetMap( const MapDataConstPtr& map_data )
+void MapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 {
 	PC_ASSERT( map_data != nullptr );
 
@@ -418,7 +418,7 @@ void MapDrawer::SetMap( const MapDataConstPtr& map_data )
 	active_lightmap_= &map_light_.GetFloorLightmap();
 }
 
-void MapDrawer::Draw(
+void MapDrawerGL::Draw(
 	const MapState& map_state,
 	const m_Mat4& view_rotation_and_projection_matrix,
 	const m_Vec3& camera_position,
@@ -468,7 +468,7 @@ void MapDrawer::Draw(
 	DrawEffectsSprites( map_state, view_matrix, camera_position );
 }
 
-void MapDrawer::DrawWeapon(
+void MapDrawerGL::DrawWeapon(
 	const WeaponState& weapon_state,
 	const m_Mat4& projection_matrix,
 	const m_Vec3& camera_position,
@@ -547,7 +547,7 @@ void MapDrawer::DrawWeapon(
 	glDepthRange( 0.0f, 1.0f );
 }
 
-void MapDrawer::LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures )
+void MapDrawerGL::LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures )
 {
 	const Palette& palette= game_resources_->palette;
 
@@ -586,7 +586,7 @@ void MapDrawer::LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<
 	}
 }
 
-void MapDrawer::PrepareSkyGeometry()
+void MapDrawerGL::PrepareSkyGeometry()
 {
 	static const float c_scene_radius= 64.0f;
 	static const float c_bottom_z_level= -c_scene_radius * 0.5f;
@@ -612,7 +612,7 @@ void MapDrawer::PrepareSkyGeometry()
 	sky_geometry_data_.VertexAttribPointer( 0u, 3u, GL_FLOAT, false, 0u );
 }
 
-void MapDrawer::LoadFloorsTextures( const MapData& map_data )
+void MapDrawerGL::LoadFloorsTextures( const MapData& map_data )
 {
 	const Palette& palette= game_resources_->palette;
 
@@ -652,7 +652,7 @@ void MapDrawer::LoadFloorsTextures( const MapData& map_data )
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 }
 
-void MapDrawer::LoadWallsTextures( const MapData& map_data )
+void MapDrawerGL::LoadWallsTextures( const MapData& map_data )
 {
 	Log::Info( "Loading walls textures for map" );
 
@@ -728,7 +728,7 @@ void MapDrawer::LoadWallsTextures( const MapData& map_data )
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 }
 
-void MapDrawer::LoadFloors( const MapData& map_data )
+void MapDrawerGL::LoadFloors( const MapData& map_data )
 {
 	std::vector<FloorVertex> floors_vertices;
 	for( unsigned int floor_or_ceiling= 0u; floor_or_ceiling < 2u; floor_or_ceiling++ )
@@ -779,7 +779,7 @@ void MapDrawer::LoadFloors( const MapData& map_data )
 		((char*)&v.texture_id) - ((char*)&v) );
 }
 
-void MapDrawer::LoadWalls( const MapData& map_data )
+void MapDrawerGL::LoadWalls( const MapData& map_data )
 {
 	std::vector<WallVertex> walls_vertices;
 	std::vector<unsigned short> walls_indeces;
@@ -920,7 +920,7 @@ void MapDrawer::LoadWalls( const MapData& map_data )
 	setup_attribs( dynamic_walls_geometry_ );
 }
 
-void MapDrawer::LoadModels(
+void MapDrawerGL::LoadModels(
 	const std::vector<Model>& models,
 	std::vector<ModelGeometry>& out_geometry,
 	r_PolygonBuffer& out_geometry_data,
@@ -1053,7 +1053,7 @@ void MapDrawer::LoadModels(
 	PrepareModelsPolygonBuffer( vertices, indeces, out_geometry_data );
 }
 
-void MapDrawer::LoadMonstersModels()
+void MapDrawerGL::LoadMonstersModels()
 {
 	const std::vector<Model>& in_models= game_resources_->monsters_models;
 	const Palette& palette= game_resources_->palette;
@@ -1157,7 +1157,7 @@ void MapDrawer::LoadMonstersModels()
 	PrepareModelsPolygonBuffer( vertices, indeces, monsters_geometry_data_ );
 }
 
-void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls )
+void MapDrawerGL::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls )
 {
 	PC_ASSERT( current_map_data_->dynamic_walls.size() == dynamic_walls.size() );
 
@@ -1213,7 +1213,7 @@ void MapDrawer::UpdateDynamicWalls( const MapState::DynamicWalls& dynamic_walls 
 		0u );
 }
 
-void MapDrawer::PrepareModelsPolygonBuffer(
+void MapDrawerGL::PrepareModelsPolygonBuffer(
 	std::vector<Model::Vertex>& vertices,
 	std::vector<unsigned short>& indeces,
 	r_PolygonBuffer& buffer )
@@ -1251,7 +1251,7 @@ void MapDrawer::PrepareModelsPolygonBuffer(
 		((char*)&v.groups_mask) - ((char*)&v) );
 }
 
-void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
+void MapDrawerGL::DrawWalls( const m_Mat4& view_matrix )
 {
 	walls_shader_.Bind();
 
@@ -1273,7 +1273,7 @@ void MapDrawer::DrawWalls( const m_Mat4& view_matrix )
 	dynamic_walls_geometry_.Draw();
 }
 
-void MapDrawer::DrawFloors( const m_Mat4& view_matrix )
+void MapDrawerGL::DrawFloors( const m_Mat4& view_matrix )
 {
 	floors_geometry_.Bind();
 	floors_shader_.Bind();
@@ -1298,7 +1298,7 @@ void MapDrawer::DrawFloors( const m_Mat4& view_matrix )
 	}
 }
 
-void MapDrawer::DrawModels(
+void MapDrawerGL::DrawModels(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const bool transparent )
@@ -1351,7 +1351,7 @@ void MapDrawer::DrawModels(
 	}
 }
 
-void MapDrawer::DrawItems(
+void MapDrawerGL::DrawItems(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const bool transparent )
@@ -1403,7 +1403,7 @@ void MapDrawer::DrawItems(
 	}
 }
 
-void MapDrawer::DrawDynamicItems(
+void MapDrawerGL::DrawDynamicItems(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const bool transparent )
@@ -1455,7 +1455,7 @@ void MapDrawer::DrawDynamicItems(
 	}
 }
 
-void MapDrawer::DrawMonsters(
+void MapDrawerGL::DrawMonsters(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const EntityId player_monster_id,
@@ -1519,7 +1519,7 @@ void MapDrawer::DrawMonsters(
 	}
 }
 
-void MapDrawer::DrawMonstersBodyParts(
+void MapDrawerGL::DrawMonstersBodyParts(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const bool transparent )
@@ -1576,7 +1576,7 @@ void MapDrawer::DrawMonstersBodyParts(
 	}
 }
 
-void MapDrawer::DrawRockets(
+void MapDrawerGL::DrawRockets(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const bool transparent )
@@ -1643,7 +1643,7 @@ void MapDrawer::DrawRockets(
 	}
 }
 
-void MapDrawer::DrawBMPObjectsSprites(
+void MapDrawerGL::DrawBMPObjectsSprites(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const m_Vec3& camera_position )
@@ -1703,7 +1703,7 @@ void MapDrawer::DrawBMPObjectsSprites(
 	}
 }
 
-void MapDrawer::DrawEffectsSprites(
+void MapDrawerGL::DrawEffectsSprites(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
 	const m_Vec3& camera_position )
@@ -1768,7 +1768,7 @@ void MapDrawer::DrawEffectsSprites(
 	}
 }
 
-void MapDrawer::DrawSky( const m_Mat4& view_rotation_matrix )
+void MapDrawerGL::DrawSky( const m_Mat4& view_rotation_matrix )
 {
 	sky_shader_.Bind();
 
