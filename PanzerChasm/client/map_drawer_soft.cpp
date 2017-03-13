@@ -28,6 +28,35 @@ MapDrawerSoft::~MapDrawerSoft()
 void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 {
 	current_map_data_= map_data;
+	if( map_data == nullptr )
+		return;
+
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	unsigned int texel_count= 0u;
+	for( const Model& model : map_data->models )
+	{
+		texel_count+= model.texture_data.size();
+	}
+
+	map_models_.textures_data.resize( texel_count );
+	map_models_.models.resize( map_data->models.size() );
+
+	unsigned int texture_data_offset= 0u;
+	for( unsigned int m= 0u; m < map_models_.models.size(); m++ )
+	{
+		const Model& in_model= map_data->models[m];
+		ModelsGroup::ModelEntry& model_entry= map_models_.models[m];
+
+		model_entry.texture_size[0]= in_model.texture_size[0];
+		model_entry.texture_size[1]= in_model.texture_size[1];
+		model_entry.texture_data_offset= texture_data_offset;
+
+		for( unsigned int t= 0u; t < in_model.texture_data.size(); t++ )
+			map_models_.textures_data[ texture_data_offset + t ]= palette[ in_model.texture_data[t] ];
+
+		texture_data_offset+= in_model.texture_data.size();
+	}
 }
 
 void MapDrawerSoft::Draw(
@@ -67,7 +96,7 @@ void MapDrawerSoft::Draw(
 
 		for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 		{
-			RasterizerVertexSimple vertices_fixed[3];
+			RasterizerVertexTextured vertices_fixed[3];
 			bool clipped= false;
 			for( unsigned int tv= 0u; tv < 3u; tv++ )
 			{
@@ -99,11 +128,17 @@ void MapDrawerSoft::Draw(
 
 				vertices_fixed[tv].x= fixed16_t( vertex_projected.x * 65536.0f );
 				vertices_fixed[tv].y= fixed16_t( vertex_projected.y * 65536.0f );
+				vertices_fixed[tv].u= fixed16_t( vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f );
+				vertices_fixed[tv].v= fixed16_t( vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f );
 			}
 			if( clipped ) continue;
 
-			const uint32_t color= 0xFF00FF00u;
-			rasterizer_.DrawAffineColoredTriangle( vertices_fixed, color );
+			const ModelsGroup::ModelEntry& model_entry= map_models_.models[ static_model.model_id ];
+			rasterizer_.SetTexture(
+				model_entry.texture_size[0], model_entry.texture_size[1],
+				map_models_.textures_data.data() + model_entry.texture_data_offset );
+
+			rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
 		}
 	}
 }

@@ -31,12 +31,28 @@ public:
 		float x_angle, float z_angle ) override;
 
 private:
+	struct ModelsGroup
+	{
+		struct ModelEntry
+		{
+			unsigned int texture_size[2];
+			unsigned int texture_data_offset; // in pixels
+		};
+
+		std::vector<ModelEntry> models;
+
+		// TODO - add mips support
+		std::vector<uint32_t> textures_data;
+	};
+
+private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
 
 	Rasterizer rasterizer_;
 
 	MapDataConstPtr current_map_data_;
+	ModelsGroup map_models_;
 };
 
 } // PanzerChasm
