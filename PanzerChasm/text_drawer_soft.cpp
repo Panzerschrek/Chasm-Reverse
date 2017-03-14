@@ -97,10 +97,13 @@ void TextDrawerSoft::Print(
 
 		while( !( *c == '\n' || *c == '\0' ) )
 		{
-			const int letter_width= int( letters_width_[int(*c)] );
+			// Convert to unsigned - allow chars with codes 128 - 255.
+			const unsigned int code= static_cast<unsigned char>(*c);
 
-			const int glyph_tc_u= FontParams::letter_place_width  * ( int(*c) & 15 ) + FontParams::letter_u_offset;
-			const int glyph_tc_v= FontParams::letter_place_height * ( int(*c) >> 4 ) + FontParams::letter_v_offset + d_tc_v;
+			const int letter_width= int( letters_width_[ code ] );
+
+			const int glyph_tc_u= FontParams::letter_place_width  * ( int(code) & 15 ) + FontParams::letter_u_offset;
+			const int glyph_tc_v= FontParams::letter_place_height * ( int(code) >> 4 ) + FontParams::letter_v_offset + d_tc_v;
 
 			for( int glyph_y= 0; glyph_y < FontParams::letter_place_height - FontParams::letter_v_offset; glyph_y++ )
 			for( int glyph_x= 0; glyph_x < letter_width; glyph_x++ )

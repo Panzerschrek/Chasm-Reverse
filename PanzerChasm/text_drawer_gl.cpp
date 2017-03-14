@@ -141,7 +141,7 @@ void TextDrawerGL::Print(
 	Vertex* last_newline_vertex_index= v;
 	while( 1 )
 	{
-		const unsigned int code= *text;
+		const unsigned int code= static_cast<unsigned char>(*text); // Convert to unsigned - allow chars with codes 128 - 255.
 		if( code == '\n' || code == '\0' )
 		{
 			if( alignment == Alignment::Center )
