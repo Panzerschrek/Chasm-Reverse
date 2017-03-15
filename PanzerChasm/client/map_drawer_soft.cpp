@@ -133,6 +133,16 @@ void MapDrawerSoft::Draw(
 			}
 			if( clipped ) continue;
 
+			// Back side culling.
+			// TODO - make it befor frustrum culling.
+			fixed16_t vecs[2][2];
+			vecs[0][0]= vertices_fixed[1].x - vertices_fixed[0].x;
+			vecs[0][1]= vertices_fixed[1].y - vertices_fixed[0].y;
+			vecs[1][0]= vertices_fixed[2].x - vertices_fixed[1].x;
+			vecs[1][1]= vertices_fixed[2].y - vertices_fixed[1].y;
+			if( Fixed16Mul( vecs[0][0], vecs[1][1] ) > Fixed16Mul( vecs[1][0], vecs[0][1] ) )
+				continue;
+
 			const ModelsGroup::ModelEntry& model_entry= map_models_.models[ static_model.model_id ];
 			rasterizer_.SetTexture(
 				model_entry.texture_size[0], model_entry.texture_size[1],
