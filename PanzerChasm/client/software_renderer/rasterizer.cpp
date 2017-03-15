@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 
 #include "rasterizer.hpp"
 
@@ -15,10 +16,21 @@ Rasterizer::Rasterizer(
 	, row_size_( int(row_size) )
 	, color_buffer_( color_buffer )
 {
+	depth_buffer_width_= ( viewport_size_x  + 1u ) & (~1u);
+	depth_buffer_storage_.resize( depth_buffer_width_ * viewport_size_y );
+	depth_buffer_= depth_buffer_storage_.data();
 }
 
 Rasterizer::~Rasterizer()
 {}
+
+void Rasterizer::ClearDepthBuffer()
+{
+	std::memset(
+		depth_buffer_,
+		0,
+		depth_buffer_width_ * static_cast<unsigned int>(viewport_size_y_) * sizeof(unsigned short) );
+}
 
 void Rasterizer::SetTexture(
 	const unsigned int size_x,
@@ -149,6 +161,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 
 	middle_index= 0u + 1u + 2u - upper_index - lower_index;
 
+	const fixed_base_t lower_vertex_inv_z_scaled = Fixed16Div( c_inv_z_scaler << 16, vertices[ lower_index  ].z );
+	const fixed_base_t middle_vertex_inv_z_scaled= Fixed16Div( c_inv_z_scaler << 16, vertices[ middle_index ].z );
+	const fixed_base_t upper_vertex_inv_z_scaled = Fixed16Div( c_inv_z_scaler << 16, vertices[ upper_index  ].z );
+
 	const fixed16_t long_edge_y_length= vertices[ upper_index ].y - vertices[ lower_index ].y;
 	if( long_edge_y_length == 0 )
 		return; // Triangle is unsignificant small. TODO - use other criteria.
@@ -173,6 +189,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		Fixed16Mul( vertices[ upper_index ].v, middle_k ) +
 		Fixed16Mul( vertices[ lower_index ].v, ( g_fixed16_one - middle_k ) );
 
+	const fixed_base_t middle_inv_z_scaled=
+			Fixed16Mul( upper_vertex_inv_z_scaled, middle_k ) +
+			Fixed16Mul( lower_vertex_inv_z_scaled, ( g_fixed16_one - middle_k ) );
+
 	// TODO - optimize "triangle_part_vertices_simple_" assignment.
 	if( middle_x >= vertices[ middle_index ].x )
 	{
@@ -195,6 +215,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		triangle_part_tex_coords_[1]= vertices[ middle_index ];
 		triangle_part_tex_coords_[2]= vertices[ lower_index ];
 		triangle_part_tex_coords_[3]= middle_vertex_tex_coord;
+		triangle_part_inv_z_scaled[0]= lower_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[1]= middle_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[2]= lower_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[3]= middle_inv_z_scaled;
 		DrawAffineTexturedTrianglePart();
 
 		triangle_part_vertices_[0]= vertices[ middle_index ];
@@ -205,6 +229,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		triangle_part_tex_coords_[1]= vertices[ upper_index ];
 		triangle_part_tex_coords_[2]= middle_vertex_tex_coord;
 		triangle_part_tex_coords_[3]= vertices[ upper_index ];
+		triangle_part_inv_z_scaled[0]= middle_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[1]= upper_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[2]= middle_inv_z_scaled;
+		triangle_part_inv_z_scaled[3]= upper_vertex_inv_z_scaled;
 		DrawAffineTexturedTrianglePart();
 	}
 	else
@@ -228,6 +256,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		triangle_part_tex_coords_[1]= middle_vertex_tex_coord;
 		triangle_part_tex_coords_[2]= vertices[ lower_index ];
 		triangle_part_tex_coords_[3]= vertices[ middle_index ];
+		triangle_part_inv_z_scaled[0]= lower_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[1]= middle_inv_z_scaled;
+		triangle_part_inv_z_scaled[2]= lower_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[3]= middle_vertex_inv_z_scaled;
 		DrawAffineTexturedTrianglePart();
 
 		triangle_part_vertices_[0]= middle_vertex;
@@ -238,6 +270,10 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		triangle_part_tex_coords_[1]= vertices[ upper_index ];
 		triangle_part_tex_coords_[2]= vertices[ middle_index ];
 		triangle_part_tex_coords_[3]= vertices[ upper_index ];
+		triangle_part_inv_z_scaled[0]= middle_inv_z_scaled;
+		triangle_part_inv_z_scaled[1]= upper_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[2]= middle_vertex_inv_z_scaled;
+		triangle_part_inv_z_scaled[3]= upper_vertex_inv_z_scaled;
 		DrawAffineTexturedTrianglePart();
 	}
 }
@@ -302,6 +338,11 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 	tc_right_step[0]= Fixed16Div( d_tc_right[0], dy );
 	tc_right_step[1]= Fixed16Div( d_tc_right[1], dy );
 
+	const fixed_base_t d_inv_z_scaled_left =triangle_part_inv_z_scaled[1] - triangle_part_inv_z_scaled[0];
+	const fixed_base_t d_inv_z_scaled_right=triangle_part_inv_z_scaled[3] - triangle_part_inv_z_scaled[2];
+	const fixed_base_t inv_z_scaled_left_step = Fixed16Div( d_inv_z_scaled_left , dy );
+	const fixed_base_t inv_z_scaled_right_step= Fixed16Div( d_inv_z_scaled_right, dy );
+
 	const int y_start= std::max( 0, Fixed16RoundToInt( triangle_part_vertices_[0].y ) );
 	const int y_end  = std::min( viewport_size_y_, Fixed16RoundToInt( triangle_part_vertices_[1].y ) );
 
@@ -315,13 +356,17 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 	tc_right[0]= triangle_part_tex_coords_[2].u + Fixed16Mul( y_cut, tc_right_step[0]  );
 	tc_right[1]= triangle_part_tex_coords_[2].v + Fixed16Mul( y_cut, tc_right_step[1]  );
 
+	fixed_base_t inv_z_scaled_left = triangle_part_inv_z_scaled[0] + Fixed16Mul( y_cut, inv_z_scaled_left_step  );
+	fixed_base_t inv_z_scaled_right= triangle_part_inv_z_scaled[2] + Fixed16Mul( y_cut, inv_z_scaled_right_step );
+
 	for(
 		int y= y_start;
 		y< y_end;
 		y++,
 		x_left+= x_left_step, x_right+= x_right_step,
 		tc_left [0]+= tc_left_step [0], tc_left [1]+= tc_left_step [1],
-		tc_right[0]+= tc_right_step[0], tc_right[1]+= tc_right_step[1] )
+		tc_right[0]+= tc_right_step[0], tc_right[1]+= tc_right_step[1],
+		inv_z_scaled_left+= inv_z_scaled_left_step, inv_z_scaled_right+= inv_z_scaled_right_step )
 	{
 		const int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
 		const int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
@@ -333,24 +378,40 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 		line_tc_step[0]= Fixed16Div( tc_right[0] - tc_left[0], line_dx );
 		line_tc_step[1]= Fixed16Div( tc_right[1] - tc_left[1], line_dx );
 
+		const fixed_base_t line_inv_z_scaled_step= Fixed16Div( inv_z_scaled_right - inv_z_scaled_left, line_dx );
+
 		const fixed16_t x_cut= ( x_start << 16 ) + g_fixed16_half - x_left;
 
 		fixed16_t line_tc[2];
 		line_tc[0]= tc_left[0] + Fixed16Mul( x_cut, line_tc_step[0] );
 		line_tc[1]= tc_left[1] + Fixed16Mul( x_cut, line_tc_step[1] );
 
+		fixed16_t line_inv_z_scaled= inv_z_scaled_left + Fixed16Mul( x_cut, line_inv_z_scaled_step );
+
 		uint32_t* dst= color_buffer_ + y * row_size_;
+		unsigned short* depth_dst= depth_buffer_ + y * depth_buffer_width_;
+
 		for( int x= x_start; x < x_end; x++,
-			line_tc[0]+= line_tc_step[0], line_tc[1]+= line_tc_step[1] )
+			line_tc[0]+= line_tc_step[0], line_tc[1]+= line_tc_step[1],
+			 line_inv_z_scaled+= line_inv_z_scaled_step )
 		{
-			int u= line_tc[0] >> 16;
-			int v= line_tc[1] >> 16;
-			// TODO - remove range check from here.
-			// Make range check earlier.
-			if( u >= 0 && v >= 0 && u < texture_size_x_ && v < texture_size_y_ )
-				dst[x]= texture_data_[ u + v * texture_size_x_ ];
-			else
-				dst[x]= 0x00FF00FFu;
+			// TODO - check this.
+			// "depth" must be 65536 when inv_z == ( 1 << c_max_inv_z_min_log2 )
+			const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+
+			if( depth > depth_dst[x] )
+			{
+				depth_dst[x]= depth;
+
+				int u= line_tc[0] >> 16;
+				int v= line_tc[1] >> 16;
+				// TODO - remove range check from here.
+				// Make range check earlier.
+				if( u >= 0 && v >= 0 && u < texture_size_x_ && v < texture_size_y_ )
+					dst[x]= texture_data_[ u + v * texture_size_x_ ];
+				else
+					dst[x]= 0x00FF00FFu;
+			}
 		}
 	} // for y
 }

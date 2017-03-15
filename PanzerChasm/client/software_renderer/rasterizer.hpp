@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <vector>
 
 #include "fixed.hpp"
 
@@ -9,6 +10,7 @@ namespace PanzerChasm
 struct RasterizerVertexSimple
 {
 	fixed16_t x, y; // Screen space
+	fixed16_t z;
 };
 
 struct RasterizerTexCoord
@@ -27,6 +29,10 @@ struct RasterizerVertexXYZ : public RasterizerVertexSimple
 class Rasterizer final
 {
 public:
+	static constexpr int c_max_inv_z_min_log2= 4; // z_min = 1.0f / 16.0f
+	static constexpr int c_inv_z_scaler_log2= 11;
+	static constexpr int c_inv_z_scaler= 1 << c_inv_z_scaler_log2;
+
 	Rasterizer(
 		unsigned int viewport_size_x,
 		unsigned int viewport_size_y,
@@ -34,6 +40,8 @@ public:
 		uint32_t* color_buffer );
 
 	~Rasterizer();
+
+	void ClearDepthBuffer();
 
 	void SetTexture(
 		unsigned int size_x,
@@ -56,6 +64,11 @@ private:
 	const int row_size_;
 	uint32_t* const color_buffer_;
 
+	// Depth buffer
+	std::vector<unsigned short> depth_buffer_storage_;
+	unsigned short* depth_buffer_;
+	int depth_buffer_width_;
+
 	// Texture
 	int texture_size_x_= 0;
 	int texture_size_y_= 0;
@@ -69,6 +82,7 @@ private:
 	// 3 - upper right
 	RasterizerVertexSimple triangle_part_vertices_[4];
 	RasterizerTexCoord triangle_part_tex_coords_[4];
+	fixed_base_t triangle_part_inv_z_scaled[4];
 };
 
 } // namespace PanzerChasm

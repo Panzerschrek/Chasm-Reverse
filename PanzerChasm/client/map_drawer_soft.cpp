@@ -70,6 +70,8 @@ void MapDrawerSoft::Draw(
 	if( current_map_data_ == nullptr )
 		return;
 
+	rasterizer_.ClearDepthBuffer();
+
 	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
 	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
 	const float screen_transform_x= viewport_size_x * 0.5f;
@@ -130,6 +132,7 @@ void MapDrawerSoft::Draw(
 				vertices_fixed[tv].y= fixed16_t( vertex_projected.y * 65536.0f );
 				vertices_fixed[tv].u= fixed16_t( vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f );
 				vertices_fixed[tv].v= fixed16_t( vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f );
+				vertices_fixed[tv].z= fixed16_t( w * 65536.0f );
 			}
 			if( clipped ) continue;
 
