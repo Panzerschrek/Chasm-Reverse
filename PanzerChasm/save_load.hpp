@@ -45,4 +45,6 @@ void GetSaveFileNameForSlot(
 	char* out_file_name,
 	unsigned int out_file_name_max_length );
 
+void CreateSlotSavesDir();
+
 } // namespace PanzerChasm

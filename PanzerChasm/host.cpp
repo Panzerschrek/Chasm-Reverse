@@ -101,6 +101,10 @@ Host::Host( const int argc, const char* const* const argv )
 		vfs_= std::make_shared<Vfs>( "CSM.BIN", addon_path );
 	}
 
+	// Create directory for saves.
+	// TODO - allow user change this directory, using command-line argument or settings, for example.
+	CreateSlotSavesDir();
+
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
 

@@ -1,11 +1,21 @@
 #include <cstring>
 
+// Include OS-dependend stuff for "mkdir".
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
+
 #include "../Common/files.hpp"
 using namespace ChasmReverse;
 
 #include "log.hpp"
 
 #include "save_load.hpp"
+
+#define SAVES_DIR "saves"
 
 namespace PanzerChasm
 {
@@ -173,7 +183,16 @@ void GetSaveFileNameForSlot(
 	char* const out_file_name,
 	const unsigned int out_file_name_max_length )
 {
-	std::snprintf( out_file_name, out_file_name_max_length, "saves/save_%02d.pcs", slot_number );
+	std::snprintf( out_file_name, out_file_name_max_length, SAVES_DIR"/save_%02d.pcs", slot_number );
+}
+
+void CreateSlotSavesDir()
+{
+#ifdef _WIN32
+	_mkdir( SAVES_DIR );
+#else
+	mkdir( SAVES_DIR, 0777 );
+#endif
 }
 
 } // namespace PanzerChasm
