@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../model.hpp"
 #include "../rendering_context.hpp"
 #include "i_map_drawer.hpp"
 #include "software_renderer/rasterizer.hpp"
@@ -46,13 +47,28 @@ private:
 	};
 
 private:
+	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
+
+	void DrawModel(
+		const m_Mat4& matrix,
+		const ModelsGroup& models_group,
+		const std::vector<Model>& models_group_models,
+		unsigned int model_id,
+		unsigned int animation_frame );
+
+private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
 
 	Rasterizer rasterizer_;
 
 	MapDataConstPtr current_map_data_;
+
 	ModelsGroup map_models_;
+	ModelsGroup items_models_;
+	ModelsGroup rockets_models_;
+	ModelsGroup weapons_models_;
+	ModelsGroup monsters_models_;
 };
 
 } // PanzerChasm
