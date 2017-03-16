@@ -168,9 +168,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		{
 			Model::Vertex& vertex= v[j];
 
-			// TODO - check texture coordinates offset.
-			// It`s possible, that +1 for U tex_coord is wrong.
-			vertex.tex_coord[0]= float( polygon.uv[j][0] + 1u ) / float( out_model.texture_size[0] );
+			vertex.tex_coord[0]= float( polygon.uv[j][0] ) / float( out_model.texture_size[0] );
 			vertex.tex_coord[1]= float( polygon.uv[j][1] + v_offset ) / float( out_model.texture_size[1] );
 			vertex.vertex_id= polygon.vertices_indeces[j];
 
