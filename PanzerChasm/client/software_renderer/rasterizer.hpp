@@ -81,8 +81,12 @@ private:
 	// 2 - lower right
 	// 3 - upper right
 	RasterizerVertexSimple triangle_part_vertices_[4];
-	RasterizerTexCoord triangle_part_tex_coords_[4];
-	fixed_base_t triangle_part_inv_z_scaled[4];
+	// 0 - lower left   1 - upper left
+	RasterizerTexCoord triangle_part_tex_coords_[2];
+	fixed_base_t triangle_part_inv_z_scaled[2];
+
+	fixed16_t line_tc_step_[2];
+	fixed_base_t line_inv_z_scaled_step_;
 };
 
 } // namespace PanzerChasm
