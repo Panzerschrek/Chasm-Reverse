@@ -39,6 +39,8 @@ void Rasterizer::SetTexture(
 {
 	texture_size_x_= size_x;
 	texture_size_y_= size_y;
+	max_valid_tc_u_ = ( texture_size_x_ << 16 ) - 1;
+	max_valid_tc_v_ = ( texture_size_y_ << 16 ) - 1;
 	texture_data_= data;
 }
 
@@ -356,12 +358,34 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 	{
 		const int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
 		const int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
+		if( x_end <= x_start ) continue;
 
 		const fixed16_t x_cut= ( x_start << 16 ) + g_fixed16_half - x_left;
 
-		fixed16_t line_tc[2];
+		fixed16_t line_tc[2], line_tc_step[2];
 		line_tc[0]= tc_left[0] + Fixed16Mul( x_cut, line_tc_step_[0] );
 		line_tc[1]= tc_left[1] + Fixed16Mul( x_cut, line_tc_step_[1] );
+		line_tc_step[0]= line_tc_step_[0];
+		line_tc_step[1]= line_tc_step_[1];
+
+		// Correct texture coordinates. We must NOT read using texture coordinates outside texture.
+		if( line_tc[0] < 0 ) line_tc[0]= 0;
+		else if( line_tc[0] > max_valid_tc_u_ ) line_tc[0]= max_valid_tc_u_;
+		if( line_tc[1] < 0 ) line_tc[1]= 0;
+		else if( line_tc[1] > max_valid_tc_v_ ) line_tc[1]= max_valid_tc_v_;
+
+		const int dx= x_end - x_start - 1;
+		if( dx > 0 )
+		{
+			if( line_tc[0] + dx * line_tc_step[0] < 0 )
+				line_tc_step[0]= ( -line_tc[0] ) / dx;
+			else if( line_tc[0] + dx * line_tc_step[0] > max_valid_tc_u_ )
+				line_tc_step[0]= ( max_valid_tc_u_ - line_tc[0] ) / dx;
+			if( line_tc[1] + dx * line_tc_step[1] < 0 )
+				line_tc_step[1]= ( -line_tc[1] ) / dx;
+			else if( line_tc[1] + dx * line_tc_step[1] > max_valid_tc_v_ )
+				line_tc_step[1]= ( max_valid_tc_v_ - line_tc[1] ) / dx;
+		}
 
 		fixed_base_t line_inv_z_scaled= inv_z_scaled_left + Fixed16Mul( x_cut, line_inv_z_scaled_step_ );
 
@@ -369,7 +393,7 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 		unsigned short* depth_dst= depth_buffer_ + y * depth_buffer_width_;
 
 		for( int x= x_start; x < x_end; x++,
-			line_tc[0]+= line_tc_step_[0], line_tc[1]+= line_tc_step_[1],
+			line_tc[0]+= line_tc_step[0], line_tc[1]+= line_tc_step[1],
 			line_inv_z_scaled+= line_inv_z_scaled_step_ )
 		{
 			// TODO - check this.
@@ -380,14 +404,11 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 			{
 				depth_dst[x]= depth;
 
-				int u= line_tc[0] >> 16;
-				int v= line_tc[1] >> 16;
-				// TODO - remove range check from here.
-				// Make range check earlier.
-				if( u >= 0 && v >= 0 && u < texture_size_x_ && v < texture_size_y_ )
-					dst[x]= texture_data_[ u + v * texture_size_x_ ];
-				else
-					dst[x]= 0x00FF00FFu;
+				const int u= line_tc[0] >> 16;
+				const int v= line_tc[1] >> 16;
+				PC_ASSERT( u >= 0 && u < texture_size_x_ );
+				PC_ASSERT( v >= 0 && v < texture_size_y_ );
+				dst[x]= texture_data_[ u + v * texture_size_x_ ];
 			}
 		}
 	} // for y

@@ -72,6 +72,8 @@ private:
 	// Texture
 	int texture_size_x_= 0;
 	int texture_size_y_= 0;
+	fixed16_t max_valid_tc_u_= 0;
+	fixed16_t max_valid_tc_v_= 0;
 	const uint32_t* texture_data_= nullptr;
 
 	// Intermediate variables
