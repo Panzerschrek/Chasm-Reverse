@@ -1,7 +1,9 @@
 #include "../assert.hpp"
 #include "../game_constants.hpp"
+#include "../log.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
+#include "map_drawers_common.hpp"
 
 #include "map_drawer_soft.hpp"
 
@@ -36,9 +38,10 @@ void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 {
 	current_map_data_= map_data;
 	if( map_data == nullptr )
-		return;
+		return; // TODO - if map is null - clear resources, etc.
 
 	LoadModelsGroup( map_data->models, map_models_ );
+	LoadWallsTextures( *map_data );
 	LoadFloorsTextures( *map_data );
 	LoadFloorsAndCeilings( *map_data );
 }
@@ -61,6 +64,7 @@ void MapDrawerSoft::Draw(
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
+	DrawWalls( cam_mat );
 	DrawFloorsAndCeilings( cam_mat );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -184,6 +188,64 @@ void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGro
 			out_group.textures_data[ texture_data_offset + t ]= palette[ in_model.texture_data[t] ];
 
 		texture_data_offset+= in_model.texture_data.size();
+	}
+}
+
+void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
+{
+	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
+	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
+	const float screen_transform_x= viewport_size_x * 0.5f;
+	const float screen_transform_y= viewport_size_y * 0.5f;
+
+	for( const MapData::Wall& wall : current_map_data_->static_walls )
+	{
+		const WallTexture& texture= wall_textures_[ wall.texture_id ];
+		if( texture.size[0] == 0u || texture.size[1] == 0u )
+			continue;
+
+		RasterizerVertexTextured vertices_fixed[4];
+
+		bool clipped= false;
+		for( unsigned int x= 0u; x < 2u; x++ )
+		for( unsigned int z= 0u; z < 2u; z++ )
+		{
+			const m_Vec3 vertex_pos( wall.vert_pos[x], float(z) * GameConstants::walls_height );
+			m_Vec3 vertex_projected= vertex_pos * matrix;
+			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
+			if( w <= 0.25f )
+			{
+				clipped= true;
+				break;
+			}
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
+
+			if( vertex_projected.x < 0.0f || vertex_projected.x > viewport_size_x ||
+				vertex_projected.y < 0.0f || vertex_projected.y > viewport_size_y )
+			{
+				clipped= true;
+				goto after_clip;
+			}
+
+			RasterizerVertexTextured& out_v= vertices_fixed[ x + z * 2u ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( x * ( texture.size[0] << 16u ) );
+			out_v.v= fixed16_t( (1u-z) * ( g_wall_texture_height << 16u ) );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+		after_clip:
+		if( clipped ) continue;
+
+		rasterizer_.SetTexture( texture.size[0], texture.size[1], texture.data.data() );
+
+		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
+		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed + 1u );
 	}
 }
 
@@ -315,6 +377,45 @@ void MapDrawerSoft::DrawModel(
 			continue;
 
 		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
+	}
+}
+
+void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
+{
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	std::vector<unsigned char> file_content;
+
+	for( unsigned int i= 0u; i < MapData::c_max_walls_textures; i++ )
+	{
+		WallTexture& out_texture= wall_textures_[i];
+		out_texture.size[0]= out_texture.size[1]= 0u;
+
+		const char* const texture_file_path= map_data.walls_textures[i].file_path;
+		if( texture_file_path[0] == '\n' )
+			continue;
+
+		game_resources_->vfs->ReadFile( texture_file_path, file_content );
+		if( file_content.empty() )
+			continue;
+
+		const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( file_content.data() );
+		if( g_max_wall_texture_width / header.size[0] * header.size[0] != g_max_wall_texture_width ||
+			header.size[1] != g_wall_texture_height )
+		{
+			Log::Warning( "Invalid wall texture size: ", header.size[0], "x", header.size[1] );
+			continue;
+		}
+
+		out_texture.size[0]= header.size[0];
+		out_texture.size[1]= header.size[1];
+
+		const unsigned int pixel_count= header.size[0] * header.size[1];
+		const unsigned char* const src= file_content.data() + sizeof(CelTextureHeader);
+
+		out_texture.data.resize( pixel_count );
+		for( unsigned int j= 0u; j < pixel_count; j++ )
+			out_texture.data[j]= palette[ src[j] ];
 	}
 }
 

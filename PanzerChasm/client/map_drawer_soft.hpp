@@ -60,11 +60,21 @@ private:
 		uint32_t data[ MapData::c_floor_texture_size * MapData::c_floor_texture_size ];
 	};
 
+	struct WallTexture
+	{
+		unsigned int size[2];
+		// TODO - add mips support.
+		// TODO - do not store mip0 32bit texture.
+		std::vector<uint32_t> data;
+	};
+
 private:
 	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
+	void LoadWallsTextures( const MapData& map_data );
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
+	void DrawWalls( const m_Mat4& matrix );
 	void DrawFloorsAndCeilings( const m_Mat4& matrix );
 
 	void DrawModel(
@@ -94,7 +104,9 @@ private:
 
 	// Put large arrays at back.
 
+	WallTexture wall_textures_[ MapData::c_max_walls_textures ];
+
 	FloorTexture floor_textures_[ MapData::c_floors_textures_count ];
 };
 
-} // PanzerChasm
+} // namespace PanzerChasm

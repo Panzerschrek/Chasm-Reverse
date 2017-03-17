@@ -104,8 +104,9 @@ HEADERS+= \
 	client/i_minimap_drawer.hpp \
 	client/hud_drawer_gl.hpp \
 	client/hud_drawer_soft.hpp \
+	client/map_drawers_common.hpp \
 	client/map_drawer_gl.hpp \
-	client/map_drawer_gsoft.hpp \
+	client/map_drawer_soft.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
 	client/minimap_drawer_gl.hpp \

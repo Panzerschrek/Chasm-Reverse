@@ -10,6 +10,7 @@
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
 #include "../settings.hpp"
+#include "map_drawers_common.hpp"
 #include "weapon_state.hpp"
 
 #include "map_drawer_gl.hpp"
@@ -19,9 +20,6 @@ namespace PanzerChasm
 
 namespace
 {
-
-constexpr unsigned int g_wall_texture_height= 128u;
-constexpr unsigned int g_max_wall_texture_width= 128u;
 
 constexpr float g_walls_coords_scale= 256.0f;
 
