@@ -1,4 +1,5 @@
 #include "../assert.hpp"
+#include "../game_constants.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
 
@@ -38,6 +39,8 @@ void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 		return;
 
 	LoadModelsGroup( map_data->models, map_models_ );
+	LoadFloorsTextures( *map_data );
+	LoadFloorsAndCeilings( *map_data );
 }
 
 void MapDrawerSoft::Draw(
@@ -57,6 +60,8 @@ void MapDrawerSoft::Draw(
 	cam_shift_mat.Translate( -camera_position );
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
+
+	DrawFloorsAndCeilings( cam_mat );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
@@ -182,6 +187,64 @@ void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGro
 	}
 }
 
+void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
+{
+	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
+	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
+	const float screen_transform_x= viewport_size_x * 0.5f;
+	const float screen_transform_y= viewport_size_y * 0.5f;
+
+	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
+	{
+		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
+		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
+
+		RasterizerVertexTextured vertices_fixed[4];
+		bool clipped= false;
+		for( unsigned int y= 0u; y < 2u; y++ )
+		for( unsigned int x= 0u; x < 2u; x++ )
+		{
+			const m_Vec3 vertex_pos( float(cell.xy[0] + x), float(cell.xy[1] + y), z );
+			m_Vec3 vertex_projected= vertex_pos * matrix;
+			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
+			if( w <= 0.25f )
+			{
+				clipped= true;
+				break;
+			}
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
+
+			if( vertex_projected.x < 0.0f || vertex_projected.x > viewport_size_x ||
+				vertex_projected.y < 0.0f || vertex_projected.y > viewport_size_y )
+			{
+				clipped= true;
+				goto after_clip;
+			}
+
+			RasterizerVertexTextured& out_v= vertices_fixed[ x + y * 2u ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( x * ( MapData::c_floor_texture_size << 16u ) );
+			out_v.v= fixed16_t( y * ( MapData::c_floor_texture_size << 16u ) );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+		after_clip:
+		if( clipped ) continue;
+
+		rasterizer_.SetTexture(
+			MapData::c_floor_texture_size, MapData::c_floor_texture_size,
+			floor_textures_[ cell.texture_id ].data );
+
+		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
+		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed + 1u );
+	}
+}
+
 void MapDrawerSoft::DrawModel(
 	const m_Mat4& matrix,
 	const ModelsGroup& models_group,
@@ -252,6 +315,47 @@ void MapDrawerSoft::DrawModel(
 			continue;
 
 		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
+	}
+}
+
+void MapDrawerSoft::LoadFloorsTextures( const MapData& map_data )
+{
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	for( unsigned int i= 0u; i < MapData::c_floors_textures_count; i++ )
+	{
+		const unsigned char* const src= map_data.floor_textures_data[i];
+		uint32_t* const dst= floor_textures_[i].data;
+		for( unsigned int j= 0u; j < MapData::c_floor_texture_size * MapData::c_floor_texture_size; j++ )
+			dst[j]= palette[ src[j] ];
+	}
+}
+
+void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
+{
+	map_floors_and_ceilings_.clear();
+
+	for( unsigned int i= 0u; i < 2u; i++ )
+	{
+		( i == 0u ? first_floor_ : first_ceiling_ )= map_floors_and_ceilings_.size();
+
+		const unsigned char* const src= i == 0u ? map_data.floor_textures : map_data.ceiling_textures;
+
+		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+		{
+			const unsigned char texture_number= src[ x + y * MapData::c_map_size ];
+
+			if( texture_number == MapData::c_empty_floor_texture_id ||
+				texture_number == MapData::c_sky_floor_texture_id )
+				continue;
+
+			map_floors_and_ceilings_.emplace_back();
+			FloorCeilingCell& cell= map_floors_and_ceilings_.back();
+			cell.xy[0]= x;
+			cell.xy[1]= y;
+			cell.texture_id= texture_number;
+		}
 	}
 }
 

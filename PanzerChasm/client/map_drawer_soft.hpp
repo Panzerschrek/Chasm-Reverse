@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../map_loader.hpp"
 #include "../model.hpp"
 #include "../rendering_context.hpp"
 #include "i_map_drawer.hpp"
@@ -46,8 +47,25 @@ private:
 		std::vector<uint32_t> textures_data;
 	};
 
+	struct FloorCeilingCell
+	{
+		unsigned char xy[2];
+		unsigned char texture_id;
+	};
+
+	struct FloorTexture
+	{
+		// TODO - add mips support.
+		// TODO - do not store mip0 32bit texture.
+		uint32_t data[ MapData::c_floor_texture_size * MapData::c_floor_texture_size ];
+	};
+
 private:
 	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
+	void LoadFloorsTextures( const MapData& map_data );
+	void LoadFloorsAndCeilings( const MapData& map_data);
+
+	void DrawFloorsAndCeilings( const m_Mat4& matrix );
 
 	void DrawModel(
 		const m_Mat4& matrix,
@@ -69,6 +87,14 @@ private:
 	ModelsGroup rockets_models_;
 	ModelsGroup weapons_models_;
 	ModelsGroup monsters_models_;
+
+	std::vector<FloorCeilingCell> map_floors_and_ceilings_;
+	unsigned int first_floor_= 0u;
+	unsigned int first_ceiling_= 0u;
+
+	// Put large arrays at back.
+
+	FloorTexture floor_textures_[ MapData::c_floors_textures_count ];
 };
 
 } // PanzerChasm
