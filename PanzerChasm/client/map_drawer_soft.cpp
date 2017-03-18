@@ -320,7 +320,7 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 		if( texture.size[0] == 0u || texture.size[1] == 0u )
 			continue;
 
-		RasterizerVertexTextured vertices_fixed[4];
+		RasterizerVertex vertices_fixed[4];
 
 		bool clipped= false;
 		for( unsigned int x= 0u; x < 2u; x++ )
@@ -348,7 +348,7 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 				goto after_clip;
 			}
 
-			RasterizerVertexTextured& out_v= vertices_fixed[ x + z * 2u ];
+			RasterizerVertex& out_v= vertices_fixed[ x + z * 2u ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
 			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
 			out_v.u= fixed16_t( x * ( texture.size[0] << 16u ) );
@@ -377,7 +377,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
 		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
 		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
 
-		RasterizerVertexTextured vertices_fixed[4];
+		RasterizerVertex vertices_fixed[4];
 		bool clipped= false;
 		for( unsigned int y= 0u; y < 2u; y++ )
 		for( unsigned int x= 0u; x < 2u; x++ )
@@ -404,7 +404,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
 				goto after_clip;
 			}
 
-			RasterizerVertexTextured& out_v= vertices_fixed[ x + y * 2u ];
+			RasterizerVertex& out_v= vertices_fixed[ x + y * 2u ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
 			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
 			out_v.u= fixed16_t( x * ( MapData::c_floor_texture_size << 16u ) );
@@ -445,7 +445,7 @@ void MapDrawerSoft::DrawModel(
 
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
-		RasterizerVertexTextured vertices_fixed[3];
+		RasterizerVertex vertices_fixed[3];
 		bool clipped= false;
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
@@ -523,8 +523,6 @@ bool MapDrawerSoft::BBoxIsOutsideView(
 
 		if( !is_inside ) // bbox is behind of one of clip planes
 			return true;
-
-		//break; // HACK
 	}
 
 	return false;

@@ -44,7 +44,7 @@ void Rasterizer::SetTexture(
 	texture_data_= data;
 }
 
-void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertexSimple* const vertices, const uint32_t color )
+void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertices, const uint32_t color )
 {
 	// Sort triangle vertices.
 	unsigned int upper_index;
@@ -81,7 +81,7 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertexSimple* const 
 		Fixed16Mul( vertices[ upper_index ].x, middle_k ) +
 		Fixed16Mul( vertices[ lower_index ].x, ( g_fixed16_one - middle_k ) );
 
-	RasterizerVertexSimple middle_vertex;
+	RasterizerVertexCoord middle_vertex;
 	middle_vertex.x= middle_x;
 	middle_vertex.y= vertices[ middle_index ].y;
 
@@ -138,7 +138,7 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertexSimple* const 
 	}
 }
 
-void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* vertices )
+void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 {
 	// Sort triangle vertices.
 	unsigned int upper_index;
@@ -179,11 +179,11 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertexTextured* ver
 		Fixed16Mul( vertices[ upper_index ].x, middle_k ) +
 		Fixed16Mul( vertices[ lower_index ].x, ( g_fixed16_one - middle_k ) );
 
-	RasterizerVertexSimple middle_vertex;
+	RasterizerVertexCoord middle_vertex;
 	middle_vertex.x= middle_x;
 	middle_vertex.y= vertices[ middle_index ].y;
 
-	RasterizerTexCoord middle_vertex_tex_coord;
+	RasterizerVertexTexCoord middle_vertex_tex_coord;
 	middle_vertex_tex_coord.u=
 		Fixed16Mul( vertices[ upper_index ].u, middle_k ) +
 		Fixed16Mul( vertices[ lower_index ].u, ( g_fixed16_one - middle_k ) );

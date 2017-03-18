@@ -7,21 +7,17 @@
 namespace PanzerChasm
 {
 
-struct RasterizerVertexSimple
+struct RasterizerVertexCoord
 {
 	fixed16_t x, y; // Screen space
-	fixed16_t z;
 };
 
-struct RasterizerTexCoord
+struct RasterizerVertexTexCoord
 {
 	fixed16_t u, v;
 };
 
-struct RasterizerVertexTextured : public RasterizerVertexSimple, public RasterizerTexCoord
-{};
-
-struct RasterizerVertexXYZ : public RasterizerVertexSimple
+struct RasterizerVertex : public RasterizerVertexCoord, public RasterizerVertexTexCoord
 {
 	fixed16_t z;
 };
@@ -48,8 +44,8 @@ public:
 		unsigned int size_y,
 		const uint32_t* data );
 
-	void DrawAffineColoredTriangle( const RasterizerVertexSimple* trianlge_vertices, uint32_t color );
-	void DrawAffineTexturedTriangle( const RasterizerVertexTextured* trianlge_vertices );
+	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 
 private:
 	void DrawAffineColoredTrianglePart( uint32_t color );
@@ -82,9 +78,9 @@ private:
 	// 1 - upper left
 	// 2 - lower right
 	// 3 - upper right
-	RasterizerVertexSimple triangle_part_vertices_[4];
+	RasterizerVertexCoord triangle_part_vertices_[4];
 	// 0 - lower left   1 - upper left
-	RasterizerTexCoord triangle_part_tex_coords_[2];
+	RasterizerVertexTexCoord triangle_part_tex_coords_[2];
 	fixed_base_t triangle_part_inv_z_scaled[2];
 
 	fixed16_t line_tc_step_[2];
