@@ -85,6 +85,21 @@ static void CalculateModelZ( Model& model, const Vertex_o3* const vertices, cons
 	}
 }
 
+static void CalculateBoundingBox(
+	const Vertex_o3* const vertices, unsigned int vertex_count,
+	m_BBox3& out_bbox )
+{
+	out_bbox.min.x= out_bbox.min.y= out_bbox.min.z= Constants::max_float;
+	out_bbox.max.x= out_bbox.max.y= out_bbox.max.z= Constants::min_float;
+
+	for( unsigned int i= 0u; i < vertex_count; i++ )
+		out_bbox +=
+			m_Vec3(
+				float( vertices[i].xyz[0] ),
+				float( vertices[i].xyz[1] ),
+				float( vertices[i].xyz[2] ) ) * g_3o_model_coords_scale;
+}
+
 static unsigned char GroupIdToGroupsMask( const unsigned char group_id )
 {
 	// 64 is unsused. Map to it "zero".
@@ -217,6 +232,11 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 	anim.id= 0u;
 	anim.first_frame= 0u;
 	anim.frame_count= out_model.frame_count;
+
+	// Calculate bounding boxes.
+	out_model.animations_bboxes.resize( out_model.frame_count );
+	for( unsigned int i= 0u; i < out_model.frame_count; i++ )
+		CalculateBoundingBox( vertices + i * vertex_count, vertex_count, out_model.animations_bboxes[i] );
 }
 
 void LoadModel_o3(
@@ -384,6 +404,11 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 			current_vertex_index+= polygon_vertex_count;
 		} // for polygons
+
+		// Calculate bounding boxes.
+		out_submodel.animations_bboxes.resize( out_submodel.frame_count );
+		for( unsigned int i= 0u; i < out_submodel.frame_count; i++ )
+			CalculateBoundingBox( vertices + i * vertex_count, vertex_count, out_submodel.animations_bboxes[i] );
 	};
 
 	{ // Main model
