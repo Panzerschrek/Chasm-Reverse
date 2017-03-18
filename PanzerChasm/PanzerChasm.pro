@@ -40,6 +40,7 @@ SOURCES+= \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
+	client/software_renderer/rasterizer.cpp \
 	client/weapon_state.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
@@ -103,13 +104,16 @@ HEADERS+= \
 	client/i_minimap_drawer.hpp \
 	client/hud_drawer_gl.hpp \
 	client/hud_drawer_soft.hpp \
+	client/map_drawers_common.hpp \
 	client/map_drawer_gl.hpp \
-	client/map_drawer_gsoft.hpp \
+	client/map_drawer_soft.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
 	client/minimap_drawer_gl.hpp \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
+	client/software_renderer/fixed.hpp \
+	client/software_renderer/rasterizer.hpp \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
 	connection_info.hpp \
