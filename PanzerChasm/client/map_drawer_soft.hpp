@@ -24,6 +24,7 @@ public:
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes,
 		EntityId player_monster_id ) override;
 
 	virtual void DrawWeapon(
@@ -83,6 +84,11 @@ private:
 		const std::vector<Model>& models_group_models,
 		unsigned int model_id,
 		unsigned int animation_frame );
+
+	bool BBoxIsOutsideView(
+		const ViewClipPlanes& clip_planes,
+		const m_BBox3& bbox,
+		const m_Mat4& bbox_mat );
 
 private:
 	const GameResourcesConstPtr game_resources_;

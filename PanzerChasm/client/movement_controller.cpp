@@ -12,6 +12,8 @@ namespace PanzerChasm
 static const char g_old_style_perspective[]= "cl_old_style_perspective";
 static const char g_fov[]= "cl_fov";
 
+static const float g_z_near= 1.0f / 12.0f; // Must be greater, then z_near in software rasterizer.
+
 MovementController::MovementController(
 	Settings& settings,
 	const m_Vec3& angle,
@@ -21,13 +23,17 @@ MovementController::MovementController(
 	, speed_(0.0f)
 	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
-{}
+{
+	FetchSettingsParams();
+}
 
 MovementController::~MovementController()
 {}
 
 void MovementController::Tick( const KeyboardState& keyboard_state )
 {
+	FetchSettingsParams();
+
 	const Time new_tick= Time::CurrentTime();
 
 	const float dt_s= ( new_tick - prev_calc_tick_ ).ToSeconds();
@@ -54,7 +60,7 @@ void MovementController::Tick( const KeyboardState& keyboard_state )
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
 	const float max_ange_x=
-		settings_.GetOrSetBool( g_old_style_perspective, false )
+		is_old_style_perspective_
 			? ( Constants::half_pi * 0.65f )
 			: Constants::half_pi;
 
@@ -130,7 +136,6 @@ float MovementController::GetEyeZShift() const
 
 void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 {
-	const float c_z_near= 1.0f / 16.0f;
 	const float c_z_far= 128.0f;
 
 	m_Mat4 perspective, basis_change;
@@ -141,11 +146,7 @@ void MovementController::GetViewProjectionMatrix( m_Mat4& out_mat ) const
 	basis_change[9]= 1.0f;
 	basis_change[10]= 0.0f;
 
-	float fov= settings_.GetOrSetFloat( g_fov, 90.0f );
-	fov= std::max( 10.0f, std::min( fov, 150.0f ) );
-	settings_.SetSetting( g_fov, fov );
-
-	perspective.PerspectiveProjection( aspect_, fov * Constants::to_rad, c_z_near, c_z_far );
+	perspective.PerspectiveProjection( aspect_, fov_ * Constants::to_rad, g_z_near, c_z_far );
 
 	out_mat= basis_change * perspective;
 }
@@ -157,7 +158,7 @@ void MovementController::GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) c
 	rot_z.RotateZ( -angle_.z );
 	GetViewProjectionMatrix( projection );
 
-	if( settings_.GetOrSetBool( g_old_style_perspective, false ) )
+	if( is_old_style_perspective_ )
 	{
 		rot_x.Identity();
 		rot_x.value[6]= std::tan( -angle_.x );
@@ -176,6 +177,41 @@ void MovementController::GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) con
 	GetViewRotationAndProjectionMatrix( rotatation_and_perspective );
 
 	out_mat= translate * rotatation_and_perspective;
+}
+
+void MovementController::GetViewClipPlanes( const m_Vec3& pos, ViewClipPlanes& out_clip_planes ) const
+{
+	// Extend view field to prevent clipping errors.
+	const float c_fov_scaler= 1.05f;
+
+	const float half_fov_x= std::atan( aspect_ * std::tan( fov_ * ( Constants::to_rad * 0.5f ) ) ) * c_fov_scaler;
+	const float half_fov_y= fov_ * ( c_fov_scaler * Constants::to_rad * 0.5f );
+
+	m_Mat4 rot_x, rot_z, left_right_rot, bottom_top_rot;
+	rot_x.RotateX( angle_.x );
+	rot_z.RotateZ( angle_.z );
+	bottom_top_rot= rot_x * rot_z;
+	if( is_old_style_perspective_ )
+		left_right_rot= rot_z;
+	else
+		left_right_rot= bottom_top_rot;
+
+	// Near clip plane
+	out_clip_planes[0].normal= m_Vec3( 0.0f, 1.0f, 0.0f ) * left_right_rot;
+	out_clip_planes[0].dist= -( pos * out_clip_planes[0].normal + g_z_near );
+	// Left
+	out_clip_planes[1].normal= m_Vec3( +std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * left_right_rot;
+	out_clip_planes[1].dist= -( pos * out_clip_planes[1].normal );
+	// Right
+	out_clip_planes[2].normal= m_Vec3( -std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * left_right_rot;
+	out_clip_planes[2].dist= -( pos * out_clip_planes[2].normal );
+
+	// Bottom
+	out_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), +std::cos( half_fov_y ) ) * bottom_top_rot;
+	out_clip_planes[3].dist= -( pos * out_clip_planes[3].normal );
+	// Top
+	out_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), -std::cos( half_fov_y ) ) * bottom_top_rot;
+	out_clip_planes[4].dist= -( pos * out_clip_planes[4].normal );
 }
 
 m_Vec3 MovementController::GetCamDir() const
@@ -217,6 +253,15 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 
 	angle_.x-= exp_sensetivity * c_pix_scale * float(delta_x) * z_direction;
 	angle_.z-= exp_sensetivity * c_pix_scale * float(delta_z);
+}
+
+void MovementController::FetchSettingsParams()
+{
+	fov_= settings_.GetOrSetFloat( g_fov, 90.0f );
+	fov_= std::max( 10.0f, std::min( fov_, 150.0f ) );
+	settings_.SetSetting( g_fov, fov_ );
+
+	is_old_style_perspective_= settings_.GetOrSetBool( g_old_style_perspective, false );
 }
 
 } // namespace ChasmReverse

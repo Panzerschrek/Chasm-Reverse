@@ -50,6 +50,7 @@ void MapDrawerSoft::Draw(
 	const MapState& map_state,
 	const m_Mat4& view_rotation_and_projection_matrix,
 	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes,
 	const EntityId player_monster_id )
 {
 	PC_UNUSED( player_monster_id );
@@ -72,11 +73,18 @@ void MapDrawerSoft::Draw(
 		if( static_model.model_id >= current_map_data_->models_description.size() )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, view_mat;
+		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
 		rotate_mat.RotateZ( static_model.angle );
 		translate_mat.Translate( static_model.pos );
+		to_world_mat= rotate_mat * translate_mat;
 
-		view_mat= rotate_mat * translate_mat * cam_mat;
+		if( BBoxIsOutsideView(
+			view_clip_planes,
+			current_map_data_->models[ static_model.model_id ].animations_bboxes[ static_model.animation_frame ],
+			to_world_mat ) )
+			continue;
+
+		view_mat= to_world_mat * cam_mat;
 
 		DrawModel( view_mat, map_models_, current_map_data_->models, static_model.model_id, static_model.animation_frame );
 	}
@@ -86,11 +94,18 @@ void MapDrawerSoft::Draw(
 		if( item.item_id >= game_resources_->items_models.size() )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, view_mat;
+		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
 		rotate_mat.RotateZ( item.angle );
 		translate_mat.Translate( item.pos );
+		to_world_mat= rotate_mat * translate_mat;
 
-		view_mat= rotate_mat * translate_mat * cam_mat;
+		if( BBoxIsOutsideView(
+			view_clip_planes,
+			game_resources_->items_models[ item.item_id ].animations_bboxes[ item.animation_frame ],
+			to_world_mat ) )
+			continue;
+
+		view_mat= to_world_mat * cam_mat;
 
 		DrawModel( view_mat, items_models_, game_resources_->items_models, item.item_id, item.animation_frame );
 	}
@@ -101,11 +116,18 @@ void MapDrawerSoft::Draw(
 		if( item.item_type_id >= game_resources_->items_models.size() )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, view_mat;
+		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
 		rotate_mat.RotateZ( item.angle );
 		translate_mat.Translate( item.pos );
+		to_world_mat= rotate_mat * translate_mat;
 
-		view_mat= rotate_mat * translate_mat * cam_mat;
+		if( BBoxIsOutsideView(
+			view_clip_planes,
+			game_resources_->items_models[ item.item_type_id ].animations_bboxes[ item.frame ],
+			to_world_mat ) )
+			continue;
+
+		view_mat= to_world_mat * cam_mat;
 
 		DrawModel( view_mat, items_models_, game_resources_->items_models, item.item_type_id, item.frame );
 	}
@@ -116,12 +138,19 @@ void MapDrawerSoft::Draw(
 		if( rocket.rocket_id >= game_resources_->rockets_models.size() )
 			continue;
 
-		m_Mat4 rotate_max_x, rotate_mat_z, translate_mat, view_mat;
+		m_Mat4 rotate_max_x, rotate_mat_z, translate_mat, to_world_mat, view_mat;
 		rotate_max_x.RotateX( rocket.angle[1] );
 		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
 		translate_mat.Translate( rocket.pos );
+		to_world_mat= rotate_max_x * rotate_mat_z * translate_mat;
 
-		view_mat= rotate_max_x * rotate_mat_z * translate_mat * cam_mat;
+		if( BBoxIsOutsideView(
+			view_clip_planes,
+			game_resources_->rockets_models[ rocket.rocket_id ].animations_bboxes[ rocket.frame ],
+			to_world_mat ) )
+			continue;
+
+		view_mat= to_world_mat * cam_mat;
 
 		DrawModel( view_mat, rockets_models_, game_resources_->rockets_models, rocket.rocket_id, rocket.frame );
 	}
@@ -135,15 +164,22 @@ void MapDrawerSoft::Draw(
 		if( monster_value.first == player_monster_id )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, view_mat;
-		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
-		translate_mat.Translate( monster.pos );
-
-		view_mat= rotate_mat * translate_mat * cam_mat;
-
 		const unsigned int frame=
 			game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
 			monster.animation_frame;
+
+		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
+		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
+		translate_mat.Translate( monster.pos );
+		to_world_mat= rotate_mat * translate_mat;
+
+		if( BBoxIsOutsideView(
+			view_clip_planes,
+			game_resources_->monsters_models[ monster.monster_id ].animations_bboxes[ frame ],
+			to_world_mat ) )
+			continue;
+
+		view_mat= to_world_mat * cam_mat;
 
 		DrawModel( view_mat, monsters_models_, game_resources_->monsters_models, monster.monster_id, frame );
 	}
@@ -188,6 +224,86 @@ void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGro
 			out_group.textures_data[ texture_data_offset + t ]= palette[ in_model.texture_data[t] ];
 
 		texture_data_offset+= in_model.texture_data.size();
+	}
+}
+
+void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
+{
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	std::vector<unsigned char> file_content;
+
+	for( unsigned int i= 0u; i < MapData::c_max_walls_textures; i++ )
+	{
+		WallTexture& out_texture= wall_textures_[i];
+		out_texture.size[0]= out_texture.size[1]= 0u;
+
+		const char* const texture_file_path= map_data.walls_textures[i].file_path;
+		if( texture_file_path[0] == '\n' )
+			continue;
+
+		game_resources_->vfs->ReadFile( texture_file_path, file_content );
+		if( file_content.empty() )
+			continue;
+
+		const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( file_content.data() );
+		if( g_max_wall_texture_width / header.size[0] * header.size[0] != g_max_wall_texture_width ||
+			header.size[1] != g_wall_texture_height )
+		{
+			Log::Warning( "Invalid wall texture size: ", header.size[0], "x", header.size[1] );
+			continue;
+		}
+
+		out_texture.size[0]= header.size[0];
+		out_texture.size[1]= header.size[1];
+
+		const unsigned int pixel_count= header.size[0] * header.size[1];
+		const unsigned char* const src= file_content.data() + sizeof(CelTextureHeader);
+
+		out_texture.data.resize( pixel_count );
+		for( unsigned int j= 0u; j < pixel_count; j++ )
+			out_texture.data[j]= palette[ src[j] ];
+	}
+}
+
+void MapDrawerSoft::LoadFloorsTextures( const MapData& map_data )
+{
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	for( unsigned int i= 0u; i < MapData::c_floors_textures_count; i++ )
+	{
+		const unsigned char* const src= map_data.floor_textures_data[i];
+		uint32_t* const dst= floor_textures_[i].data;
+		for( unsigned int j= 0u; j < MapData::c_floor_texture_size * MapData::c_floor_texture_size; j++ )
+			dst[j]= palette[ src[j] ];
+	}
+}
+
+void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
+{
+	map_floors_and_ceilings_.clear();
+
+	for( unsigned int i= 0u; i < 2u; i++ )
+	{
+		( i == 0u ? first_floor_ : first_ceiling_ )= map_floors_and_ceilings_.size();
+
+		const unsigned char* const src= i == 0u ? map_data.floor_textures : map_data.ceiling_textures;
+
+		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
+		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
+		{
+			const unsigned char texture_number= src[ x + y * MapData::c_map_size ];
+
+			if( texture_number == MapData::c_empty_floor_texture_id ||
+				texture_number == MapData::c_sky_floor_texture_id )
+				continue;
+
+			map_floors_and_ceilings_.emplace_back();
+			FloorCeilingCell& cell= map_floors_and_ceilings_.back();
+			cell.xy[0]= x;
+			cell.xy[1]= y;
+			cell.texture_id= texture_number;
+		}
 	}
 }
 
@@ -351,8 +467,8 @@ void MapDrawerSoft::DrawModel(
 			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
 			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
 
-			if( vertex_projected.x < 0.0f || vertex_projected.x > viewport_size_x ||
-				vertex_projected.y < 0.0f || vertex_projected.y > viewport_size_y )
+			if( vertex_projected.x < -2.0f * viewport_size_x || vertex_projected.x > 3.0f * viewport_size_x ||
+				vertex_projected.y < -2.0f * viewport_size_y || vertex_projected.y > 3.0f * viewport_size_y )
 			{
 				clipped= true;
 				break;
@@ -380,84 +496,38 @@ void MapDrawerSoft::DrawModel(
 	}
 }
 
-void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
+bool MapDrawerSoft::BBoxIsOutsideView(
+	const ViewClipPlanes& clip_planes,
+	const m_BBox3& bbox,
+	const m_Mat4& bbox_mat )
 {
-	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
-
-	std::vector<unsigned char> file_content;
-
-	for( unsigned int i= 0u; i < MapData::c_max_walls_textures; i++ )
+	for( const m_Plane3& plane : clip_planes )
 	{
-		WallTexture& out_texture= wall_textures_[i];
-		out_texture.size[0]= out_texture.size[1]= 0u;
-
-		const char* const texture_file_path= map_data.walls_textures[i].file_path;
-		if( texture_file_path[0] == '\n' )
-			continue;
-
-		game_resources_->vfs->ReadFile( texture_file_path, file_content );
-		if( file_content.empty() )
-			continue;
-
-		const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( file_content.data() );
-		if( g_max_wall_texture_width / header.size[0] * header.size[0] != g_max_wall_texture_width ||
-			header.size[1] != g_wall_texture_height )
+		bool is_inside= false;
+		for( unsigned int z= 0u; z < 2u; z++ )
+		for( unsigned int y= 0u; y < 2u; y++ )
+		for( unsigned int x= 0u; x < 2u; x++ )
 		{
-			Log::Warning( "Invalid wall texture size: ", header.size[0], "x", header.size[1] );
-			continue;
+			const m_Vec3 point(
+				x == 0 ? bbox.min.x : bbox.max.x,
+				y == 0 ? bbox.min.y : bbox.max.y,
+				z == 0 ? bbox.min.z : bbox.max.z );
+
+			if( plane.IsPointAheadPlane( point * bbox_mat ) )
+			{
+				is_inside= true;
+				goto box_vertices_check_end;
+			}
 		}
+		box_vertices_check_end:
 
-		out_texture.size[0]= header.size[0];
-		out_texture.size[1]= header.size[1];
+		if( !is_inside ) // bbox is behind of one of clip planes
+			return true;
 
-		const unsigned int pixel_count= header.size[0] * header.size[1];
-		const unsigned char* const src= file_content.data() + sizeof(CelTextureHeader);
-
-		out_texture.data.resize( pixel_count );
-		for( unsigned int j= 0u; j < pixel_count; j++ )
-			out_texture.data[j]= palette[ src[j] ];
+		//break; // HACK
 	}
-}
 
-void MapDrawerSoft::LoadFloorsTextures( const MapData& map_data )
-{
-	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
-
-	for( unsigned int i= 0u; i < MapData::c_floors_textures_count; i++ )
-	{
-		const unsigned char* const src= map_data.floor_textures_data[i];
-		uint32_t* const dst= floor_textures_[i].data;
-		for( unsigned int j= 0u; j < MapData::c_floor_texture_size * MapData::c_floor_texture_size; j++ )
-			dst[j]= palette[ src[j] ];
-	}
-}
-
-void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
-{
-	map_floors_and_ceilings_.clear();
-
-	for( unsigned int i= 0u; i < 2u; i++ )
-	{
-		( i == 0u ? first_floor_ : first_ceiling_ )= map_floors_and_ceilings_.size();
-
-		const unsigned char* const src= i == 0u ? map_data.floor_textures : map_data.ceiling_textures;
-
-		for( unsigned int y= 0u; y < MapData::c_map_size; y++ )
-		for( unsigned int x= 0u; x < MapData::c_map_size; x++ )
-		{
-			const unsigned char texture_number= src[ x + y * MapData::c_map_size ];
-
-			if( texture_number == MapData::c_empty_floor_texture_id ||
-				texture_number == MapData::c_sky_floor_texture_id )
-				continue;
-
-			map_floors_and_ceilings_.emplace_back();
-			FloorCeilingCell& cell= map_floors_and_ceilings_.back();
-			cell.xy[0]= x;
-			cell.xy[1]= y;
-			cell.texture_id= texture_number;
-		}
-	}
+	return false;
 }
 
 } // PanzerChasm

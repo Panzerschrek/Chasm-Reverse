@@ -272,10 +272,14 @@ void Client::Draw()
 		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
 		camera_controller_.GetViewProjectionMatrix( projection_matrix );
 
+		ViewClipPlanes view_clip_planes;
+		camera_controller_.GetViewClipPlanes( pos, view_clip_planes );
+
 		map_drawer_->Draw(
 			*map_state_,
 			view_rotation_and_projection_matrix,
 			pos,
+			view_clip_planes,
 			player_state_.health > 0u ? player_monster_id_ : 0u /* draw body, if death */ );
 
 		// Draw weapon, if alive.
