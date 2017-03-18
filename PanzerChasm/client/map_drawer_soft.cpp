@@ -332,7 +332,8 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 			const unsigned char texture_number= src[ x + y * MapData::c_map_size ];
 
 			if( texture_number == MapData::c_empty_floor_texture_id ||
-				texture_number == MapData::c_sky_floor_texture_id )
+				texture_number == MapData::c_sky_floor_texture_id ||
+				texture_number >= MapData::c_floors_textures_count )
 				continue;
 
 			map_floors_and_ceilings_.emplace_back();
@@ -353,6 +354,8 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 
 	for( const MapData::Wall& wall : current_map_data_->static_walls )
 	{
+		PC_ASSERT( wall.texture_id < MapData::c_max_walls_textures );
+
 		const WallTexture& texture= wall_textures_[ wall.texture_id ];
 		if( texture.size[0] == 0u || texture.size[1] == 0u )
 			continue;
@@ -421,6 +424,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
 	{
 		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
 		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
+
+		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
 
 		RasterizerVertex vertices_fixed[4];
 		bool clipped= false;
