@@ -263,6 +263,43 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 		out_texture.data.resize( pixel_count );
 		for( unsigned int j= 0u; j < pixel_count; j++ )
 			out_texture.data[j]= palette[ src[j] ];
+
+		// Calculate top and bottom alpha-rejected texture rows.
+		out_texture.full_alpha_row[0]= 0u;
+		out_texture.full_alpha_row[1]= g_wall_texture_height;
+
+		for( unsigned int y= 0u; y < header.size[1]; y++ )
+		{
+			bool is_full_alpha= true;
+			for( unsigned int x= 0u; x < header.size[0]; x++ )
+				if( src[x + y * header.size[0] ] != 255u )
+				{
+					is_full_alpha= false;
+					break;
+				}
+
+			if( !is_full_alpha )
+			{
+				out_texture.full_alpha_row[0]= y;
+				break;
+			}
+		}
+		for( unsigned int y= 0u; y < header.size[1]; y++ )
+		{
+			bool is_full_alpha= true;
+			for( unsigned int x= 0u; x < header.size[0]; x++ )
+				if( src[ x + ( header.size[1] - 1u - y ) * header.size[0] ] != 255u )
+				{
+					is_full_alpha= false;
+					break;
+				}
+
+			if( !is_full_alpha )
+			{
+				out_texture.full_alpha_row[1]= header.size[1] - y;
+				break;
+			}
+		}
 	}
 }
 
@@ -319,6 +356,14 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 		const WallTexture& texture= wall_textures_[ wall.texture_id ];
 		if( texture.size[0] == 0u || texture.size[1] == 0u )
 			continue;
+		if( texture.full_alpha_row[0] == texture.full_alpha_row[1] )
+			continue;
+
+		const float z_bottom_top[]=
+		{
+			GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
+			GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
+		};
 
 		RasterizerVertex vertices_fixed[4];
 
@@ -326,7 +371,7 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 		for( unsigned int x= 0u; x < 2u; x++ )
 		for( unsigned int z= 0u; z < 2u; z++ )
 		{
-			const m_Vec3 vertex_pos( wall.vert_pos[x], float(z) * GameConstants::walls_height );
+			const m_Vec3 vertex_pos( wall.vert_pos[x], z_bottom_top[z] );
 			m_Vec3 vertex_projected= vertex_pos * matrix;
 			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
 			if( w <= 0.25f )
@@ -352,7 +397,7 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
 			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
 			out_v.u= fixed16_t( x * ( texture.size[0] << 16u ) );
-			out_v.v= fixed16_t( (1u-z) * ( g_wall_texture_height << 16u ) );
+			out_v.v= fixed16_t( texture.full_alpha_row[z] << 16u );
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
 		after_clip:

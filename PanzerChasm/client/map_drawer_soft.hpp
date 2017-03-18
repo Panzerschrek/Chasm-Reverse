@@ -64,6 +64,9 @@ private:
 	struct WallTexture
 	{
 		unsigned int size[2];
+
+		unsigned char full_alpha_row[2];
+
 		// TODO - add mips support.
 		// TODO - do not store mip0 32bit texture.
 		std::vector<uint32_t> data;
