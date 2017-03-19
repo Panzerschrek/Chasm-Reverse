@@ -66,7 +66,7 @@ void MapDrawerSoft::Draw(
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
 	DrawWalls( cam_mat, view_clip_planes );
-	DrawFloorsAndCeilings( cam_mat );
+	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
@@ -428,7 +428,7 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_
 	}
 }
 
-void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
+void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  )
 {
 	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
 	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
@@ -442,19 +442,38 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
 
 		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
 
-		RasterizerVertex vertices_fixed[4];
-		bool clipped= false;
-		for( unsigned int y= 0u; y < 2u; y++ )
-		for( unsigned int x= 0u; x < 2u; x++ )
+		clipped_vertices_[0].pos= m_Vec3( float(cell.xy[0]   ), float(cell.xy[1]   ), z );
+		clipped_vertices_[1].pos= m_Vec3( float(cell.xy[0]+1u), float(cell.xy[1]   ), z );
+		clipped_vertices_[2].pos= m_Vec3( float(cell.xy[0]+1u), float(cell.xy[1]+1u), z );
+		clipped_vertices_[3].pos= m_Vec3( float(cell.xy[0]   ), float(cell.xy[1]+1u), z );
+		clipped_vertices_[0].tc= m_Vec2( 0.0f, 0.0f );
+		clipped_vertices_[1].tc= m_Vec2( float( MapData::c_floor_texture_size << 16u ), 0.0f );
+		clipped_vertices_[2].tc= m_Vec2( float( MapData::c_floor_texture_size << 16u ), float( MapData::c_floor_texture_size << 16u ) );
+		clipped_vertices_[3].tc= m_Vec2( 0.0f, float( MapData::c_floor_texture_size << 16u ) );
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[3];
+		clipped_vertices_[3].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 4u;
+
+		unsigned int polygon_vertex_count= 4u;
+		for( const m_Plane3& plane : view_clip_planes )
 		{
-			const m_Vec3 vertex_pos( float(cell.xy[0] + x), float(cell.xy[1] + y), z );
-			m_Vec3 vertex_projected= vertex_pos * matrix;
-			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
-			if( w <= 0.25f )
-			{
-				clipped= true;
+			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
 				break;
-			}
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * matrix;
+			const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
 
 			vertex_projected/= w;
 			vertex_projected.z= w;
@@ -462,29 +481,26 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix )
 			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
 			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
 
-			if( vertex_projected.x < 0.0f || vertex_projected.x > viewport_size_x ||
-				vertex_projected.y < 0.0f || vertex_projected.y > viewport_size_y )
-			{
-				clipped= true;
-				goto after_clip;
-			}
-
-			RasterizerVertex& out_v= vertices_fixed[ x + y * 2u ];
+			RasterizerVertex& out_v= verties_projected[ i ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
 			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
-			out_v.u= fixed16_t( x * ( MapData::c_floor_texture_size << 16u ) );
-			out_v.v= fixed16_t( y * ( MapData::c_floor_texture_size << 16u ) );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
-		after_clip:
-		if( clipped ) continue;
 
 		rasterizer_.SetTexture(
 			MapData::c_floor_texture_size, MapData::c_floor_texture_size,
 			floor_textures_[ cell.texture_id ].data );
 
-		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
-		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed + 1u );
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+		}
 	}
 }
 

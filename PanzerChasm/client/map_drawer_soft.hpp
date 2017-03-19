@@ -79,7 +79,7 @@ private:
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
 	void DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes );
-	void DrawFloorsAndCeilings( const m_Mat4& matrix );
+	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
 
 	void DrawModel(
 		const m_Mat4& matrix,
