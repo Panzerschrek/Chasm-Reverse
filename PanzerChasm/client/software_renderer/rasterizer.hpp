@@ -46,10 +46,12 @@ public:
 
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
+	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
 	void DrawAffineColoredTrianglePart( uint32_t color );
 	void DrawAffineTexturedTrianglePart();
+	void DrawTexturedTrianglePerLineCorrectedPart();
 
 private:
 	// Use only SIGNED types inside rasterizer.
@@ -80,9 +82,10 @@ private:
 	// 3 - upper right
 	RasterizerVertexCoord triangle_part_vertices_[4];
 	// 0 - lower left   1 - upper left
-	RasterizerVertexTexCoord triangle_part_tex_coords_[2];
+	RasterizerVertexTexCoord triangle_part_tex_coords_[2]; // For perspective-corrected methods = tc / z
 	fixed_base_t triangle_part_inv_z_scaled[2];
 
+	// For perspective-corrected methods = tc / z
 	fixed16_t line_tc_step_[2];
 	fixed_base_t line_inv_z_scaled_step_;
 };
