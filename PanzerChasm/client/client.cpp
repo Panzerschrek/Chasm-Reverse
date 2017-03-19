@@ -7,6 +7,7 @@
 #include "../messages_extractor.inl"
 #include "../save_load_streams.hpp"
 #include "../shared_drawers.hpp"
+#include "../server/a_code.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
 #include "i_hud_drawer.hpp"
@@ -338,6 +339,26 @@ void Client::operator()( const Messages::PlayerState& message )
 void Client::operator()( const Messages::PlayerWeapon& message )
 {
 	weapon_state_.ProcessMessage( message );
+}
+
+void Client::operator()( const Messages::PlayerItemPickup& message )
+{
+	if( message.item_id >= game_resources_->items_description.size() )
+		return;
+
+	const unsigned char a_code= game_resources_->items_description[ message.item_id ].a_code;
+	if(
+		a_code >= static_cast<unsigned char>(ACode::Weapon_First) &&
+		a_code <= static_cast<unsigned char>(ACode::Weapon_Last) )
+	{
+		requested_weapon_index_= a_code - static_cast<unsigned char>(ACode::Weapon_First);
+
+		// Mark weapon as recieved, because TrySwitchWeaponOnOutOfAmmo can switch weapon back,
+		// if PlayerState message has not yet arrived.
+		player_state_.weapons_mask|= 1u << requested_weapon_index_;
+		if( player_state_.ammo[ requested_weapon_index_ ] == 0u )
+			player_state_.ammo[ requested_weapon_index_ ]= 1u;
+	}
 }
 
 void Client::operator()( const Messages::MapEventSound& message )

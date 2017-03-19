@@ -51,6 +51,7 @@ public:
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
 	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, bool force= false ) const; // returns true, if newly-spawned
+	void SendItemPickupMessages( MessagesSender& messages_sender );
 
 	void OnMapChange();
 	void UpdateMovement( const Messages::PlayerMove& move_message );
@@ -83,6 +84,7 @@ public:
 private:
 	// Returns true, if jumped.
 	bool Move( Time time_delta );
+	void GenItemPickupMessage( unsigned char item_id );
 
 private:
 	enum class State
@@ -145,6 +147,8 @@ private:
 
 	unsigned int last_activated_procedure_= ~0u; // Inv zero is dummy.
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
+
+	std::vector<Messages::PlayerItemPickup> pickup_messages_;
 };
 
 } // namespace PanzerChasm

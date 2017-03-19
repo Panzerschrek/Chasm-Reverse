@@ -11,6 +11,7 @@ MESSAGE_FUNC(PlayerSpawn)
 MESSAGE_FUNC(PlayerPosition) // position of player, which recieve this message.
 MESSAGE_FUNC(PlayerState)
 MESSAGE_FUNC(PlayerWeapon)
+MESSAGE_FUNC(PlayerItemPickup)
 MESSAGE_FUNC(ItemState)
 MESSAGE_FUNC(StaticModelState)
 MESSAGE_FUNC(SpriteEffectBirth)

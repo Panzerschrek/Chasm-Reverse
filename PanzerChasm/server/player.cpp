@@ -4,6 +4,7 @@
 
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
+#include "../messages_sender.hpp"
 #include "../sound/sound_id.hpp"
 #include "map.hpp"
 
@@ -387,6 +388,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		new_ammo_count= std::min( new_ammo_count, static_cast<unsigned int>( weapon_description.limit ) );
 		ammo_[ weapon_index ]= new_ammo_count;
 
+		GenItemPickupMessage( item_id );
 		return true;
 	}
 	else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
@@ -408,6 +410,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		new_ammo_count= std::min( new_ammo_count, static_cast<unsigned int>( weapon_description.limit ) );
 		ammo_[ weapon_index ]= new_ammo_count;
 
+		GenItemPickupMessage( item_id );
 		return true;
 	}
 	else if( a_code == ACode::Item_Life )
@@ -424,6 +427,8 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		if( health_ < GameConstants::player_max_health )
 		{
 			health_= std::min( health_ + 100, GameConstants::player_max_health );
+
+			GenItemPickupMessage( item_id );
 			return true;
 		}
 		return false;
@@ -433,6 +438,8 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		if( armor_ < GameConstants::player_max_armor )
 		{
 			armor_= std::min( armor_ + 200, GameConstants::player_max_armor );
+
+			GenItemPickupMessage( item_id );
 			return true;
 		}
 		return false;
@@ -442,6 +449,8 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		if( armor_ < GameConstants::player_max_armor )
 		{
 			armor_= std::min( armor_ + 100, GameConstants::player_max_armor );
+
+			GenItemPickupMessage( item_id );
 			return true;
 		}
 		return false;
@@ -512,6 +521,14 @@ bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, const 
 	out_spawn_message.direction= AngleToMessageAngle( angle_ );
 
 	return true;
+}
+
+void Player::SendItemPickupMessages( MessagesSender& messages_sender )
+{
+	for( const auto& message : pickup_messages_ )
+		messages_sender.SendUnreliableMessage( message );
+
+	pickup_messages_.clear();
 }
 
 void Player::OnMapChange()
@@ -708,6 +725,12 @@ bool Player::Move( const Time time_delta )
 		speed_.z= 0.0f;
 	}
 	return jumped;
+}
+
+void Player::GenItemPickupMessage( const unsigned char item_id )
+{
+	pickup_messages_.emplace_back();
+	pickup_messages_.back().item_id= item_id;
 }
 
 } // namespace PanzerChasm

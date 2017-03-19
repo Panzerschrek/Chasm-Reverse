@@ -111,6 +111,13 @@ struct PlayerWeapon : public MessageBase
 	unsigned char switch_stage; // 0 - retracted 255 - fully deployed
 };
 
+struct PlayerItemPickup : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerItemPickup)
+
+	unsigned char item_id;
+};
+
 struct ItemState : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(ItemState)

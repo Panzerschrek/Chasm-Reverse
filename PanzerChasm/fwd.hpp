@@ -33,6 +33,8 @@ typedef std::shared_ptr<const MapData> MapDataConstPtr;
 class MapLoader;
 typedef std::shared_ptr<MapLoader> MapLoaderPtr;
 
+class MessagesSender;
+
 class LongRand;
 typedef std::shared_ptr<LongRand> LongRandPtr;
 

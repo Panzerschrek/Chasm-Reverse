@@ -61,6 +61,7 @@ public: // Messages handlers
 	void operator()( const Messages::PlayerPosition& message );
 	void operator()( const Messages::PlayerState& message );
 	void operator()( const Messages::PlayerWeapon& message );
+	void operator()( const Messages::PlayerItemPickup& message );
 	void operator()( const Messages::MapEventSound& message );
 	void operator()( const Messages::MonsterLinkedSound& message );
 	void operator()( const Messages::MonsterSound& message );
