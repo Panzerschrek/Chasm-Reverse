@@ -78,7 +78,7 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
-	void DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes );
+	void DrawWalls( const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
 	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
 
 	void DrawModel(

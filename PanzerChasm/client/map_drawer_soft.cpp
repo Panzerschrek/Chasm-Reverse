@@ -65,7 +65,7 @@ void MapDrawerSoft::Draw(
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
-	DrawWalls( cam_mat, view_clip_planes );
+	DrawWalls( cam_mat, camera_position.xy(), view_clip_planes );
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -345,7 +345,10 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
-void MapDrawerSoft::DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes )
+void MapDrawerSoft::DrawWalls(
+	const m_Mat4& matrix,
+	const m_Vec2& camera_position_xy,
+	const ViewClipPlanes& view_clip_planes )
 {
 	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
 	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
@@ -360,6 +363,11 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_
 		if( texture.size[0] == 0u || texture.size[1] == 0u )
 			continue;
 		if( texture.full_alpha_row[0] == texture.full_alpha_row[1] )
+			continue;
+
+		// Discard back faces.
+		if( wall.texture_id < MapData::c_first_transparent_texture_id &&
+			mVec2Cross( camera_position_xy - wall.vert_pos[0], wall.vert_pos[1] - wall.vert_pos[0] ) > 0.0f )
 			continue;
 
 		const float z_bottom_top[]=
