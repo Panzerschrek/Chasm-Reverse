@@ -187,30 +187,46 @@ void MovementController::GetViewClipPlanes( const m_Vec3& pos, ViewClipPlanes& o
 	const float half_fov_x= std::atan( aspect_ * std::tan( fov_ * ( Constants::to_rad * 0.5f ) ) ) * c_fov_scaler;
 	const float half_fov_y= fov_ * ( c_fov_scaler * Constants::to_rad * 0.5f );
 
-	m_Mat4 rot_x, rot_z, left_right_rot, bottom_top_rot;
+	m_Mat4 rot_x, rot_z, rot;
 	rot_x.RotateX( angle_.x );
 	rot_z.RotateZ( angle_.z );
-	bottom_top_rot= rot_x * rot_z;
 	if( is_old_style_perspective_ )
-		left_right_rot= rot_z;
+		rot= rot_z;
 	else
-		left_right_rot= bottom_top_rot;
+		rot= rot_x * rot_z;
 
 	// Near clip plane
-	out_clip_planes[0].normal= m_Vec3( 0.0f, 1.0f, 0.0f ) * left_right_rot;
+	out_clip_planes[0].normal= m_Vec3( 0.0f, 1.0f, 0.0f ) * rot;
 	out_clip_planes[0].dist= -( pos * out_clip_planes[0].normal + g_z_near );
 	// Left
-	out_clip_planes[1].normal= m_Vec3( +std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * left_right_rot;
+	out_clip_planes[1].normal= m_Vec3( +std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * rot;
 	out_clip_planes[1].dist= -( pos * out_clip_planes[1].normal );
 	// Right
-	out_clip_planes[2].normal= m_Vec3( -std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * left_right_rot;
+	out_clip_planes[2].normal= m_Vec3( -std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * rot;
 	out_clip_planes[2].dist= -( pos * out_clip_planes[2].normal );
 
-	// Bottom
-	out_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), +std::cos( half_fov_y ) ) * bottom_top_rot;
+	if( is_old_style_perspective_ )
+	{
+		const float shift= std::cos( half_fov_y ) * std::tan( angle_.x );
+
+		// Bottom
+		out_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) - shift, +std::cos( half_fov_y ) );
+		out_clip_planes[3].normal.Normalize();
+		out_clip_planes[3].normal= out_clip_planes[3].normal * rot_z;
+		// Top
+		out_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) + shift, -std::cos( half_fov_y ) );
+		out_clip_planes[4].normal.Normalize();
+		out_clip_planes[4].normal= out_clip_planes[4].normal * rot_z;
+	}
+	else
+	{
+		// Bottom
+		out_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), +std::cos( half_fov_y ) ) * rot;
+		// Top
+		out_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), -std::cos( half_fov_y ) ) * rot;
+
+	}
 	out_clip_planes[3].dist= -( pos * out_clip_planes[3].normal );
-	// Top
-	out_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ), -std::cos( half_fov_y ) ) * bottom_top_rot;
 	out_clip_planes[4].dist= -( pos * out_clip_planes[4].normal );
 }
 
