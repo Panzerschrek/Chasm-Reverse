@@ -65,7 +65,7 @@ void MapDrawerSoft::Draw(
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
-	DrawWalls( cam_mat );
+	DrawWalls( cam_mat, view_clip_planes );
 	DrawFloorsAndCeilings( cam_mat );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -345,7 +345,7 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
-void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
+void MapDrawerSoft::DrawWalls( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes )
 {
 	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
 	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
@@ -368,20 +368,38 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 			GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
 		};
 
-		RasterizerVertex vertices_fixed[4];
+		clipped_vertices_[0].pos= m_Vec3( wall.vert_pos[0], z_bottom_top[0] );
+		clipped_vertices_[1].pos= m_Vec3( wall.vert_pos[0], z_bottom_top[1] );
+		clipped_vertices_[2].pos= m_Vec3( wall.vert_pos[1], z_bottom_top[1] );
+		clipped_vertices_[3].pos= m_Vec3( wall.vert_pos[1], z_bottom_top[0] );
+		clipped_vertices_[0].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[0] << 16u ) );
+		clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
+		clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
+		clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[0] << 16u ) );
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[3];
+		clipped_vertices_[3].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 4u;
 
-		bool clipped= false;
-		for( unsigned int x= 0u; x < 2u; x++ )
-		for( unsigned int z= 0u; z < 2u; z++ )
+		unsigned int polygon_vertex_count= 4u;
+		for( const m_Plane3& plane : view_clip_planes )
 		{
-			const m_Vec3 vertex_pos( wall.vert_pos[x], z_bottom_top[z] );
-			m_Vec3 vertex_projected= vertex_pos * matrix;
-			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
-			if( w <= 0.25f )
-			{
-				clipped= true;
+			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
 				break;
-			}
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * matrix;
+			const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
 
 			vertex_projected/= w;
 			vertex_projected.z= w;
@@ -389,27 +407,24 @@ void MapDrawerSoft::DrawWalls( const m_Mat4& matrix )
 			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
 			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
 
-			if( vertex_projected.x < 0.0f || vertex_projected.x > viewport_size_x ||
-				vertex_projected.y < 0.0f || vertex_projected.y > viewport_size_y )
-			{
-				clipped= true;
-				goto after_clip;
-			}
-
-			RasterizerVertex& out_v= vertices_fixed[ x + z * 2u ];
+			RasterizerVertex& out_v= verties_projected[ i ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
 			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
-			out_v.u= fixed16_t( x * ( texture.size[0] << 16u ) );
-			out_v.v= fixed16_t( texture.full_alpha_row[z] << 16u );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
-		after_clip:
-		if( clipped ) continue;
 
 		rasterizer_.SetTexture( texture.size[0], texture.size[1], texture.data.data() );
 
-		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
-		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed + 1u );
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+		}
 	}
 }
 
@@ -544,6 +559,94 @@ void MapDrawerSoft::DrawModel(
 
 		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
 	}
+}
+
+unsigned int MapDrawerSoft::ClipPolygon(
+	const m_Plane3& clip_plane,
+	unsigned int vertex_count )
+{
+	PC_ASSERT( vertex_count >= 3u );
+
+	unsigned int i;
+	bool positions[ c_max_clip_vertices_ ];
+
+	unsigned int vertices_ahead= 0u, vertices_behind= 0u;
+	ClippedVertex* last_vertex= nullptr;
+
+	i= 0u;
+	for( ClippedVertex* v= fisrt_clipped_vertex_; i < vertex_count; v= v->next, i++ )
+	{
+		positions[i]= clip_plane.IsPointAheadPlane( v->pos );
+		if( positions[i] )
+			vertices_ahead++;
+		else
+			vertices_behind++;
+
+		if( i == vertex_count - 1u )
+			last_vertex= v;
+	}
+
+	if( vertices_ahead == 0u )
+		return 0u;
+	if( vertices_ahead == vertex_count )
+		return vertex_count;
+
+	ClippedVertex* last_clipped_vertex= nullptr;
+	ClippedVertex* last_unclipped_vertex= nullptr;
+
+	if(  positions[ vertex_count - 1u ] && !positions[0] )
+		last_unclipped_vertex= last_vertex;
+	if( !positions[ vertex_count - 1u ] &&  positions[0] )
+		last_clipped_vertex= last_vertex;
+
+	i= 1u;
+	for( ClippedVertex* prev_v= fisrt_clipped_vertex_; i < vertex_count; prev_v= prev_v->next, i++ )
+	{
+		if(  positions[ i - 1u ] && !positions[i] )
+			last_unclipped_vertex= prev_v;
+		if( !positions[ i - 1u ] &&  positions[i] )
+			last_clipped_vertex= prev_v;
+	}
+
+	if( last_clipped_vertex == nullptr || last_unclipped_vertex == nullptr )
+	{
+		PC_ASSERT( false );
+		return 0u;
+	}
+
+	PC_ASSERT( next_new_clipped_vertex_ + 2u <= c_max_clip_vertices_ );
+	ClippedVertex* new_v0= &clipped_vertices_[ next_new_clipped_vertex_ ];
+	ClippedVertex* new_v1= &clipped_vertices_[ next_new_clipped_vertex_ + 1u ];
+	next_new_clipped_vertex_+= 2u;
+
+	{
+		const float dist0= +clip_plane.GetSignedDistance( last_unclipped_vertex->pos );
+		const float dist1= -clip_plane.GetSignedDistance( last_unclipped_vertex->next->pos );
+		PC_ASSERT( dist0 >= 0.0f && dist1 >= 0.0f );
+		const float dist_inv_sum= 1.0f / ( dist0 + dist1 );
+		const float k0= dist0 * dist_inv_sum;
+		const float k1= dist1 * dist_inv_sum;
+		new_v0->pos= last_unclipped_vertex->pos * k1 + last_unclipped_vertex->next->pos * k0;
+		new_v0->tc = last_unclipped_vertex->tc  * k1 + last_unclipped_vertex->next->tc  * k0;
+	}
+	{
+		const float dist0= -clip_plane.GetSignedDistance( last_clipped_vertex->pos );
+		const float dist1= +clip_plane.GetSignedDistance( last_clipped_vertex->next->pos );
+		PC_ASSERT( dist0 >= 0.0f && dist1 >= 0.0f );
+		const float dist_inv_sum= 1.0f / ( dist0 + dist1 );
+		const float k0= dist0 * dist_inv_sum;
+		const float k1= dist1 * dist_inv_sum;
+		new_v1->pos= last_clipped_vertex->pos * k1 + last_clipped_vertex->next->pos * k0;
+		new_v1->tc=  last_clipped_vertex->tc  * k1 + last_clipped_vertex->next->tc  * k0;
+	}
+
+	last_unclipped_vertex->next= new_v0;
+	new_v0->next= new_v1;
+	new_v1->next= last_clipped_vertex->next;
+
+	fisrt_clipped_vertex_= new_v0;
+
+	return vertex_count - vertices_behind + 2u;
 }
 
 bool MapDrawerSoft::BBoxIsOutsideView(
