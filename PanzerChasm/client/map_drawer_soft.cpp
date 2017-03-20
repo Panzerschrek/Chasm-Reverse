@@ -73,41 +73,34 @@ void MapDrawerSoft::Draw(
 		if( static_model.model_id >= current_map_data_->models_description.size() )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
+		m_Mat4 rotate_mat;
 		rotate_mat.RotateZ( static_model.angle );
-		translate_mat.Translate( static_model.pos );
-		to_world_mat= rotate_mat * translate_mat;
 
-		if( BBoxIsOutsideView(
+		DrawModel(
+			map_models_, current_map_data_->models, static_model.model_id,
+			static_model.animation_frame,
 			view_clip_planes,
-			current_map_data_->models[ static_model.model_id ].animations_bboxes[ static_model.animation_frame ],
-			to_world_mat ) )
-			continue;
-
-		view_mat= to_world_mat * cam_mat;
-
-		DrawModel( view_mat, map_models_, current_map_data_->models, static_model.model_id, static_model.animation_frame );
+			static_model.pos,
+			rotate_mat,
+			cam_mat );
 	}
 
 	for( const MapState::Item& item : map_state.GetItems() )
 	{
-		if( item.item_id >= game_resources_->items_models.size() )
+		if( item.item_id >= game_resources_->items_models.size() ||
+			item.picked_up )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
+		m_Mat4 rotate_mat;
 		rotate_mat.RotateZ( item.angle );
-		translate_mat.Translate( item.pos );
-		to_world_mat= rotate_mat * translate_mat;
 
-		if( BBoxIsOutsideView(
+		DrawModel(
+			items_models_, game_resources_->items_models, item.item_id,
+			item.animation_frame,
 			view_clip_planes,
-			game_resources_->items_models[ item.item_id ].animations_bboxes[ item.animation_frame ],
-			to_world_mat ) )
-			continue;
-
-		view_mat= to_world_mat * cam_mat;
-
-		DrawModel( view_mat, items_models_, game_resources_->items_models, item.item_id, item.animation_frame );
+			item.pos,
+			rotate_mat,
+			cam_mat );
 	}
 
 	for( const MapState::DynamicItemsContainer::value_type& dynamic_item_value : map_state.GetDynamicItems() )
@@ -116,20 +109,16 @@ void MapDrawerSoft::Draw(
 		if( item.item_type_id >= game_resources_->items_models.size() )
 			continue;
 
-		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
+		m_Mat4 rotate_mat;
 		rotate_mat.RotateZ( item.angle );
-		translate_mat.Translate( item.pos );
-		to_world_mat= rotate_mat * translate_mat;
 
-		if( BBoxIsOutsideView(
+		DrawModel(
+			items_models_, game_resources_->items_models, item.item_type_id,
+			item.frame,
 			view_clip_planes,
-			game_resources_->items_models[ item.item_type_id ].animations_bboxes[ item.frame ],
-			to_world_mat ) )
-			continue;
-
-		view_mat= to_world_mat * cam_mat;
-
-		DrawModel( view_mat, items_models_, game_resources_->items_models, item.item_type_id, item.frame );
+			item.pos,
+			rotate_mat,
+			cam_mat );
 	}
 
 	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
@@ -138,21 +127,17 @@ void MapDrawerSoft::Draw(
 		if( rocket.rocket_id >= game_resources_->rockets_models.size() )
 			continue;
 
-		m_Mat4 rotate_max_x, rotate_mat_z, translate_mat, to_world_mat, view_mat;
+		m_Mat4 rotate_max_x, rotate_mat_z;
 		rotate_max_x.RotateX( rocket.angle[1] );
 		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
-		translate_mat.Translate( rocket.pos );
-		to_world_mat= rotate_max_x * rotate_mat_z * translate_mat;
 
-		if( BBoxIsOutsideView(
+		DrawModel(
+			rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
+			rocket.frame,
 			view_clip_planes,
-			game_resources_->rockets_models[ rocket.rocket_id ].animations_bboxes[ rocket.frame ],
-			to_world_mat ) )
-			continue;
-
-		view_mat= to_world_mat * cam_mat;
-
-		DrawModel( view_mat, rockets_models_, game_resources_->rockets_models, rocket.rocket_id, rocket.frame );
+			rocket.pos,
+			rotate_max_x * rotate_mat_z,
+			cam_mat );
 	}
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -168,20 +153,16 @@ void MapDrawerSoft::Draw(
 			game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
 			monster.animation_frame;
 
-		m_Mat4 rotate_mat, translate_mat, to_world_mat, view_mat;
+		m_Mat4 rotate_mat;
 		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
-		translate_mat.Translate( monster.pos );
-		to_world_mat= rotate_mat * translate_mat;
 
-		if( BBoxIsOutsideView(
+		DrawModel(
+			monsters_models_, game_resources_->monsters_models, monster.monster_id,
+			frame,
 			view_clip_planes,
-			game_resources_->monsters_models[ monster.monster_id ].animations_bboxes[ frame ],
-			to_world_mat ) )
-			continue;
-
-		view_mat= to_world_mat * cam_mat;
-
-		DrawModel( view_mat, monsters_models_, game_resources_->monsters_models, monster.monster_id, frame );
+			monster.pos,
+			rotate_mat,
+			cam_mat );
 	}
 }
 
@@ -513,12 +494,70 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 }
 
 void MapDrawerSoft::DrawModel(
-	const m_Mat4& matrix,
 	const ModelsGroup& models_group,
 	const std::vector<Model>& models_group_models,
-	unsigned int model_id,
-	unsigned int animation_frame )
+	const unsigned int model_id,
+	const unsigned int animation_frame,
+	const ViewClipPlanes& view_clip_planes,
+	const m_Vec3& position,
+	const m_Mat4& rotation_matrix,
+	const m_Mat4& view_matrix )
 {
+	unsigned int active_clip_planes_mask= 0u;
+
+	const m_BBox3& bbox= models_group_models[ model_id ].animations_bboxes[ animation_frame ];
+
+	m_Mat4 translate_mat, bbox_mat;
+	translate_mat.Translate( position );
+	bbox_mat= rotation_matrix * translate_mat;
+
+	// Clip-planes bounding box test
+	for( const m_Plane3& clip_plane : view_clip_planes )
+	{
+		unsigned int vertices_inside= 0u;
+		for( unsigned int z= 0u; z < 2u; z++ )
+		for( unsigned int y= 0u; y < 2u; y++ )
+		for( unsigned int x= 0u; x < 2u; x++ )
+		{
+			const m_Vec3 point(
+				x == 0 ? bbox.min.x : bbox.max.x,
+				y == 0 ? bbox.min.y : bbox.max.y,
+				z == 0 ? bbox.min.z : bbox.max.z );
+
+			if( clip_plane.IsPointAheadPlane( point * bbox_mat ) )
+				vertices_inside++;
+		}
+
+		if( vertices_inside == 0u )
+			return; // Discard model - it is fully outside view
+
+		if( vertices_inside != 8u )
+			active_clip_planes_mask|= 1u << ( &clip_plane - &view_clip_planes[0] );
+	} // For clip planes
+
+	// Transform clip planes into model space.
+	ViewClipPlanes clip_planes_transformed;
+	unsigned int clip_planes_transformed_count= 0u;
+
+	m_Mat4 inv_rotation_mat= rotation_matrix;
+	inv_rotation_mat.Transpose(); // For rotation matrix transpose is euqivalent for inverse.
+
+	for( unsigned int i= 0u; i < view_clip_planes.size(); i++ )
+	{
+		if( ( active_clip_planes_mask & ( 1 << i ) ) == 0u )
+			continue;
+
+		const m_Plane3& in_plane= view_clip_planes[i];
+		m_Plane3& out_plane= clip_planes_transformed[ clip_planes_transformed_count ];
+		clip_planes_transformed_count++;
+
+		out_plane.normal= in_plane.normal * inv_rotation_mat;
+		out_plane.dist= in_plane.dist + in_plane.normal * position;
+	}
+
+	// Calculate final matrix
+	const m_Mat4 final_mat= rotation_matrix * translate_mat * view_matrix;
+
 	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
 	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
 	const float screen_transform_x= viewport_size_x * 0.5f;
@@ -532,23 +571,45 @@ void MapDrawerSoft::DrawModel(
 		model_entry.texture_size[0], model_entry.texture_size[1],
 		models_group.textures_data.data() + model_entry.texture_data_offset );
 
+	// TODO - make other branch, if clip_planes_transformed_count == 0
+	// Transform animation vertices, then rasterize trianglez directly, without clipping.
+
+	// TODO - use original QUADS from .3o/.car models.
+
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
-		RasterizerVertex vertices_fixed[3];
-		bool clipped= false;
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
 			const Model::Vertex& vertex= model.vertices[ model.regular_triangles_indeces[t + tv] ];
 			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
 
-			const m_Vec3 vertex_pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
-			m_Vec3 vertex_projected= vertex_pos * matrix;
-			const float w= vertex_pos.x * matrix.value[3] + vertex_pos.y * matrix.value[7] + vertex_pos.z * matrix.value[11] + matrix.value[15];
-			if( w <= 0.25f )
-			{
-				clipped= true;
+			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
+			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f;
+			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
+		}
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 3u;
+
+		unsigned int polygon_vertex_count= 3u;
+		for( unsigned int p= 0u; p < clip_planes_transformed_count; p++ )
+		{
+			polygon_vertex_count= ClipPolygon( clip_planes_transformed[p], polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
 				break;
-			}
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * final_mat;
+			const float w= v->pos.x * final_mat.value[3] + v->pos.y * final_mat.value[7] + v->pos.z * final_mat.value[11] + final_mat.value[15];
 
 			vertex_projected/= w;
 			vertex_projected.z= w;
@@ -556,33 +617,23 @@ void MapDrawerSoft::DrawModel(
 			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
 			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
 
-			if( vertex_projected.x < -2.0f * viewport_size_x || vertex_projected.x > 3.0f * viewport_size_x ||
-				vertex_projected.y < -2.0f * viewport_size_y || vertex_projected.y > 3.0f * viewport_size_y )
-			{
-				clipped= true;
-				break;
-			}
-
-			vertices_fixed[tv].x= fixed16_t( vertex_projected.x * 65536.0f );
-			vertices_fixed[tv].y= fixed16_t( vertex_projected.y * 65536.0f );
-			vertices_fixed[tv].u= fixed16_t( vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f );
-			vertices_fixed[tv].v= fixed16_t( vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f );
-			vertices_fixed[tv].z= fixed16_t( w * 65536.0f );
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
+			out_v.z= fixed16_t( w * 65536.0f );
 		}
-		if( clipped ) continue;
 
-		// Back side culling.
-		// TODO - make it befor frustrum culling.
-		fixed16_t vecs[2][2];
-		vecs[0][0]= vertices_fixed[1].x - vertices_fixed[0].x;
-		vecs[0][1]= vertices_fixed[1].y - vertices_fixed[0].y;
-		vecs[1][0]= vertices_fixed[2].x - vertices_fixed[1].x;
-		vecs[1][1]= vertices_fixed[2].y - vertices_fixed[1].y;
-		if( Fixed16Mul( vecs[0][0], vecs[1][1] ) > Fixed16Mul( vecs[1][0], vecs[0][1] ) )
-			continue;
-
-		rasterizer_.DrawAffineTexturedTriangle( vertices_fixed );
-	}
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+		}
+	} // for model triangles
 }
 
 unsigned int MapDrawerSoft::ClipPolygon(

@@ -82,11 +82,14 @@ private:
 	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
 
 	void DrawModel(
-		const m_Mat4& matrix,
 		const ModelsGroup& models_group,
 		const std::vector<Model>& models_group_models,
 		unsigned int model_id,
-		unsigned int animation_frame );
+		unsigned int animation_frame,
+		const ViewClipPlanes& view_clip_planes,
+		const m_Vec3& position,
+		const m_Mat4& rotation_matrix,
+		const m_Mat4& view_matrix );
 
 	// Returns new vertex count.
 	// clipped_vertices_ used
