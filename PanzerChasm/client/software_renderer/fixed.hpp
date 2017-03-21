@@ -14,14 +14,14 @@ typedef std::int64_t fixed_base_square_t;
 	static_assert( base >= 0 && base <= std::numeric_limits<fixed_base_t>::digits, "Invalid fixed base" );
 
 template< int base >
-fixed_base_t FixedOne()
+constexpr fixed_base_t FixedOne()
 {
 	ASSERT_INVALID_BASE
 	return 1 << base;
 }
 
 template< int base >
-fixed_base_t FixedHalf()
+constexpr fixed_base_t FixedHalf()
 {
 	ASSERT_INVALID_BASE
 	return 1 << ( base - 1);
@@ -82,8 +82,8 @@ fixed_base_t FixedInvert( fixed_base_t x )
 typedef fixed_base_t fixed16_t;
 typedef fixed_base_t fixed8_t;
 
-const fixed16_t g_fixed16_one= FixedOne<16>();
-const fixed16_t g_fixed16_half= FixedHalf<16>();
+constexpr fixed16_t g_fixed16_one= FixedOne<16>();
+constexpr fixed16_t g_fixed16_half= FixedHalf<16>();
 
 inline fixed16_t Fixed16Mul( fixed16_t x, fixed16_t y )
 {
