@@ -7,21 +7,17 @@
 namespace PanzerChasm
 {
 
-struct RasterizerVertexSimple
+struct RasterizerVertexCoord
 {
 	fixed16_t x, y; // Screen space
-	fixed16_t z;
 };
 
-struct RasterizerTexCoord
+struct RasterizerVertexTexCoord
 {
 	fixed16_t u, v;
 };
 
-struct RasterizerVertexTextured : public RasterizerVertexSimple, public RasterizerTexCoord
-{};
-
-struct RasterizerVertexXYZ : public RasterizerVertexSimple
+struct RasterizerVertex : public RasterizerVertexCoord, public RasterizerVertexTexCoord
 {
 	fixed16_t z;
 };
@@ -32,6 +28,11 @@ public:
 	static constexpr int c_max_inv_z_min_log2= 4; // z_min = 1.0f / 16.0f
 	static constexpr int c_inv_z_scaler_log2= 11;
 	static constexpr int c_inv_z_scaler= 1 << c_inv_z_scaler_log2;
+
+	// 16 pixels - should be enough. 8 pixels - overkill, 32 pixels - too inaccurate.
+	static constexpr int c_z_correct_span_size_log2= 4;
+	static constexpr int c_z_correct_span_size= 1 << c_z_correct_span_size_log2;
+	static constexpr int c_z_correct_span_size_minus_one= c_z_correct_span_size - 1;
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -48,12 +49,19 @@ public:
 		unsigned int size_y,
 		const uint32_t* data );
 
-	void DrawAffineColoredTriangle( const RasterizerVertexSimple* trianlge_vertices, uint32_t color );
-	void DrawAffineTexturedTriangle( const RasterizerVertexTextured* trianlge_vertices );
+	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
+	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
+	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
+	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
+	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
+
 	void DrawAffineColoredTrianglePart( uint32_t color );
 	void DrawAffineTexturedTrianglePart();
+	void DrawTexturedTrianglePerLineCorrectedPart();
+	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
 	// Use only SIGNED types inside rasterizer.
@@ -82,11 +90,12 @@ private:
 	// 1 - upper left
 	// 2 - lower right
 	// 3 - upper right
-	RasterizerVertexSimple triangle_part_vertices_[4];
+	RasterizerVertexCoord triangle_part_vertices_[4];
 	// 0 - lower left   1 - upper left
-	RasterizerTexCoord triangle_part_tex_coords_[2];
+	RasterizerVertexTexCoord triangle_part_tex_coords_[2]; // For perspective-corrected methods = tc / z
 	fixed_base_t triangle_part_inv_z_scaled[2];
 
+	// For perspective-corrected methods = tc / z
 	fixed16_t line_tc_step_[2];
 	fixed_base_t line_inv_z_scaled_step_;
 };

@@ -1,11 +1,19 @@
 #pragma once
+#include <array>
+
 #include <matrix.hpp>
+#include <plane.hpp>
 
 #include "map_state.hpp"
 #include "weapon_state.hpp"
 
 namespace PanzerChasm
 {
+
+// 0 - front
+// 1, 2 - left, right
+// 3, 4 - bottom, top
+typedef std::array<m_Plane3, 5u> ViewClipPlanes;
 
 class IMapDrawer
 {
@@ -18,6 +26,7 @@ public:
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes,
 		EntityId player_monster_id )= 0;
 
 	virtual void DrawWeapon(

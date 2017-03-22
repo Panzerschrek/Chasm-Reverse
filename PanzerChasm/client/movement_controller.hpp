@@ -4,8 +4,9 @@
 #include <matrix.hpp>
 
 #include "../fwd.hpp"
+#include "i_map_drawer.hpp"
 #include "math_utils.hpp"
-#include  "system_event.hpp"
+#include "system_event.hpp"
 #include "time.hpp"
 
 namespace PanzerChasm
@@ -35,6 +36,8 @@ public:
 	void GetViewRotationAndProjectionMatrix( m_Mat4& out_mat ) const;
 	void GetViewMatrix( const m_Vec3& pos, m_Mat4& out_mat ) const;
 
+	void GetViewClipPlanes( const m_Vec3& pos, ViewClipPlanes& out_clip_planes ) const;
+
 	m_Vec3 GetCamDir() const;
 	float GetViewAngleX() const;
 	float GetViewAngleZ() const;
@@ -44,10 +47,17 @@ public:
 	void ControllerRotate( int delta_x, int delta_z );
 
 private:
+	void FetchSettingsParams();
+
+private:
 	Settings& settings_;
 
 	m_Vec3 angle_;
 	float aspect_;
+
+	// Settings variables. Fetch it once per frame.
+	float fov_; // Degrees
+	bool is_old_style_perspective_;
 
 	float speed_;
 

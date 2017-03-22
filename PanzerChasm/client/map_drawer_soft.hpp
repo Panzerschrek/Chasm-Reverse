@@ -24,6 +24,7 @@ public:
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes,
 		EntityId player_monster_id ) override;
 
 	virtual void DrawWeapon(
@@ -63,6 +64,9 @@ private:
 	struct WallTexture
 	{
 		unsigned int size[2];
+
+		unsigned char full_alpha_row[2];
+
 		// TODO - add mips support.
 		// TODO - do not store mip0 32bit texture.
 		std::vector<uint32_t> data;
@@ -74,19 +78,46 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
-	void DrawWalls( const m_Mat4& matrix );
-	void DrawFloorsAndCeilings( const m_Mat4& matrix );
+	template<class WallsContainer>
+	void DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+
+	void DrawWalls( const MapState& map_state, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
 
 	void DrawModel(
-		const m_Mat4& matrix,
 		const ModelsGroup& models_group,
 		const std::vector<Model>& models_group_models,
 		unsigned int model_id,
-		unsigned int animation_frame );
+		unsigned int animation_frame,
+		const ViewClipPlanes& view_clip_planes,
+		const m_Vec3& position,
+		const m_Mat4& rotation_matrix,
+		const m_Mat4& view_matrix );
+
+	// Returns new vertex count.
+	// clipped_vertices_ used
+	unsigned int ClipPolygon(
+		const m_Plane3& clip_plane,
+		unsigned int vertex_count );
+
+	bool BBoxIsOutsideView(
+		const ViewClipPlanes& clip_planes,
+		const m_BBox3& bbox,
+		const m_Mat4& bbox_mat );
+
+private:
+	struct ClippedVertex
+	{
+		m_Vec3 pos;
+		m_Vec2 tc;
+		ClippedVertex* next;
+	};
 
 private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
+	const float screen_transform_x_;
+	const float screen_transform_y_;
 
 	Rasterizer rasterizer_;
 
@@ -103,6 +134,13 @@ private:
 	unsigned int first_ceiling_= 0u;
 
 	// Put large arrays at back.
+
+	// Vertices for clipping.
+	// Size of array must be not less, then ( max_vertices_in_polygon + 2 * max_clip_planes ).
+	static constexpr unsigned int c_max_clip_vertices_= 32u;
+	ClippedVertex clipped_vertices_[ c_max_clip_vertices_ ];
+	ClippedVertex* fisrt_clipped_vertex_= nullptr;
+	unsigned int next_new_clipped_vertex_= 0u;
 
 	WallTexture wall_textures_[ MapData::c_max_walls_textures ];
 

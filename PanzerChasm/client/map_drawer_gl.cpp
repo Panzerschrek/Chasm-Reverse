@@ -420,8 +420,12 @@ void MapDrawerGL::Draw(
 	const MapState& map_state,
 	const m_Mat4& view_rotation_and_projection_matrix,
 	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes,
 	const EntityId player_monster_id )
 {
+	// TODO - use clip planes for models clipping.
+	PC_UNUSED( view_clip_planes );
+
 	if( current_map_data_ == nullptr )
 		return;
 

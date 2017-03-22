@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 
+#include <bbox.hpp>
+
 #include "assert.hpp"
 #include "vfs.hpp"
 
@@ -48,6 +50,9 @@ struct Submodel
 	std::vector<AnimationVertex> animations_vertices;
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
+
+	// Store separate bounding box for each frame for better culling.
+	std::vector<m_BBox3> animations_bboxes;
 
 	// Associated with models sounds (raw PCM)
 	std::vector< std::vector<unsigned char> > sounds;

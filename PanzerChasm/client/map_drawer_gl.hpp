@@ -33,6 +33,7 @@ public:
 		const MapState& map_state,
 		const m_Mat4& view_rotation_and_projection_matrix,
 		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes,
 		EntityId player_monster_id ) override;
 
 	virtual void DrawWeapon(

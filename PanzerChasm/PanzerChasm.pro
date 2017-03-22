@@ -198,6 +198,7 @@ SOURCES+= \
 
 HEADERS+= \
 	../Common/files.hpp \
+	../panzer_ogl_lib/plane.hpp \
 	../panzer_ogl_lib/ogl_state_manager.hpp \
 	../panzer_ogl_lib/panzer_ogl_lib.hpp \
 	../panzer_ogl_lib/polygon_buffer.hpp \
