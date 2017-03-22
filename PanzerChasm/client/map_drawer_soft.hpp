@@ -78,7 +78,10 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
-	void DrawWalls( const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+	template<class WallsContainer>
+	void DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+
+	void DrawWalls( const MapState& map_state, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
 	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
 
 	void DrawModel(
@@ -113,6 +116,8 @@ private:
 private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
+	const float screen_transform_x_;
+	const float screen_transform_y_;
 
 	Rasterizer rasterizer_;
 

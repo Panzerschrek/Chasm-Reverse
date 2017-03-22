@@ -16,6 +16,8 @@ MapDrawerSoft::MapDrawerSoft(
 	const RenderingContextSoft& rendering_context )
 	: game_resources_( game_resources )
 	, rendering_context_( rendering_context )
+	, screen_transform_x_( 0.5f * float( rendering_context_.viewport_size.Width () ) )
+	, screen_transform_y_( 0.5f * float( rendering_context_.viewport_size.Height() ) )
 	, rasterizer_(
 		rendering_context.viewport_size.Width(), rendering_context.viewport_size.Height(),
 		rendering_context.row_pixels, rendering_context.window_surface_data )
@@ -65,7 +67,7 @@ void MapDrawerSoft::Draw(
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
-	DrawWalls( cam_mat, camera_position.xy(), view_clip_planes );
+	DrawWalls( map_state, cam_mat, camera_position.xy(), view_clip_planes );
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -326,17 +328,10 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
-void MapDrawerSoft::DrawWalls(
-	const m_Mat4& matrix,
-	const m_Vec2& camera_position_xy,
-	const ViewClipPlanes& view_clip_planes )
+template<class WallsContainer>
+void MapDrawerSoft::DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes )
 {
-	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
-	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
-	const float screen_transform_x= viewport_size_x * 0.5f;
-	const float screen_transform_y= viewport_size_y * 0.5f;
-
-	for( const MapData::Wall& wall : current_map_data_->static_walls )
+	for( const auto& wall : walls )
 	{
 		PC_ASSERT( wall.texture_id < MapData::c_max_walls_textures );
 
@@ -393,8 +388,8 @@ void MapDrawerSoft::DrawWalls(
 			vertex_projected/= w;
 			vertex_projected.z= w;
 
-			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
-			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
 
 			RasterizerVertex& out_v= verties_projected[ i ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
@@ -417,13 +412,18 @@ void MapDrawerSoft::DrawWalls(
 	}
 }
 
+void MapDrawerSoft::DrawWalls(
+	const MapState& map_state,
+	const m_Mat4& matrix,
+	const m_Vec2& camera_position_xy,
+	const ViewClipPlanes& view_clip_planes )
+{
+	DrawWallsImpl( current_map_data_->static_walls, matrix, camera_position_xy, view_clip_planes );
+	DrawWallsImpl( map_state.GetDynamicWalls(), matrix, camera_position_xy, view_clip_planes );
+}
+
 void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  )
 {
-	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
-	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
-	const float screen_transform_x= viewport_size_x * 0.5f;
-	const float screen_transform_y= viewport_size_y * 0.5f;
-
 	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
 	{
 		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
@@ -467,8 +467,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			vertex_projected/= w;
 			vertex_projected.z= w;
 
-			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
-			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
 
 			RasterizerVertex& out_v= verties_projected[ i ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
@@ -558,11 +558,6 @@ void MapDrawerSoft::DrawModel(
 	// Calculate final matrix
 	const m_Mat4 final_mat= rotation_matrix * translate_mat * view_matrix;
 
-	const float viewport_size_x= float(rendering_context_.viewport_size.Width ());
-	const float viewport_size_y= float(rendering_context_.viewport_size.Height());
-	const float screen_transform_x= viewport_size_x * 0.5f;
-	const float screen_transform_y= viewport_size_y * 0.5f;
-
 	const Model& model= models_group_models[ model_id ];
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
@@ -614,8 +609,8 @@ void MapDrawerSoft::DrawModel(
 			vertex_projected/= w;
 			vertex_projected.z= w;
 
-			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x;
-			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y;
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
 
 			RasterizerVertex& out_v= verties_projected[ i ];
 			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
