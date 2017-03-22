@@ -412,7 +412,7 @@ void MapDrawerSoft::DrawWalls(
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
 		}
 	}
 }

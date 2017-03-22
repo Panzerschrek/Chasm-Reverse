@@ -29,6 +29,10 @@ public:
 	static constexpr int c_inv_z_scaler_log2= 11;
 	static constexpr int c_inv_z_scaler= 1 << c_inv_z_scaler_log2;
 
+	static constexpr int c_z_correct_span_size_log2= 3;
+	static constexpr int c_z_correct_span_size= 1 << c_z_correct_span_size_log2;
+	static constexpr int c_z_correct_span_size_minus_one= c_z_correct_span_size - 1;
+
 	Rasterizer(
 		unsigned int viewport_size_x,
 		unsigned int viewport_size_y,
@@ -47,11 +51,16 @@ public:
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
+	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
+	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
+	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
+
 	void DrawAffineColoredTrianglePart( uint32_t color );
 	void DrawAffineTexturedTrianglePart();
 	void DrawTexturedTrianglePerLineCorrectedPart();
+	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
 	// Use only SIGNED types inside rasterizer.
