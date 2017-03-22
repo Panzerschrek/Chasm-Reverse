@@ -756,8 +756,9 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 
 		const int spans_x_start= ( x_start + c_z_correct_span_size_minus_one ) & (~c_z_correct_span_size_minus_one);
 		const int spans_x_end= x_end & (~c_z_correct_span_size_minus_one);
-		const int start_part_dx= std::max( spans_x_start - x_start, 0 );
+		const int start_part_dx= std::min( spans_x_start, x_end ) - x_start;
 		const int end_part_dx= x_end - spans_x_end;
+		PC_ASSERT( start_part_dx >= 0 );
 		PC_ASSERT( end_part_dx >= 0 );
 
 		fixed16_t tc_current[2], tc_next[2], tc_step[2], span_tc[2];
@@ -813,8 +814,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 
 		for( int span_x= spans_x_start; span_x < spans_x_end;
 			span_x+= c_z_correct_span_size,
-			tc_div_z_current[0]+= line_tc_step_[0] * c_z_correct_span_size,
-			tc_div_z_current[1]+= line_tc_step_[1] * c_z_correct_span_size )
+			tc_div_z_current[0]+= line_tc_step_[0] << c_z_correct_span_size_log2,
+			tc_div_z_current[1]+= line_tc_step_[1] << c_z_correct_span_size_log2 )
 		{
 			tc_current[0]= tc_next[0];
 			tc_current[1]= tc_next[1];
@@ -855,9 +856,9 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			tc_current[0]= tc_next[0];
 			tc_current[1]= tc_next[1];
 
-			const fixed_base_t next_inv_z_scaled= line_inv_z_scaled + ( line_inv_z_scaled_step_ << c_z_correct_span_size_log2 );
-			tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + ( line_tc_step_[0] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
-			tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + ( line_tc_step_[1] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
+			const fixed_base_t next_inv_z_scaled= line_inv_z_scaled + end_part_dx * line_inv_z_scaled_step_;
+			tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + end_part_dx * line_tc_step_[0], next_inv_z_scaled );
+			tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + end_part_dx * line_tc_step_[1], next_inv_z_scaled );
 			if( tc_next[0] < 0 ) tc_next[0]= 0;
 			if( tc_next[0] > max_valid_tc_u_ ) tc_next[0]= max_valid_tc_u_;
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
@@ -869,20 +870,20 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			span_tc[1]= tc_current[1];
 
 			// Draw end part here.
-			for( int x= 0u; x < end_part_dx;
+			for( int x= spans_x_end; x < x_end;
 				x++, line_inv_z_scaled+= line_inv_z_scaled_step_,
 				span_tc[0]+= tc_step[0], span_tc[1]+= tc_step[1] )
 			{
 				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
-				if( depth > depth_dst[ spans_x_end + x ] )
+				if( depth > depth_dst[x] )
 				{
-					depth_dst[ spans_x_end + x ]= depth;
+					depth_dst[x]= depth;
 
 					const int u= span_tc[0] >> 16;
 					const int v= span_tc[1] >> 16;
 					PC_ASSERT( u >= 0 && u < texture_size_x_ );
 					PC_ASSERT( v >= 0 && v < texture_size_y_ );
-					dst[ spans_x_end + x ]= texture_data_[ u + v * texture_size_x_ ];
+					dst[x]= texture_data_[ u + v * texture_size_x_ ];
 				}
 			}
 		}
