@@ -34,6 +34,8 @@ public:
 	static constexpr int c_z_correct_span_size= 1 << c_z_correct_span_size_log2;
 	static constexpr int c_z_correct_span_size_minus_one= c_z_correct_span_size - 1;
 
+	typedef void (Rasterizer::*TriangleDrawFunc)(const RasterizerVertex*);
+
 	Rasterizer(
 		unsigned int viewport_size_x,
 		unsigned int viewport_size_y,

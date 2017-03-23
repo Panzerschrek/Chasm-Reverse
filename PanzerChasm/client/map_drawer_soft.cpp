@@ -588,6 +588,35 @@ void MapDrawerSoft::DrawModel(
 	// Calculate final matrix
 	const m_Mat4 final_mat= rotation_matrix * translate_mat * view_matrix;
 
+	// Select triangle rasterization func.
+	// Calculate bounding box w_min/w_max.
+	// TODO - maybe use clipped bounding box? Maybe use maximum polygon size of model for w_ratio calculation?
+
+	float w_min= Constants::max_float, w_max= Constants::min_float;
+	for( unsigned int z= 0u; z < 2u; z++ )
+	for( unsigned int y= 0u; y < 2u; y++ )
+	for( unsigned int x= 0u; x < 2u; x++ )
+	{
+		const m_Vec3 point(
+			x == 0 ? bbox.min.x : bbox.max.x,
+			y == 0 ? bbox.min.y : bbox.max.y,
+			z == 0 ? bbox.min.z : bbox.max.z );
+
+		const float w= point.x * final_mat.value[3] + point.y * final_mat.value[7] + point.z * final_mat.value[11] + final_mat.value[15];
+		if( w < w_min ) w_min= w;
+		if( w > w_max ) w_max= w;
+	}
+
+	Rasterizer::TriangleDrawFunc draw_func= &Rasterizer::DrawTexturedTriangleSpanCorrected;
+	if( w_min > 0.0f /* && w_max > 0.0f */ )
+	{
+		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
+		const float c_ratio_threshold= 1.2f; // 20 %
+		const float ratio= w_max / w_min;
+		if( ratio < c_ratio_threshold )
+			draw_func= &Rasterizer::DrawAffineTexturedTriangle;
+	}
+
 	const Model& model= models_group_models[ model_id ];
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
@@ -656,7 +685,7 @@ void MapDrawerSoft::DrawModel(
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+			(rasterizer_.*draw_func)( traingle_vertices );
 		}
 	} // for model triangles
 }
