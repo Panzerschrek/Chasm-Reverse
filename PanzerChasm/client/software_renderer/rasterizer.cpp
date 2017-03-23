@@ -828,8 +828,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
 			if( tc_next[1] > max_valid_tc_v_ ) tc_next[1]= max_valid_tc_v_;
 
-			tc_step[0]= ( tc_next[0] - tc_current[0] ) >> c_z_correct_span_size_log2;
-			tc_step[1]= ( tc_next[1] - tc_current[1] ) >> c_z_correct_span_size_log2;
+			tc_step[0]= ( tc_next[0] - tc_current[0] ) / c_z_correct_span_size;
+			tc_step[1]= ( tc_next[1] - tc_current[1] ) / c_z_correct_span_size;
 			span_tc[0]= tc_current[0];
 			span_tc[1]= tc_current[1];
 
