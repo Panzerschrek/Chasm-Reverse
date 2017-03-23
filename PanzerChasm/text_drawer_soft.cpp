@@ -125,7 +125,7 @@ void TextDrawerSoft::Print(
 					for( int sx= 0; sx < scale_i; sx++ )
 					{
 						const int dst_x= current_x + glyph_x * scale_i + sx;
-						if( dst_x < 0 || dst_y >= max_x ) continue;
+						if( dst_x < 0 || dst_x >= max_x ) continue;
 
 						dst_pixels[ dst_x + dst_y * dst_row_pixels ]= color;
 					}
