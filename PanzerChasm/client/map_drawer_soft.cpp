@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "../assert.hpp"
 #include "../game_constants.hpp"
 #include "../log.hpp"
@@ -27,6 +29,8 @@ MapDrawerSoft::MapDrawerSoft(
 	// TODO
 	PC_UNUSED( settings );
 
+	sky_texture_.file_name[0]= '\0';
+
 	LoadModelsGroup( game_resources_->items_models, items_models_ );
 	LoadModelsGroup( game_resources_->rockets_models, rockets_models_ );
 	LoadModelsGroup( game_resources_->weapons_models, weapons_models_ );
@@ -46,6 +50,30 @@ void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 	LoadWallsTextures( *map_data );
 	LoadFloorsTextures( *map_data );
 	LoadFloorsAndCeilings( *map_data );
+
+	// Sky
+	if( std::strcmp( sky_texture_.file_name, current_map_data_->sky_texture_name ) != 0 )
+	{
+		std::strncpy( sky_texture_.file_name, current_map_data_->sky_texture_name, sizeof(sky_texture_.file_name) );
+
+		char sky_texture_file_path[ MapData::c_max_file_path_size ];
+		std::snprintf( sky_texture_file_path, sizeof(sky_texture_file_path), "COMMON/%s", current_map_data_->sky_texture_name );
+
+		const Vfs::FileContent sky_texture_data= game_resources_->vfs->ReadFile( sky_texture_file_path );
+		const CelTextureHeader& cel_header= *reinterpret_cast<const CelTextureHeader*>( sky_texture_data.data() );
+
+		const unsigned int sky_pixel_count= cel_header.size[0] * cel_header.size[1];
+		sky_texture_.data.resize( sky_pixel_count );
+
+		const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+		const unsigned char* const src= sky_texture_data.data() + sizeof(CelTextureHeader);
+
+		for( unsigned int i= 0u; i < sky_pixel_count; i++ )
+			sky_texture_.data[i]= palette[src[i]];
+
+		sky_texture_.size[0]= cel_header.size[0];
+		sky_texture_.size[1]= cel_header.size[1];
+	}
 }
 
 void MapDrawerSoft::Draw(
@@ -166,6 +194,8 @@ void MapDrawerSoft::Draw(
 			rotate_mat,
 			cam_mat );
 	}
+
+	DrawSky( cam_mat, camera_position, view_clip_planes );
 }
 
 void MapDrawerSoft::DrawWeapon(
@@ -629,6 +659,107 @@ void MapDrawerSoft::DrawModel(
 			rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
 		}
 	} // for model triangles
+}
+
+void MapDrawerSoft::DrawSky(
+	const m_Mat4& matrix,
+	const m_Vec3& sky_pos,
+	const ViewClipPlanes& view_clip_planes )
+{
+	PC_ASSERT( sky_texture_.file_name[0] != '\0' );
+	PC_ASSERT( sky_texture_.size[0] > 0 && sky_texture_.size[1] > 0 );
+
+	constexpr int c_repeat_x= 5;
+	constexpr int c_repeat_y= 3;
+	constexpr int c_x_polygons= c_repeat_x * 4;
+	constexpr int c_y_polygons= c_repeat_y * 3;
+	constexpr int c_y_polygons_start= -1; // TODO - does this need ? maybe, sky abowe horizont should be enough?
+	constexpr float c_radius= float(MapData::c_map_size);
+
+	const fixed16_t tex_size_x= fixed16_t( sky_texture_.size[0] << 16u );
+	const fixed16_t tex_size_y= fixed16_t( sky_texture_.size[1] << 16u );
+
+	rasterizer_.SetTexture(
+		sky_texture_.size[0], sky_texture_.size[1],
+		sky_texture_.data.data() );
+
+	// TODO - optimize this
+	// 180 quads is too many for sky.
+	for( int y= c_y_polygons_start; y < c_y_polygons; y++ )
+	for( int x= 0; x < c_x_polygons; x++ )
+	{
+		const float angle_x= float(x) * ( Constants:: two_pi / float(c_x_polygons) );
+		const float angle_y= float(y) * ( Constants::half_pi / float(c_y_polygons) );
+		const float next_angle_x= float(x+1) * ( Constants:: two_pi / float(c_x_polygons) );
+		const float next_angle_y= float(y+1) * ( Constants::half_pi / float(c_y_polygons) );
+
+		clipped_vertices_[0].pos= m_Vec3( std::cos(     angle_x) * std::cos(     angle_y), std::sin(     angle_x) * std::cos(     angle_y), std::sin(     angle_y) ) * c_radius + sky_pos;
+		clipped_vertices_[1].pos= m_Vec3( std::cos(next_angle_x) * std::cos(     angle_y), std::sin(next_angle_x) * std::cos(     angle_y), std::sin(     angle_y) ) * c_radius + sky_pos;
+		clipped_vertices_[2].pos= m_Vec3( std::cos(next_angle_x) * std::cos(next_angle_y), std::sin(next_angle_x) * std::cos(next_angle_y), std::sin(next_angle_y) ) * c_radius + sky_pos;
+		clipped_vertices_[3].pos= m_Vec3( std::cos(     angle_x) * std::cos(next_angle_y), std::sin(     angle_x) * std::cos(next_angle_y), std::sin(next_angle_y) ) * c_radius + sky_pos;
+
+		int tc_start[2], tc_end[2];
+		tc_start[0]= ( x * tex_size_x * c_repeat_x / c_x_polygons ) % tex_size_x;
+		if( tc_start[0] < 0 ) tc_start[0]+= tex_size_x;
+		tc_start[1]= ( ( c_y_polygons - y - 1 ) * tex_size_y * c_repeat_y / c_y_polygons ) % tex_size_y;
+		if( tc_start[1] < 0 ) tc_start[1]+= tex_size_y;
+		tc_end[0]= tc_start[0] + tex_size_x * c_repeat_x / c_x_polygons;
+		tc_end[1]= tc_start[1] + tex_size_y * c_repeat_y / c_y_polygons;
+
+		clipped_vertices_[0].tc= m_Vec2( float(tc_start[0]), float(tc_end  [1]) );
+		clipped_vertices_[1].tc= m_Vec2( float(tc_end  [0]), float(tc_end  [1]) );
+		clipped_vertices_[2].tc= m_Vec2( float(tc_end  [0]), float(tc_start[1]) );
+		clipped_vertices_[3].tc= m_Vec2( float(tc_start[0]), float(tc_start[1]) );
+
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[3];
+		clipped_vertices_[3].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 4u;
+
+		unsigned int polygon_vertex_count= 4u;
+		for( const m_Plane3& plane : view_clip_planes )
+		{
+			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
+				break;
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * matrix;
+			const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+			//rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+		}
+	}
 }
 
 unsigned int MapDrawerSoft::ClipPolygon(
