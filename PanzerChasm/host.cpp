@@ -275,8 +275,8 @@ bool Host::Loop()
 			std::snprintf( str, sizeof(str), "fps: %02.2f", loops_counter_.GetTicksFrequency() );
 			const unsigned int scale= 1u;
 			shared_drawers_->text->Print(
-				shared_drawers_->menu->GetViewportSize().Width() - 72u * scale, 0u,
-				str, scale, ITextDrawer::FontColor::Golden );
+				shared_drawers_->menu->GetViewportSize().Width() - 4u * scale, 0u,
+				str, scale, ITextDrawer::FontColor::Golden, ITextDrawer::Alignment::Right );
 		}
 
 		system_window_->EndFrame();
