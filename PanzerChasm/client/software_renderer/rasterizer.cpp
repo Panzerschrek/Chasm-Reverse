@@ -207,6 +207,43 @@ bool Rasterizer::IsDepthOccluded(
 	return true;
 }
 
+void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
+{
+	const auto depth_to_color=
+	[]( const unsigned short depth ) -> uint32_t
+	{
+		unsigned int d= depth;
+		d*= 4u;
+		if( d > 65535u )d= 65535u;
+		d>>= 8u;
+		return d | (d<<8u) | (d<<16u) | (d<<24u);
+	};
+
+	unsigned int level= (1u + tick_count) % ( c_depth_buffer_hierarchy_levels + 2u );
+
+	if( level == 0u )
+		return;
+	else if( level == 1u )
+	{
+		for( int y= 0u; y < viewport_size_y_; y++ )
+		for( int x= 0u; x < viewport_size_x_; x++ )
+			color_buffer_[ x + y * row_size_ ]=
+				depth_to_color( depth_buffer_[ x + y * depth_buffer_width_ ] );
+	}
+	else
+	{
+		level-= 2u;
+
+		const auto& depth_hierarchy= depth_buffer_hierarchy_[ level ];
+		const int div= c_first_depth_hierarchy_level_size << int(level);
+
+		for( int y= 0u; y < viewport_size_y_; y++ )
+		for( int x= 0u; x < viewport_size_x_; x++ )
+			color_buffer_[ x + y * row_size_ ]=
+				depth_to_color( depth_hierarchy.data[ x/div + y/div * int(depth_hierarchy.width) ] );
+	}
+}
+
 void Rasterizer::SetTexture(
 	const unsigned int size_x,
 	const unsigned int size_y,

@@ -5,6 +5,7 @@
 #include "../log.hpp"
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
+#include "../settings.hpp"
 #include "map_drawers_common.hpp"
 
 #include "map_drawer_soft.hpp"
@@ -16,7 +17,8 @@ MapDrawerSoft::MapDrawerSoft(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContextSoft& rendering_context )
-	: game_resources_( game_resources )
+	: settings_(settings)
+	, game_resources_( game_resources )
 	, rendering_context_( rendering_context )
 	, screen_transform_x_( 0.5f * float( rendering_context_.viewport_size.Width () ) )
 	, screen_transform_y_( 0.5f * float( rendering_context_.viewport_size.Height() ) )
@@ -25,9 +27,6 @@ MapDrawerSoft::MapDrawerSoft(
 		rendering_context.row_pixels, rendering_context.window_surface_data )
 {
 	PC_ASSERT( game_resources_ != nullptr );
-
-	// TODO
-	PC_UNUSED( settings );
 
 	sky_texture_.file_name[0]= '\0';
 
@@ -197,6 +196,9 @@ void MapDrawerSoft::Draw(
 	}
 
 	DrawSky( cam_mat, camera_position, view_clip_planes );
+
+	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
+		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
 }
 
 void MapDrawerSoft::DrawWeapon(

@@ -129,6 +129,7 @@ private:
 	};
 
 private:
+	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
 	const float screen_transform_x_;

@@ -51,6 +51,8 @@ public:
 		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 		fixed16_t z_min, fixed16_t z_max ) const;
 
+	void DebugDrawDepthHierarchy( unsigned int tick_count );
+
 	void SetTexture(
 		unsigned int size_x,
 		unsigned int size_y,
