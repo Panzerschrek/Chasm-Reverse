@@ -97,6 +97,7 @@ void MapDrawerSoft::Draw(
 
 	DrawWalls( map_state, cam_mat, camera_position.xy(), view_clip_planes );
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
+	rasterizer_.BuildDepthBufferHierarchy();
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
@@ -592,6 +593,8 @@ void MapDrawerSoft::DrawModel(
 	// Calculate bounding box w_min/w_max.
 	// TODO - maybe use clipped bounding box? Maybe use maximum polygon size of model for w_ratio calculation?
 
+	float x_min= Constants::max_float, x_max= Constants::min_float;
+	float y_min= Constants::max_float, y_max= Constants::min_float;
 	float w_min= Constants::max_float, w_max= Constants::min_float;
 	for( unsigned int z= 0u; z < 2u; z++ )
 	for( unsigned int y= 0u; y < 2u; y++ )
@@ -605,6 +608,15 @@ void MapDrawerSoft::DrawModel(
 		const float w= point.x * final_mat.value[3] + point.y * final_mat.value[7] + point.z * final_mat.value[11] + final_mat.value[15];
 		if( w < w_min ) w_min= w;
 		if( w > w_max ) w_max= w;
+
+		m_Vec2 vertex_projected= ( point * final_mat ).xy();
+		vertex_projected/= w;
+		const float screen_x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+		const float screen_y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+		if( screen_x < x_min ) x_min= screen_x;
+		if( screen_x > x_max ) x_max= screen_x;
+		if( screen_y < y_min ) y_min= screen_y;
+		if( screen_y > y_max ) y_max= screen_y;
 	}
 
 	Rasterizer::TriangleDrawFunc draw_func= &Rasterizer::DrawTexturedTriangleSpanCorrected;
@@ -615,6 +627,20 @@ void MapDrawerSoft::DrawModel(
 		const float ratio= w_max / w_min;
 		if( ratio < c_ratio_threshold )
 			draw_func= &Rasterizer::DrawAffineTexturedTriangle;
+	}
+
+	if( w_min > 0.0f && w_max > 0.0f )
+	{
+		x_min= std::min( std::max( x_min, 0.0f ), screen_transform_x_ * 2.0f );
+		y_min= std::min( std::max( y_min, 0.0f ), screen_transform_y_ * 2.0f );
+		x_max= std::min( std::max( x_max, 0.0f ), screen_transform_x_ * 2.0f );
+		y_max= std::min( std::max( y_max, 0.0f ), screen_transform_y_ * 2.0f );
+		// Try to reject model, using hierarchical depth-test
+		if( rasterizer_.IsDepthOccluded(
+			fixed16_t(x_min * 65536.0f), fixed16_t(y_min * 65536.0f),
+			fixed16_t(x_max * 65536.0f), fixed16_t(y_max * 65536.0f),
+			fixed16_t(w_min * 65536.0f), fixed16_t(w_max * 65536.0f) ) )
+			return;
 	}
 
 	const Model& model= models_group_models[ model_id ];

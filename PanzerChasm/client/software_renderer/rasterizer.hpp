@@ -45,6 +45,11 @@ public:
 	~Rasterizer();
 
 	void ClearDepthBuffer();
+	void BuildDepthBufferHierarchy();
+
+	bool IsDepthOccluded(
+		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
+		fixed16_t z_min, fixed16_t z_max ) const;
 
 	void SetTexture(
 		unsigned int size_x,
@@ -78,6 +83,22 @@ private:
 	std::vector<unsigned short> depth_buffer_storage_;
 	unsigned short* depth_buffer_;
 	int depth_buffer_width_;
+
+	// Depth buffer hierarchy
+	static constexpr unsigned int c_depth_buffer_hierarchy_levels= 6u;
+	static constexpr unsigned int c_first_depth_hierarchy_level_size= 4u;
+	// First level - 4x4
+	//   4x  4
+	//   8x  8
+	//  16x 16
+	//  32x 32
+	//  64x 64
+	// 128x128
+	struct
+	{
+		unsigned short* data;
+		unsigned int width, height;
+	} depth_buffer_hierarchy_[ c_depth_buffer_hierarchy_levels ];
 
 	// Texture
 	int texture_size_x_= 0;
