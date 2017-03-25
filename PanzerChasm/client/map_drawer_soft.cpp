@@ -128,7 +128,8 @@ void MapDrawerSoft::Draw(
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
 	{
-		if( static_model.model_id >= current_map_data_->models_description.size() )
+		if( static_model.model_id >= current_map_data_->models_description.size() ||
+			!static_model.visible )
 			continue;
 
 		m_Mat4 rotate_mat;
