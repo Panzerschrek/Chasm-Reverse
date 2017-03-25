@@ -118,6 +118,7 @@ HEADERS+= \
 	client/software_renderer/map_bsp_tree.hpp \
 	client/software_renderer/map_bsp_tree.inl \
 	client/software_renderer/rasterizer.hpp \
+	client/software_renderer/rasterizer.inl \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
 	connection_info.hpp \

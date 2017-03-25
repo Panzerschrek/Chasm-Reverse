@@ -9,6 +9,7 @@
 #include "map_drawers_common.hpp"
 #include "software_renderer/map_bsp_tree.hpp"
 #include "software_renderer/map_bsp_tree.inl"
+#include "software_renderer/rasterizer.inl"
 
 #include "map_drawer_soft.hpp"
 
@@ -479,7 +480,11 @@ void MapDrawerSoft::DrawWallSegment(
 	{
 		traingle_vertices[1]= verties_projected[ i + 1u ];
 		traingle_vertices[2]= verties_projected[ i + 2u ];
-		rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+
+		rasterizer_.DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 	}
 }
 
@@ -578,7 +583,10 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTrianglePerLineCorrected( traingle_vertices );
+			rasterizer_.DrawTexturedTrianglePerLineCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		}
 	}
 }
@@ -678,7 +686,11 @@ void MapDrawerSoft::DrawModel(
 		if( screen_y > y_max ) y_max= screen_y;
 	}
 
-	Rasterizer::TriangleDrawFunc draw_func= &Rasterizer::DrawTexturedTriangleSpanCorrected;
+	Rasterizer::TriangleDrawFunc draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
 	if( w_min > 0.0f /* && w_max > 0.0f */ )
 	{
 		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
@@ -870,7 +882,10 @@ void MapDrawerSoft::DrawSky(
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 			//rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
 		}
 	}
@@ -969,7 +984,10 @@ void MapDrawerSoft::DrawEffectsSprites(
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
 }
