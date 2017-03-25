@@ -3,6 +3,7 @@
 #include "../map_loader.hpp"
 #include "../model.hpp"
 #include "../rendering_context.hpp"
+#include "fwd.hpp"
 #include "i_map_drawer.hpp"
 #include "software_renderer/rasterizer.hpp"
 
@@ -153,6 +154,7 @@ private:
 	Rasterizer rasterizer_;
 
 	MapDataConstPtr current_map_data_;
+	std::unique_ptr<MapBSPTree> map_bsp_tree_;
 
 	ModelsGroup map_models_;
 	ModelsGroup items_models_;

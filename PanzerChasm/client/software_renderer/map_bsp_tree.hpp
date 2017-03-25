@@ -31,6 +31,7 @@ public:
 
 public:
 	explicit MapBSPTree( const MapDataConstPtr& map_data );
+	~MapBSPTree();
 
 private:
 	struct BuildSegment

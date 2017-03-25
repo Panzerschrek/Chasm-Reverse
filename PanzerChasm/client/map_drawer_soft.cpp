@@ -7,6 +7,7 @@
 #include "../math_utils.hpp"
 #include "../settings.hpp"
 #include "map_drawers_common.hpp"
+#include "software_renderer/map_bsp_tree.hpp"
 
 #include "map_drawer_soft.hpp"
 
@@ -64,6 +65,8 @@ void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 	current_map_data_= map_data;
 	if( map_data == nullptr )
 		return; // TODO - if map is null - clear resources, etc.
+
+	map_bsp_tree_.reset( new MapBSPTree( map_data ) );
 
 	LoadModelsGroup( map_data->models, map_models_ );
 	LoadWallsTextures( *map_data );

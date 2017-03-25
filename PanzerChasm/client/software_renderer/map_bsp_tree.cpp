@@ -28,9 +28,14 @@ MapBSPTree::MapBSPTree( const MapDataConstPtr& map_data )
 	root_node_= BuildTree_r( segments );
 }
 
+MapBSPTree::~MapBSPTree()
+{
+}
+
 unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 {
-	// constexpr unsigned int c_min_walls_for_check= 16u;
+	PC_ASSERT( !build_segments.empty() );
+
 	const float c_plane_dist_eps= 1.0f / 256.0f;
 
 	int best_score= std::numeric_limits<int>::max();
@@ -50,10 +55,7 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 		plane.normal/= std::sqrt( segment_square_length );
 		plane.dist= -( splitter_segment.vert_pos[0] * plane.normal );
 
-		int on_plane_count= 0;
-		int splitted_count= 0;
-		int front_count= 0;
-		int back_count= 0;
+		int on_plane_count= 0, splitted_count= 0, front_count= 0, back_count= 0;
 		for( const BuildSegment& segment : build_segments )
 		{
 			// Force mark splitter as wall on plane. Reduce calculation errors.
@@ -65,12 +67,20 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 
 			float dist0= plane.GetSignedDistance( segment.vert_pos[0] );
 			float dist1= plane.GetSignedDistance( segment.vert_pos[1] );
-			if( dist0 > c_plane_dist_eps && dist1 > c_plane_dist_eps )
-				front_count++;
-			else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps )
-				back_count++;
-			else if( std::abs(dist0) <= c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps )
+			if( std::abs(dist0) <= c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) // Fully on plane.
 				on_plane_count++;
+			else if( dist0 > +c_plane_dist_eps && dist1 > +c_plane_dist_eps ) // Fully front.
+				front_count++;
+			else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps ) // Fully back.
+				back_count++;
+			else if( dist0 > +c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) // Point on plane + front.
+				front_count++;
+			else if( dist1 > +c_plane_dist_eps && std::abs(dist0) <= c_plane_dist_eps ) // Point on plane + front.
+				front_count++;
+			else if( dist0 < -c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) // Point on plane +  back.
+				 back_count++;
+			else if( dist1 < -c_plane_dist_eps && std::abs(dist0) <= c_plane_dist_eps ) // Point on plane +  back.
+				 back_count++;
 			else
 				splitted_count++;
 		}
@@ -85,7 +95,11 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 		}
 	} // fo splitter candidates.
 
-	PC_ASSERT( best_splitter_segment != nullptr );
+	if( best_splitter_segment == nullptr )
+	{
+		PC_ASSERT( false );
+		return c_null_node;
+	}
 
 	m_Plane2 splitter_plane;
 	splitter_plane.normal.x= best_splitter_segment->vert_pos[1].y - best_splitter_segment->vert_pos[0].y;
@@ -100,6 +114,7 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 	Node* node= &nodes_[node_number]; // Pointer is valid before recursive calls.
 	node->first_segment= segments_.size();
 	node->segment_count= 0u;
+	node->plane= splitter_plane;
 
 	// Split input segments.
 	BuildSegments front_segments;
@@ -136,9 +151,17 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 			}
 			node->segment_count++;
 		}
-		else if( dist0 > +c_plane_dist_eps && dist1 > +c_plane_dist_eps )
+		else if( dist0 > +c_plane_dist_eps && dist1 > +c_plane_dist_eps ) // Fully front.
 			front_segments.push_back( segment );
-		else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps )
+		else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps ) // Fully  back.
+			 back_segments.push_back( segment );
+		else if( dist0 > +c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) // Point on plane + front.
+			front_segments.push_back( segment );
+		else if( dist1 > +c_plane_dist_eps && std::abs(dist0) <= c_plane_dist_eps ) // Point on plane + front.
+			front_segments.push_back( segment );
+		else if( dist0 < -c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) // Point on plane +  back.
+			 back_segments.push_back( segment );
+		else if( dist1 < -c_plane_dist_eps && std::abs(dist0) <= c_plane_dist_eps ) // Point on plane +  back.
 			 back_segments.push_back( segment );
 		else
 		{
@@ -149,7 +172,7 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 			new_front_segment.wall_index= new_back_segment.wall_index= segment.wall_index;
 
 			// Splitted segment.
-			if( dist0 > 0.0f && dist1 < 0.0f )
+			if( dist0 > dist1 )
 			{
 				const float dist_sum= dist0 - dist1;
 				const float k0=   dist0  / dist_sum;
@@ -168,7 +191,7 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 			{
 				const float dist_sum= dist1 - dist0;
 				const float k0= (-dist0) / dist_sum;
-				const float k1=   dist1 / dist_sum;
+				const float k1=   dist1  / dist_sum;
 				PC_ASSERT( dist_sum >= 0.0f );
 				PC_ASSERT( k0 >= 0.0f );
 				PC_ASSERT( k1 >= 0.0f );
