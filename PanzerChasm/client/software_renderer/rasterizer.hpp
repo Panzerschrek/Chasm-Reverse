@@ -69,6 +69,7 @@ public:
 		fixed16_t z_min, fixed16_t z_max ) const;
 
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
+	void DebugDrawOcclusionBuffer( unsigned int tick_count );
 
 	void SetTexture(
 		unsigned int size_x,

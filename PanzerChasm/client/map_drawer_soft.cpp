@@ -233,6 +233,8 @@ void MapDrawerSoft::Draw(
 
 	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
 		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
+	if( settings_.GetOrSetBool( "r_debug_draw_occlusion_buffer", false ) )
+		rasterizer_.DebugDrawOcclusionBuffer( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 32u );
 }
 
 void MapDrawerSoft::DrawWeapon(

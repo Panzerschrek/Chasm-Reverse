@@ -292,6 +292,19 @@ void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
 	}
 }
 
+void Rasterizer::DebugDrawOcclusionBuffer( unsigned int tick_count )
+{
+	const bool draw= (tick_count&1u) != 0u;
+	if( !draw ) return;
+
+	for( int y= 0u; y < viewport_size_y_; y++ )
+	for( int x= 0u; x < viewport_size_x_; x++ )
+		color_buffer_[ x + y * row_size_ ]=
+			( occlusion_buffer_[ (x>>3) + y * occlusion_buffer_width_ ] & (1<<(x&7)) ) == 0u
+				? 0x00000000u
+				: 0xFFFFFFFFu;
+}
+
 void Rasterizer::SetTexture(
 	const unsigned int size_x,
 	const unsigned int size_y,
