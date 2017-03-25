@@ -398,6 +398,7 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
+template< bool is_dynamic_wall >
 void MapDrawerSoft::DrawWallSegment(
 	const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, const float z,
 	const float tc_0, const float tc_1, const unsigned int texture_id,
@@ -484,10 +485,20 @@ void MapDrawerSoft::DrawWallSegment(
 		traingle_vertices[1]= verties_projected[ i + 1u ];
 		traingle_vertices[2]= verties_projected[ i + 2u ];
 
-		rasterizer_.DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		// Draw static walls with occlusion test only, because they are sorted from near to far via bsp-tree.
+		// But, dynamic walls not sorted, so, draw they width depth test.
+		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
+
+		if( is_dynamic_wall )
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
+		else
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 	}
 }
 
@@ -503,7 +514,7 @@ void MapDrawerSoft::DrawWalls(
 		[&]( const MapBSPTree::WallSegment& segment )
 		{
 			const MapData::Wall& wall= current_map_data_->static_walls[ segment.wall_index ];
-			DrawWallSegment(
+			DrawWallSegment<false>(
 				segment.vert_pos[0], segment.vert_pos[1], 0.0f,
 				0.0f, 1.0f, wall.texture_id,
 				matrix, camera_position_xy, view_clip_planes );
@@ -513,7 +524,7 @@ void MapDrawerSoft::DrawWalls(
 	// TODO - maybe, we can dynamically add dynamic walls to BSP-tree?
 	for( const MapState::DynamicWall& wall : map_state.GetDynamicWalls() )
 	{
-		DrawWallSegment(
+		DrawWallSegment<true>(
 			wall.vert_pos[0], wall.vert_pos[1], wall.z,
 			0.0f, 1.0f, wall.texture_id,
 			matrix, camera_position_xy, view_clip_planes );

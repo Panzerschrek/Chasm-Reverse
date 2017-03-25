@@ -98,6 +98,7 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
+	template< bool is_dynamic_wall >
 	void DrawWallSegment(
 		const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, float z,
 		float tc_0, float tc_1, unsigned int texture_id,
