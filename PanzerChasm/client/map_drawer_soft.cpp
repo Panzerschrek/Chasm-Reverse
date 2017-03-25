@@ -63,6 +63,9 @@ MapDrawerSoft::~MapDrawerSoft()
 
 void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 {
+	if( map_data == current_map_data_ )
+		return;
+
 	current_map_data_= map_data;
 	if( map_data == nullptr )
 		return; // TODO - if map is null - clear resources, etc.
