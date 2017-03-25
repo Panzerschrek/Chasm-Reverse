@@ -3,6 +3,7 @@
 #include "../map_loader.hpp"
 #include "../model.hpp"
 #include "../rendering_context.hpp"
+#include "fwd.hpp"
 #include "i_map_drawer.hpp"
 #include "software_renderer/rasterizer.hpp"
 
@@ -97,8 +98,12 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
-	template<class WallsContainer>
-	void DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+	void DrawWallSegment(
+		const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, float z,
+		float tc_0, float tc_1, unsigned int texture_id,
+		const m_Mat4& matrix,
+		const m_Vec2& camera_position_xy,
+		const ViewClipPlanes& view_clip_planes );
 
 	void DrawWalls( const MapState& map_state, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
 	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );
@@ -153,6 +158,7 @@ private:
 	Rasterizer rasterizer_;
 
 	MapDataConstPtr current_map_data_;
+	std::unique_ptr<MapBSPTree> map_bsp_tree_;
 
 	ModelsGroup map_models_;
 	ModelsGroup items_models_;

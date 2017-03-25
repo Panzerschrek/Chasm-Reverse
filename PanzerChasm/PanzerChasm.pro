@@ -41,6 +41,7 @@ SOURCES+= \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
+	client/software_renderer/map_bsp_tree.cpp \
 	client/software_renderer/rasterizer.cpp \
 	client/weapon_state.cpp \
 	commands_processor.cpp \
@@ -114,6 +115,8 @@ HEADERS+= \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
 	client/software_renderer/fixed.hpp \
+	client/software_renderer/map_bsp_tree.hpp \
+	client/software_renderer/map_bsp_tree.inl \
 	client/software_renderer/rasterizer.hpp \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
