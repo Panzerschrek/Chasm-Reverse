@@ -132,23 +132,30 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 			segments_.emplace_back();
 			WallSegment& out_segment= segments_.back();
 			out_segment.wall_index= segment.wall_index;
+			out_segment.vert_pos[0]= segment.vert_pos[0];
+			out_segment.vert_pos[1]= segment.vert_pos[1];
 
 			PC_ASSERT( segment.wall_index < map_data_->static_walls.size() );
 			const MapData::Wall& wall= map_data_->static_walls[ segment.wall_index ];
 			const float wall_length= ( wall.vert_pos[1] - wall.vert_pos[0] ).Length();
+
+			// TODO - check this.
 			if( wall_length > 0.0f )
 			{
-				// TODO - check this.
 				out_segment.start= ( segment.vert_pos[0] - wall.vert_pos[0] ).Length() / wall_length;
 				out_segment.end  = ( segment.vert_pos[1] - wall.vert_pos[0] ).Length() / wall_length;
-				if( out_segment.start > out_segment.end )
-					std::swap( out_segment.start, out_segment.end );
 			}
 			else
 			{
 				out_segment.start= 0.0f;
 				out_segment.end= 1.0f;
 			}
+			if( out_segment.start > out_segment.end )
+			{
+				std::swap( out_segment.start, out_segment.end );
+				std::swap( out_segment.vert_pos[0], out_segment.vert_pos[1] );
+			}
+
 			node->segment_count++;
 		}
 		else if( dist0 > +c_plane_dist_eps && dist1 > +c_plane_dist_eps ) // Fully front.
@@ -197,10 +204,10 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 				PC_ASSERT( k1 >= 0.0f );
 
 				const m_Vec2 middle_point= k0 * segment.vert_pos[1] + k1 * segment.vert_pos[0];
-				new_front_segment.vert_pos[0]= segment.vert_pos[1];
-				new_front_segment.vert_pos[1]= middle_point;
-				 new_back_segment.vert_pos[0]= middle_point;
-				 new_back_segment.vert_pos[1]= segment.vert_pos[0];
+				new_front_segment.vert_pos[0]= middle_point;
+				new_front_segment.vert_pos[1]= segment.vert_pos[1];
+				 new_back_segment.vert_pos[0]= segment.vert_pos[0];
+				 new_back_segment.vert_pos[1]= middle_point;
 			}
 		} // if segment is splitted.
 	} // for segments

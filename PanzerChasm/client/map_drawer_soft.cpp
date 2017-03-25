@@ -8,6 +8,7 @@
 #include "../settings.hpp"
 #include "map_drawers_common.hpp"
 #include "software_renderer/map_bsp_tree.hpp"
+#include "software_renderer/map_bsp_tree.inl"
 
 #include "map_drawer_soft.hpp"
 
@@ -118,6 +119,7 @@ void MapDrawerSoft::Draw(
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
 	DrawWalls( map_state, cam_mat, camera_position.xy(), view_clip_planes );
+
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
 	rasterizer_.BuildDepthBufferHierarchy();
 
@@ -388,87 +390,92 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
-template<class WallsContainer>
-void MapDrawerSoft::DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes )
+void MapDrawerSoft::DrawWallSegment(
+	const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, const float z,
+	const float tc_0, const float tc_1, const unsigned int texture_id,
+	const m_Mat4& matrix,
+	const m_Vec2& camera_position_xy,
+	const ViewClipPlanes& view_clip_planes )
 {
-	for( const auto& wall : walls )
+	// TODO - use texture coordinates.
+	// Warp it, if needed.
+	PC_UNUSED( tc_0 );
+	PC_UNUSED( tc_1 );
+
+	PC_ASSERT( texture_id < MapData::c_max_walls_textures );
+	const WallTexture& texture= wall_textures_[ texture_id ];
+	if( texture.size[0] == 0u || texture.size[1] == 0u )
+		return;
+	if( texture.full_alpha_row[0] == texture.full_alpha_row[1] )
+		return;
+
+	// Discard back faces.
+	if( texture_id < MapData::c_first_transparent_texture_id &&
+		mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f )
+		return;
+
+	const float z_bottom_top[]=
 	{
-		PC_ASSERT( wall.texture_id < MapData::c_max_walls_textures );
+		z + GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
+		z + GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
+	};
 
-		const WallTexture& texture= wall_textures_[ wall.texture_id ];
-		if( texture.size[0] == 0u || texture.size[1] == 0u )
-			continue;
-		if( texture.full_alpha_row[0] == texture.full_alpha_row[1] )
-			continue;
+	clipped_vertices_[0].pos= m_Vec3( vert_pos0, z_bottom_top[0] );
+	clipped_vertices_[1].pos= m_Vec3( vert_pos0, z_bottom_top[1] );
+	clipped_vertices_[2].pos= m_Vec3( vert_pos1, z_bottom_top[1] );
+	clipped_vertices_[3].pos= m_Vec3( vert_pos1, z_bottom_top[0] );
+	clipped_vertices_[0].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
+	clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
+	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[0].next= &clipped_vertices_[1];
+	clipped_vertices_[1].next= &clipped_vertices_[2];
+	clipped_vertices_[2].next= &clipped_vertices_[3];
+	clipped_vertices_[3].next= &clipped_vertices_[0];
+	fisrt_clipped_vertex_= &clipped_vertices_[0];
+	next_new_clipped_vertex_= 4u;
 
-		// Discard back faces.
-		if( wall.texture_id < MapData::c_first_transparent_texture_id &&
-			mVec2Cross( camera_position_xy - wall.vert_pos[0], wall.vert_pos[1] - wall.vert_pos[0] ) > 0.0f )
-			continue;
-
-		const float z_bottom_top[]=
-		{
-			GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
-			GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
-		};
-
-		clipped_vertices_[0].pos= m_Vec3( wall.vert_pos[0], z_bottom_top[0] );
-		clipped_vertices_[1].pos= m_Vec3( wall.vert_pos[0], z_bottom_top[1] );
-		clipped_vertices_[2].pos= m_Vec3( wall.vert_pos[1], z_bottom_top[1] );
-		clipped_vertices_[3].pos= m_Vec3( wall.vert_pos[1], z_bottom_top[0] );
-		clipped_vertices_[0].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[0] << 16u ) );
-		clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
-		clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
-		clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[0] << 16u ) );
-		clipped_vertices_[0].next= &clipped_vertices_[1];
-		clipped_vertices_[1].next= &clipped_vertices_[2];
-		clipped_vertices_[2].next= &clipped_vertices_[3];
-		clipped_vertices_[3].next= &clipped_vertices_[0];
-		fisrt_clipped_vertex_= &clipped_vertices_[0];
-		next_new_clipped_vertex_= 4u;
-
-		unsigned int polygon_vertex_count= 4u;
-		for( const m_Plane3& plane : view_clip_planes )
-		{
-			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
-			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
-			if( polygon_vertex_count == 0u )
-				break;
-		}
+	unsigned int polygon_vertex_count= 4u;
+	for( const m_Plane3& plane : view_clip_planes )
+	{
+		polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+		PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
 		if( polygon_vertex_count == 0u )
-			continue;
+			break;
+	}
+	if( polygon_vertex_count == 0u )
+		return;
 
-		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
-		ClippedVertex* v= fisrt_clipped_vertex_;
-		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
-		{
-			m_Vec3 vertex_projected= v->pos * matrix;
-			const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
+	RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+	ClippedVertex* v= fisrt_clipped_vertex_;
+	for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+	{
+		m_Vec3 vertex_projected= v->pos * matrix;
+		const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
 
-			vertex_projected/= w;
-			vertex_projected.z= w;
+		vertex_projected/= w;
+		vertex_projected.z= w;
 
-			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
-			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+		vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+		vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
 
-			RasterizerVertex& out_v= verties_projected[ i ];
-			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
-			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
-			out_v.u= fixed16_t( v->tc.x );
-			out_v.v= fixed16_t( v->tc.y );
-			out_v.z= fixed16_t( w * 65536.0f );
-		}
+		RasterizerVertex& out_v= verties_projected[ i ];
+		out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+		out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+		out_v.u= fixed16_t( v->tc.x );
+		out_v.v= fixed16_t( v->tc.y );
+		out_v.z= fixed16_t( w * 65536.0f );
+	}
 
-		rasterizer_.SetTexture( texture.size[0], texture.size[1], texture.data.data() );
+	rasterizer_.SetTexture( texture.size[0], texture.size[1], texture.data.data() );
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
-		}
+	RasterizerVertex traingle_vertices[3];
+	traingle_vertices[0]= verties_projected[0];
+	for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+	{
+		traingle_vertices[1]= verties_projected[ i + 1u ];
+		traingle_vertices[2]= verties_projected[ i + 2u ];
+		rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
 	}
 }
 
@@ -478,8 +485,27 @@ void MapDrawerSoft::DrawWalls(
 	const m_Vec2& camera_position_xy,
 	const ViewClipPlanes& view_clip_planes )
 {
-	DrawWallsImpl( current_map_data_->static_walls, matrix, camera_position_xy, view_clip_planes );
-	DrawWallsImpl( map_state.GetDynamicWalls(), matrix, camera_position_xy, view_clip_planes );
+	// Draw static walls fron to back, using bsp tree.
+	map_bsp_tree_->EnumerateSegmentsFrontToBack(
+		camera_position_xy,
+		[&]( const MapBSPTree::WallSegment& segment )
+		{
+			const MapData::Wall& wall= current_map_data_->static_walls[ segment.wall_index ];
+			DrawWallSegment(
+				segment.vert_pos[0], segment.vert_pos[1], 0.0f,
+				0.0f, 1.0f, wall.texture_id,
+				matrix, camera_position_xy, view_clip_planes );
+		} );
+
+
+	// TODO - maybe, we can dynamically add dynamic walls to BSP-tree?
+	for( const MapState::DynamicWall& wall : map_state.GetDynamicWalls() )
+	{
+		DrawWallSegment(
+			wall.vert_pos[0], wall.vert_pos[1], wall.z,
+			0.0f, 1.0f, wall.texture_id,
+			matrix, camera_position_xy, view_clip_planes );
+	}
 }
 
 void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  )

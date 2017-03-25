@@ -98,8 +98,12 @@ private:
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data);
 
-	template<class WallsContainer>
-	void DrawWallsImpl( const WallsContainer& walls, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
+	void DrawWallSegment(
+		const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, float z,
+		float tc_0, float tc_1, unsigned int texture_id,
+		const m_Mat4& matrix,
+		const m_Vec2& camera_position_xy,
+		const ViewClipPlanes& view_clip_planes );
 
 	void DrawWalls( const MapState& map_state, const m_Mat4& matrix, const m_Vec2& camera_position_xy, const ViewClipPlanes& view_clip_planes );
 	void DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipPlanes& view_clip_planes  );

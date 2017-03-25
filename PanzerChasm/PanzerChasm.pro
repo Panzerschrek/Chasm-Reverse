@@ -116,6 +116,7 @@ HEADERS+= \
 	client/movement_controller.hpp \
 	client/software_renderer/fixed.hpp \
 	client/software_renderer/map_bsp_tree.hpp \
+	client/software_renderer/map_bsp_tree.inl \
 	client/software_renderer/rasterizer.hpp \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
