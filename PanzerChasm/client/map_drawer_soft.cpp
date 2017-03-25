@@ -411,6 +411,8 @@ void MapDrawerSoft::DrawWallSegment(
 	PC_UNUSED( tc_0 );
 	PC_UNUSED( tc_1 );
 
+	PC_ASSERT( z >= 0.0f );
+
 	PC_ASSERT( texture_id < MapData::c_max_walls_textures );
 	const WallTexture& texture= wall_textures_[ texture_id ];
 	if( texture.size[0] == 0u || texture.size[1] == 0u )
@@ -425,18 +427,19 @@ void MapDrawerSoft::DrawWallSegment(
 
 	const float z_bottom_top[]=
 	{
-		z + GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
+		GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
 		z + GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
 	};
+	const float tc_top= float( texture.full_alpha_row[0] << 16u ) + z * ( 65536.0f * float(g_wall_texture_height) / float(GameConstants::walls_height) );
 
 	clipped_vertices_[0].pos= m_Vec3( vert_pos0, z_bottom_top[0] );
 	clipped_vertices_[1].pos= m_Vec3( vert_pos0, z_bottom_top[1] );
 	clipped_vertices_[2].pos= m_Vec3( vert_pos1, z_bottom_top[1] );
 	clipped_vertices_[3].pos= m_Vec3( vert_pos1, z_bottom_top[0] );
-	clipped_vertices_[0].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[0].tc= m_Vec2( 0.0f, tc_top );
 	clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
 	clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
-	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), tc_top );
 	clipped_vertices_[0].next= &clipped_vertices_[1];
 	clipped_vertices_[1].next= &clipped_vertices_[2];
 	clipped_vertices_[2].next= &clipped_vertices_[3];
@@ -493,7 +496,7 @@ void MapDrawerSoft::DrawWallSegment(
 			rasterizer_.DrawTexturedTriangleSpanCorrected<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		else
 			rasterizer_.DrawTexturedTriangleSpanCorrected<
 				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
