@@ -122,9 +122,12 @@ void MapDrawerSoft::Draw(
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
+	// Draw objects front to back with occlusion test.
+	// Occlusion test uses walls, floors/ceilings, sky.
 	DrawWalls( map_state, cam_mat, camera_position.xy(), view_clip_planes );
-
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
+	DrawSky( cam_mat, camera_position, view_clip_planes );
+
 	rasterizer_.BuildDepthBufferHierarchy();
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -224,8 +227,6 @@ void MapDrawerSoft::Draw(
 			rotate_mat,
 			cam_mat );
 	}
-
-	DrawSky( cam_mat, camera_position, view_clip_planes );
 
 	// TRANSPARENT SECTION
 
@@ -885,10 +886,9 @@ void MapDrawerSoft::DrawSky(
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
 			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
 				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
-			//rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
 }
