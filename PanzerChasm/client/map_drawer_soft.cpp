@@ -34,6 +34,26 @@ MapDrawerSoft::MapDrawerSoft(
 	LoadModelsGroup( game_resources_->rockets_models, rockets_models_ );
 	LoadModelsGroup( game_resources_->weapons_models, weapons_models_ );
 	LoadModelsGroup( game_resources_->monsters_models, monsters_models_ );
+
+	// Load effects sprites.
+
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+
+	sprite_effects_textures_.resize( game_resources_->effects_sprites.size() );
+	for( unsigned int i= 0u; i < sprite_effects_textures_.size(); i++ )
+	{
+		const ObjSprite& in_sprite= game_resources_->effects_sprites[i];
+		SpriteTexture& out_sprite_texture= sprite_effects_textures_[i];
+
+		out_sprite_texture.size[0]= in_sprite.size[0];
+		out_sprite_texture.size[1]= in_sprite.size[1];
+		out_sprite_texture.size[2]= in_sprite.frame_count;
+
+		const unsigned int pixel_count= in_sprite.size[0] * in_sprite.size[1] * in_sprite.frame_count;
+		out_sprite_texture.data.resize( pixel_count );
+		for( unsigned int j= 0u; j < pixel_count; j++ )
+			out_sprite_texture.data[j]= palette[in_sprite.data[j]];
+	}
 }
 
 MapDrawerSoft::~MapDrawerSoft()
@@ -196,6 +216,10 @@ void MapDrawerSoft::Draw(
 	}
 
 	DrawSky( cam_mat, camera_position, view_clip_planes );
+
+	// TRANSPARENT SECTION
+
+	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
 	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
 		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
@@ -815,6 +839,104 @@ void MapDrawerSoft::DrawSky(
 			traingle_vertices[2]= verties_projected[ i + 2u ];
 			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
 			//rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+		}
+	}
+}
+
+void MapDrawerSoft::DrawEffectsSprites(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes )
+{
+	SortEffectsSprites( map_state.GetSpriteEffects(), camera_position, sorted_sprites_ );
+
+	for( const MapState::SpriteEffect* const sprite_ptr : sorted_sprites_ )
+	{
+		const MapState::SpriteEffect& sprite= *sprite_ptr;
+
+		const GameResources::SpriteEffectDescription& sprite_description= game_resources_->sprites_effects_description[ sprite.effect_id ];
+		const SpriteTexture& sprite_texture= sprite_effects_textures_[ sprite.effect_id ];
+
+		// TODO - optimize this. Use less matrix multiplications.
+		// TODO - maybe add hierarchical depth-test ?
+
+		const m_Vec3 vec_to_sprite= sprite.pos - camera_position;
+		float sprite_angles[2];
+		VecToAngles( vec_to_sprite, sprite_angles );
+
+		m_Mat4 rotate_z, rotate_x, shift_mat, sprite_mat;
+		rotate_z.RotateZ( sprite_angles[0] - Constants::half_pi );
+		rotate_x.RotateX( sprite_angles[1] );
+		shift_mat.Translate( sprite.pos );
+		sprite_mat= rotate_x * rotate_z * shift_mat;
+
+		const float additional_scale= ( sprite_description.half_size ? 0.5f : 1.0f ) / 128.0f;
+		const float size_x= additional_scale * float(sprite_texture.size[0]);
+		const float size_z= additional_scale * float(sprite_texture.size[1]) ;
+
+		clipped_vertices_[0].pos= m_Vec3( -size_x, 0.0f, -size_z ) * sprite_mat;
+		clipped_vertices_[1].pos= m_Vec3( +size_x, 0.0f, -size_z ) * sprite_mat;
+		clipped_vertices_[2].pos= m_Vec3( +size_x, 0.0f, +size_z ) * sprite_mat;
+		clipped_vertices_[3].pos= m_Vec3( -size_x, 0.0f, +size_z ) * sprite_mat;
+		clipped_vertices_[0].tc= m_Vec2( 0.0f, 0.0f );
+		clipped_vertices_[1].tc= m_Vec2( float(sprite_texture.size[0] << 16), 0.0f );
+		clipped_vertices_[2].tc= m_Vec2( float(sprite_texture.size[0] << 16), float(sprite_texture.size[1] << 16) );
+		clipped_vertices_[3].tc= m_Vec2( 0.0f, float(sprite_texture.size[1] << 16) );
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[3];
+		clipped_vertices_[3].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 4u;
+
+		unsigned int polygon_vertex_count= 4u;
+		for( const m_Plane3& plane : view_clip_planes )
+		{
+			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
+				break;
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * view_matrix;
+			const float w= v->pos.x * view_matrix.value[3] + v->pos.y * view_matrix.value[7] + v->pos.z * view_matrix.value[11] + view_matrix.value[15];
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+
+		const unsigned int frame= static_cast<unsigned int>( sprite.frame ) % sprite_texture.size[2];
+		rasterizer_.SetTexture(
+			sprite_texture.size[0], sprite_texture.size[1],
+			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
+
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			// TODO - maybe use affine texturing for far sprites?
+			// TODO - add lighting, alpha-test, blending.
+
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
 		}
 	}
 }
