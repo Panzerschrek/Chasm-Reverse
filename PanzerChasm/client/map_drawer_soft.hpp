@@ -130,11 +130,6 @@ private:
 		const m_Plane3& clip_plane,
 		unsigned int vertex_count );
 
-	bool BBoxIsOutsideView(
-		const ViewClipPlanes& clip_planes,
-		const m_BBox3& bbox,
-		const m_Mat4& bbox_mat );
-
 private:
 	struct ClippedVertex
 	{

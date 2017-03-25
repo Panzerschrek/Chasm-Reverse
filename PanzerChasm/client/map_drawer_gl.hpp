@@ -105,32 +105,38 @@ private:
 	void DrawModels(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
 	void DrawItems(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
 	void DrawDynamicItems(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
 	void DrawMonsters(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		EntityId player_mosnter_id,
 		bool transparent );
 
 	void DrawMonstersBodyParts(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
 	void DrawRockets(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
 	void DrawBMPObjectsSprites(

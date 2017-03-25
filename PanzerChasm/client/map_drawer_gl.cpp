@@ -423,9 +423,6 @@ void MapDrawerGL::Draw(
 	const ViewClipPlanes& view_clip_planes,
 	const EntityId player_monster_id )
 {
-	// TODO - use clip planes for models clipping.
-	PC_UNUSED( view_clip_planes );
-
 	if( current_map_data_ == nullptr )
 		return;
 
@@ -444,12 +441,12 @@ void MapDrawerGL::Draw(
 	DrawFloors( view_matrix );
 
 	r_OGLStateManager::UpdateState( g_models_gl_state );
-	DrawModels( map_state, view_matrix, false );
-	DrawItems( map_state, view_matrix, false );
-	DrawDynamicItems( map_state, view_matrix, false );
-	DrawMonsters( map_state, view_matrix, player_monster_id, false );
-	DrawMonstersBodyParts( map_state, view_matrix, false );
-	DrawRockets( map_state, view_matrix, false );
+	DrawModels( map_state, view_matrix, view_clip_planes, false );
+	DrawItems( map_state, view_matrix, view_clip_planes, false );
+	DrawDynamicItems( map_state, view_matrix, view_clip_planes, false );
+	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, false );
+	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, false );
+	DrawRockets( map_state, view_matrix, view_clip_planes, false );
 
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
 	DrawSky( view_rotation_and_projection_matrix );
@@ -458,12 +455,12 @@ void MapDrawerGL::Draw(
 	TRANSPARENT SECTION
 	*/
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
-	DrawModels( map_state, view_matrix, true );
-	DrawItems( map_state, view_matrix, true );
-	DrawDynamicItems( map_state, view_matrix, true );
-	DrawMonsters( map_state, view_matrix, player_monster_id, true );
-	DrawMonstersBodyParts( map_state, view_matrix, true );
-	DrawRockets( map_state, view_matrix, true );
+	DrawModels( map_state, view_matrix, view_clip_planes, true );
+	DrawItems( map_state, view_matrix, view_clip_planes, true );
+	DrawDynamicItems( map_state, view_matrix, view_clip_planes, true );
+	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, true );
+	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, true );
+	DrawRockets( map_state, view_matrix, view_clip_planes, true );
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
 	DrawBMPObjectsSprites( map_state, view_matrix, camera_position );
@@ -1303,6 +1300,7 @@ void MapDrawerGL::DrawFloors( const m_Mat4& view_matrix )
 void MapDrawerGL::DrawModels(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const bool transparent )
 {
 	models_geometry_data_.Bind();
@@ -1324,6 +1322,7 @@ void MapDrawerGL::DrawModels(
 			continue;
 
 		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
+		const Model& model= current_map_data_->models[ static_model.model_id ];
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		if( index_count == 0u )
@@ -1338,6 +1337,10 @@ void MapDrawerGL::DrawModels(
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( static_model.angle );
+
+		const m_BBox3& bbox= model.animations_bboxes[ static_model.animation_frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+			continue;
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
@@ -1356,6 +1359,7 @@ void MapDrawerGL::DrawModels(
 void MapDrawerGL::DrawItems(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const bool transparent )
 {
 	items_geometry_data_.Bind();
@@ -1376,6 +1380,7 @@ void MapDrawerGL::DrawItems(
 			continue;
 
 		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
+		const Model& model= game_resources_->items_models[ item.item_id ];
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		if( index_count == 0u )
@@ -1390,6 +1395,10 @@ void MapDrawerGL::DrawItems(
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( item.angle );
+
+		const m_BBox3& bbox= model.animations_bboxes[ item.animation_frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+			continue;
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
@@ -1408,6 +1417,7 @@ void MapDrawerGL::DrawItems(
 void MapDrawerGL::DrawDynamicItems(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const bool transparent )
 {
 	items_geometry_data_.Bind();
@@ -1426,6 +1436,7 @@ void MapDrawerGL::DrawDynamicItems(
 		const MapState::DynamicItem& item= item_value.second;
 
 		const ModelGeometry& model_geometry= items_geometry_[ item.item_type_id ];
+		const Model& model= game_resources_->items_models[ item.item_type_id ];
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		if( index_count == 0u )
@@ -1440,6 +1451,10 @@ void MapDrawerGL::DrawDynamicItems(
 		m_Mat3 lightmap_matrix;
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( item.angle );
+
+		const m_BBox3& bbox= model.animations_bboxes[ item.frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+			continue;
 
 		models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
@@ -1460,6 +1475,7 @@ void MapDrawerGL::DrawDynamicItems(
 void MapDrawerGL::DrawMonsters(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const EntityId player_monster_id,
 	const bool transparent )
 {
@@ -1503,6 +1519,10 @@ void MapDrawerGL::DrawMonsters(
 		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( monster.angle + Constants::half_pi );
 
+		const m_BBox3& bbox= model.animations_bboxes[ frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+			continue;
+
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
@@ -1524,6 +1544,7 @@ void MapDrawerGL::DrawMonsters(
 void MapDrawerGL::DrawMonstersBodyParts(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const bool transparent )
 {
 	monsters_shader_.Bind();
@@ -1560,6 +1581,10 @@ void MapDrawerGL::DrawMonstersBodyParts(
 		CreateModelMatrices( part.pos, part.angle + Constants::half_pi, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( part.angle + Constants::half_pi );
 
+		const m_BBox3& bbox= model.animations_bboxes[ frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+			continue;
+
 		monsters_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		monsters_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
 		monsters_shader_.Uniform( "enabled_groups_mask", int(255) );
@@ -1581,6 +1606,7 @@ void MapDrawerGL::DrawMonstersBodyParts(
 void MapDrawerGL::DrawRockets(
 	const MapState& map_state,
 	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
 	const bool transparent )
 {
 	models_shader_.Bind();
@@ -1601,6 +1627,7 @@ void MapDrawerGL::DrawRockets(
 		PC_ASSERT( rocket.rocket_id < rockets_geometry_.size() );
 
 		const ModelGeometry& model_geometry= rockets_geometry_[ rocket.rocket_id ];
+		const Model& model= game_resources_->rockets_models[ rocket.rocket_id ];
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
 		if( index_count == 0u )
@@ -1625,6 +1652,10 @@ void MapDrawerGL::DrawRockets(
 		lightmap_shift_mat.Translate( rocket.pos.xy() );
 		lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 		lightmap_mat= lightmap_fetch_mat * lightmap_shift_mat * lightmap_scale_mat;
+
+		const m_BBox3& bbox= model.animations_bboxes[ rocket.frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_mat ) )
+			continue;
 
 		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
 		models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
