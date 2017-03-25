@@ -33,11 +33,16 @@ public:
 	explicit MapBSPTree( const MapDataConstPtr& map_data );
 
 private:
-	typedef std::vector<unsigned short> WallsSet;
+	struct BuildSegment
+	{
+		unsigned int wall_index;
+		m_Vec2 vert_pos[2];
+	};
+	typedef std::vector<BuildSegment> BuildSegments;
 
 private:
 	// Returns new node number.
-	unsigned int BuildTree_r( const WallsSet& walls );
+	unsigned int BuildTree_r( const BuildSegments& build_segments );
 
 private:
 	const MapDataConstPtr map_data_;

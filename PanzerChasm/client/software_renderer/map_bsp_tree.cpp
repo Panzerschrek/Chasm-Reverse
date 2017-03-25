@@ -13,57 +13,58 @@ MapBSPTree::MapBSPTree( const MapDataConstPtr& map_data )
 
 	nodes_.emplace_back(); // Dummy node
 
-	WallsSet walls_set;
-	walls_set.resize( map_data_->static_walls.size() );
-	for( unsigned int i= 0u; i < walls_set.size(); i++ )
-		walls_set[i]= i;
+	BuildSegments segments;
+	segments.resize( map_data_->static_walls.size() );
+	for( unsigned int i= 0u; i < segments.size(); i++ )
+	{
+		const MapData::Wall& wall= map_data_->static_walls[i];
+		BuildSegment& segment= segments[i];
+		segment.wall_index= i;
 
-	root_node_= BuildTree_r( walls_set );
+		segment.vert_pos[0]= wall.vert_pos[0];
+		segment.vert_pos[1]= wall.vert_pos[1];
+	}
+
+	root_node_= BuildTree_r( segments );
 }
 
-unsigned int MapBSPTree::BuildTree_r( const WallsSet& walls )
+unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 {
 	// constexpr unsigned int c_min_walls_for_check= 16u;
 	const float c_plane_dist_eps= 1.0f / 256.0f;
 
 	int best_score= std::numeric_limits<int>::max();
-	WallsSet::value_type best_splitter_wall_number= map_data_->static_walls.size();
+	const BuildSegment* best_splitter_segment= nullptr;
 
 	// Select best splitter.
 	// TODO - if we have too much walls - check not all walls, but some percent of random walls.
-	for( const WallsSet::value_type& splitter_wall_number : walls )
+	for( const BuildSegment& splitter_segment : build_segments )
 	{
-		PC_ASSERT( splitter_wall_number < map_data_->static_walls.size() );
-		const MapData::Wall& splitter_wall= map_data_->static_walls[ splitter_wall_number ];
-
 		m_Plane2 plane;
-		plane.normal.x= splitter_wall.vert_pos[1].y - splitter_wall.vert_pos[0].y;
-		plane.normal.y= splitter_wall.vert_pos[0].x - splitter_wall.vert_pos[1].x;
-		const float wall_square_length= plane.normal.SquareLength();
-		if( wall_square_length <= 0.0f )
+		plane.normal.x= splitter_segment.vert_pos[1].y - splitter_segment.vert_pos[0].y;
+		plane.normal.y= splitter_segment.vert_pos[0].x - splitter_segment.vert_pos[1].x;
+		const float segment_square_length= plane.normal.SquareLength();
+		if( segment_square_length <= 0.0f )
 			continue;
 
-		plane.normal/= std::sqrt( wall_square_length );
-		plane.dist= -( splitter_wall.vert_pos[0] * plane.normal );
+		plane.normal/= std::sqrt( segment_square_length );
+		plane.dist= -( splitter_segment.vert_pos[0] * plane.normal );
 
 		int on_plane_count= 0;
 		int splitted_count= 0;
 		int front_count= 0;
 		int back_count= 0;
-		for( const WallsSet::value_type& wall_number : walls )
+		for( const BuildSegment& segment : build_segments )
 		{
-			PC_ASSERT( wall_number < map_data_->static_walls.size() );
-			const MapData::Wall& wall= map_data_->static_walls[ wall_number ];
-
 			// Force mark splitter as wall on plane. Reduce calculation errors.
-			if( wall_number == splitter_wall_number )
+			if( &segment == &splitter_segment )
 			{
 				on_plane_count++;
 				continue;
 			}
 
-			float dist0= plane.GetSignedDistance( wall.vert_pos[0] );
-			float dist1= plane.GetSignedDistance( wall.vert_pos[1] );
+			float dist0= plane.GetSignedDistance( segment.vert_pos[0] );
+			float dist1= plane.GetSignedDistance( segment.vert_pos[1] );
 			if( dist0 > c_plane_dist_eps && dist1 > c_plane_dist_eps )
 				front_count++;
 			else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps )
@@ -80,51 +81,113 @@ unsigned int MapBSPTree::BuildTree_r( const WallsSet& walls )
 		if( score < best_score )
 		{
 			best_score= score;
-			best_splitter_wall_number= splitter_wall_number;
+			best_splitter_segment= &splitter_segment;
 		}
 	} // fo splitter candidates.
 
-	PC_ASSERT( best_splitter_wall_number < map_data_->static_walls.size() );
-	const MapData::Wall& splitter_wall= map_data_->static_walls[ best_splitter_wall_number ];
+	PC_ASSERT( best_splitter_segment != nullptr );
 
 	m_Plane2 splitter_plane;
-	splitter_plane.normal.x= splitter_wall.vert_pos[1].y - splitter_wall.vert_pos[0].y;
-	splitter_plane.normal.y= splitter_wall.vert_pos[0].x - splitter_wall.vert_pos[1].x;
-	const float splitter_wall_square_length= splitter_plane.normal.SquareLength();
-	PC_ASSERT( splitter_wall_square_length > 0.0f );
-	splitter_plane.normal/= std::sqrt( splitter_wall_square_length );
-	splitter_plane.dist= -( splitter_wall.vert_pos[0] * splitter_plane.normal );
+	splitter_plane.normal.x= best_splitter_segment->vert_pos[1].y - best_splitter_segment->vert_pos[0].y;
+	splitter_plane.normal.y= best_splitter_segment->vert_pos[0].x - best_splitter_segment->vert_pos[1].x;
+	const float splitter_segment_square_length= splitter_plane.normal.SquareLength();
+	PC_ASSERT( splitter_segment_square_length > 0.0f );
+	splitter_plane.normal/= std::sqrt( splitter_segment_square_length );
+	splitter_plane.dist= -( best_splitter_segment->vert_pos[0] * splitter_plane.normal );
 
 	const unsigned int node_number= nodes_.size();
 	nodes_.emplace_back();
-	Node& node= nodes_.back(); // Reference is valid before recursive calls.
+	Node* node= &nodes_[node_number]; // Pointer is valid before recursive calls.
+	node->first_segment= segments_.size();
+	node->segment_count= 0u;
 
-	// Split walls.
-	for( const WallsSet::value_type& wall_number : walls )
+	// Split input segments.
+	BuildSegments front_segments;
+	BuildSegments  back_segments;
+
+	for( const BuildSegment& segment : build_segments )
 	{
-		PC_ASSERT( wall_number < map_data_->static_walls.size() );
-		const MapData::Wall& wall= map_data_->static_walls[ wall_number ];
-
-		float dist0= splitter_plane.GetSignedDistance( wall.vert_pos[0] );
-		float dist1= splitter_plane.GetSignedDistance( wall.vert_pos[1] );
-		if( wall_number == splitter_wall_number ||
-			std::abs(dist0) <= c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps)
+		float dist0= splitter_plane.GetSignedDistance( segment.vert_pos[0] );
+		float dist1= splitter_plane.GetSignedDistance( segment.vert_pos[1] );
+		if( &segment == best_splitter_segment ||
+			( std::abs(dist0) <= c_plane_dist_eps && std::abs(dist1) <= c_plane_dist_eps ) )
 		{
 			// On plane
+			// Generate result segment.
+			segments_.emplace_back();
+			WallSegment& out_segment= segments_.back();
+			out_segment.wall_index= segment.wall_index;
+
+			PC_ASSERT( segment.wall_index < map_data_->static_walls.size() );
+			const MapData::Wall& wall= map_data_->static_walls[ segment.wall_index ];
+			const float wall_length= ( wall.vert_pos[1] - wall.vert_pos[0] ).Length();
+			if( wall_length > 0.0f )
+			{
+				// TODO - check this.
+				out_segment.start= ( segment.vert_pos[0] - wall.vert_pos[0] ).Length() / wall_length;
+				out_segment.end  = ( segment.vert_pos[1] - wall.vert_pos[0] ).Length() / wall_length;
+				if( out_segment.start > out_segment.end )
+					std::swap( out_segment.start, out_segment.end );
+			}
+			else
+			{
+				out_segment.start= 0.0f;
+				out_segment.end= 1.0f;
+			}
+			node->segment_count++;
 		}
-		else if( dist0 > c_plane_dist_eps && dist1 > c_plane_dist_eps )
-		{
-			// Front
-		}
+		else if( dist0 > +c_plane_dist_eps && dist1 > +c_plane_dist_eps )
+			front_segments.push_back( segment );
 		else if( dist0 < -c_plane_dist_eps && dist1 < -c_plane_dist_eps )
-		{
-			// Back
-		}
+			 back_segments.push_back( segment );
 		else
 		{
-			// splitted
-		}
-	}
+			front_segments.emplace_back();
+			 back_segments.emplace_back();
+			BuildSegment& new_front_segment= front_segments.back();
+			BuildSegment&  new_back_segment=  back_segments.back();
+			new_front_segment.wall_index= new_back_segment.wall_index= segment.wall_index;
+
+			// Splitted segment.
+			if( dist0 > 0.0f && dist1 < 0.0f )
+			{
+				const float dist_sum= dist0 - dist1;
+				const float k0=   dist0  / dist_sum;
+				const float k1= (-dist1) / dist_sum;
+				PC_ASSERT( dist_sum >= 0.0f );
+				PC_ASSERT( k0 >= 0.0f );
+				PC_ASSERT( k1 >= 0.0f );
+
+				const m_Vec2 middle_point= k0 * segment.vert_pos[1] + k1 * segment.vert_pos[0];
+				new_front_segment.vert_pos[0]= segment.vert_pos[0];
+				new_front_segment.vert_pos[1]= middle_point;
+				 new_back_segment.vert_pos[0]= middle_point;
+				 new_back_segment.vert_pos[1]= segment.vert_pos[1];
+			}
+			else
+			{
+				const float dist_sum= dist1 - dist0;
+				const float k0= (-dist0) / dist_sum;
+				const float k1=   dist1 / dist_sum;
+				PC_ASSERT( dist_sum >= 0.0f );
+				PC_ASSERT( k0 >= 0.0f );
+				PC_ASSERT( k1 >= 0.0f );
+
+				const m_Vec2 middle_point= k0 * segment.vert_pos[1] + k1 * segment.vert_pos[0];
+				new_front_segment.vert_pos[0]= segment.vert_pos[1];
+				new_front_segment.vert_pos[1]= middle_point;
+				 new_back_segment.vert_pos[0]= middle_point;
+				 new_back_segment.vert_pos[1]= segment.vert_pos[0];
+			}
+		} // if segment is splitted.
+	} // for segments
+
+	const unsigned int node_front= front_segments.empty() ? c_null_node : BuildTree_r( front_segments );
+	const unsigned int node_back =  back_segments.empty() ? c_null_node : BuildTree_r(  back_segments );
+
+	node= &nodes_[node_number]; // Update pointer after recursive calls.
+	node->node_front= node_front;
+	node->node_back= node_back;
 
 	return node_number;
 }
