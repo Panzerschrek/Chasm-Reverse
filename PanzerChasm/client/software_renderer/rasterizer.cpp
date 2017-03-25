@@ -26,7 +26,6 @@ Rasterizer::Rasterizer(
 		const unsigned int hierarchy_cell_size= c_first_depth_hierarchy_level_size << i;
 		depth_buffer_hierarchy_[i].width = ( depth_buffer_width_ + ( hierarchy_cell_size - 1u ) ) / hierarchy_cell_size;
 		depth_buffer_hierarchy_[i].height= (    viewport_size_y_ + ( hierarchy_cell_size - 1u ) ) / hierarchy_cell_size;
-		depth_buffer_hierarchy_[i].width= ( depth_buffer_hierarchy_[i].width + 1u ) & (~1u);
 
 		memory_for_depth_required+= depth_buffer_hierarchy_[i].width * depth_buffer_hierarchy_[i].height;
 	}
@@ -60,7 +59,7 @@ void Rasterizer::BuildDepthBufferHierarchy()
 	const unsigned int first_level_size_truncated_x= static_cast<unsigned int>( viewport_size_x_ ) / c_first_depth_hierarchy_level_size;
 	const unsigned int first_level_size_truncated_y= static_cast<unsigned int>( viewport_size_y_ ) / c_first_depth_hierarchy_level_size;
 	const unsigned int first_level_x_left= static_cast<unsigned int>( viewport_size_x_ ) % c_first_depth_hierarchy_level_size;
-	//const unsigned int first_level_y_left= static_cast<unsigned int>( viewport_size_y_ ) % c_first_depth_hierarchy_level_size;
+	const unsigned int first_level_y_left= static_cast<unsigned int>( viewport_size_y_ ) % c_first_depth_hierarchy_level_size;
 
 	for( unsigned int y= 0u; y < first_level_size_truncated_y; y++ )
 	{
@@ -79,18 +78,52 @@ void Rasterizer::BuildDepthBufferHierarchy()
 			dst[x]= min_depth;
 		}
 
+		// Last partial column.
 		if( first_level_x_left > 0u )
 		{
-			const unsigned int last_x= first_level_size_truncated_x;
+			const unsigned int x= first_level_size_truncated_x;
 
 			unsigned short min_depth= 0xFFFFu;
 			for( unsigned int dy= 0u; dy < c_first_depth_hierarchy_level_size; dy++ )
 			for( unsigned int dx= 0u; dx < first_level_x_left; dx++ )
-				min_depth= std::min( min_depth, src[dy][ last_x * c_first_depth_hierarchy_level_size + dx] );
-			dst[ last_x ]= min_depth;
+				min_depth= std::min( min_depth, src[dy][ x * c_first_depth_hierarchy_level_size + dx ] );
+			dst[x]= min_depth;
 		}
 	}
-	// TODO - calculate last row
+
+	// Last partial row.
+	if( first_level_y_left > 0u )
+	{
+		const unsigned int y= first_level_size_truncated_y;
+		PC_ASSERT( y == depth_buffer_hierarchy_[0].height - 1u );
+
+		const unsigned short* src[ c_first_depth_hierarchy_level_size ];
+		for( unsigned int i= 0u; i < first_level_y_left; i++ )
+			src[i]= depth_buffer_ + ( y * c_first_depth_hierarchy_level_size + i ) * static_cast<unsigned int>(depth_buffer_width_);
+
+		unsigned short* const dst= depth_buffer_hierarchy_[0].data + y * depth_buffer_hierarchy_[0].width;
+
+		for( unsigned int x= 0u; x < first_level_size_truncated_x; x++ )
+		{
+			unsigned short min_depth= 0xFFFFu;
+			for( unsigned int dy= 0u; dy < first_level_y_left; dy++ )
+			for( unsigned int dx= 0u; dx < c_first_depth_hierarchy_level_size; dx++ )
+				min_depth= std::min( min_depth, src[dy][ x * c_first_depth_hierarchy_level_size + dx ] );
+			dst[x]= min_depth;
+		}
+
+		// Last partial column.
+		if( first_level_x_left > 0u )
+		{
+			const unsigned int x= first_level_size_truncated_x;
+
+			unsigned short min_depth= 0xFFFFu;
+			for( unsigned int dy= 0u; dy < first_level_y_left; dy++ )
+			for( unsigned int dx= 0u; dx < first_level_x_left; dx++ )
+				min_depth= std::min( min_depth, src[dy][ x * c_first_depth_hierarchy_level_size + dx ] );
+			dst[x]= min_depth;
+		}
+	}
 
 	// Fill hierarchy levels
 	for( unsigned int i= 1u; i < c_depth_buffer_hierarchy_levels; i++ )
@@ -115,6 +148,7 @@ void Rasterizer::BuildDepthBufferHierarchy()
 						std::min( src[0][x*2u], src[0][x*2u+1u] ),
 						std::min( src[1][x*2u], src[1][x*2u+1u] ) );
 
+			// Last partial column.
 			if( x_left > 0u )
 			{
 				PC_ASSERT( x_left == 1u );
@@ -123,6 +157,7 @@ void Rasterizer::BuildDepthBufferHierarchy()
 			}
 		}
 
+		// Last partial row.
 		if( y_left > 0u )
 		{
 			PC_ASSERT( y_left == 1u );
@@ -134,6 +169,7 @@ void Rasterizer::BuildDepthBufferHierarchy()
 			for( unsigned int x= 0u; x < size_truncated_x; x++ )
 				dst[x]= std::min( src[x*2u], src[x*2u+1u] );
 
+			// Last partial column.
 			if( x_left > 0u )
 			{
 				PC_ASSERT( x_left == 1u );
