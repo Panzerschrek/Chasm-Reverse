@@ -83,6 +83,7 @@ typedef fixed_base_t fixed16_t;
 typedef fixed_base_t fixed8_t;
 
 constexpr fixed16_t g_fixed16_one= FixedOne<16>();
+constexpr fixed16_t g_fixed16_one_minus_eps= g_fixed16_one - 1;
 constexpr fixed16_t g_fixed16_half= FixedHalf<16>();
 
 inline fixed16_t Fixed16Mul( fixed16_t x, fixed16_t y )

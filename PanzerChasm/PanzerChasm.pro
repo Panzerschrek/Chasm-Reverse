@@ -32,6 +32,7 @@ SOURCES+= \
 	client/client.cpp \
 	client/hud_drawer_gl.cpp \
 	client/hud_drawer_soft.cpp \
+	client/map_drawers_common.cpp \
 	client/map_drawer_gl.cpp \
 	client/map_drawer_soft.cpp \
 	client/map_light.cpp \

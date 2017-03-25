@@ -72,6 +72,25 @@ private:
 		std::vector<uint32_t> data;
 	};
 
+	struct SkyTexture
+	{
+		char file_name[32];
+		unsigned int size[2];
+
+		// TODO - add mips support.
+		// TODO - do not store mip0 32bit texture.
+		std::vector<uint32_t> data;
+	};
+
+	struct SpriteTexture
+	{
+		unsigned int size[3]; // Contains several frames
+
+		// TODO - add mips support.
+		// TODO - do not store mip0 32bit texture.
+		std::vector<uint32_t> data;
+	};
+
 private:
 	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
 	void LoadWallsTextures( const MapData& map_data );
@@ -94,6 +113,17 @@ private:
 		const m_Mat4& rotation_matrix,
 		const m_Mat4& view_matrix );
 
+	void DrawSky(
+		const m_Mat4& matrix,
+		const m_Vec3& sky_pos,
+		const ViewClipPlanes& view_clip_planes );
+
+	void DrawEffectsSprites(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes );
+
 	// Returns new vertex count.
 	// clipped_vertices_ used
 	unsigned int ClipPolygon(
@@ -114,6 +144,7 @@ private:
 	};
 
 private:
+	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextSoft rendering_context_;
 	const float screen_transform_x_;
@@ -132,6 +163,12 @@ private:
 	std::vector<FloorCeilingCell> map_floors_and_ceilings_;
 	unsigned int first_floor_= 0u;
 	unsigned int first_ceiling_= 0u;
+
+	std::vector<SpriteTexture> sprite_effects_textures_;
+	SkyTexture sky_texture_;
+
+	// Reuse vector (do not create new vector each frame).
+	std::vector<const MapState::SpriteEffect*> sorted_sprites_;
 
 	// Put large arrays at back.
 

@@ -1,4 +1,4 @@
-#include <algorithm>
+
 #include <cstring>
 
 #include <ogl_state_manager.hpp>
@@ -1710,22 +1710,7 @@ void MapDrawerGL::DrawEffectsSprites(
 	const m_Mat4& view_matrix,
 	const m_Vec3& camera_position )
 {
-
-	// Sort from far to near
-	const MapState::SpriteEffects& sprite_effects= map_state.GetSpriteEffects();
-	sorted_sprites_.resize( sprite_effects.size() );
-	for( unsigned int i= 0u; i < sprite_effects.size(); i++ )
-		sorted_sprites_[i]= & sprite_effects[i];
-
-	std::sort(
-		sorted_sprites_.begin(),
-		sorted_sprites_.end(),
-		[&]( const MapState::SpriteEffect* const a, const MapState::SpriteEffect* const b )
-		{
-			const m_Vec3 dir_a= camera_position - a->pos;
-			const m_Vec3 dir_b= camera_position - b->pos;
-			return dir_a.SquareLength() >= dir_b.SquareLength();
-		});
+	SortEffectsSprites( map_state.GetSpriteEffects(), camera_position, sorted_sprites_ );
 
 	sprites_shader_.Bind();
 
