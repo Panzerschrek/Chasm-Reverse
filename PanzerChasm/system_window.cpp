@@ -256,7 +256,10 @@ windowed:
 
 	if( is_opengl )
 	{
-		SDL_GL_SetSwapInterval(1);
+		if( settings_.GetOrSetBool( "r_gl_vsync", true ) )
+			SDL_GL_SetSwapInterval(1);
+		else
+			SDL_GL_SetSwapInterval(0);
 
 		GetGLFunctions( SDL_GL_GetProcAddress );
 
