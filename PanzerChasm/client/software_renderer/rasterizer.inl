@@ -201,9 +201,21 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 		tc_div_z_left[0]+= tc_div_z_left_step[0], tc_div_z_left[1]+= tc_div_z_left_step[1],
 		inv_z_scaled_left+= inv_z_scaled_left_step )
 	{
-		const int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
-		const int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
+		int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
+		int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
 		if( x_end <= x_start ) continue;
+
+		uint8_t* occlusion_dst= occlusion_buffer_ + y * occlusion_buffer_width_;
+
+		if( occlusion_test == OcclusionTest::Yes )
+		{
+			if( occlusion_dst[ x_start >> 3 ] == 0xFFu ) x_start= (x_start + 7) & (~7);
+			while( x_start < x_end && occlusion_dst[ x_start >> 3 ] == 0xFFu ) x_start+= 8;
+			if( occlusion_dst[ (x_end-1) >> 3 ] == 0xFFu ) x_end&= (~7);
+			while( x_start < x_end && occlusion_dst[ (x_end-1) >> 3 ] == 0xFFu ) x_end-= 8;
+			if( x_end <= x_start ) continue;
+		}
+
 		const int effective_dx= x_end - x_start - 1;
 		const fixed16_t x_cut= ( x_start << 16 ) + g_fixed16_half - x_left;
 
@@ -252,7 +264,6 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 
 		uint32_t* dst= color_buffer_ + y * row_size_;
 		unsigned short* depth_dst= depth_buffer_ + y * depth_buffer_width_;
-		uint8_t* occlusion_dst= occlusion_buffer_ + y * occlusion_buffer_width_;
 
 		for( int x= x_start; x < x_end; x++,
 			line_tc[0]+= line_tc_step[0], line_tc[1]+= line_tc_step[1],
@@ -329,13 +340,24 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 		tc_div_z_left[0]+= tc_div_z_left_step[0], tc_div_z_left[1]+= tc_div_z_left_step[1],
 		inv_z_scaled_left+= inv_z_scaled_left_step )
 	{
-		const int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
-		const int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
+		int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
+		int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );
 		if( x_end <= x_start ) continue;
+
+		uint8_t* occlusion_dst= occlusion_buffer_ + y * occlusion_buffer_width_;
+
+		if( occlusion_test == OcclusionTest::Yes )
+		{
+			if( occlusion_dst[ x_start >> 3 ] == 0xFFu ) x_start= (x_start + 7) & (~7);
+			while( x_start < x_end && occlusion_dst[ x_start >> 3 ] == 0xFFu ) x_start+= 8;
+			if( occlusion_dst[ (x_end-1) >> 3 ] == 0xFFu ) x_end&= (~7);
+			while( x_start < x_end && occlusion_dst[ (x_end-1) >> 3 ] == 0xFFu ) x_end-= 8;
+			if( x_end <= x_start ) continue;
+		}
 
 		uint32_t* dst= color_buffer_ + y * row_size_;
 		unsigned short* depth_dst= depth_buffer_ + y * depth_buffer_width_;
-		uint8_t* occlusion_dst= occlusion_buffer_ + y * occlusion_buffer_width_;
+
 
 		const fixed16_t x_cut= ( x_start << 16 ) + g_fixed16_half - x_left;
 		fixed16_t tc_div_z_current[2], line_inv_z_scaled;
@@ -381,14 +403,14 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 				const int full_x= x_start + x;
 
 				if( occlusion_test == OcclusionTest::Yes &&
-					( occlusion_dst[ full_x >> 3u ] & (1u<<(full_x&7u)) ) != 0u )
+					( occlusion_dst[ full_x >> 3 ] & (1<<(full_x&7)) ) != 0u )
 					continue;
 
 				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
 				if( depth_test == DepthTest::No || depth > depth_dst[ full_x ] )
 				{
 					if( depth_write == DepthWrite::Yes ) depth_dst[ full_x ]= depth;
-					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3u ] |= 1u << (full_x&7u);
+					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3 ] |= 1 << (full_x&7);
 
 					const int u= span_tc[0] >> 16;
 					const int v= span_tc[1] >> 16;
@@ -424,19 +446,28 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
 			if( tc_next[1] > max_valid_tc_v_ ) tc_next[1]= max_valid_tc_v_;
 
-			if( occlusion_test == OcclusionTest::Yes &&
-				*reinterpret_cast<SpanOcclusionType*>(occlusion_dst + span_x / 8u) == c_span_occlusion_value )
+			SpanOcclusionType occlusion_value= 0u;
+			if( occlusion_test == OcclusionTest::Yes || occlusion_write == OcclusionWrite::Yes )
+				occlusion_value= *reinterpret_cast<SpanOcclusionType*>(occlusion_dst + (span_x >> 3) );
+			if( occlusion_test == OcclusionTest::Yes && occlusion_value == c_span_occlusion_value )
+			{
+				line_inv_z_scaled+= line_inv_z_scaled_step_ << c_z_correct_span_size_log2;
 				continue;
+			}
 
 			tc_step[0]= ( tc_next[0] - tc_current[0] ) / c_z_correct_span_size;
 			tc_step[1]= ( tc_next[1] - tc_current[1] ) / c_z_correct_span_size;
 			span_tc[0]= tc_current[0];
 			span_tc[1]= tc_current[1];
 
-			for( int x= 0u; x < c_z_correct_span_size;
+			for( int x= 0; x < c_z_correct_span_size;
 				x++, line_inv_z_scaled+= line_inv_z_scaled_step_,
 				span_tc[0]+= tc_step[0], span_tc[1]+= tc_step[1] )
 			{
+				if( occlusion_test == OcclusionTest::Yes &&
+					( occlusion_value & ( 1 << x ) ) != 0 )
+					continue;
+
 				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
 				if( depth_test == DepthTest::No || depth > depth_dst[ span_x + x ] )
 				{
@@ -451,7 +482,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			} // for span pixels
 
 			if( occlusion_write == OcclusionWrite::Yes )
-				*reinterpret_cast<SpanOcclusionType*>(occlusion_dst + span_x / 8u) = c_span_occlusion_value;
+				*reinterpret_cast<SpanOcclusionType*>( occlusion_dst + (span_x >> 3) ) = c_span_occlusion_value;
 		} // for spans
 
 		if( end_part_dx > 0 && spans_x_start <= spans_x_end )
@@ -478,14 +509,14 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 				span_tc[0]+= tc_step[0], span_tc[1]+= tc_step[1] )
 			{
 				if( occlusion_test == OcclusionTest::Yes &&
-					( occlusion_dst[ x >> 3u ] & (1u<<(x&7u)) ) != 0u )
+					( occlusion_dst[ x >> 3 ] & (1<<(x&7)) ) != 0u )
 					continue;
 
 				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
 				if( depth_test == DepthTest::No || depth > depth_dst[x] )
 				{
 					if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
-					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u);
+					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3 ] |= 1 << (x&7);
 
 					const int u= span_tc[0] >> 16;
 					const int v= span_tc[1] >> 16;
