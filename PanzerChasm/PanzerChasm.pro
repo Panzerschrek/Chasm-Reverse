@@ -24,6 +24,8 @@ CONFIG( debug, debug|release ) {
 	DEFINES+= DEBUG
 }
 
+win32: RC_FILE= PanzerChasm.rc
+
 INCLUDEPATH+= ../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
