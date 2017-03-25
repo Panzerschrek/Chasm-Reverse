@@ -280,7 +280,7 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 			if( depth_test == DepthTest::No || depth > depth_dst[x] )
 			{
 				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
-				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u);
+				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
 
 				const int u= line_tc[0] >> 16;
 				const int v= line_tc[1] >> 16;
@@ -410,7 +410,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 				if( depth_test == DepthTest::No || depth > depth_dst[ full_x ] )
 				{
 					if( depth_write == DepthWrite::Yes ) depth_dst[ full_x ]= depth;
-					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3 ] |= 1 << (full_x&7);
+					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3 ] |= 1 << (full_x&7);  // TODO - maybe set occlusion at end of line processing?
 
 					const int u= span_tc[0] >> 16;
 					const int v= span_tc[1] >> 16;
@@ -481,7 +481,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 				}
 			} // for span pixels
 
-			if( occlusion_write == OcclusionWrite::Yes )
+			if( occlusion_write == OcclusionWrite::Yes ) // TODO - maybe set occlusion at end of line processing?
 				*reinterpret_cast<SpanOcclusionType*>( occlusion_dst + (span_x >> 3) ) = c_span_occlusion_value;
 		} // for spans
 
@@ -516,7 +516,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 				if( depth_test == DepthTest::No || depth > depth_dst[x] )
 				{
 					if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
-					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3 ] |= 1 << (x&7);
+					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3 ] |= 1 << (x&7); // TODO - maybe set occlusion at end of line processing?
 
 					const int u= span_tc[0] >> 16;
 					const int v= span_tc[1] >> 16;
