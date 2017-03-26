@@ -67,6 +67,7 @@ private:
 		unsigned int size[2];
 
 		unsigned char full_alpha_row[2];
+		bool has_alpha; // Except low and bottom rejected rows.
 
 		// TODO - add mips support.
 		// TODO - do not store mip0 32bit texture.

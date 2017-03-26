@@ -275,7 +275,12 @@ void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGro
 		model_entry.texture_data_offset= texture_data_offset;
 
 		for( unsigned int t= 0u; t < in_model.texture_data.size(); t++ )
-			out_group.textures_data[ texture_data_offset + t ]= palette[ in_model.texture_data[t] ];
+		{
+			const unsigned char color_index= in_model.texture_data[t];
+			uint32_t color= palette[ color_index ];
+			if( color_index == 0u ) color&= 0xFFFFFF00u; // For models color #0 is transparent.
+			out_group.textures_data[ texture_data_offset + t ]= color;
+		}
 
 		texture_data_offset+= in_model.texture_data.size();
 	}
@@ -354,6 +359,21 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 				break;
 			}
 		}
+
+		bool has_alpha= false;
+		for( unsigned int y= out_texture.full_alpha_row[0]; y < out_texture.full_alpha_row[1]; y++ )
+		{
+			for( unsigned int x= 0u; x < header.size[0]; x++ )
+			if( src[x + y * header.size[0] ] == 255u )
+			{
+				has_alpha= true;
+				break;
+			}
+
+			if( has_alpha )
+				break;
+		}
+		out_texture.has_alpha= has_alpha;
 	}
 }
 
@@ -494,15 +514,31 @@ void MapDrawerSoft::DrawWallSegment(
 		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
 
 		if( is_dynamic_wall )
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		{
+			if( texture.has_alpha )
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+			else
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		}
 		else
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		{
+			if( texture.has_alpha )
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+			else
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		}
 	}
 }
 
@@ -718,10 +754,17 @@ void MapDrawerSoft::DrawModel(
 			return;
 	}
 
-	Rasterizer::TriangleDrawFunc draw_func=
+	Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
+
+	draw_func=
 		&Rasterizer::DrawTexturedTriangleSpanCorrected<
 			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+	alpha_draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::Yes,
 			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
 
 	if( w_min > 0.0f /* && w_max > 0.0f */ )
@@ -730,10 +773,16 @@ void MapDrawerSoft::DrawModel(
 		const float c_ratio_threshold= 1.2f; // 20 %
 		const float ratio= w_max / w_min;
 		if( ratio < c_ratio_threshold )
+		{
 			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::No,
 				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+			alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+		}
 	}
 
 	const Model& model= models_group_models[ model_id ];
@@ -798,13 +847,16 @@ void MapDrawerSoft::DrawModel(
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
 
+		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
+		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
+
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			(rasterizer_.*draw_func)( traingle_vertices );
+			(rasterizer_.*triangle_func)( traingle_vertices );
 		}
 	} // for model triangles
 }
@@ -1001,13 +1053,13 @@ void MapDrawerSoft::DrawEffectsSprites(
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
 		{
 			// TODO - maybe use affine texturing for far sprites?
-			// TODO - add lighting, alpha-test, blending.
+			// TODO - add lighting, blending.
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
 			rasterizer_.DrawTexturedTriangleSpanCorrected<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
+				Rasterizer::AlphaTest::Yes,
 				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
