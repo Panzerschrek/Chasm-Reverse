@@ -1053,13 +1053,13 @@ void MapDrawerSoft::DrawEffectsSprites(
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
 		{
 			// TODO - maybe use affine texturing for far sprites?
-			// TODO - add lighting, alpha-test, blending.
+			// TODO - add lighting, blending.
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
 			rasterizer_.DrawTexturedTriangleSpanCorrected<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
+				Rasterizer::AlphaTest::Yes,
 				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
