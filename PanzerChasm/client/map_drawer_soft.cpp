@@ -743,19 +743,25 @@ void MapDrawerSoft::DrawModel(
 		if( w < w_min ) w_min= w;
 		if( w > w_max ) w_max= w;
 
-		m_Vec2 vertex_projected= ( point * final_mat ).xy();
-		vertex_projected/= w;
-		const float screen_x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
-		const float screen_y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
-		if( screen_x < x_min ) x_min= screen_x;
-		if( screen_x > x_max ) x_max= screen_x;
-		if( screen_y < y_min ) y_min= screen_y;
-		if( screen_y > y_max ) y_max= screen_y;
+		if( w > 0.0f )
+		{
+			m_Vec2 vertex_projected= ( point * final_mat ).xy();
+			vertex_projected/= w;
+			const float screen_x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			const float screen_y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+			if( screen_x < x_min ) x_min= screen_x;
+			if( screen_x > x_max ) x_max= screen_x;
+			if( screen_y < y_min ) y_min= screen_y;
+			if( screen_y > y_max ) y_max= screen_y;
+		}
 	}
 
-	// Try to reject model, using hierarchical depth-test
-	if( w_min > 0.0f && w_max > 0.0f )
+	// Try to reject model, using hierarchical depth-test.
+	// Model must be not so near for thist test - farther, then z_near.
+	if( w_min > 1.1f / float( 1u << Rasterizer::c_max_inv_z_min_log2 ) )
 	{
+		PC_ASSERT( w_max >= w_min );
+
 		x_min= std::min( std::max( x_min, 0.0f ), screen_transform_x_ * 2.0f );
 		y_min= std::min( std::max( y_min, 0.0f ), screen_transform_y_ * 2.0f );
 		x_max= std::min( std::max( x_max, 0.0f ), screen_transform_x_ * 2.0f );

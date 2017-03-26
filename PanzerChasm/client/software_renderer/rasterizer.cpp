@@ -198,7 +198,10 @@ bool Rasterizer::IsDepthOccluded(
 	fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 	fixed16_t z_min, fixed16_t z_max ) const
 {
+	PC_ASSERT( z_min > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( z_max > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
 	PC_UNUSED( z_max );
+
 	const unsigned short depth= Fixed16Div( g_fixed16_one >> c_max_inv_z_min_log2, z_min );
 
 	PC_ASSERT( x_min <= x_max );
