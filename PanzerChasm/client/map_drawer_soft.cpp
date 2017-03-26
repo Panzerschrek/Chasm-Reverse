@@ -9,6 +9,7 @@
 #include "map_drawers_common.hpp"
 #include "software_renderer/map_bsp_tree.hpp"
 #include "software_renderer/map_bsp_tree.inl"
+#include "software_renderer/rasterizer.inl"
 
 #include "map_drawer_soft.hpp"
 
@@ -115,15 +116,19 @@ void MapDrawerSoft::Draw(
 		return;
 
 	rasterizer_.ClearDepthBuffer();
+	rasterizer_.ClearOcclusionBuffer();
 
 	m_Mat4 cam_shift_mat, cam_mat, screen_flip_mat;
 	cam_shift_mat.Translate( -camera_position );
 	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
 	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
 
+	// Draw objects front to back with occlusion test.
+	// Occlusion test uses walls, floors/ceilings, sky.
 	DrawWalls( map_state, cam_mat, camera_position.xy(), view_clip_planes );
-
 	DrawFloorsAndCeilings( cam_mat, view_clip_planes );
+	DrawSky( cam_mat, camera_position, view_clip_planes );
+
 	rasterizer_.BuildDepthBufferHierarchy();
 
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -224,14 +229,14 @@ void MapDrawerSoft::Draw(
 			cam_mat );
 	}
 
-	DrawSky( cam_mat, camera_position, view_clip_planes );
-
 	// TRANSPARENT SECTION
 
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
 	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
 		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
+	if( settings_.GetOrSetBool( "r_debug_draw_occlusion_buffer", false ) )
+		rasterizer_.DebugDrawOcclusionBuffer( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 32u );
 }
 
 void MapDrawerSoft::DrawWeapon(
@@ -394,6 +399,7 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 	}
 }
 
+template< bool is_dynamic_wall >
 void MapDrawerSoft::DrawWallSegment(
 	const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, const float z,
 	const float tc_0, const float tc_1, const unsigned int texture_id,
@@ -405,6 +411,8 @@ void MapDrawerSoft::DrawWallSegment(
 	// Warp it, if needed.
 	PC_UNUSED( tc_0 );
 	PC_UNUSED( tc_1 );
+
+	PC_ASSERT( z >= 0.0f );
 
 	PC_ASSERT( texture_id < MapData::c_max_walls_textures );
 	const WallTexture& texture= wall_textures_[ texture_id ];
@@ -420,18 +428,19 @@ void MapDrawerSoft::DrawWallSegment(
 
 	const float z_bottom_top[]=
 	{
-		z + GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
+		GameConstants::walls_height - float(texture.full_alpha_row[0]) * ( GameConstants::walls_height / float(g_wall_texture_height) ),
 		z + GameConstants::walls_height - float(texture.full_alpha_row[1]) * ( GameConstants::walls_height / float(g_wall_texture_height) )
 	};
+	const float tc_top= float( texture.full_alpha_row[0] << 16u ) + z * ( 65536.0f * float(g_wall_texture_height) / float(GameConstants::walls_height) );
 
 	clipped_vertices_[0].pos= m_Vec3( vert_pos0, z_bottom_top[0] );
 	clipped_vertices_[1].pos= m_Vec3( vert_pos0, z_bottom_top[1] );
 	clipped_vertices_[2].pos= m_Vec3( vert_pos1, z_bottom_top[1] );
 	clipped_vertices_[3].pos= m_Vec3( vert_pos1, z_bottom_top[0] );
-	clipped_vertices_[0].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[0].tc= m_Vec2( 0.0f, tc_top );
 	clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
 	clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
-	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[0] << 16u ) );
+	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), tc_top );
 	clipped_vertices_[0].next= &clipped_vertices_[1];
 	clipped_vertices_[1].next= &clipped_vertices_[2];
 	clipped_vertices_[2].next= &clipped_vertices_[3];
@@ -479,7 +488,21 @@ void MapDrawerSoft::DrawWallSegment(
 	{
 		traingle_vertices[1]= verties_projected[ i + 1u ];
 		traingle_vertices[2]= verties_projected[ i + 2u ];
-		rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+
+		// Draw static walls with occlusion test only, because they are sorted from near to far via bsp-tree.
+		// But, dynamic walls not sorted, so, draw they width depth test.
+		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
+
+		if( is_dynamic_wall )
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		else
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 	}
 }
 
@@ -495,7 +518,7 @@ void MapDrawerSoft::DrawWalls(
 		[&]( const MapBSPTree::WallSegment& segment )
 		{
 			const MapData::Wall& wall= current_map_data_->static_walls[ segment.wall_index ];
-			DrawWallSegment(
+			DrawWallSegment<false>(
 				segment.vert_pos[0], segment.vert_pos[1], 0.0f,
 				0.0f, 1.0f, wall.texture_id,
 				matrix, camera_position_xy, view_clip_planes );
@@ -505,7 +528,7 @@ void MapDrawerSoft::DrawWalls(
 	// TODO - maybe, we can dynamically add dynamic walls to BSP-tree?
 	for( const MapState::DynamicWall& wall : map_state.GetDynamicWalls() )
 	{
-		DrawWallSegment(
+		DrawWallSegment<true>(
 			wall.vert_pos[0], wall.vert_pos[1], wall.z,
 			0.0f, 1.0f, wall.texture_id,
 			matrix, camera_position_xy, view_clip_planes );
@@ -578,7 +601,10 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTrianglePerLineCorrected( traingle_vertices );
+			rasterizer_.DrawTexturedTrianglePerLineCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		}
 	}
 }
@@ -678,28 +704,36 @@ void MapDrawerSoft::DrawModel(
 		if( screen_y > y_max ) y_max= screen_y;
 	}
 
-	Rasterizer::TriangleDrawFunc draw_func= &Rasterizer::DrawTexturedTriangleSpanCorrected;
-	if( w_min > 0.0f /* && w_max > 0.0f */ )
-	{
-		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
-		const float c_ratio_threshold= 1.2f; // 20 %
-		const float ratio= w_max / w_min;
-		if( ratio < c_ratio_threshold )
-			draw_func= &Rasterizer::DrawAffineTexturedTriangle;
-	}
-
+	// Try to reject model, using hierarchical depth-test
 	if( w_min > 0.0f && w_max > 0.0f )
 	{
 		x_min= std::min( std::max( x_min, 0.0f ), screen_transform_x_ * 2.0f );
 		y_min= std::min( std::max( y_min, 0.0f ), screen_transform_y_ * 2.0f );
 		x_max= std::min( std::max( x_max, 0.0f ), screen_transform_x_ * 2.0f );
 		y_max= std::min( std::max( y_max, 0.0f ), screen_transform_y_ * 2.0f );
-		// Try to reject model, using hierarchical depth-test
 		if( rasterizer_.IsDepthOccluded(
 			fixed16_t(x_min * 65536.0f), fixed16_t(y_min * 65536.0f),
 			fixed16_t(x_max * 65536.0f), fixed16_t(y_max * 65536.0f),
 			fixed16_t(w_min * 65536.0f), fixed16_t(w_max * 65536.0f) ) )
 			return;
+	}
+
+	Rasterizer::TriangleDrawFunc draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+
+	if( w_min > 0.0f /* && w_max > 0.0f */ )
+	{
+		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
+		const float c_ratio_threshold= 1.2f; // 20 %
+		const float ratio= w_max / w_min;
+		if( ratio < c_ratio_threshold )
+			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
 	}
 
 	const Model& model= models_group_models[ model_id ];
@@ -870,8 +904,10 @@ void MapDrawerSoft::DrawSky(
 		{
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
-			//rasterizer_.DrawAffineTexturedTriangle( traingle_vertices );
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
 }
@@ -969,7 +1005,10 @@ void MapDrawerSoft::DrawEffectsSprites(
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected( traingle_vertices );
+			rasterizer_.DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
 		}
 	}
 }
