@@ -27,74 +27,28 @@ static const r_OGLState g_hud_gl_state(
 	false, false, false, false,
 	g_gl_state_blend_func );
 
-static const unsigned int g_hud_line_height= 32u;
-static const unsigned int g_net_hud_line_height= 12u;
-
-constexpr unsigned int g_cross_offset= 4u;
-
-static void GenCrosshairTexture( const Palette& palette, r_Texture& out_texture )
-{
-	constexpr unsigned int c_size[2]= { 17u, 17u };
-	constexpr unsigned int c_center[2]= { c_size[0] / 2u, c_size[1] / 2u };
-	constexpr unsigned char c_start_color_index= 159u;
-
-	unsigned char data_rgba[ 4u * c_size[0] * c_size[1] ]= { 0u };
-
-	const auto set_pixel=
-	[&]( const unsigned int x, const unsigned int y, const unsigned char color_index )
-	{
-		unsigned char* const dst= data_rgba + 4u * ( x + y * c_size[0] );
-		dst[0]= palette[ 3u * color_index + 0u ];
-		dst[1]= palette[ 3u * color_index + 1u ];
-		dst[2]= palette[ 3u * color_index + 2u ];
-		dst[3]= 255u;
-	};
-
-	for( unsigned int i= 0u; i < 4u; i++ )
-	{
-		const unsigned char color_index= c_start_color_index - i;
-		set_pixel( c_center[0], c_center[1] + g_cross_offset + i, color_index );
-		set_pixel( c_center[0], c_center[1] - g_cross_offset - i, color_index );
-		set_pixel( c_center[0] + g_cross_offset + i, c_center[1], color_index );
-		set_pixel( c_center[0] - g_cross_offset - i, c_center[1], color_index );
-	}
-
-	out_texture= r_Texture( r_Texture::PixelFormat::RGBA8, c_size[0], c_size[1], data_rgba );
-	out_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
-}
-
-static unsigned int CalculateHudScale( const Size2& viewport_size )
-{
-	// Status bu must have size 10% of screen height or smaller.
-	const float c_y_relative_statusbar_size= 1.0f / 10.0f;
-
-	float scale_f=
-		std::min(
-			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
-			float( viewport_size.Height() ) / ( float(g_hud_line_height) / c_y_relative_statusbar_size ) );
-
-	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
-}
-
 HudDrawerGL::HudDrawerGL(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContextGL& rendering_context,
 	const SharedDrawersPtr& shared_drawers )
-	: game_resources_(game_resources)
+	: HudDrawerBase( game_resources, shared_drawers )
 	, viewport_size_( rendering_context.viewport_size )
-	, shared_drawers_(shared_drawers)
-	, scale_( CalculateHudScale( rendering_context.viewport_size ) )
 {
-	PC_ASSERT( game_resources_ != nullptr );
-	PC_ASSERT( shared_drawers_ != nullptr );
-
-	std::memset( &player_state_, 0u, sizeof(player_state_) );
-
 	// Textures
-	GenCrosshairTexture( game_resources->palette, crosshair_texture_ );
-	LoadTexture( "WICONS.CEL", 180u, weapon_icons_texture_ );
-	LoadTexture( "BFONT2.CEL", 0u, hud_numbers_texture_ );
-	LoadTexture( "STATUS2.CEL", 0u, hud_background_texture_ );
+	{
+		unsigned int size[2];
+		std::vector<unsigned char> data, data_rgba;
+		CreateCrosshairTexture( size, data );
+		data_rgba.resize( data.size() * 4u );
+		ConvertToRGBA( size[0] * size[1], data.data(), game_resources_->palette, data_rgba.data(), 0u );
+
+		crosshair_texture_= r_Texture( r_Texture::PixelFormat::RGBA8, size[0], size[1], data_rgba.data() );
+		crosshair_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	}
+
+	LoadTexture( c_weapon_icons_image_file_name, 180u, weapon_icons_texture_ );
+	LoadTexture( c_hud_numbers_image_file_name, 0u, hud_numbers_texture_ );
+	LoadTexture( c_hud_background_image_file_name, 0u, hud_background_texture_ );
 
 	{ // Vertex buffer
 		unsigned short  indeces[ g_max_hud_quads * 6u ];
@@ -138,23 +92,6 @@ HudDrawerGL::HudDrawerGL(
 HudDrawerGL::~HudDrawerGL()
 {}
 
-void HudDrawerGL::AddMessage( const MapData::Message& message, const Time current_time )
-{
-	current_message_= message;
-	current_message_time_= current_time;
-}
-
-void HudDrawerGL::ResetMessage()
-{
-	current_message_time_= Time::FromSeconds(0);
-}
-
-void HudDrawerGL::SetPlayerState( const Messages::PlayerState& player_state, const unsigned int current_weapon_number )
-{
-	player_state_= player_state;
-	current_weapon_number_= current_weapon_number;
-}
-
 void HudDrawerGL::DrawCrosshair()
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
@@ -163,7 +100,7 @@ void HudDrawerGL::DrawCrosshair()
 	const Size2 viewport_center( viewport_size_.xy[0] >> 1u, viewport_size_.xy[1] >> 1u );
 
 	// In original game real view center shifted to upper crosshair bar start.
-	const int y_shift= int(scale_) * g_cross_offset;
+	const int y_shift= int(scale_) * c_cross_offset;
 
 	v[0].xy[0]= int( viewport_center.xy[0] - scale_ * crosshair_texture_.Width () / 2u );
 	v[0].xy[1]= int( viewport_center.xy[1] - scale_ * crosshair_texture_.Height() / 2u ) - y_shift;
@@ -211,38 +148,6 @@ void HudDrawerGL::DrawCrosshair()
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void HudDrawerGL::DrawCurrentMessage( const Time current_time )
-{
-	if( current_message_time_.ToSeconds() == 0.0f )
-		return;
-
-	const float time_left= ( current_time - current_message_time_ ).ToSeconds();
-	if( time_left > current_message_.delay_s )
-		return;
-
-	for( const  MapData::Message::Text& text : current_message_.texts )
-	{
-		int x;
-		ITextDrawer::Alignment alignemnt;
-		if( text.x == -1 )
-		{
-			x= shared_drawers_->menu->GetViewportSize().Width() / 2u;
-			alignemnt= ITextDrawer::Alignment::Center;
-		}
-		else
-		{
-			x= text.x * scale_;
-			alignemnt= ITextDrawer::Alignment::Left;
-		}
-
-		shared_drawers_->text->Print(
-			x, text.y * scale_,
-			text.data.c_str(),
-			scale_,
-			ITextDrawer::FontColor::YellowGreen, alignemnt );
-	}
-}
-
 void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_name )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
@@ -253,25 +158,25 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 	const unsigned int hud_x= viewport_size_.Width() / 2u - hud_background_texture_.Width() * scale_ / 2u;
 
 	{ // Hud background
-		const unsigned int tc_y= g_net_hud_line_height + ( draw_second_hud ? g_hud_line_height : 0u );
+		const unsigned int tc_y= c_net_hud_line_height + ( draw_second_hud ? c_hud_line_height : 0u );
 
 		v[0].xy[0]= hud_x;
 		v[0].xy[1]= 0;
 		v[0].tex_coord[0]= 0;
-		v[0].tex_coord[1]= tc_y + g_hud_line_height;
+		v[0].tex_coord[1]= tc_y + c_hud_line_height;
 
 		v[1].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
 		v[1].xy[1]= 0;
 		v[1].tex_coord[0]= hud_background_texture_.Width();
-		v[1].tex_coord[1]= tc_y + g_hud_line_height;
+		v[1].tex_coord[1]= tc_y + c_hud_line_height;
 
 		v[2].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
-		v[2].xy[1]= g_hud_line_height * scale_;
+		v[2].xy[1]= c_hud_line_height * scale_;
 		v[2].tex_coord[0]= hud_background_texture_.Width();
 		v[2].tex_coord[1]= tc_y;
 
 		v[3].xy[0]= hud_x;
-		v[3].xy[1]= g_hud_line_height * scale_;
+		v[3].xy[1]= c_hud_line_height * scale_;
 		v[3].tex_coord[0]= 0;
 		v[3].tex_coord[1]= tc_y;
 		v+= 4u;
@@ -282,14 +187,14 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 	const unsigned int weapon_icon_first_quad= ( v - vertices ) / 4u;
 	if( !draw_second_hud ) // Weapon icon
 	{
-		const int c_border= 1;
+		const int c_border= c_weapon_icon_border;
 		const int border= int(scale_) * c_border;
 		const unsigned int icon_width = weapon_icons_texture_.Width() / 8u;
 		const unsigned int icon_height= weapon_icons_texture_.Height();
 		const unsigned int tc_x= current_weapon_number_ * icon_width;
-		const unsigned int y= 4u * scale_;
+		const unsigned int y= c_weapon_icon_y_offset * scale_;
 
-		const unsigned int icon_x= hud_x + 105u * scale_;
+		const unsigned int icon_x= hud_x + c_weapon_icon_x_offset * scale_;
 
 		v[0].xy[0]= icon_x + border;
 		v[0].xy[1]= y + border;
@@ -323,7 +228,7 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 
 		const unsigned int digit_width = hud_numbers_texture_.Width() / 10u;
 		const unsigned int digit_height= ( hud_numbers_texture_.Height() - 1u ) / 2u;
-		const unsigned int y= ( g_hud_line_height - digit_height ) / 2u * scale_;
+		const unsigned int y= ( c_hud_line_height - digit_height ) / 2u * scale_;
 		const unsigned int tc_y= number >= red_value ? 0u : digit_height + 1u ;
 
 		for( unsigned int d= 0u; d < digit_count; d++ )
@@ -356,12 +261,12 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 
 	const unsigned int numbers_first_quad= ( v - vertices ) / 4u;
 
-	gen_number( hud_x + scale_ * 104u, player_state_.health, 25u );
+	gen_number( hud_x + scale_ * c_health_x_offset, player_state_.health, c_health_red_value );
 	if( !draw_second_hud )
 	{
 		if( current_weapon_number_ != 0u )
-			gen_number( hud_x + scale_ * 205u, player_state_.ammo[ current_weapon_number_ ], 10u );
-		gen_number( hud_x + scale_ * 315u, player_state_.armor, 10u );
+			gen_number( hud_x + scale_ * c_ammo_x_offset, player_state_.ammo[ current_weapon_number_ ], c_ammo_red_value );
+		gen_number( hud_x + scale_ * c_armor_x_offset, player_state_.armor, c_armor_red_value );
 	}
 
 	const unsigned int numbers_quad_count= ( v - vertices ) / 4u - numbers_first_quad;
@@ -400,35 +305,8 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 	draw_quads( weapon_icons_texture_, weapon_icon_first_quad, weapon_icon_quad_count );
 	draw_quads( hud_numbers_texture_, numbers_first_quad, numbers_quad_count );
 
-	// Keys
 	if( draw_second_hud )
-	{
-		const unsigned int c_left_x= 113u;
-		const unsigned int c_right_x= 133u;
-		const unsigned int c_top_y= 28u;
-		const unsigned int c_bottom_y= 14u;
-
-		const unsigned int c_text_x= 150u;
-		const unsigned int c_text_y= 27u;
-
-		if( ( player_state_.keys_mask & 1u ) != 0u )
-			shared_drawers_->text->Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_top_y    * scale_, "\4", scale_ );
-		if( ( player_state_.keys_mask & 2u ) != 0u )
-			shared_drawers_->text->Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_top_y    * scale_, "\5", scale_ );
-		if( ( player_state_.keys_mask & 4u ) != 0u )
-			shared_drawers_->text->Print( hud_x + scale_ * c_left_x , viewport_size_.Height() - c_bottom_y * scale_, "\6", scale_ );
-		if( ( player_state_.keys_mask & 8u ) != 0u )
-			shared_drawers_->text->Print( hud_x + scale_ * c_right_x, viewport_size_.Height() - c_bottom_y * scale_, "\7", scale_ );
-
-		shared_drawers_->text->Print(
-			hud_x + scale_ * c_text_x,
-			viewport_size_.Height() - c_text_y * scale_,
-			"Time: ", scale_ ); // TODO - print time here
-		shared_drawers_->text->Print(
-			hud_x + scale_ * c_text_x,
-			viewport_size_.Height() - c_text_y * scale_ + scale_ * ( 3u + shared_drawers_->text->GetLineHeight() ),
-			map_name, scale_ );
-	}
+		HudDrawerBase::DrawKeysAndStat( hud_x, map_name );
 }
 
 void HudDrawerGL::LoadTexture(

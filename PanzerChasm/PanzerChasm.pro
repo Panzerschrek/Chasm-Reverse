@@ -32,6 +32,7 @@ INCLUDEPATH+= $$SDL_INCLUDES_DIR
 SOURCES+= \
 	client/animations_buffer.cpp \
 	client/client.cpp \
+	client/hud_drawer_base.cpp \
 	client/hud_drawer_gl.cpp \
 	client/hud_drawer_soft.cpp \
 	client/map_drawers_common.cpp \
@@ -106,6 +107,7 @@ HEADERS+= \
 	client/i_hud_drawer.hpp \
 	client/i_map_drawer.hpp \
 	client/i_minimap_drawer.hpp \
+	client/hud_drawer_base.hpp \
 	client/hud_drawer_gl.hpp \
 	client/hud_drawer_soft.hpp \
 	client/map_drawers_common.hpp \
