@@ -404,14 +404,19 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 
 			if( depth_test == DepthTest::No || depth > depth_dst[x] )
 			{
-				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
-				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
-
 				const int u= line_tc[0] >> 16;
 				const int v= line_tc[1] >> 16;
 				PC_ASSERT( u >= 0 && u < texture_size_x_ );
 				PC_ASSERT( v >= 0 && v < texture_size_y_ );
-				dst[x]= texture_data_[ u + v * texture_size_x_ ];
+				const uint32_t tex_value= texture_data_[ u + v * texture_size_x_ ];
+
+				if( alpha_test == AlphaTest::Yes && (tex_value & c_alpha_mask) == 0u )
+					continue;
+
+				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
+				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
+
+				dst[x]= tex_value;
 			}
 		}
 	} // for y
@@ -543,14 +548,19 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 
 			if( depth_test == DepthTest::No || depth > depth_dst[x] )
 			{
-				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
-				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
-
 				const int u= line_tc[0] >> 16;
 				const int v= line_tc[1] >> 16;
 				PC_ASSERT( u >= 0 && u < texture_size_x_ );
 				PC_ASSERT( v >= 0 && v < texture_size_y_ );
-				dst[x]= texture_data_[ u + v * texture_size_x_ ];
+				const uint32_t tex_value= texture_data_[ u + v * texture_size_x_ ];
+
+				if( alpha_test == AlphaTest::Yes && (tex_value & c_alpha_mask) == 0u )
+					continue;
+
+				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
+				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
+
+				dst[x]= tex_value;
 			}
 		}
 	} // for y
@@ -679,7 +689,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					PC_ASSERT( v >= 0 && v < texture_size_y_ );
 					const uint32_t tex_value= texture_data_[ u + v * texture_size_x_ ];
 
-					if( alpha_test == AlphaTest::Yes && (tex_value & 0x000000FFu) == 0u )
+					if( alpha_test == AlphaTest::Yes && (tex_value & c_alpha_mask) == 0u )
 						continue;
 					if( depth_write == DepthWrite::Yes ) depth_dst[ full_x ]= depth;
 					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3 ] |= 1 << (full_x&7);  // TODO - maybe set occlusion at end of line processing?
@@ -745,7 +755,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					PC_ASSERT( v >= 0 && v < texture_size_y_ );
 					const uint32_t tex_value= texture_data_[ u + v * texture_size_x_ ];
 
-					if( alpha_test == AlphaTest::Yes && (tex_value & 0x000000FFu) == 0u )
+					if( alpha_test == AlphaTest::Yes && (tex_value & c_alpha_mask) == 0u )
 						continue;
 					if( depth_write == DepthWrite::Yes ) depth_dst[ span_x + x ]= depth;
 					if( occlusion_write == OcclusionWrite::Yes && alpha_test == AlphaTest::Yes ) occlusion_value|= 1 << x;
@@ -801,7 +811,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					PC_ASSERT( v >= 0 && v < texture_size_y_ );
 					const uint32_t tex_value= texture_data_[ u + v * texture_size_x_ ];
 
-					if( alpha_test == AlphaTest::Yes && (tex_value & 0x000000FFu) == 0u )
+					if( alpha_test == AlphaTest::Yes && (tex_value & c_alpha_mask) == 0u )
 						continue;
 
 					if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;

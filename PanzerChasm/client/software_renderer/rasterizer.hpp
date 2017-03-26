@@ -25,6 +25,8 @@ struct RasterizerVertex : public RasterizerVertexCoord, public RasterizerVertexT
 class Rasterizer final
 {
 public:
+	static constexpr uint8_t c_alpha_mask= 0x000000FFu;
+
 	static constexpr int c_max_inv_z_min_log2= 4; // z_min = 1.0f / 16.0f
 	static constexpr int c_inv_z_scaler_log2= 11;
 	static constexpr int c_inv_z_scaler= 1 << c_inv_z_scaler_log2;
