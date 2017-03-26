@@ -354,6 +354,21 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 				break;
 			}
 		}
+
+		bool has_alpha= false;
+		for( unsigned int y= out_texture.full_alpha_row[0]; y < out_texture.full_alpha_row[1]; y++ )
+		{
+			for( unsigned int x= 0u; x < header.size[0]; x++ )
+			if( src[x + y * header.size[0] ] == 255u )
+			{
+				has_alpha= true;
+				break;
+			}
+
+			if( has_alpha )
+				break;
+		}
+		out_texture.has_alpha= has_alpha;
 	}
 }
 
@@ -494,15 +509,31 @@ void MapDrawerSoft::DrawWallSegment(
 		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
 
 		if( is_dynamic_wall )
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		{
+			if( texture.has_alpha )
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+			else
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		}
 		else
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		{
+			if( texture.has_alpha )
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+			else
+				rasterizer_.DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
+		}
 	}
 }
 

@@ -148,7 +148,7 @@ Host::Host( const int argc, const char* const* const argv )
 			components[ rendering_context.color_indeces_rgba[0] ]= in_palette[ i * 3u + 0u ];
 			components[ rendering_context.color_indeces_rgba[1] ]= in_palette[ i * 3u + 1u ];
 			components[ rendering_context.color_indeces_rgba[2] ]= in_palette[ i * 3u + 2u ];
-			components[ rendering_context.color_indeces_rgba[3] ]= 0u;
+			components[ rendering_context.color_indeces_rgba[3] ]= i == 255u ? 0u : 255u;
 			std::memcpy( &(*rendering_context.palette_transformed)[i], &components, 4u );
 		}
 
