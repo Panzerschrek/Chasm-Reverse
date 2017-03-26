@@ -62,6 +62,7 @@ public:
 	~Rasterizer();
 
 	void ClearDepthBuffer();
+	void ClearOcclusionBuffer();
 	void BuildDepthBufferHierarchy();
 
 	bool IsDepthOccluded(

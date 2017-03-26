@@ -59,7 +59,10 @@ void Rasterizer::ClearDepthBuffer()
 		depth_buffer_,
 		0,
 		static_cast<unsigned int>( depth_buffer_width_ * viewport_size_y_) * sizeof(unsigned short) );
+}
 
+void Rasterizer::ClearOcclusionBuffer()
+{
 	std::memset(
 		occlusion_buffer_,
 		0,

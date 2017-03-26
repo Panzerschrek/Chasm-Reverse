@@ -116,6 +116,7 @@ void MapDrawerSoft::Draw(
 		return;
 
 	rasterizer_.ClearDepthBuffer();
+	rasterizer_.ClearOcclusionBuffer();
 
 	m_Mat4 cam_shift_mat, cam_mat, screen_flip_mat;
 	cam_shift_mat.Translate( -camera_position );
