@@ -327,6 +327,7 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 		out_texture.full_alpha_row[0]= 0u;
 		out_texture.full_alpha_row[1]= g_wall_texture_height;
 
+		bool is_only_alpha= false;
 		for( unsigned int y= 0u; y < header.size[1]; y++ )
 		{
 			bool is_full_alpha= true;
@@ -342,7 +343,17 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 				out_texture.full_alpha_row[0]= y;
 				break;
 			}
+			if( is_full_alpha && y + 1u == header.size[1] )
+				is_only_alpha= true;
 		}
+		if( is_only_alpha )
+		{
+			// Texture contains only alpha pixels - mar it, and do not draw walls with this texture.
+			out_texture.full_alpha_row[0]= out_texture.full_alpha_row[1]= 0u;
+			out_texture.has_alpha= false;
+			continue;
+		}
+
 		for( unsigned int y= 0u; y < header.size[1]; y++ )
 		{
 			bool is_full_alpha= true;
@@ -358,6 +369,8 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 				out_texture.full_alpha_row[1]= header.size[1] - y;
 				break;
 			}
+			if( is_full_alpha && y + 1u == header.size[1] )
+				out_texture.full_alpha_row[1]= 0u;
 		}
 
 		bool has_alpha= false;
