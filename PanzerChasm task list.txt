@@ -100,6 +100,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Dorabotki igrovoj logiki dlä setevyh režimov.
 * Dorabotki seti. Asinhronnyj "Connect". Zakrytije neotvecajuscego
   sojedinenija. Boleje informativnyje soobscenija ob ošibkah.
+* Validaçija informaçii, polucennoj iz seti. Nomera oružija, modelej, kadrov
+  i procego dolžny proverätjsä. V ideale igra dolžna sebä korrektno vesti daže
+  jesli po seti budet prihoditj šum.
 * Ekonomija trafika. Otsylka toljko neobhodimyh soobscenij klijentu.
 * Predskazanije na storone klijenta. Nejtralizaçija zaderžki seti i poteri
   paketov. Rascöt animaçij na storone klijenta.

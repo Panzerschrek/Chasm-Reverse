@@ -112,7 +112,7 @@ private:
 
 	void DrawModel(
 		const ModelsGroup& models_group,
-		const std::vector<Model>& models_group_models,
+		const std::vector<Model>& model_group_models,
 		unsigned int model_id,
 		unsigned int animation_frame,
 		const ViewClipPlanes& view_clip_planes,

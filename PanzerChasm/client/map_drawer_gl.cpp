@@ -1338,6 +1338,8 @@ void MapDrawerGL::DrawModels(
 		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( static_model.angle );
 
+		PC_ASSERT( static_model.animation_frame < model.frame_count );
+
 		const m_BBox3& bbox= model.animations_bboxes[ static_model.animation_frame ];
 		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
 			continue;
@@ -1396,6 +1398,8 @@ void MapDrawerGL::DrawItems(
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( item.angle );
 
+		PC_ASSERT( item.animation_frame < model.frame_count );
+
 		const m_BBox3& bbox= model.animations_bboxes[ item.animation_frame ];
 		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
 			continue;
@@ -1452,6 +1456,8 @@ void MapDrawerGL::DrawDynamicItems(
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
 		rotation_matrix.RotateZ( item.angle );
 
+		PC_ASSERT( item.frame < model.frame_count );
+
 		const m_BBox3& bbox= model.animations_bboxes[ item.frame ];
 		if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
 			continue;
@@ -1503,6 +1509,8 @@ void MapDrawerGL::DrawMonsters(
 		const ModelGeometry& model_geometry= monster_model.geometry_description;
 		const Model& model= game_resources_->monsters_models[ monster.monster_id ];
 
+		PC_ASSERT( monster.animation < model.animations.size() );
+		PC_ASSERT( monster.animation_frame < model.animations[ monster.animation ].frame_count );
 		const unsigned int frame= model.animations[ monster.animation ].first_frame + monster.animation_frame;
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
@@ -1565,6 +1573,8 @@ void MapDrawerGL::DrawMonstersBodyParts(
 		const ModelGeometry& model_geometry= monster_model.submodels_geometry_description[ part.body_part_id ];
 		const Submodel& model= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ];
 
+		PC_ASSERT( part.animation < model.animations.size() );
+		PC_ASSERT( part.animation_frame < model.animations[ part.animation ].frame_count );
 		const unsigned int frame= model.animations[ part.animation ].first_frame + part.animation_frame;
 
 		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
@@ -1652,6 +1662,8 @@ void MapDrawerGL::DrawRockets(
 		lightmap_shift_mat.Translate( rocket.pos.xy() );
 		lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 		lightmap_mat= lightmap_fetch_mat * lightmap_shift_mat * lightmap_scale_mat;
+
+		PC_ASSERT( rocket.frame < model.frame_count );
 
 		const m_BBox3& bbox= model.animations_bboxes[ rocket.frame ];
 		if( BBoxIsOutsideView( view_clip_planes, bbox, model_mat ) )

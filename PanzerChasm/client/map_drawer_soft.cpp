@@ -660,7 +660,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 
 void MapDrawerSoft::DrawModel(
 	const ModelsGroup& models_group,
-	const std::vector<Model>& models_group_models,
+	const std::vector<Model>& model_group_models,
 	const unsigned int model_id,
 	const unsigned int animation_frame,
 	const ViewClipPlanes& view_clip_planes,
@@ -670,7 +670,10 @@ void MapDrawerSoft::DrawModel(
 {
 	unsigned int active_clip_planes_mask= 0u;
 
-	const m_BBox3& bbox= models_group_models[ model_id ].animations_bboxes[ animation_frame ];
+	const Model& model= model_group_models[ model_id ];
+	PC_ASSERT( animation_frame < model.frame_count );
+
+	const m_BBox3& bbox= model.animations_bboxes[ animation_frame ];
 
 	m_Mat4 translate_mat, bbox_mat;
 	translate_mat.Translate( position );
@@ -798,7 +801,6 @@ void MapDrawerSoft::DrawModel(
 		}
 	}
 
-	const Model& model= models_group_models[ model_id ];
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
 	const ModelsGroup::ModelEntry& model_entry= models_group.models[ model_id ];
