@@ -2240,6 +2240,12 @@ void Map::DestroyModel( const unsigned int model_index )
 	EmitModelDestructionEffects( model_index );
 
 	model.model_id++; // now, this model has other model type
+
+	// Reset animation. Animation must be consistent with model.
+	model.animation_start_frame= 0u;
+	model.current_animation_frame= 0u;
+	model.animation_state= StaticModel::AnimationState::Animation;
+
 	if( model.model_id < map_data_->models_description.size() )
 		model.health= map_data_->models_description[ model.model_id ].break_limit;
 	else
