@@ -25,6 +25,8 @@ struct RasterizerVertex : public RasterizerVertexCoord, public RasterizerVertexT
 class Rasterizer final
 {
 public:
+	static constexpr uint8_t c_alpha_mask= 0x000000FFu;
+
 	static constexpr int c_max_inv_z_min_log2= 4; // z_min = 1.0f / 16.0f
 	static constexpr int c_inv_z_scaler_log2= 11;
 	static constexpr int c_inv_z_scaler= 1 << c_inv_z_scaler_log2;
@@ -34,7 +36,24 @@ public:
 	static constexpr int c_z_correct_span_size= 1 << c_z_correct_span_size_log2;
 	static constexpr int c_z_correct_span_size_minus_one= c_z_correct_span_size - 1;
 
+	typedef unsigned short SpanOcclusionType;
+	static_assert(
+		std::numeric_limits<SpanOcclusionType>::digits == c_z_correct_span_size,
+		"Size of this type must be euqla to span size" );
+	static constexpr SpanOcclusionType c_span_occlusion_value= std::numeric_limits<SpanOcclusionType>::max();
+
 	typedef void (Rasterizer::*TriangleDrawFunc)(const RasterizerVertex*);
+
+	enum class DepthTest
+	{ Yes, No };
+	enum class DepthWrite
+	{ Yes, No };
+	enum class AlphaTest
+	{ Yes, No };
+	enum class OcclusionTest
+	{ Yes, No };
+	enum class OcclusionWrite
+	{ Yes, No };
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -45,6 +64,7 @@ public:
 	~Rasterizer();
 
 	void ClearDepthBuffer();
+	void ClearOcclusionBuffer();
 	void BuildDepthBufferHierarchy();
 
 	bool IsDepthOccluded(
@@ -52,6 +72,7 @@ public:
 		fixed16_t z_min, fixed16_t z_max ) const;
 
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
+	void DebugDrawOcclusionBuffer( unsigned int tick_count );
 
 	void SetTexture(
 		unsigned int size_x,
@@ -59,17 +80,50 @@ public:
 		const uint32_t* data );
 
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
+
+private:
+	typedef void (Rasterizer::*TrianglePartDrawFunc)();
 
 private:
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
 
 	void DrawAffineColoredTrianglePart( uint32_t color );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawAffineTexturedTrianglePart();
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawTexturedTrianglePerLineCorrectedPart();
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
@@ -101,6 +155,12 @@ private:
 		unsigned short* data;
 		unsigned int width, height;
 	} depth_buffer_hierarchy_[ c_depth_buffer_hierarchy_levels ];
+
+	// Occlusion buffer.
+	// Each bit in buffer is attribute of pixel. 0 - means unfilled.
+	std::vector<uint8_t> occlusion_buffer_storage_;
+	uint8_t* occlusion_buffer_;
+	int occlusion_buffer_width_; // in bytes
 
 	// Texture
 	int texture_size_x_= 0;
