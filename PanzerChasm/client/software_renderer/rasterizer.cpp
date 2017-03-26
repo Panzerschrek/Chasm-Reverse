@@ -322,6 +322,10 @@ void Rasterizer::SetTexture(
 
 void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertices, const uint32_t color )
 {
+	PC_ASSERT( vertices[0].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( vertices[1].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( vertices[2].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+
 	// Sort triangle vertices.
 	unsigned int upper_index;
 	unsigned int middle_index;
