@@ -473,7 +473,7 @@ void Client::operator()( const Messages::TextMessage& message )
 
 void Client::StopMap()
 {
-	if( current_map_data_ != nullptr )
+	if( current_map_data_ != nullptr && sound_engine_ != nullptr )
 		sound_engine_->SetMap( nullptr );
 
 	current_map_number_= ~0u;
