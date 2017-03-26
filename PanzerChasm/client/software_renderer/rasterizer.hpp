@@ -77,6 +77,11 @@ public:
 		const uint32_t* data );
 
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 
 	template<
@@ -99,6 +104,11 @@ private:
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
 
 	void DrawAffineColoredTrianglePart( uint32_t color );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
 	void DrawAffineTexturedTrianglePart();
 
 	template<

@@ -703,32 +703,36 @@ void MapDrawerSoft::DrawModel(
 		if( screen_y > y_max ) y_max= screen_y;
 	}
 
-	Rasterizer::TriangleDrawFunc draw_func=
-		&Rasterizer::DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
-	if( w_min > 0.0f /* && w_max > 0.0f */ )
-	{
-		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
-		const float c_ratio_threshold= 1.2f; // 20 %
-		const float ratio= w_max / w_min;
-		if( ratio < c_ratio_threshold )
-			draw_func= &Rasterizer::DrawAffineTexturedTriangle;
-	}
-
+	// Try to reject model, using hierarchical depth-test
 	if( w_min > 0.0f && w_max > 0.0f )
 	{
 		x_min= std::min( std::max( x_min, 0.0f ), screen_transform_x_ * 2.0f );
 		y_min= std::min( std::max( y_min, 0.0f ), screen_transform_y_ * 2.0f );
 		x_max= std::min( std::max( x_max, 0.0f ), screen_transform_x_ * 2.0f );
 		y_max= std::min( std::max( y_max, 0.0f ), screen_transform_y_ * 2.0f );
-		// Try to reject model, using hierarchical depth-test
 		if( rasterizer_.IsDepthOccluded(
 			fixed16_t(x_min * 65536.0f), fixed16_t(y_min * 65536.0f),
 			fixed16_t(x_max * 65536.0f), fixed16_t(y_max * 65536.0f),
 			fixed16_t(w_min * 65536.0f), fixed16_t(w_max * 65536.0f) ) )
 			return;
+	}
+
+	Rasterizer::TriangleDrawFunc draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+
+	if( w_min > 0.0f /* && w_max > 0.0f */ )
+	{
+		// If 'w' variation is small - draw model triangles with affine texturing, else - use perspective correction.
+		const float c_ratio_threshold= 1.2f; // 20 %
+		const float ratio= w_max / w_min;
+		if( ratio < c_ratio_threshold )
+			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
 	}
 
 	const Model& model= models_group_models[ model_id ];
