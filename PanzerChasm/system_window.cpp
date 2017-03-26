@@ -113,6 +113,54 @@ static void APIENTRY GLDebugMessageCallback(
 }
 #endif
 
+
+template<class ScaleGetter>
+void SystemWindow::CopyAndScaleViewportToSystemViewport( const ScaleGetter& scale_getter )
+{
+	PC_ASSERT( !IsOpenGLRenderer() );
+	PC_ASSERT( pixel_size_ > 1u );
+
+	const unsigned int scale= scale_getter();
+	const unsigned int dst_width= surface_->pitch / sizeof(uint32_t);
+
+	for( unsigned int y= 0u; y < viewport_size_.Height(); y++ )
+	{
+		const uint32_t* const src= scaled_viewport_color_buffer_.data() + y * scaled_viewport_buffer_width_;
+		uint32_t* const dst=  static_cast<uint32_t*>(surface_->pixels) + dst_width * y * scale ;
+
+		for( unsigned int x= 0u; x < viewport_size_.Width(); x++ )
+		{
+			const uint32_t color= src[x];
+			for( unsigned int dy= 0u; dy < scale; dy++ )
+			for( unsigned int dx= 0u; dx < scale; dx++ )
+				dst[ x * scale + dx + dy * dst_width ]= color;
+		}
+
+		unsigned int pixels_left= dst_width - viewport_size_.Width() * scale;
+		if( pixels_left > 0u )
+		{
+			unsigned int x= viewport_size_.Width();
+			const uint32_t color= src[x];
+
+			for( unsigned int dy= 0u; dy < scale; dy++ )
+			for( unsigned int dx= 0u; dx < pixels_left; dx++ )
+				dst[ x * scale + dx + dy * dst_width ]= color;
+		}
+	}
+
+	unsigned int rows_left= surface_->h - viewport_size_.Height() * scale;
+	if( rows_left > 0u )
+	{
+		uint32_t* const dst= reinterpret_cast<uint32_t*>( static_cast<unsigned char*>(surface_->pixels) + dst_width * viewport_size_.Height() * scale );
+
+		for( unsigned int y= 0u; y < rows_left; y++ )
+			std::memcpy(
+				dst + y * dst_width,
+				dst - dst_width,
+				sizeof(uint32_t) * dst_width );
+	}
+}
+
 SystemWindow::SystemWindow( Settings& settings )
 	: settings_(settings)
 {
@@ -123,7 +171,7 @@ SystemWindow::SystemWindow( Settings& settings )
 
 	const bool is_opengl= ! settings.GetOrSetBool( "r_software_rendering", false );
 
-	int width= 0, height= 0;
+	int width= 0, height= 0, scale= 1;
 	unsigned int frequency= 0u, display= 0u;
 	if( settings.GetOrSetBool( SettingsKeys::fullscreen, false ) )
 	{
@@ -188,8 +236,23 @@ windowed:
 		settings.SetSetting( SettingsKeys::window_height, height );
 	}
 
-	viewport_size_.Width ()= static_cast<unsigned int>( width  );
-	viewport_size_.Height()= static_cast<unsigned int>( height );
+	if( !is_opengl )
+	{
+		scale= settings_.GetInt( "r_software_scale", 1 );
+		if( scale < 1 ) scale= 1;
+
+		// Make scale smaller, if it is very big.
+		while(
+			width  / scale < int(GameConstants::min_screen_width ) ||
+			height / scale < int(GameConstants::min_screen_height) )
+			scale--;
+
+		settings_.SetSetting( "r_software_scale", scale );
+	}
+	pixel_size_= scale;
+
+	viewport_size_.Width ()= static_cast<unsigned int>( width  / scale );
+	viewport_size_.Height()= static_cast<unsigned int>( height / scale );
 
 	if( is_opengl )
 	{
@@ -317,6 +380,12 @@ windowed:
 			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 1u;
 			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 2u;
 		}
+
+		if( pixel_size_ > 1u )
+		{
+			scaled_viewport_buffer_width_= ( viewport_size_.Width () + 3u ) & (~3u);
+			scaled_viewport_color_buffer_.resize( scaled_viewport_buffer_width_ * viewport_size_.Height() );
+		}
 	}
 }
 
@@ -345,7 +414,7 @@ const SystemWindow::DispaysVideoModes& SystemWindow::GetSupportedVideoModes() co
 	return displays_video_modes_;
 }
 
-RenderingContextGL SystemWindow::GetRenderingContextGL() const
+RenderingContextGL SystemWindow::GetRenderingContextGL()
 {
 	PC_ASSERT( IsOpenGLRenderer() );
 
@@ -357,7 +426,7 @@ RenderingContextGL SystemWindow::GetRenderingContextGL() const
 	return result;
 }
 
-RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
+RenderingContextSoft SystemWindow::GetRenderingContextSoft()
 {
 	PC_ASSERT( ! IsOpenGLRenderer() );
 	PC_ASSERT( surface_ != nullptr );
@@ -365,8 +434,16 @@ RenderingContextSoft SystemWindow::GetRenderingContextSoft() const
 	RenderingContextSoft result;
 
 	result.viewport_size= viewport_size_;
-	result.row_pixels= surface_->pitch / 4u;
-	result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
+	if( pixel_size_ == 1u )
+	{
+		result.row_pixels= surface_->pitch / 4u;
+		result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
+	}
+	else
+	{
+		result.row_pixels= scaled_viewport_buffer_width_;
+		result.window_surface_data= scaled_viewport_color_buffer_.data();
+	}
 
 	result.color_indeces_rgba[0]= pixel_colors_order_.components_indeces[ PixelColorsOrder::R ];
 	result.color_indeces_rgba[1]= pixel_colors_order_.components_indeces[ PixelColorsOrder::G ];
@@ -386,14 +463,22 @@ void SystemWindow::BeginFrame()
 	}
 	else
 	{
-		if( SDL_MUSTLOCK( surface_ ) )
+		if( pixel_size_ == 1u && SDL_MUSTLOCK( surface_ ) )
 			SDL_LockSurface( surface_ );
 
 		if( need_clear )
-			std::memset(
-				surface_->pixels,
-				0,
-				surface_->pitch * surface_->h );
+		{
+			if( pixel_size_ == 1u )
+				std::memset(
+					surface_->pixels,
+					0,
+					surface_->pitch * surface_->h );
+			else
+				std::memset(
+					scaled_viewport_color_buffer_.data(),
+					0,
+					scaled_viewport_color_buffer_.size() * sizeof(uint32_t) );
+		}
 	}
 }
 
@@ -405,8 +490,28 @@ void SystemWindow::EndFrame()
 	}
 	else
 	{
-		if( SDL_MUSTLOCK( surface_ ) )
+		if( pixel_size_ == 1u && SDL_MUSTLOCK( surface_ ) )
 			SDL_UnlockSurface( surface_ );
+
+		if( pixel_size_ > 1u )
+		{
+			if( SDL_MUSTLOCK( surface_ ) )
+				SDL_LockSurface( surface_ );
+
+			// Optimization.
+			// Generate different functions (via template parameter) for some useful scales.
+			// Compiler may optimize inner loops, if scale is constant.
+			switch( pixel_size_ )
+			{
+			case 2u: CopyAndScaleViewportToSystemViewport( []{ return 2u; } ); break;
+			case 3u: CopyAndScaleViewportToSystemViewport( []{ return 3u; } ); break;
+			case 4u: CopyAndScaleViewportToSystemViewport( []{ return 4u; } ); break;
+			default: CopyAndScaleViewportToSystemViewport( [this]{ return pixel_size_; } );  break;
+			};
+
+			if( SDL_MUSTLOCK( surface_ ) )
+				SDL_UnlockSurface( surface_ );
+		}
 
 		SDL_UpdateWindowSurface( window_ );
 	}

@@ -32,8 +32,8 @@ public:
 	Size2 GetViewportSize() const;
 	const DispaysVideoModes& GetSupportedVideoModes() const;
 
-	RenderingContextGL GetRenderingContextGL() const;
-	RenderingContextSoft GetRenderingContextSoft() const;
+	RenderingContextGL GetRenderingContextGL();
+	RenderingContextSoft GetRenderingContextSoft();
 
 	void BeginFrame();
 	void EndFrame();
@@ -54,14 +54,23 @@ private:
 private:
 	void GetVideoModes();
 
+	template<class ScaleGetter>
+	void CopyAndScaleViewportToSystemViewport( const ScaleGetter& scale_getter );
+
 private:
 	Settings& settings_;
-	Size2 viewport_size_;
+	Size2 viewport_size_; // Inner viewport size, not system window size.
 
 	SDL_Window* window_= nullptr;
 	SDL_GLContext gl_context_= nullptr; // If not null - current mode is OpenGL, else - software.
+
+	// Software renderer params.
 	SDL_Surface* surface_= nullptr;
 	PixelColorsOrder pixel_colors_order_;
+
+	unsigned int pixel_size_;
+	std::vector<uint32_t> scaled_viewport_color_buffer_;
+	unsigned int scaled_viewport_buffer_width_= 0u;
 
 	bool mouse_captured_= false;
 
