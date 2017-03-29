@@ -16,6 +16,36 @@
 namespace PanzerChasm
 {
 
+static void BuildMip(
+	const uint32_t* const in_data, const unsigned int in_size_x, const unsigned int in_size_y,
+	uint32_t* const out_data )
+{
+	const unsigned int out_size_x= in_size_x >> 1u;
+	const unsigned int out_size_y= in_size_y >> 1u;
+	for( unsigned int y= 0u; y < out_size_y; y++ )
+	for( unsigned int x= 0u; x < out_size_x; x++ )
+	{
+		uint32_t pixels[4];
+		const unsigned int src_x= x << 1u;
+		const unsigned int src_y= y << 1u;
+		pixels[0]= in_data[ src_x +        src_y        * in_size_x ];
+		pixels[1]= in_data[ src_x + 1u +   src_y        * in_size_x ];
+		pixels[2]= in_data[ src_x + 1u + ( src_y + 1u ) * in_size_x ];
+		pixels[3]= in_data[ src_x +      ( src_y + 1u ) * in_size_x ];
+
+		unsigned char components[4];
+		for( unsigned int c= 0u; c < 4u; c++ )
+		{
+			components[c]= (
+				reinterpret_cast<const unsigned char*>(&pixels[0])[c] +
+				reinterpret_cast<const unsigned char*>(&pixels[1])[c] +
+				reinterpret_cast<const unsigned char*>(&pixels[2])[c] +
+				reinterpret_cast<const unsigned char*>(&pixels[3])[c] ) >> 2u;
+		}
+		std::memcpy( &out_data[ x + y * out_size_x ], components, sizeof(uint32_t) );
+	}
+};
+
 MapDrawerSoft::MapDrawerSoft(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
@@ -400,6 +430,10 @@ void MapDrawerSoft::LoadFloorsTextures( const MapData& map_data )
 		uint32_t* const dst= floor_textures_[i].data;
 		for( unsigned int j= 0u; j < MapData::c_floor_texture_size * MapData::c_floor_texture_size; j++ )
 			dst[j]= palette[ src[j] ];
+
+		BuildMip( floor_textures_[i].data, MapData::c_floor_texture_size     , MapData::c_floor_texture_size     , floor_textures_[i].mip1 );
+		BuildMip( floor_textures_[i].mip1, MapData::c_floor_texture_size / 2u, MapData::c_floor_texture_size / 2u, floor_textures_[i].mip2 );
+		BuildMip( floor_textures_[i].mip2, MapData::c_floor_texture_size / 4u, MapData::c_floor_texture_size / 4u, floor_textures_[i].mip3 );
 	}
 }
 
@@ -640,9 +674,60 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
 
+		// Search longest edge for mip calculation.
+		unsigned int longest_edge_index= 0u;
+		fixed8_t longest_edge_squre_length= 1; // fixed8_t range should be enought for vector ( 2048, 2048 ) square length.
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+		{
+			unsigned int prev_i= i == 0u ? (polygon_vertex_count - 1u) : (i - 1u);
+			const fixed16_t dx= verties_projected[i].x - verties_projected[prev_i].x;
+			const fixed16_t dy= verties_projected[i].y - verties_projected[prev_i].y;
+			const fixed8_t square_length= FixedMul<16+8>( dx, dx ) + FixedMul<16+8>( dy, dy );
+			if( square_length > longest_edge_squre_length )
+			{
+				longest_edge_squre_length= square_length;
+				longest_edge_index= i;
+			}
+		}
+		int mip= 0;
+		const uint32_t* mip_texture_data;
+		// Calculate d_tc / d_length for longest edge, select mip.
+		unsigned int prev_v= longest_edge_index == 0u ? (polygon_vertex_count - 1u) : (longest_edge_index - 1u);
+		const fixed16_t du= verties_projected[longest_edge_index].u - verties_projected[prev_v].u;
+		const fixed16_t dv= verties_projected[longest_edge_index].v - verties_projected[prev_v].v;
+		const fixed8_t square_tc_delta= FixedMul<16+8>( du, du ) + FixedMul<16+8>( dv, dv );
+		const int d_tc_d_len_square = square_tc_delta / longest_edge_squre_length;
+
+		if( d_tc_d_len_square < 1 * 1 )
+		{
+			mip= 0;
+			mip_texture_data= floor_textures_[ cell.texture_id ].data;
+		}
+		else
+		{
+			if( d_tc_d_len_square < 2 * 2 )
+			{
+				mip= 1; mip_texture_data= floor_textures_[ cell.texture_id ].mip1;
+			}
+			else if( d_tc_d_len_square < 4 * 4 )
+			{
+				mip= 2; mip_texture_data= floor_textures_[ cell.texture_id ].mip2;
+			}
+			else
+			{
+				mip= 3; mip_texture_data= floor_textures_[ cell.texture_id ].mip3;
+			}
+
+			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+			{
+				verties_projected[i].u >>= mip;
+				verties_projected[i].v >>= mip;
+			}
+		}
+
 		rasterizer_.SetTexture(
-			MapData::c_floor_texture_size, MapData::c_floor_texture_size,
-			floor_textures_[ cell.texture_id ].data );
+			MapData::c_floor_texture_size >> mip, MapData::c_floor_texture_size >> mip,
+			mip_texture_data );
 
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];

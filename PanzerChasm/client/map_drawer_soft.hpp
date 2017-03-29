@@ -57,9 +57,11 @@ private:
 
 	struct FloorTexture
 	{
-		// TODO - add mips support.
 		// TODO - do not store mip0 32bit texture.
 		uint32_t data[ MapData::c_floor_texture_size * MapData::c_floor_texture_size ];
+		uint32_t mip1[ MapData::c_floor_texture_size * MapData::c_floor_texture_size /  4u ];
+		uint32_t mip2[ MapData::c_floor_texture_size * MapData::c_floor_texture_size / 16u ];
+		uint32_t mip3[ MapData::c_floor_texture_size * MapData::c_floor_texture_size / 64u ];
 	};
 
 	struct WallTexture
