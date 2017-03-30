@@ -44,7 +44,64 @@ static void BuildMip(
 		}
 		std::memcpy( &out_data[ x + y * out_size_x ], components, sizeof(uint32_t) );
 	}
-};
+}
+
+static void BuildMipAlphaCorrected(
+	const uint32_t* const in_data, const unsigned int in_size_x, const unsigned int in_size_y,
+	uint32_t* const out_data )
+{
+	const unsigned int out_size_x= in_size_x >> 1u;
+	const unsigned int out_size_y= in_size_y >> 1u;
+	for( unsigned int y= 0u; y < out_size_y; y++ )
+	for( unsigned int x= 0u; x < out_size_x; x++ )
+	{
+		uint32_t pixels[4];
+		const unsigned int src_x= x << 1u;
+		const unsigned int src_y= y << 1u;
+		pixels[0]= in_data[ src_x +        src_y        * in_size_x ];
+		pixels[1]= in_data[ src_x + 1u +   src_y        * in_size_x ];
+		pixels[2]= in_data[ src_x + 1u + ( src_y + 1u ) * in_size_x ];
+		pixels[3]= in_data[ src_x +      ( src_y + 1u ) * in_size_x ];
+
+		// Calculate avg color, except for pixels with full alpha (=0)
+		unsigned int components_sum[4]= { 0u, 0u, 0u, 0u };
+		unsigned int nonalpha_pixels= 0u;
+		for( unsigned int p= 0u; p < 4u; p++ )
+		{
+			if( (pixels[p] & Rasterizer::c_alpha_mask) != 0u )
+			{
+				nonalpha_pixels++;
+				for( unsigned int c= 0u; c < 3u; c++ )
+					components_sum[c]+= reinterpret_cast<const unsigned char*>(&pixels[p])[c];
+			} // else - full alpha
+			components_sum[3]+= reinterpret_cast<const unsigned char*>(&pixels[p])[3];
+		}
+		unsigned char components[4];
+		if( nonalpha_pixels > 0u )
+		{
+			for( unsigned int c= 0u; c < 3u; c++ )
+				components[c]= components_sum[c] / nonalpha_pixels;
+		}
+		else
+		{
+			for( unsigned int c= 0u; c < 3u; c++ )
+				components[c]= 0u;
+		}
+		components[3]= components_sum[3] >> 2u;
+
+		std::memcpy( &out_data[ x + y * out_size_x ], components, sizeof(uint32_t) );
+	}
+}
+
+static void MakeBinaryAlpha( uint32_t* const pixels, const unsigned int pixel_count )
+{
+	for( unsigned int i= 0u; i < pixel_count; i++ )
+	{
+		// TODO - calibrate alpha edge.
+		if( ( pixels[i] & Rasterizer::c_alpha_mask ) < Rasterizer::c_alpha_mask / 3u )
+			pixels[i]&= ~Rasterizer::c_alpha_mask;
+	}
+}
 
 MapDrawerSoft::MapDrawerSoft(
 	Settings& settings,
@@ -336,7 +393,7 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 			continue;
 
 		const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( file_content.data() );
-		if( g_max_wall_texture_width / header.size[0] * header.size[0] != g_max_wall_texture_width ||
+		if( header.size[0] % ( g_max_wall_texture_width / 16u ) != 0u ||
 			header.size[1] != g_wall_texture_height )
 		{
 			Log::Warning( "Invalid wall texture size: ", header.size[0], "x", header.size[1] );
@@ -347,11 +404,23 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 		out_texture.size[1]= header.size[1];
 
 		const unsigned int pixel_count= header.size[0] * header.size[1];
+		const unsigned int storage_size= pixel_count + pixel_count / 4u + pixel_count / 16u + pixel_count / 64u;
 		const unsigned char* const src= file_content.data() + sizeof(CelTextureHeader);
 
-		out_texture.data.resize( pixel_count );
+		out_texture.data.resize( storage_size );
+		out_texture.mip0= out_texture.data.data();
+		out_texture.mips[0]= out_texture.mip0 + pixel_count;
+		out_texture.mips[1]= out_texture.mips[0] + pixel_count /  4u;
+		out_texture.mips[2]= out_texture.mips[1] + pixel_count / 16u;
+
 		for( unsigned int j= 0u; j < pixel_count; j++ )
-			out_texture.data[j]= palette[ src[j] ];
+			out_texture.mip0[j]= palette[ src[j] ];
+		BuildMipAlphaCorrected( out_texture.mip0   , out_texture.size[0]     , out_texture.size[1]     , out_texture.mips[0] );
+		BuildMipAlphaCorrected( out_texture.mips[0], out_texture.size[0] / 2u, out_texture.size[1] / 2u, out_texture.mips[1] );
+		BuildMipAlphaCorrected( out_texture.mips[1], out_texture.size[0] / 4u, out_texture.size[1] / 4u, out_texture.mips[2] );
+		MakeBinaryAlpha( out_texture.mips[0], pixel_count /  4u );
+		MakeBinaryAlpha( out_texture.mips[1], pixel_count / 16u );
+		MakeBinaryAlpha( out_texture.mips[2], pixel_count / 64u );
 
 		// Calculate top and bottom alpha-rejected texture rows.
 		out_texture.full_alpha_row[0]= 0u;
@@ -378,7 +447,7 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 		}
 		if( is_only_alpha )
 		{
-			// Texture contains only alpha pixels - mar it, and do not draw walls with this texture.
+			// Texture contains only alpha pixels - mark it, and do not draw walls with this texture.
 			out_texture.full_alpha_row[0]= out_texture.full_alpha_row[1]= 0u;
 			out_texture.has_alpha= false;
 			continue;
@@ -526,10 +595,24 @@ void MapDrawerSoft::DrawWallSegment(
 	if( polygon_vertex_count == 0u )
 		return;
 
+	float min_world_z= Constants::max_float, max_world_z= Constants::min_float;
+	unsigned int min_worlz_z_vertex= 0u, max_world_z_vertex= 0u;
+
 	RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
 	ClippedVertex* v= fisrt_clipped_vertex_;
 	for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
 	{
+		if( v->pos.z < min_world_z )
+		{
+			min_world_z= v->pos.z;
+			min_worlz_z_vertex= i;
+		}
+		if( v->pos.z > max_world_z )
+		{
+			max_world_z= v->pos.z;
+			max_world_z_vertex= i;
+		}
+
 		m_Vec3 vertex_projected= v->pos * matrix;
 		const float w= v->pos.x * matrix.value[3] + v->pos.y * matrix.value[7] + v->pos.z * matrix.value[11] + matrix.value[15];
 
@@ -547,7 +630,34 @@ void MapDrawerSoft::DrawWallSegment(
 		out_v.z= fixed16_t( w * 65536.0f );
 	}
 
-	rasterizer_.SetTexture( texture.size[0], texture.size[1], texture.data.data() );
+	int mip= 0;
+	if( min_worlz_z_vertex != max_world_z_vertex )
+	{
+		// Calculate only vertical texture scale.
+		// TODO - maybe calculate also horizontal texture scale?
+		const fixed16_t dv= verties_projected[ max_world_z_vertex ].v - verties_projected[ min_worlz_z_vertex ].v;
+		const fixed16_t dx= verties_projected[ max_world_z_vertex ].x - verties_projected[ min_worlz_z_vertex ].x;
+		const fixed16_t dy= verties_projected[ max_world_z_vertex ].y - verties_projected[ min_worlz_z_vertex ].y;
+		const fixed8_t d_len_square= FixedMul<16+8>( dx, dx ) + FixedMul<16+8>( dy, dy );
+		const int d_tc_d_len_square= FixedMul<16+8>( dv, dv ) / std::max( d_len_square, 1 );
+
+		if( d_tc_d_len_square < 2 * 2 )
+			mip= 0;
+		else
+		{
+			if( d_tc_d_len_square < 4 * 4 ) mip= 1;
+			else if( d_tc_d_len_square < 8 * 8 ) mip= 2;
+			else mip= 3;
+
+			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+			{
+				verties_projected[i].u >>= mip;
+				verties_projected[i].v >>= mip;
+			}
+		}
+	}
+
+	rasterizer_.SetTexture( texture.size[0] >> mip, texture.size[1] >> mip, mip == 0 ? texture.mip0 : texture.mips[ mip - 1 ] );
 
 	RasterizerVertex traingle_vertices[3];
 	traingle_vertices[0]= verties_projected[0];

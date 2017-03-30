@@ -71,9 +71,10 @@ private:
 		unsigned char full_alpha_row[2];
 		bool has_alpha; // Except low and bottom rejected rows.
 
-		// TODO - add mips support.
 		// TODO - do not store mip0 32bit texture.
 		std::vector<uint32_t> data;
+		uint32_t* mip0;
+		uint32_t* mips[3]; // 1, 2, 3
 	};
 
 	struct SkyTexture
