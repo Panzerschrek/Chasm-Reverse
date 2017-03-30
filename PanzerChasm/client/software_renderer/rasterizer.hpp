@@ -71,6 +71,9 @@ public:
 		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 		fixed16_t z_min, fixed16_t z_max ) const;
 
+	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count );
+	bool IsOccluded( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count ) const;
+
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
 	void DebugDrawOcclusionBuffer( unsigned int tick_count );
 
@@ -103,6 +106,10 @@ private:
 	typedef void (Rasterizer::*TrianglePartDrawFunc)();
 
 private:
+	// Returns 1, if cell fully occluded, else - 0
+	template<unsigned int level>
+	unsigned int UpdateOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
+
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
 
@@ -161,6 +168,23 @@ private:
 	std::vector<uint8_t> occlusion_buffer_storage_;
 	uint8_t* occlusion_buffer_;
 	int occlusion_buffer_width_; // in bytes
+
+	// Occlusion buffer hierarchy.
+	//   4x  4
+	//  16x 16
+	//  64x 64
+	// 256x256
+	static constexpr unsigned int c_occlusion_hierarchy_levels= 4u;
+	struct
+	{
+		// Each 16-bit word is bits of lower hierarchy 4x4 block.
+		// bit_number= x + y * 4
+		unsigned short* data;
+
+		unsigned int size[2];
+
+	} occlusion_hierarchy_levels_[ c_occlusion_hierarchy_levels ];
+	std::vector<unsigned short> occlusion_heirarchy_storage_;
 
 	// Texture
 	int texture_size_x_= 0;
