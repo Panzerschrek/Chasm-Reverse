@@ -308,7 +308,7 @@ void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGro
 		{
 			const unsigned char color_index= in_model.texture_data[t];
 			uint32_t color= palette[ color_index ];
-			if( color_index == 0u ) color&= 0xFFFFFF00u; // For models color #0 is transparent.
+			if( color_index == 0u ) color&= ~Rasterizer::c_alpha_mask; // For models color #0 is transparent.
 			out_group.textures_data[ texture_data_offset + t ]= color;
 		}
 

@@ -377,9 +377,17 @@ windowed:
 		{
 			Log::Warning( "Unnknown pixels colors order" );
 			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 0u;
-			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 1u;
-			pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 2u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::G ]= 1u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::B ]= 2u;
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::A ]= 2u;
 		}
+
+		if( pixel_colors_order_.components_indeces[ PixelColorsOrder::A ] == 255u )
+			pixel_colors_order_.components_indeces[ PixelColorsOrder::A ]=
+				6u -
+				pixel_colors_order_.components_indeces[ PixelColorsOrder::R ] -
+				pixel_colors_order_.components_indeces[ PixelColorsOrder::G ] -
+				pixel_colors_order_.components_indeces[ PixelColorsOrder::B ];
 
 		if( pixel_size_ > 1u )
 		{
