@@ -553,7 +553,6 @@ void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
 	else
 	{
 		level-= 2u;
-		level&= ~1u;
 
 		const auto& depth_hierarchy= depth_buffer_hierarchy_[ level ];
 		const int div= c_first_depth_hierarchy_level_size << int(level);
@@ -567,15 +566,39 @@ void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
 
 void Rasterizer::DebugDrawOcclusionBuffer( unsigned int tick_count )
 {
-	const bool draw= (tick_count&1u) != 0u;
-	if( !draw ) return;
+	unsigned int level= (1u + tick_count) % ( c_occlusion_hierarchy_levels + 2u );
 
-	for( int y= 0u; y < viewport_size_y_; y++ )
-	for( int x= 0u; x < viewport_size_x_; x++ )
-		color_buffer_[ x + y * row_size_ ]=
-			( occlusion_buffer_[ (x>>3) + y * occlusion_buffer_width_ ] & (1<<(x&7)) ) == 0u
-				? 0x00000000u
-				: 0xFFFFFFFFu;
+	if( level == 0u )
+		return;
+	else if( level == 1u )
+	{
+		for( int y= 0u; y < viewport_size_y_; y++ )
+		for( int x= 0u; x < viewport_size_x_; x++ )
+			color_buffer_[ x + y * row_size_ ]=
+				( occlusion_buffer_[ (x>>3) + y * occlusion_buffer_width_ ] & (1<<(x&7)) ) == 0u
+					? 0x00000000u
+					: 0xFFFFFFFFu;
+	}
+	else
+	{
+		level-= 2u;
+		const auto& hierarchy_level= occlusion_hierarchy_levels_[level];
+		const unsigned int cell_size= 16u << (2u * level);
+		const unsigned int cell_bit_size= cell_size / 4u;
+
+		for( unsigned int y= 0u; y < static_cast<unsigned int>(viewport_size_y_); y++ )
+		for( unsigned int x= 0u; x < static_cast<unsigned int>(viewport_size_x_); x++ )
+		{
+			const unsigned int cell_x= x / cell_size;
+			const unsigned int cell_y= y / cell_size;
+			const unsigned short cell_value= hierarchy_level.data[ cell_x + cell_y * hierarchy_level.size[0] ];
+			const unsigned int bit_x= ( x - cell_x * cell_size ) / cell_bit_size;
+			const unsigned int bit_y= ( y - cell_y * cell_size ) / cell_bit_size;
+			const unsigned int bit_mask= 1u << ( bit_x + 4u * bit_y );
+
+			color_buffer_[ x + y * row_size_ ]= (cell_value & bit_mask) == 0 ? 0x00000000u : 0xFFFFFFFFu;
+		}
+	}
 }
 
 void Rasterizer::SetTexture(
