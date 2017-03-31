@@ -168,6 +168,7 @@ private:
 	std::vector<uint8_t> occlusion_buffer_storage_;
 	uint8_t* occlusion_buffer_;
 	int occlusion_buffer_width_; // in bytes
+	int occlusion_buffer_height_; // in pixels
 
 	// Occlusion buffer hierarchy.
 	//   4x  4

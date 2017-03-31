@@ -630,6 +630,9 @@ void MapDrawerSoft::DrawWallSegment(
 		out_v.z= fixed16_t( w * 65536.0f );
 	}
 
+	if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
+		return;
+
 	int mip= 0;
 	if( min_worlz_z_vertex != max_world_z_vertex )
 	{
@@ -696,6 +699,8 @@ void MapDrawerSoft::DrawWallSegment(
 					Rasterizer::AlphaTest::No,
 					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		}
+
+		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
 	}
 }
 
