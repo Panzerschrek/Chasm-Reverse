@@ -1176,6 +1176,9 @@ void MapDrawerSoft::DrawSky(
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
 
+		if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
+			continue;
+
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
