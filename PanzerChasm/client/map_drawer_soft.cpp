@@ -699,9 +699,9 @@ void MapDrawerSoft::DrawWallSegment(
 					Rasterizer::AlphaTest::No,
 					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		}
-
-		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
 	}
+
+	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
 }
 
 void MapDrawerSoft::DrawWalls(
@@ -789,6 +789,9 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
 
+		if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
+			continue;
+
 		// Search longest edge for mip calculation.
 		unsigned int longest_edge_index= 0u;
 		fixed8_t longest_edge_squre_length= 1; // fixed8_t range should be enought for vector ( 2048, 2048 ) square length.
@@ -855,6 +858,10 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 				Rasterizer::AlphaTest::No,
 				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
 		}
+
+		// TODO - does this needs?
+		// Maybe update whole screen hierarchy after floors and ceilings?
+		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
 	}
 }
 

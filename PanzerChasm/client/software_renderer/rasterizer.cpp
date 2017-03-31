@@ -114,6 +114,9 @@ void Rasterizer::ClearOcclusionBuffer()
 		std::memset( dst, 0xFF, occlusion_buffer_width_ );
 	}
 
+	// Set all occlusion hierarchy data to zero.
+	std::memset( occlusion_heirarchy_storage_.data(), 0, occlusion_heirarchy_storage_.size() * sizeof(unsigned short) );
+
 	// Update hierarchy cells, start from upper.
 	// TODO - mark hierarchy cells outside screen borders as white more optimal.
 	const auto& level= occlusion_hierarchy_levels_[ c_occlusion_hierarchy_levels - 1u ];
@@ -321,7 +324,7 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 	auto& hierarchy_level= occlusion_hierarchy_levels_[level];
 	PC_ASSERT( cell_x < hierarchy_level.size[0] );
 	PC_ASSERT( cell_y < hierarchy_level.size[1] );
-	unsigned short& cell_value= occlusion_hierarchy_levels_[ level ].data[ cell_x + cell_y * hierarchy_level.size[0] ];
+	unsigned short& cell_value= hierarchy_level.data[ cell_x + cell_y * hierarchy_level.size[0] ];
 
 	if( level == 0u )
 	{
@@ -401,10 +404,10 @@ void Rasterizer::UpdateOcclusionHierarchy(
 
 	// TODO - calibrate hierarchy level selection.
 	int hierarchy_level= 0;
-	while( (max_delta >> 3) > ( 4 << (hierarchy_level*2) ) )
+	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
 		hierarchy_level++;
 
-	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) );
+	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
 
 	{ // Update cells of selected level recursively from upper to lower.
 		const int cell_size_log2= 4 + (hierarchy_level*2);
@@ -499,10 +502,10 @@ bool Rasterizer::IsOccluded(
 
 	// TODO - calibrate hierarchy level selection.
 	int hierarchy_level= 0;
-	while( (max_delta >> 3) > ( 4 << (hierarchy_level*2) ) )
+	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
 		hierarchy_level++;
 
-	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) );
+	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
 
 	const auto& level= occlusion_hierarchy_levels_[hierarchy_level];
 
