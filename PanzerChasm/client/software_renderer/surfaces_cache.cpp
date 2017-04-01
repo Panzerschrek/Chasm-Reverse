@@ -28,7 +28,7 @@ SurfacesCache::SurfacesCache( const Size2& viewport_size )
 	storage_.resize( cache_size_pixels * sizeof(uint32_t) );
 
 	const unsigned int size_kb= (storage_.size() + 1023u) / 1024u;
-	Log::Info( "Surfaces cache size: ", size_kb, "kb ( ", size_kb * sizeof(uint32_t), " kilotexels )." );
+	Log::Info( "Surfaces cache size: ", size_kb, "kb ( ", size_kb / sizeof(uint32_t), " kilotexels )." );
 }
 
 SurfacesCache::~SurfacesCache()
