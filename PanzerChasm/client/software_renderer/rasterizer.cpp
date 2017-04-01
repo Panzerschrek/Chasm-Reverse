@@ -43,10 +43,38 @@ Rasterizer::Rasterizer(
 			offset+= depth_buffer_hierarchy_[i].width * depth_buffer_hierarchy_[i].height;
 		}
 	}
-	{ // Setup occlusion buffer
-		occlusion_buffer_width_= ( ( viewport_size_x + 63 ) & (~63) ) / 8;
-		occlusion_buffer_storage_.resize( occlusion_buffer_width_ * viewport_size_y_ );
+	 // Setup occlusion buffer
+	{
+		const unsigned int top_hierarchy_level_cell_size= 16u << ( (c_occlusion_hierarchy_levels-1u) * 2u );
+		const unsigned int top_hierarchy_level_cell_size_minus_one= top_hierarchy_level_cell_size - 1u;
+		const unsigned int viewport_size_x_ceil= ( viewport_size_x + top_hierarchy_level_cell_size_minus_one ) / top_hierarchy_level_cell_size * top_hierarchy_level_cell_size;
+		const unsigned int viewport_size_y_ceil= ( viewport_size_y + top_hierarchy_level_cell_size_minus_one ) / top_hierarchy_level_cell_size * top_hierarchy_level_cell_size;
+
+		// Main buffer
+		occlusion_buffer_width_ = viewport_size_x_ceil / 8u;
+		occlusion_buffer_height_= viewport_size_y_ceil;
+		occlusion_buffer_storage_.resize( occlusion_buffer_width_ * occlusion_buffer_height_ );
 		occlusion_buffer_= occlusion_buffer_storage_.data();
+
+		// Hierarchy
+		unsigned int hexopixels_requested= 0u;
+		for( unsigned int i= 0u; i < c_occlusion_hierarchy_levels; i++ )
+		{
+			auto& level= occlusion_hierarchy_levels_[i];
+			const unsigned int heirarchy_cell_size= 16u << ( i * 2u );
+			level.size[0]= ( viewport_size_x_ceil + ( heirarchy_cell_size - 1u ) ) / heirarchy_cell_size;
+			level.size[1]= ( viewport_size_y_ceil + ( heirarchy_cell_size - 1u ) ) / heirarchy_cell_size;
+			hexopixels_requested+= level.size[0] * level.size[1];
+		}
+
+		occlusion_heirarchy_storage_.resize( hexopixels_requested );
+		unsigned int offset= 0u;
+		for( unsigned int i= 0u; i < c_occlusion_hierarchy_levels; i++ )
+		{
+			auto& level= occlusion_hierarchy_levels_[i];
+			level.data= occlusion_heirarchy_storage_.data() + offset;
+			offset+= level.size[0] * level.size[1];
+		}
 	}
 }
 
@@ -63,10 +91,85 @@ void Rasterizer::ClearDepthBuffer()
 
 void Rasterizer::ClearOcclusionBuffer()
 {
+	// Set all occlusion buffer to zero.
 	std::memset(
 		occlusion_buffer_,
 		0,
-		static_cast<unsigned int>( occlusion_buffer_width_ * viewport_size_y_ ) );
+		occlusion_buffer_storage_.size() );
+
+	// Mark cells of occlusion buffer outside screen as "white".
+	for( int y= 0; y < viewport_size_y_; y++ )
+	{
+		uint8_t* const dst= occlusion_buffer_ + y * occlusion_buffer_width_;
+		const int x_ceil= ( viewport_size_x_ + 7 ) & (~7);
+
+		for( int x= viewport_size_x_; x < x_ceil; x++ )
+			dst[ x >> 3 ]|= 1 << (x&7);
+
+		std::memset( dst + (x_ceil>>3), 0xFF, occlusion_buffer_width_ - (x_ceil>>3) );
+	}
+	for( int y= viewport_size_y_; y < occlusion_buffer_height_; y++ )
+	{
+		uint8_t* const dst= occlusion_buffer_ + y * occlusion_buffer_width_;
+		std::memset( dst, 0xFF, occlusion_buffer_width_ );
+	}
+
+	// Set all occlusion hierarchy data to zero.
+	std::memset( occlusion_heirarchy_storage_.data(), 0, occlusion_heirarchy_storage_.size() * sizeof(unsigned short) );
+
+	// Mark as "white" hierarchy cells bits for subcells, outside screen.
+	for( unsigned int i= 0u; i < c_occlusion_hierarchy_levels; i++ )
+	{
+		const auto& level= occlusion_hierarchy_levels_[i];
+		const unsigned int cell_size_log2= 4u + (i*2u);
+		const unsigned int cell_size= 1u << cell_size_log2;
+		const unsigned int cell_size_minus_one= cell_size - 1u;
+
+		unsigned int full_white_start_cell_x= ( static_cast<unsigned int>(viewport_size_x_) + cell_size_minus_one ) >> cell_size_log2;
+		unsigned int full_white_start_cell_y= ( static_cast<unsigned int>(viewport_size_y_) + cell_size_minus_one ) >> cell_size_log2;
+		const unsigned int full_black_end_cell_x= static_cast<unsigned int>(viewport_size_x_) >> cell_size_log2;
+		const unsigned int full_black_end_cell_y= static_cast<unsigned int>(viewport_size_y_) >> cell_size_log2;
+
+		for( unsigned int y= 0u; y < full_black_end_cell_y; y++ )
+		{
+			// Set partial cells bits to "one", if subcell is outside screen.
+			for( unsigned int x= full_black_end_cell_x; x < full_white_start_cell_x; x++ )
+			{
+				unsigned short& cell_value= level.data[ x + y * level.size[0] ];
+				for( unsigned int dx= 0u; dx < 4u; dx++ )
+				for( unsigned int dy= 0u; dy < 4u; dy++ )
+				{
+					const unsigned int global_x= ( x << cell_size_log2 ) + ( dx << ( cell_size_log2 - 2u ) );
+					if( global_x >= static_cast<unsigned int>(viewport_size_x_) )
+						cell_value|= 1u << ( dx + dy * 4u );
+				}
+			}
+
+			// Set full wite cells.
+			for( unsigned int x= full_white_start_cell_x; x < level.size[0]; x++ )
+				level.data[ x + y * level.size[0] ]= 0xFFFFu;
+		}
+
+		// Update partial Y cells.
+		for( unsigned int y= full_black_end_cell_y; y < full_white_start_cell_y; y++ )
+		for( unsigned int x= 0; x < level.size[0]; x++ )
+		{
+			unsigned short& cell_value= level.data[ x + y * level.size[0] ];
+			for( unsigned int dy= 0u; dy < 4u; dy++ )
+			for( unsigned int dx= 0u; dx < 4u; dx++ )
+			{
+				const unsigned int global_x= ( x << cell_size_log2 ) + ( dx << ( cell_size_log2 - 2u ) );
+				const unsigned int global_y= ( y << cell_size_log2 ) + ( dy << ( cell_size_log2 - 2u ) );
+				if( global_x >= static_cast<unsigned int>(viewport_size_x_) ||
+					global_y >= static_cast<unsigned int>(viewport_size_y_) )
+					cell_value|= 1u << ( dx + dy * 4u );
+			}
+		}
+
+		// Set full white Y cells.
+		for( unsigned int y= full_white_start_cell_y; y < level.size[1]; y++ )
+			std::memset( level.data + y * level.size[0], 0xFF, level.size[0] * sizeof(unsigned short) );
+	}
 }
 
 void Rasterizer::BuildDepthBufferHierarchy()
@@ -198,7 +301,10 @@ bool Rasterizer::IsDepthOccluded(
 	fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 	fixed16_t z_min, fixed16_t z_max ) const
 {
+	PC_ASSERT( z_min > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( z_max > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
 	PC_UNUSED( z_max );
+
 	const unsigned short depth= Fixed16Div( g_fixed16_one >> c_max_inv_z_min_log2, z_min );
 
 	PC_ASSERT( x_min <= x_max );
@@ -258,6 +364,250 @@ bool Rasterizer::IsDepthOccluded(
 	return true;
 }
 
+template<unsigned int level>
+unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell_x, const unsigned int cell_y )
+{
+	static_assert( level < c_occlusion_hierarchy_levels, "Invalid level" );
+	auto& hierarchy_level= occlusion_hierarchy_levels_[level];
+	PC_ASSERT( cell_x < hierarchy_level.size[0] );
+	PC_ASSERT( cell_y < hierarchy_level.size[1] );
+	unsigned short& cell_value= hierarchy_level.data[ cell_x + cell_y * hierarchy_level.size[0] ];
+
+	if( level == 0u )
+	{
+		for( unsigned int subcell_y= 0u; subcell_y < 4u; subcell_y++ )
+		for( unsigned int subcell_x= 0u; subcell_x < 4u; subcell_x++ )
+		{
+			const unsigned int bit_number= subcell_x + ( subcell_y << 2u );
+			const unsigned int bit_mask= 1u << bit_number;
+			if( ( cell_value & bit_mask ) != 0u )
+				continue;
+
+			const unsigned int global_x_start= cell_x * 16u + subcell_x * 4u;
+			const unsigned int global_y_start= cell_y * 16u + subcell_y * 4u;
+
+			unsigned int bit4x4= 1u;
+			for( unsigned int bit_y= 0u; bit_y < 4u; bit_y++ )
+			for( unsigned int bit_x= 0u; bit_x < 4u; bit_x++ )
+			{
+				const unsigned int global_x= global_x_start + bit_x;
+				const unsigned int global_y= global_y_start + bit_y;
+				PC_ASSERT( global_x < static_cast<unsigned int>( occlusion_buffer_width_ << 3 ) );
+				PC_ASSERT( global_y < static_cast<unsigned int>( occlusion_buffer_height_ ) );
+
+				const unsigned int bit= global_x & 7u;
+				// TODO - maybe (global_x >> 3u) constant in this loop ?
+				bit4x4&= occlusion_buffer_[ (global_x >> 3u) + global_y * occlusion_buffer_width_ ] >> bit;
+			}
+
+			cell_value|= (bit4x4&1u) << bit_number;
+		}
+	}
+	else
+	{
+		for( unsigned int subcell_y= 0u; subcell_y < 4u; subcell_y++ )
+		for( unsigned int subcell_x= 0u; subcell_x < 4u; subcell_x++ )
+		{
+			const unsigned int bit_number= subcell_x + ( subcell_y << 2u );
+			const unsigned int bit_mask= 1u << bit_number;
+			if( ( cell_value & bit_mask ) != 0u )
+				continue;
+
+				cell_value|=
+					UpdateOcclusionHierarchyCell_r< level == 0u ? 0u : level - 1u >(
+						cell_x * 4u + subcell_x,
+						cell_y * 4u + subcell_y ) << bit_number;
+		}
+	}
+
+	return cell_value == 0xFFFFu ? 1u : 0u;
+}
+
+void Rasterizer::UpdateOcclusionHierarchy(
+	const RasterizerVertex* const polygon_vertices, const unsigned int polygon_vertex_count )
+{
+	// TODO - use polygon vertices for fast "zero" and "one" occlusion hierarchy cells.
+	// Profile that method, when it will be implemented.
+
+	PC_ASSERT( polygon_vertex_count >= 3u );
+
+	fixed16_t x_min= viewport_size_x_ << 16, x_max= 0;
+	fixed16_t y_min= viewport_size_y_ << 16, y_max= 0;
+
+	for( unsigned int v= 0u; v < polygon_vertex_count; v++ )
+	{
+		if( polygon_vertices[v].x < x_min ) x_min= polygon_vertices[v].x;
+		if( polygon_vertices[v].x > x_max ) x_max= polygon_vertices[v].x;
+		if( polygon_vertices[v].y < y_min ) y_min= polygon_vertices[v].y;
+		if( polygon_vertices[v].y > y_max ) y_max= polygon_vertices[v].y;
+	}
+	PC_ASSERT( x_min <= x_max );
+	PC_ASSERT( y_min <= y_max );
+
+	const int x_min_i= std::max( 0, x_min >> 16 );
+	const int x_max_i= std::min( ( x_max + g_fixed16_one ) >> 16, viewport_size_x_ );
+	const int y_min_i= std::max( 0, y_min >> 16 );
+	const int y_max_i= std::min( ( y_max + g_fixed16_one ) >> 16, viewport_size_y_ );
+	const int x_delta= x_max_i - x_min_i;
+	const int y_delta= y_max_i - y_min_i;
+	const int max_delta= std::max( x_delta, y_delta );
+
+	// TODO - calibrate hierarchy level selection.
+	int hierarchy_level= 0;
+	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
+		hierarchy_level++;
+
+	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
+
+	{ // Update cells of selected level recursively from upper to lower.
+		const int cell_size_log2= 4 + (hierarchy_level*2);
+		const int cell_size= 1 << cell_size_log2;
+
+		const int cell_x_min= x_min_i >> cell_size_log2;
+		const int cell_x_max= ( x_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+		const int cell_y_min= y_min_i >> cell_size_log2;
+		const int cell_y_max= ( y_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+
+		for( int cell_y= cell_y_min; cell_y < cell_y_max; cell_y++ )
+		for( int cell_x= cell_x_min; cell_x < cell_x_max; cell_x++ )
+		{
+			switch(hierarchy_level)
+			{
+			case 0: UpdateOcclusionHierarchyCell_r<0>( cell_x, cell_y ); break;
+			case 1: UpdateOcclusionHierarchyCell_r<1>( cell_x, cell_y ); break;
+			case 2: UpdateOcclusionHierarchyCell_r<2>( cell_x, cell_y ); break;
+			//case 3: UpdateOcclusionHierarchyCell_r<3>( cell_x, cell_y ); break;
+			default: PC_ASSERT(false); break;
+			}
+		}
+	}
+
+	// Update cells from lower to upper.
+	for( int i= hierarchy_level + 1; i < int(c_occlusion_hierarchy_levels); i++ )
+	{
+		const int cell_size_log2= 4 + (i*2);
+		const int cell_size= 1 << cell_size_log2;
+
+		const int cell_x_min= x_min_i >> cell_size_log2;
+		const int cell_x_max= ( x_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+		const int cell_y_min= y_min_i >> cell_size_log2;
+		const int cell_y_max= ( y_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+
+		const auto& level= occlusion_hierarchy_levels_[i];
+		const auto& level_minus_one= occlusion_hierarchy_levels_[ i - 1 ];
+
+		for( int cell_y= cell_y_min; cell_y < cell_y_max; cell_y++ )
+		for( int cell_x= cell_x_min; cell_x < cell_x_max; cell_x++ )
+		{
+			PC_ASSERT( cell_x < int(level.size[0]) );
+			PC_ASSERT( cell_y < int(level.size[1]) );
+			unsigned short& cell_value= level.data[ cell_x + cell_y * int(level.size[0]) ];
+			if( cell_value == 0xFFFFu )
+				continue;
+
+			for( int subcell_y= 0; subcell_y < 4; subcell_y++ )
+			for( int subcell_x= 0; subcell_x < 4; subcell_x++ )
+			{
+				PC_ASSERT( cell_x * 4 + subcell_x < int(level_minus_one.size[0]) );
+				PC_ASSERT( cell_y * 4 + subcell_y < int(level_minus_one.size[1]) );
+
+				const int bit_number= subcell_x + ( subcell_y << 2 );
+				const unsigned short lower_value=
+					level_minus_one.data[
+						  cell_x * 4 + subcell_x +
+						( cell_y * 4 + subcell_y ) * int(level_minus_one.size[0]) ];
+
+				if( lower_value == 0xFFFFu )
+					cell_value|= 1u << bit_number;
+			}
+		}
+	} // for upper levels
+}
+
+bool Rasterizer::IsOccluded(
+	const RasterizerVertex* const polygon_vertices, const unsigned int polygon_vertex_count ) const
+{
+	PC_ASSERT( polygon_vertex_count >= 3u );
+
+	fixed16_t x_min= viewport_size_x_ << 16, x_max= 0;
+	fixed16_t y_min= viewport_size_y_ << 16, y_max= 0;
+
+	for( unsigned int v= 0u; v < polygon_vertex_count; v++ )
+	{
+		if( polygon_vertices[v].x < x_min ) x_min= polygon_vertices[v].x;
+		if( polygon_vertices[v].x > x_max ) x_max= polygon_vertices[v].x;
+		if( polygon_vertices[v].y < y_min ) y_min= polygon_vertices[v].y;
+		if( polygon_vertices[v].y > y_max ) y_max= polygon_vertices[v].y;
+	}
+	PC_ASSERT( x_min <= x_max );
+	PC_ASSERT( y_min <= y_max );
+
+	const int x_min_i= std::max( 0, x_min >> 16 );
+	const int x_max_i= std::min( ( x_max + g_fixed16_one ) >> 16, viewport_size_x_ );
+	const int y_min_i= std::max( 0, y_min >> 16 );
+	const int y_max_i= std::min( ( y_max + g_fixed16_one ) >> 16, viewport_size_y_ );
+	const int x_delta= x_max_i - x_min_i;
+	const int y_delta= y_max_i - y_min_i;
+	const int max_delta= std::max( x_delta, y_delta );
+
+	// TODO - calibrate hierarchy level selection.
+	int hierarchy_level= 0;
+	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
+		hierarchy_level++;
+
+	// For small polygons test separate bits of level 0.
+	// TODO - maybe for upper levels test not whole 16bit word, but separate bits of level+1 ?
+	if( (max_delta >> 3) <= 8 )
+	{
+		const auto& level= occlusion_hierarchy_levels_[0];
+
+		const int subcell_x_min= x_min_i >> 2;
+		const int subcell_x_max= ( x_max_i + 3 ) >> 2;
+		const int subcell_y_min= y_min_i >> 2;
+		const int subcell_y_max= ( y_max_i + 3 ) >> 2;
+		PC_ASSERT( subcell_x_max <= int(level.size[0]) * 4 );
+		PC_ASSERT( subcell_y_max <= int(level.size[1]) * 4 );
+
+		for( int subcell_y= subcell_y_min; subcell_y < subcell_y_max; subcell_y++ )
+		for( int subcell_x= subcell_x_min; subcell_x < subcell_x_max; subcell_x++ )
+		{
+			const int cell_x= subcell_x >> 2;
+			const int cell_y= subcell_y >> 2;
+			const int bit_x= subcell_x & 3;
+			const int bit_y= subcell_y & 3;
+			const int bit_mask= 1 << ( bit_x + 4 * bit_y );
+
+			if( ( level.data[ cell_x + cell_y * int(level.size[0]) ] & bit_mask ) == 0 )
+				return false;
+		}
+		return true;
+	}
+
+	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
+
+	const auto& level= occlusion_hierarchy_levels_[hierarchy_level];
+
+	const int cell_size_log2= 4 + (hierarchy_level*2);
+	const int cell_size= 1 << cell_size_log2;
+
+	const int cell_x_min= x_min_i >> cell_size_log2;
+	const int cell_x_max= ( x_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+	const int cell_y_min= y_min_i >> cell_size_log2;
+	const int cell_y_max= ( y_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+
+	PC_ASSERT( cell_x_max <= int(level.size[0]) );
+	PC_ASSERT( cell_y_max <= int(level.size[1]) );
+
+	for( int cell_y= cell_y_min; cell_y < cell_y_max; cell_y++ )
+	for( int cell_x= cell_x_min; cell_x < cell_x_max; cell_x++ )
+	{
+		if( level.data[ cell_x + cell_y * int(level.size[0]) ] != 0xFFFFu )
+			return false;
+	}
+
+	return true;
+}
+
 void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
 {
 	const auto depth_to_color=
@@ -297,15 +647,39 @@ void Rasterizer::DebugDrawDepthHierarchy( unsigned int tick_count )
 
 void Rasterizer::DebugDrawOcclusionBuffer( unsigned int tick_count )
 {
-	const bool draw= (tick_count&1u) != 0u;
-	if( !draw ) return;
+	unsigned int level= (1u + tick_count) % ( c_occlusion_hierarchy_levels + 2u );
 
-	for( int y= 0u; y < viewport_size_y_; y++ )
-	for( int x= 0u; x < viewport_size_x_; x++ )
-		color_buffer_[ x + y * row_size_ ]=
-			( occlusion_buffer_[ (x>>3) + y * occlusion_buffer_width_ ] & (1<<(x&7)) ) == 0u
-				? 0x00000000u
-				: 0xFFFFFFFFu;
+	if( level == 0u )
+		return;
+	else if( level == 1u )
+	{
+		for( int y= 0u; y < viewport_size_y_; y++ )
+		for( int x= 0u; x < viewport_size_x_; x++ )
+			color_buffer_[ x + y * row_size_ ]=
+				( occlusion_buffer_[ (x>>3) + y * occlusion_buffer_width_ ] & (1<<(x&7)) ) == 0u
+					? 0x00000000u
+					: 0xFFFFFFFFu;
+	}
+	else
+	{
+		level-= 2u;
+		const auto& hierarchy_level= occlusion_hierarchy_levels_[level];
+		const unsigned int cell_size= 16u << (2u * level);
+		const unsigned int cell_bit_size= cell_size / 4u;
+
+		for( unsigned int y= 0u; y < static_cast<unsigned int>(viewport_size_y_); y++ )
+		for( unsigned int x= 0u; x < static_cast<unsigned int>(viewport_size_x_); x++ )
+		{
+			const unsigned int cell_x= x / cell_size;
+			const unsigned int cell_y= y / cell_size;
+			const unsigned short cell_value= hierarchy_level.data[ cell_x + cell_y * hierarchy_level.size[0] ];
+			const unsigned int bit_x= ( x - cell_x * cell_size ) / cell_bit_size;
+			const unsigned int bit_y= ( y - cell_y * cell_size ) / cell_bit_size;
+			const unsigned int bit_mask= 1u << ( bit_x + 4u * bit_y );
+
+			color_buffer_[ x + y * row_size_ ]= (cell_value & bit_mask) == 0 ? 0x00000000u : 0xFFFFFFFFu;
+		}
+	}
 }
 
 void Rasterizer::SetTexture(
@@ -322,6 +696,10 @@ void Rasterizer::SetTexture(
 
 void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertices, const uint32_t color )
 {
+	PC_ASSERT( vertices[0].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( vertices[1].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+	PC_ASSERT( vertices[2].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
+
 	// Sort triangle vertices.
 	unsigned int upper_index;
 	unsigned int middle_index;
@@ -357,11 +735,9 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertic
 		Fixed16Mul( vertices[ upper_index ].x, middle_k ) +
 		Fixed16Mul( vertices[ lower_index ].x, ( g_fixed16_one - middle_k ) );
 
-	RasterizerVertexCoord middle_vertex;
-	middle_vertex.x= middle_x;
-	middle_vertex.y= vertices[ middle_index ].y;
-
-	// TODO - optimize "triangle_part_vertices_simple_" assignment.
+	const fixed16_t middle_lower_dy= vertices[ middle_index ].y - vertices[ lower_index ].y;
+	const fixed16_t upper_middle_dy= vertices[ upper_index ].y - vertices[ middle_index ].y;
+	// TODO - optimize "triangle_part_vertices_" assignment.
 	if( middle_x >= vertices[ middle_index ].x )
 	{
 		/*
@@ -375,17 +751,26 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertic
 				 _ \
 				   _\
 		*/
-		triangle_part_vertices_[0]= vertices[ lower_index ];
-		triangle_part_vertices_[1]= vertices[ middle_index ];
-		triangle_part_vertices_[2]= vertices[ lower_index ];
-		triangle_part_vertices_[3]= middle_vertex;
-		DrawAffineColoredTrianglePart( color );
+		triangle_part_x_step_right_= Fixed16Div( vertices[ upper_index ].x - vertices[ lower_index ].x, long_edge_y_length );
 
-		triangle_part_vertices_[0]= vertices[ middle_index ];
-		triangle_part_vertices_[1]= vertices[ upper_index ];
-		triangle_part_vertices_[2]= middle_vertex;
-		triangle_part_vertices_[3]= vertices[ upper_index ];
-		DrawAffineColoredTrianglePart( color );
+		if( middle_lower_dy > 0 )
+		{
+			triangle_part_x_step_left_= Fixed16Div( vertices[ middle_index ].x - vertices[ lower_index ].x, middle_lower_dy );
+			triangle_part_vertices_[0]= vertices[ lower_index ];
+			triangle_part_vertices_[1]= vertices[ middle_index ];
+			triangle_part_vertices_[2]= vertices[ lower_index ];
+			triangle_part_vertices_[3]= vertices[ upper_index ];
+			DrawAffineColoredTrianglePart( color );
+		}
+		if( upper_middle_dy > 0 )
+		{
+			triangle_part_x_step_left_= Fixed16Div( vertices[ upper_index ].x - vertices[ middle_index ].x, upper_middle_dy );
+			triangle_part_vertices_[0]= vertices[ middle_index ];
+			triangle_part_vertices_[1]= vertices[ upper_index ];
+			triangle_part_vertices_[2]= vertices[ lower_index ];
+			triangle_part_vertices_[3]= vertices[ upper_index ];
+			DrawAffineColoredTrianglePart( color );
+		}
 	}
 	else
 	{
@@ -400,44 +785,46 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertic
 		 / _
 		/_
 		*/
-		triangle_part_vertices_[0]= vertices[ lower_index ];
-		triangle_part_vertices_[1]= middle_vertex;
-		triangle_part_vertices_[2]= vertices[ lower_index ];
-		triangle_part_vertices_[3]= vertices[ middle_index ];
-		DrawAffineColoredTrianglePart( color );
+		triangle_part_x_step_left_= Fixed16Div( vertices[ upper_index ].x - vertices[ lower_index ].x, long_edge_y_length );
 
-		triangle_part_vertices_[0]= middle_vertex;
-		triangle_part_vertices_[1]= vertices[ upper_index ];
-		triangle_part_vertices_[2]= vertices[ middle_index ];
-		triangle_part_vertices_[3]= vertices[ upper_index ];
-		DrawAffineColoredTrianglePart( color );
+		if( middle_lower_dy > 0 )
+		{
+			triangle_part_x_step_right_= Fixed16Div( vertices[ middle_index ].x - vertices[ lower_index ].x, middle_lower_dy );
+			triangle_part_vertices_[0]= vertices[ lower_index ];
+			triangle_part_vertices_[1]= vertices[ upper_index ];
+			triangle_part_vertices_[2]= vertices[ lower_index ];
+			triangle_part_vertices_[3]= vertices[ middle_index ];
+			DrawAffineColoredTrianglePart( color );
+		}
+		if( upper_middle_dy > 0 )
+		{
+			triangle_part_x_step_right_= Fixed16Div( vertices[ upper_index ].x - vertices[ middle_index ].x, upper_middle_dy );
+			triangle_part_vertices_[0]= vertices[ lower_index ];
+			triangle_part_vertices_[1]= vertices[ upper_index ];
+			triangle_part_vertices_[2]= vertices[ middle_index ];
+			triangle_part_vertices_[3]= vertices[ upper_index ];
+			DrawAffineColoredTrianglePart( color );
+		}
 	}
 }
 
 void Rasterizer::DrawAffineColoredTrianglePart( const uint32_t color )
 {
-	const fixed16_t dy= triangle_part_vertices_[1].y - triangle_part_vertices_[0].y;
-	if( dy <= 0 )
-		return;
+	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
+	const fixed16_t y_end_f  = std::min( triangle_part_vertices_[1].y, triangle_part_vertices_[3].y );
+	const int y_start= std::max( 0, Fixed16RoundToInt( y_start_f ) );
+	const int y_end  = std::min( viewport_size_y_, Fixed16RoundToInt( y_end_f ) );
 
-	const fixed16_t dx_left = triangle_part_vertices_[1].x - triangle_part_vertices_[0].x;
-	const fixed16_t dx_right= triangle_part_vertices_[3].x - triangle_part_vertices_[2].x;
-	const fixed16_t x_left_step = Fixed16Div( dx_left , dy );
-	const fixed16_t x_right_step= Fixed16Div( dx_right, dy );
-
-	PC_ASSERT( std::abs( Fixed16Mul( x_left_step , dy ) ) <= std::abs( dx_left  ) );
-	PC_ASSERT( std::abs( Fixed16Mul( x_right_step, dy ) ) <= std::abs( dx_right ) );
-
-	const int y_start= std::max( 0, Fixed16RoundToInt( triangle_part_vertices_[0].y ) );
-	const int y_end  = std::min( viewport_size_y_, Fixed16RoundToInt( triangle_part_vertices_[1].y ) );
-
-	const fixed16_t y_cut= ( y_start << 16 ) + g_fixed16_half - triangle_part_vertices_[0].y;
-	fixed16_t x_left = triangle_part_vertices_[0].x + Fixed16Mul( y_cut, x_left_step  );
-	fixed16_t x_right= triangle_part_vertices_[2].x + Fixed16Mul( y_cut, x_right_step );
+	const fixed16_t y_cut_left = ( y_start << 16 ) + g_fixed16_half - triangle_part_vertices_[0].y;
+	const fixed16_t y_cut_right= ( y_start << 16 ) + g_fixed16_half - triangle_part_vertices_[2].y;
+	fixed16_t x_left = triangle_part_vertices_[0].x + Fixed16Mul( y_cut_left , triangle_part_x_step_left_  );
+	fixed16_t x_right= triangle_part_vertices_[2].x + Fixed16Mul( y_cut_right, triangle_part_x_step_right_ );
 	for(
 		int y= y_start;
 		y< y_end;
-		y++, x_left+= x_left_step, x_right+= x_right_step )
+		y++,
+		x_left += triangle_part_x_step_left_ ,
+		x_right+= triangle_part_x_step_right_ )
 	{
 		const int x_start= std::max( 0, Fixed16RoundToInt( x_left ) );
 		const int x_end= std::min( viewport_size_x_, Fixed16RoundToInt( x_right ) );

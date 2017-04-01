@@ -1,12 +1,12 @@
 #pragma once
 
 #include "../rendering_context.hpp"
-#include "i_hud_drawer.hpp"
+#include "hud_drawer_base.hpp"
 
 namespace PanzerChasm
 {
 
-class HudDrawerSoft final : public IHudDrawer
+class HudDrawerSoft final : public HudDrawerBase
 {
 public:
 	HudDrawerSoft(
@@ -15,15 +15,26 @@ public:
 		const SharedDrawersPtr& shared_drawers );
 	virtual ~HudDrawerSoft() override;
 
-	virtual void AddMessage( const MapData::Message& message, Time current_time ) override;
-	virtual void ResetMessage() override;
-	virtual void SetPlayerState( const Messages::PlayerState& player_state, unsigned int current_weapon_number ) override;
-
 	virtual void DrawCrosshair() override;
-	virtual void DrawCurrentMessage( Time current_time ) override;
 	virtual void DrawHud( bool draw_second_hud, const char* map_name ) override;
 
 private:
+	struct Image
+	{
+		unsigned int size[2];
+		std::vector<unsigned char> data; // color-indexed.
+	};
+
+private:
+	void LoadImage( const char* file_name, Image& out_image );
+
+private:
+	const RenderingContextSoft& rendering_context_;
+
+	Image crosshair_image_;
+	Image weapon_icons_image_;
+	Image hud_numbers_image_;
+	Image hud_background_image_;
 };
 
 } // namespace PanzerChasm
