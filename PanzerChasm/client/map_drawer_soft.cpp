@@ -103,6 +103,15 @@ static void MakeBinaryAlpha( uint32_t* const pixels, const unsigned int pixel_co
 	}
 }
 
+static fixed16_t ScaleLightmapLight( const unsigned char lightmap_value )
+{
+	// Overbright constant must be equal to same constant in shader. See shaders/constants.glsl.
+	static constexpr float c_overbright= 1.3f;
+	static constexpr fixed16_t scale= static_cast<fixed16_t>( ( c_overbright * 65536.0f ) / 255.0f );
+
+	return lightmap_value * scale;
+}
+
 MapDrawerSoft::MapDrawerSoft(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
@@ -1534,7 +1543,8 @@ const SurfacesCache::Surface* MapDrawerSoft::GetFloorCeilingSurface( FloorCeilin
 		const unsigned int lightmap_global_y= lightmap_cell_y + MapData::c_lightmap_scale * cell.xy[1];
 
 		// TODO - Maybe scale light?
-		const unsigned char light= current_map_data_->lightmap[ lightmap_global_x + lightmap_global_y * MapData::c_lightmap_size ];
+		const unsigned char lightmap_value= current_map_data_->lightmap[ lightmap_global_x + lightmap_global_y * MapData::c_lightmap_size ];
+		const fixed16_t light= ScaleLightmapLight( lightmap_value );
 
 		for( unsigned int texel_y= 0u; texel_y < monolighted_block_size; texel_y++ )
 		for( unsigned int texel_x= 0u; texel_x < monolighted_block_size; texel_x++ )
@@ -1544,8 +1554,11 @@ const SurfacesCache::Surface* MapDrawerSoft::GetFloorCeilingSurface( FloorCeilin
 			const unsigned int texel_address= texture_x + texture_y * texture_size;
 			const uint32_t texel= in_data[ texel_address ];
 			unsigned char components[4];
-			for( unsigned int c= 0u; c < 3u; c++ )
-				components[c]= ( reinterpret_cast<const unsigned char*>(&texel)[c] * light ) >> 8u;
+			for( unsigned int i= 0u; i < 3u; i++ )
+			{
+				const unsigned int c= reinterpret_cast<const unsigned char*>(&texel)[i] * static_cast<unsigned int>(light) >> 16u;
+				components[i]= std::min( c, 255u );
+			}
 
 			std::memcpy( &out_data[ texel_address ], components, sizeof(uint32_t) );
 		}
