@@ -115,6 +115,7 @@ MapDrawerSoft::MapDrawerSoft(
 	, rasterizer_(
 		rendering_context.viewport_size.Width(), rendering_context.viewport_size.Height(),
 		rendering_context.row_pixels, rendering_context.window_surface_data )
+	, surfaces_cache_( rendering_context_.viewport_size )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -151,6 +152,8 @@ MapDrawerSoft::~MapDrawerSoft()
 
 void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 {
+	surfaces_cache_.Clear();
+
 	if( map_data == current_map_data_ )
 		return;
 
@@ -531,6 +534,9 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 			cell.xy[0]= x;
 			cell.xy[1]= y;
 			cell.texture_id= texture_number;
+
+			for( SurfacesCache::Surface*& surf_ptr : cell.mips_surfaces )
+				surf_ptr= nullptr;
 		}
 	}
 }
@@ -737,7 +743,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 {
 	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
 	{
-		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
+		FloorCeilingCell& cell= map_floors_and_ceilings_[i];
 		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
 
 		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
@@ -808,7 +814,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			}
 		}
 		int mip= 0;
-		const uint32_t* mip_texture_data;
+		const SurfacesCache::Surface* surface;
 		// Calculate d_tc / d_length for longest edge, select mip.
 		unsigned int prev_v= longest_edge_index == 0u ? (polygon_vertex_count - 1u) : (longest_edge_index - 1u);
 		const fixed16_t du= verties_projected[longest_edge_index].u - verties_projected[prev_v].u;
@@ -819,21 +825,24 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		if( d_tc_d_len_square < 1 * 1 )
 		{
 			mip= 0;
-			mip_texture_data= floor_textures_[ cell.texture_id ].data;
+			surface= GetFloorCeilingSurface<0>( cell );
 		}
 		else
 		{
 			if( d_tc_d_len_square < 2 * 2 )
 			{
-				mip= 1; mip_texture_data= floor_textures_[ cell.texture_id ].mip1;
+				mip= 1;
+				surface= GetFloorCeilingSurface<1>( cell );
 			}
 			else if( d_tc_d_len_square < 4 * 4 )
 			{
-				mip= 2; mip_texture_data= floor_textures_[ cell.texture_id ].mip2;
+				mip= 2;
+				surface= GetFloorCeilingSurface<2>( cell );
 			}
 			else
 			{
-				mip= 3; mip_texture_data= floor_textures_[ cell.texture_id ].mip3;
+				mip= 3;
+				surface= GetFloorCeilingSurface<3>( cell );
 			}
 
 			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
@@ -844,8 +853,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		}
 
 		rasterizer_.SetTexture(
-			MapData::c_floor_texture_size >> mip, MapData::c_floor_texture_size >> mip,
-			mip_texture_data );
+			surface->size[0], surface->size[1],
+			surface->GetData() );
 
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
@@ -1382,6 +1391,62 @@ unsigned int MapDrawerSoft::ClipPolygon(
 	fisrt_clipped_vertex_= new_v0;
 
 	return vertex_count - vertices_behind + 2u;
+}
+
+template<unsigned int mip>
+const SurfacesCache::Surface* MapDrawerSoft::GetFloorCeilingSurface( FloorCeilingCell& cell )
+{
+	PC_ASSERT( mip < 4u );
+
+	if( cell.mips_surfaces[mip] != nullptr )
+		return cell.mips_surfaces[mip];
+
+	PC_ASSERT( cell.xy[0] < MapData::c_map_size );
+	PC_ASSERT( cell.xy[1] < MapData::c_map_size );
+	PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
+
+	const unsigned int texture_size= MapData::c_floor_texture_size >> mip;
+	const unsigned int monolighted_block_size= ( MapData::c_floor_texture_size / MapData::c_lightmap_scale ) >> mip;
+
+	surfaces_cache_.AllocateSurface( texture_size, texture_size, &cell.mips_surfaces[mip] );
+	SurfacesCache::Surface* const surface= cell.mips_surfaces[mip];
+	uint32_t* const out_data= surface->GetData();
+
+	const uint32_t* in_data;
+	if( mip == 0u )
+		in_data= floor_textures_[cell.texture_id].data;
+	if( mip == 1u )
+		in_data= floor_textures_[cell.texture_id].mip1;
+	if( mip == 2u )
+		in_data= floor_textures_[cell.texture_id].mip2;
+	if( mip == 3u )
+		in_data= floor_textures_[cell.texture_id].mip3;
+
+	for( unsigned int lightmap_cell_y= 0u; lightmap_cell_y < MapData::c_lightmap_scale; lightmap_cell_y++ )
+	for( unsigned int lightmap_cell_x= 0u; lightmap_cell_x < MapData::c_lightmap_scale; lightmap_cell_x++ )
+	{
+		const unsigned int lightmap_global_x= lightmap_cell_x + MapData::c_lightmap_scale * cell.xy[0];
+		const unsigned int lightmap_global_y= lightmap_cell_y + MapData::c_lightmap_scale * cell.xy[1];
+
+		// TODO - Maybe scale light?
+		const unsigned char light= current_map_data_->lightmap[ lightmap_global_x + lightmap_global_y * MapData::c_lightmap_size ];
+
+		for( unsigned int texel_y= 0u; texel_y < monolighted_block_size; texel_y++ )
+		for( unsigned int texel_x= 0u; texel_x < monolighted_block_size; texel_x++ )
+		{
+			const unsigned int texture_x= texel_x + lightmap_cell_x * monolighted_block_size;
+			const unsigned int texture_y= texel_y + lightmap_cell_y * monolighted_block_size;
+			const unsigned int texel_address= texture_x + texture_y * texture_size;
+			const uint32_t texel= in_data[ texel_address ];
+			unsigned char components[4];
+			for( unsigned int c= 0u; c < 3u; c++ )
+				components[c]= ( reinterpret_cast<const unsigned char*>(&texel)[c] * light ) >> 8u;
+
+			std::memcpy( &out_data[ texel_address ], components, sizeof(uint32_t) );
+		}
+	} // for lightmap cells
+
+	return surface;
 }
 
 } // PanzerChasm

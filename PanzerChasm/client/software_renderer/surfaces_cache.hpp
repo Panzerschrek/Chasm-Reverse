@@ -22,6 +22,11 @@ public:
 		{
 			return reinterpret_cast<uint32_t*>(this + 1);
 		}
+
+		const uint32_t* GetData() const
+		{
+			return reinterpret_cast<const uint32_t*>(this + 1);
+		}
 	};
 
 public:

@@ -6,6 +6,7 @@
 #include "fwd.hpp"
 #include "i_map_drawer.hpp"
 #include "software_renderer/rasterizer.hpp"
+#include "software_renderer/surfaces_cache.hpp"
 
 namespace PanzerChasm
 {
@@ -53,6 +54,7 @@ private:
 	{
 		unsigned char xy[2];
 		unsigned char texture_id;
+		SurfacesCache::Surface* mips_surfaces[4];
 	};
 
 	struct FloorTexture
@@ -140,6 +142,9 @@ private:
 		const m_Plane3& clip_plane,
 		unsigned int vertex_count );
 
+	template<unsigned int mip>
+	const SurfacesCache::Surface* GetFloorCeilingSurface( FloorCeilingCell& cell );
+
 private:
 	struct ClippedVertex
 	{
@@ -156,6 +161,7 @@ private:
 	const float screen_transform_y_;
 
 	Rasterizer rasterizer_;
+	SurfacesCache surfaces_cache_;
 
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapBSPTree> map_bsp_tree_;

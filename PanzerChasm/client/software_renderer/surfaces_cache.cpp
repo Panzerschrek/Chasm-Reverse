@@ -19,7 +19,7 @@ SurfacesCache::SurfacesCache( const Size2& viewport_size )
 	const unsigned int viewport_pixels= viewport_size.Width() * viewport_size.Height();
 	const unsigned int cache_size_pixels= viewport_pixels * 4u;
 
-	storage_.resize( cache_size_pixels * 4u );
+	storage_.resize( cache_size_pixels * sizeof(uint32_t) );
 }
 
 SurfacesCache::~SurfacesCache()
@@ -39,8 +39,8 @@ void SurfacesCache::AllocateSurface(
 		// Recycle surfaces at end.
 		while( next_recycled_surface_offset_ < last_surface_in_buffer_end_offset_ )
 		{
-			Surface* recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
-			PC_ASSERT( recycled_surface->owner != nullptr );
+			Surface* const recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
+			PC_ASSERT( recycled_surface->owner != nullptr && *recycled_surface->owner == recycled_surface );
 			*recycled_surface->owner= nullptr;
 			next_recycled_surface_offset_+=
 				sizeof(Surface) + SurfaceDataSizeAligned( recycled_surface->size[0], recycled_surface->size[1] );
@@ -52,10 +52,11 @@ void SurfacesCache::AllocateSurface(
 	}
 
 	// Set recycled surfaces owner to null.
-	while( next_recycled_surface_offset_ < next_allocated_surface_offset_ + surface_data_size )
+	while( next_recycled_surface_offset_ < last_surface_in_buffer_end_offset_ &&
+		next_recycled_surface_offset_ < next_allocated_surface_offset_ + surface_data_size )
 	{
-		Surface* recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
-		PC_ASSERT( recycled_surface->owner != nullptr );
+		Surface* const recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
+		PC_ASSERT( recycled_surface->owner != nullptr && *recycled_surface->owner == recycled_surface );
 		*recycled_surface->owner= nullptr;
 		next_recycled_surface_offset_+=
 			sizeof(Surface) + SurfaceDataSizeAligned( recycled_surface->size[0], recycled_surface->size[1] );
