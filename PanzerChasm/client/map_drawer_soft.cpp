@@ -630,7 +630,7 @@ void MapDrawerSoft::DrawWallSegment(
 		out_v.z= fixed16_t( w * 65536.0f );
 	}
 
-	if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
+	if( !is_dynamic_wall && rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
 		return;
 
 	int mip= 0;
