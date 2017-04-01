@@ -426,6 +426,9 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 void Rasterizer::UpdateOcclusionHierarchy(
 	const RasterizerVertex* const polygon_vertices, const unsigned int polygon_vertex_count )
 {
+	// TODO - use polygon vertices for fast "zero" and "one" occlusion hierarchy cells.
+	// Profile that method, when it will be implemented.
+
 	PC_ASSERT( polygon_vertex_count >= 3u );
 
 	fixed16_t x_min= viewport_size_x_ << 16, x_max= 0;
