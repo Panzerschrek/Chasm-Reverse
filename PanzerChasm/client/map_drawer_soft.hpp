@@ -57,6 +57,15 @@ private:
 		SurfacesCache::Surface* mips_surfaces[4];
 	};
 
+	struct DrawWall
+	{
+		unsigned int surface_width; // In pixels. must be 64 or 128
+		unsigned char texture_id;
+		unsigned char lightmap[8];
+
+		SurfacesCache::Surface* mips_surfaces[4];
+	};
+
 	struct FloorTexture
 	{
 		// TODO - do not store mip0 32bit texture.
@@ -102,12 +111,14 @@ private:
 	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
 	void LoadWallsTextures( const MapData& map_data );
 	void LoadFloorsTextures( const MapData& map_data );
-	void LoadFloorsAndCeilings( const MapData& map_data);
+	void LoadWalls( const MapData& map_data );
+	void LoadFloorsAndCeilings( const MapData& map_data );
 
 	template< bool is_dynamic_wall >
 	void DrawWallSegment(
+		DrawWall& wall,
 		const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, float z,
-		float tc_0, float tc_1, unsigned int texture_id,
+		float tc_0, float tc_1,
 		const m_Mat4& matrix,
 		const m_Vec2& camera_position_xy,
 		const ViewClipPlanes& view_clip_planes );
@@ -143,6 +154,9 @@ private:
 		unsigned int vertex_count );
 
 	template<unsigned int mip>
+	const SurfacesCache::Surface* GetWallSurface( DrawWall& wall );
+
+	template<unsigned int mip>
 	const SurfacesCache::Surface* GetFloorCeilingSurface( FloorCeilingCell& cell );
 
 private:
@@ -171,6 +185,9 @@ private:
 	ModelsGroup rockets_models_;
 	ModelsGroup weapons_models_;
 	ModelsGroup monsters_models_;
+
+	std::vector<DrawWall> static_walls_;
+	std::vector<DrawWall> dynamic_walls_;
 
 	std::vector<FloorCeilingCell> map_floors_and_ceilings_;
 	unsigned int first_floor_= 0u;
