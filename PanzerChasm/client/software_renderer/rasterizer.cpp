@@ -552,6 +552,34 @@ bool Rasterizer::IsOccluded(
 	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
 		hierarchy_level++;
 
+	// For small polygons test separate bits of level 0.
+	// TODO - maybe for upper levels test not whole 16bit word, but separate bits of level+1 ?
+	if( (max_delta >> 3) <= 8 )
+	{
+		const auto& level= occlusion_hierarchy_levels_[0];
+
+		const int subcell_x_min= x_min_i >> 2;
+		const int subcell_x_max= ( x_max_i + 3 ) >> 2;
+		const int subcell_y_min= y_min_i >> 2;
+		const int subcell_y_max= ( y_max_i + 3 ) >> 2;
+		PC_ASSERT( subcell_x_max <= int(level.size[0]) * 4 );
+		PC_ASSERT( subcell_y_max <= int(level.size[1]) * 4 );
+
+		for( int subcell_y= subcell_y_min; subcell_y < subcell_y_max; subcell_y++ )
+		for( int subcell_x= subcell_x_min; subcell_x < subcell_x_max; subcell_x++ )
+		{
+			const int cell_x= subcell_x >> 2;
+			const int cell_y= subcell_y >> 2;
+			const int bit_x= subcell_x & 3;
+			const int bit_y= subcell_y & 3;
+			const int bit_mask= 1 << ( bit_x + 4 * bit_y );
+
+			if( ( level.data[ cell_x + cell_y * int(level.size[0]) ] & bit_mask ) == 0 )
+				return false;
+		}
+		return true;
+	}
+
 	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
 
 	const auto& level= occlusion_hierarchy_levels_[hierarchy_level];
