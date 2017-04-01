@@ -71,6 +71,9 @@ public:
 		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 		fixed16_t z_min, fixed16_t z_max ) const;
 
+	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count );
+	bool IsOccluded( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count ) const;
+
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
 	void DebugDrawOcclusionBuffer( unsigned int tick_count );
 
@@ -103,6 +106,10 @@ private:
 	typedef void (Rasterizer::*TrianglePartDrawFunc)();
 
 private:
+	// Returns 1, if cell fully occluded, else - 0
+	template<unsigned int level>
+	unsigned int UpdateOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
+
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
 
@@ -161,6 +168,23 @@ private:
 	std::vector<uint8_t> occlusion_buffer_storage_;
 	uint8_t* occlusion_buffer_;
 	int occlusion_buffer_width_; // in bytes
+	int occlusion_buffer_height_; // in pixels
+
+	// Occlusion buffer hierarchy.
+	//   4x  4 bits
+	//  16x 16 bits
+	//  64x 64 bits
+	static constexpr unsigned int c_occlusion_hierarchy_levels= 3u;
+	struct
+	{
+		// Each 16-bit word is bits of lower hierarchy 4x4 block.
+		// bit_number= x + y * 4
+		unsigned short* data;
+
+		unsigned int size[2];
+
+	} occlusion_hierarchy_levels_[ c_occlusion_hierarchy_levels ];
+	std::vector<unsigned short> occlusion_heirarchy_storage_;
 
 	// Texture
 	int texture_size_x_= 0;
@@ -176,9 +200,15 @@ private:
 	// 2 - lower right
 	// 3 - upper right
 	RasterizerVertexCoord triangle_part_vertices_[4];
+	RasterizerVertexTexCoord trianlge_part_tc_left_;
+	fixed_base_t triangle_part_inv_z_scaled_left_;
+	fixed16_t triangle_part_x_step_left_, triangle_part_x_step_right_;
+	fixed16_t traingle_part_tc_step_left_[2]; // For perspective-corrected methods = tc / z
+	fixed16_t triangle_part_inv_z_scaled_step_left_;
+
 	// 0 - lower left   1 - upper left
-	RasterizerVertexTexCoord triangle_part_tex_coords_[2]; // For perspective-corrected methods = tc / z
-	fixed_base_t triangle_part_inv_z_scaled[2];
+	//RasterizerVertexTexCoord triangle_part_tex_coords_[2];
+	//fixed_base_t triangle_part_inv_z_scaled[2];
 
 	// For perspective-corrected methods = tc / z
 	fixed16_t line_tc_step_[2];
