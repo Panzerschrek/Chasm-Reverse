@@ -117,12 +117,59 @@ void Rasterizer::ClearOcclusionBuffer()
 	// Set all occlusion hierarchy data to zero.
 	std::memset( occlusion_heirarchy_storage_.data(), 0, occlusion_heirarchy_storage_.size() * sizeof(unsigned short) );
 
-	// Update hierarchy cells, start from upper.
-	// TODO - mark hierarchy cells outside screen borders as white more optimal.
-	const auto& level= occlusion_hierarchy_levels_[ c_occlusion_hierarchy_levels - 1u ];
-	for( unsigned int y= 0u; y < level.size[1]; y++ )
-	for( unsigned int x= 0u; x < level.size[0]; x++ )
-		UpdateOcclusionHierarchyCell_r< c_occlusion_hierarchy_levels - 1u >( x, y );
+	// Mark as "white" hierarchy cells bits for subcells, outside screen.
+	for( unsigned int i= 0u; i < c_occlusion_hierarchy_levels; i++ )
+	{
+		const auto& level= occlusion_hierarchy_levels_[i];
+		const unsigned int cell_size_log2= 4u + (i*2u);
+		const unsigned int cell_size= 1u << cell_size_log2;
+		const unsigned int cell_size_minus_one= cell_size - 1u;
+
+		unsigned int full_white_start_cell_x= ( static_cast<unsigned int>(viewport_size_x_) + cell_size_minus_one ) >> cell_size_log2;
+		unsigned int full_white_start_cell_y= ( static_cast<unsigned int>(viewport_size_y_) + cell_size_minus_one ) >> cell_size_log2;
+		const unsigned int full_black_end_cell_x= static_cast<unsigned int>(viewport_size_x_) >> cell_size_log2;
+		const unsigned int full_black_end_cell_y= static_cast<unsigned int>(viewport_size_y_) >> cell_size_log2;
+
+		for( unsigned int y= 0u; y < full_black_end_cell_y; y++ )
+		{
+			// Set partial cells bits to "one", if subcell is outside screen.
+			for( unsigned int x= full_black_end_cell_x; x < full_white_start_cell_x; x++ )
+			{
+				unsigned short& cell_value= level.data[ x + y * level.size[0] ];
+				for( unsigned int dx= 0u; dx < 4u; dx++ )
+				for( unsigned int dy= 0u; dy < 4u; dy++ )
+				{
+					const unsigned int global_x= ( x << cell_size_log2 ) + ( dx << ( cell_size_log2 - 2u ) );
+					if( global_x >= static_cast<unsigned int>(viewport_size_x_) )
+						cell_value|= 1u << ( dx + dy * 4u );
+				}
+			}
+
+			// Set full wite cells.
+			for( unsigned int x= full_white_start_cell_x; x < level.size[0]; x++ )
+				level.data[ x + y * level.size[0] ]= 0xFFFFu;
+		}
+
+		// Update partial Y cells.
+		for( unsigned int y= full_black_end_cell_y; y < full_white_start_cell_y; y++ )
+		for( unsigned int x= 0; x < level.size[0]; x++ )
+		{
+			unsigned short& cell_value= level.data[ x + y * level.size[0] ];
+			for( unsigned int dy= 0u; dy < 4u; dy++ )
+			for( unsigned int dx= 0u; dx < 4u; dx++ )
+			{
+				const unsigned int global_x= ( x << cell_size_log2 ) + ( dx << ( cell_size_log2 - 2u ) );
+				const unsigned int global_y= ( y << cell_size_log2 ) + ( dy << ( cell_size_log2 - 2u ) );
+				if( global_x >= static_cast<unsigned int>(viewport_size_x_) ||
+					global_y >= static_cast<unsigned int>(viewport_size_y_) )
+					cell_value|= 1u << ( dx + dy * 4u );
+			}
+		}
+
+		// Set full white Y cells.
+		for( unsigned int y= full_white_start_cell_y; y < level.size[1]; y++ )
+			std::memset( level.data + y * level.size[0], 0xFF, level.size[0] * sizeof(unsigned short) );
+	}
 }
 
 void Rasterizer::BuildDepthBufferHierarchy()
