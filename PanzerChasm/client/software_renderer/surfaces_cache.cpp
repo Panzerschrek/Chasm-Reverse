@@ -39,6 +39,9 @@ void SurfacesCache::AllocateSurface(
 	const unsigned int size_x, const unsigned int size_y,
 	Surface** out_surface_ptr )
 {
+	PC_ASSERT( size_x > 0u );
+	PC_ASSERT( size_y > 0u );
+
 	unsigned int surface_data_size= sizeof(Surface) + SurfaceDataSizeAligned( size_x, size_y );
 
 	PC_ASSERT( surface_data_size < storage_.size() );

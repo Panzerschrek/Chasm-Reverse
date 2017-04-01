@@ -1459,7 +1459,14 @@ const SurfacesCache::Surface* MapDrawerSoft::GetWallSurface( DrawWall& wall )
 	if( wall.mips_surfaces[mip] != nullptr )
 		return wall.mips_surfaces[mip];
 
-	const unsigned int surface_height= g_wall_texture_height >> mip;
+	const WallTexture& texture= wall_textures_[wall.texture_id];
+
+	// Do not generate cache pixels for alpha-texels.
+	// TODO - maybe cut surface below full_alpha_row[0] too?
+	const unsigned int y_start= texture.full_alpha_row[0] >> mip;
+	const unsigned int y_end= ( texture.full_alpha_row[1] + ( (1u << mip) - 1u ) ) >> mip;
+
+	const unsigned int surface_height= y_end;
 	const unsigned int surface_width = wall.surface_width >> mip;
 	const unsigned int lightmap_x_shift= ( wall.surface_width == 128u ? 4u : 3u ) - mip;
 
@@ -1467,7 +1474,6 @@ const SurfacesCache::Surface* MapDrawerSoft::GetWallSurface( DrawWall& wall )
 	SurfacesCache::Surface* const surface= wall.mips_surfaces[mip];
 	uint32_t* const out_data= surface->GetData();
 
-	const WallTexture& texture= wall_textures_[wall.texture_id];
 	const uint32_t* in_data;
 	if( mip == 0u )
 		in_data= texture.mip0;
@@ -1485,9 +1491,8 @@ const SurfacesCache::Surface* MapDrawerSoft::GetWallSurface( DrawWall& wall )
 	for( unsigned int i= 0u; i < 8u; i++ )
 		lightmap_scaled[i]= ScaleLightmapLight( wall.lightmap[i] );
 
-	// TODO - make light brighter.
 	// TODO - check twice lightmap fetching.
-	for( unsigned int y= 0u; y < surface_height; y++ )
+	for( unsigned int y= y_start; y < y_end; y++ )
 	for( unsigned int x= 0u; x < surface_width ; x++ )
 	{
 		const uint32_t texel= in_data[ ( x & texture_x_wrap_mask ) + y * texture_width ];
