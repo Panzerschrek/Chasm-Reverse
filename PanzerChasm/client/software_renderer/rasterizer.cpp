@@ -473,7 +473,7 @@ void Rasterizer::UpdateOcclusionHierarchy(
 			case 0: UpdateOcclusionHierarchyCell_r<0>( cell_x, cell_y ); break;
 			case 1: UpdateOcclusionHierarchyCell_r<1>( cell_x, cell_y ); break;
 			case 2: UpdateOcclusionHierarchyCell_r<2>( cell_x, cell_y ); break;
-			case 3: UpdateOcclusionHierarchyCell_r<3>( cell_x, cell_y ); break;
+			//case 3: UpdateOcclusionHierarchyCell_r<3>( cell_x, cell_y ); break;
 			default: PC_ASSERT(false); break;
 			}
 		}

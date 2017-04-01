@@ -171,11 +171,10 @@ private:
 	int occlusion_buffer_height_; // in pixels
 
 	// Occlusion buffer hierarchy.
-	//   4x  4
-	//  16x 16
-	//  64x 64
-	// 256x256
-	static constexpr unsigned int c_occlusion_hierarchy_levels= 4u;
+	//   4x  4 bits
+	//  16x 16 bits
+	//  64x 64 bits
+	static constexpr unsigned int c_occlusion_hierarchy_levels= 3u;
 	struct
 	{
 		// Each 16-bit word is bits of lower hierarchy 4x4 block.
