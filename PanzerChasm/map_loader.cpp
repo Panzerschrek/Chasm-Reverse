@@ -156,6 +156,11 @@ MapData::Procedure::ActionCommandId ActionCommandFormString( const char* const s
 	return Command::Unknown;
 }
 
+static unsigned char ConvertMapLight( const unsigned char map_light )
+{
+	return 255u - map_light * 6u;
+}
+
 } // namespace
 
 MapLoader::MapLoader( const VfsPtr& vfs )
@@ -216,8 +221,9 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 		el.type= MapData::IndexElement::None;
 
 	// Scan map file
-	LoadLightmap( map_file_content,*result );
-	LoadWalls( map_file_content, *result, dynamic_walls_mask );
+	LoadLightmap( map_file_content, *result );
+	const unsigned char* const walls_lightmaps_data= GetWallsLightmapData( map_file_content );
+	LoadWalls( map_file_content, *result, dynamic_walls_mask, walls_lightmaps_data );
 	LoadFloorsAndCeilings( map_file_content,*result );
 	LoadAmbientLight( map_file_content,*result );
 	LoadAmbientSoundsMap( map_file_content,*result );
@@ -253,11 +259,21 @@ void MapLoader::LoadLightmap( const Vfs::FileContent& map_file, MapData& map_dat
 	for( unsigned int x= 0u; x < MapData::c_lightmap_size - 1u; x++ )
 	{
 		map_data.lightmap[ x + 1u + y * MapData::c_lightmap_size ]=
-			255u - in_data[ x + y * MapData::c_lightmap_size ] * 6u;
+			ConvertMapLight( in_data[ x + y * MapData::c_lightmap_size ] );
 	}
 }
 
-void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask )
+const unsigned char* MapLoader::GetWallsLightmapData( const Vfs::FileContent& map_file )
+{
+	const unsigned int c_walls_lightmap_data_offset= 0x01u + MapData::c_lightmap_size * MapData::c_lightmap_size;
+	return map_file.data() + c_walls_lightmap_data_offset;
+}
+
+void MapLoader::LoadWalls(
+	const Vfs::FileContent& map_file,
+	MapData& map_data,
+	const DynamicWallsMask& dynamic_walls_mask,
+	const unsigned char* walls_lightmap_data )
 {
 	const unsigned int c_walls_offset= 0x18001u;
 
@@ -342,6 +358,11 @@ void MapLoader::LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, 
 		wall.vert_tex_coord[1]= 0.0f;
 
 		wall.texture_id= map_wall.texture_id;
+
+		// TODO - know, why "-2". Correct if needed.
+		const unsigned char* const in_lightmap_data= walls_lightmap_data + ( x + y * MapData::c_map_size ) * 8u - 2u;
+		for( unsigned int i= 0u; i < 8u; i++ )
+			wall.lightmap[i]= ConvertMapLight( in_lightmap_data[i] );
 	} // for xy
 }
 
