@@ -1,4 +1,7 @@
+#include <cmath>
+
 #include "../../assert.hpp"
+#include "../../log.hpp"
 
 #include "surfaces_cache.hpp"
 
@@ -15,11 +18,17 @@ inline unsigned int SurfaceDataSizeAligned(
 
 SurfacesCache::SurfacesCache( const Size2& viewport_size )
 {
-	// TODO - calibrate cache size formula.
+	// For lower resolutions we need more surface cache, relative screen area.
+	// For bigger resolutions ( 1024x768 or more ) we need less relative cache size.
 	const unsigned int viewport_pixels= viewport_size.Width() * viewport_size.Height();
-	const unsigned int cache_size_pixels= viewport_pixels * 4u;
+	const float viewport_pixels_f= float(viewport_pixels);
+	const unsigned int cache_size_pixels=
+		static_cast<unsigned int>( viewport_pixels_f * 2.5f / std::sqrt( viewport_pixels_f / ( 1024.0f * 768.0f ) ) );
 
 	storage_.resize( cache_size_pixels * sizeof(uint32_t) );
+
+	const unsigned int size_kb= (storage_.size() + 1023u) / 1024u;
+	Log::Info( "Surfaces cache size: ", size_kb, "kb ( ", size_kb * sizeof(uint32_t), " kilotexels )." );
 }
 
 SurfacesCache::~SurfacesCache()
