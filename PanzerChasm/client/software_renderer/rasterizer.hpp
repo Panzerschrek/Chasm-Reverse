@@ -201,9 +201,15 @@ private:
 	// 2 - lower right
 	// 3 - upper right
 	RasterizerVertexCoord triangle_part_vertices_[4];
+	RasterizerVertexTexCoord trianlge_part_tc_left_;
+	fixed_base_t triangle_part_inv_z_scaled_left_;
+	fixed16_t triangle_part_x_step_left_, triangle_part_x_step_right_;
+	fixed16_t traingle_part_tc_step_left_[2]; // For perspective-corrected methods = tc / z
+	fixed16_t triangle_part_inv_z_scaled_step_left_;
+
 	// 0 - lower left   1 - upper left
-	RasterizerVertexTexCoord triangle_part_tex_coords_[2]; // For perspective-corrected methods = tc / z
-	fixed_base_t triangle_part_inv_z_scaled[2];
+	//RasterizerVertexTexCoord triangle_part_tex_coords_[2];
+	//fixed_base_t triangle_part_inv_z_scaled[2];
 
 	// For perspective-corrected methods = tc / z
 	fixed16_t line_tc_step_[2];
