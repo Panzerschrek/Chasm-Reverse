@@ -46,33 +46,32 @@ void SurfacesCache::AllocateSurface(
 
 	PC_ASSERT( surface_data_size < storage_.size() );
 
+	const auto recylce_next_surface=
+	[this]
+	{
+		Surface* const recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
+		if( recycled_surface->owner != nullptr )
+			*recycled_surface->owner= nullptr;
+
+		next_recycled_surface_offset_+=
+			sizeof(Surface) + SurfaceDataSizeAligned( recycled_surface->size[0], recycled_surface->size[1] );
+	};
+
 	if( next_allocated_surface_offset_ + surface_data_size > storage_.size() )
 	{
 		// Recycle surfaces at end.
 		while( next_recycled_surface_offset_ < last_surface_in_buffer_end_offset_ )
-		{
-			Surface* const recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
-			PC_ASSERT( recycled_surface->owner != nullptr && *recycled_surface->owner == recycled_surface );
-			*recycled_surface->owner= nullptr;
-			next_recycled_surface_offset_+=
-				sizeof(Surface) + SurfaceDataSizeAligned( recycled_surface->size[0], recycled_surface->size[1] );
-		}
+			recylce_next_surface();
 
 		last_surface_in_buffer_end_offset_= next_allocated_surface_offset_;
 		next_allocated_surface_offset_= 0u;
 		next_recycled_surface_offset_= 0u;
 	}
 
-	// Set recycled surfaces owner to null.
+	// Recycle old surfaces, while we have no space for new surface.
 	while( next_recycled_surface_offset_ < last_surface_in_buffer_end_offset_ &&
 		next_recycled_surface_offset_ < next_allocated_surface_offset_ + surface_data_size )
-	{
-		Surface* const recycled_surface= reinterpret_cast<Surface*>( storage_.data() + next_recycled_surface_offset_ );
-		PC_ASSERT( recycled_surface->owner != nullptr && *recycled_surface->owner == recycled_surface );
-		*recycled_surface->owner= nullptr;
-		next_recycled_surface_offset_+=
-			sizeof(Surface) + SurfaceDataSizeAligned( recycled_surface->size[0], recycled_surface->size[1] );
-	}
+		recylce_next_surface();
 
 	Surface* const surface= reinterpret_cast<Surface*>( storage_.data() + next_allocated_surface_offset_ );
 	surface->size[0]= size_x;

@@ -16,6 +16,7 @@ public:
 
 		// Pointer to pointer to this surface.
 		// Reset, when surface is recycled.
+		// If zero - surface was freed.
 		Surface** owner;
 
 		uint32_t* GetData()

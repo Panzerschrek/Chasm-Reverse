@@ -781,12 +781,25 @@ void MapDrawerSoft::DrawWalls(
 
 
 	// TODO - maybe, we can dynamically add dynamic walls to BSP-tree?
-	//for( const MapState::DynamicWall& wall : map_state.GetDynamicWalls() )
+	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
 	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
 	{
-		const MapState::DynamicWall& wall= map_state.GetDynamicWalls()[w];
+		const MapState::DynamicWall& wall= dynamic_walls[w];
 		DrawWall& draw_wall= dynamic_walls_[w];
-		draw_wall.texture_id= wall.texture_id;
+		if( draw_wall.texture_id != wall.texture_id )
+		{
+			draw_wall.texture_id= wall.texture_id;
+
+			// Reset surfaces cache for this wall, if texture changed.
+			for( SurfacesCache::Surface*& surf_ptr : draw_wall.mips_surfaces )
+			{
+				if( surf_ptr != nullptr )
+				{
+					surf_ptr->owner= nullptr;
+					surf_ptr= nullptr;
+				}
+			}
+		}
 
 		DrawWallSegment<true>(
 			draw_wall,
