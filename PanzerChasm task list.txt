@@ -44,30 +44,11 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
 
 [SOFTWARE RENDERER]
-* Risovanije prostyh zateksturirovanyh treugoljnikov bez Z-korrekçii, no s
-  teksturnymi vyborkami strogo v graniçah treugoljnika.
-* Risovanije zateksturirovanyh treugoljnikov s Z-korrekçijej toljko dlä X-linij.
-  Eto nužno dlä risovanija polov i potolkov.
-* Risovanije zateksturirovanyh treugoljnikov s polnoj Z-korrekçijej.
-* Risovanije treugoljnikov s popolnenijem Depth-buffera.
-* Depth-test.
-* Test zakrašivanija - dlä treugoljnikov sten, polov, potolkov.
-* Postrojenije BSP-dereva iz sten urovnä. Nužno dlä ih uporädocivanija ot
-  bližnih k daljnim.
 * Dobavlenije v BSP-derevo dinamiceskih sten.
-* Optimizaçija testa zakrašivanija, naprimer, cerez postrojenije ijerarhii.
+* Optimizaçija ijerarhiceskogo testa perekrytija.
 * Surface-cache. Po krajnej mere dlä sten, polov, potolkov.
-* Issledovanije vozmožnosti ispoljzovanija Surface-cache dlä modelej.
-* Risovanije neba.
-* Rosovanije Billboardov.
-* Aplha-test. Zamena alpha-testa na usecenije poligonov, dlä sten, u kotoryh
-  prozracnyje tekseli jestj toljko rovnymi linijami sverhu i snizu.
+* Risovanije poligonov modelej s naloženijem osvescenija pri rasterizaçii.
 * Alpha-blending.
-* Postrojenije ijerarhiceskogo buffera glubiny - dlä bystrogo otsecenija
-  nevidimyh modelej çelikom.
-* Otsecenije poligonov po piramide vidimosti pered rasterizaçijej. Bystroje
-  opredelenije neobhodimosti otsecenija cerez test ogranicevajuscego
-  parallelepipeda.
 * Vytaskivanije iz modelej ishodnyh cetyröhugoljnikov, a ne toljko gotovogo
   razbijenija na treugoljniki.
 * Risovanije minikarty.
