@@ -161,14 +161,14 @@ MapDrawerSoft::~MapDrawerSoft()
 
 void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 {
-	surfaces_cache_.Clear();
-
 	if( map_data == current_map_data_ )
 		return;
 
 	current_map_data_= map_data;
 	if( map_data == nullptr )
 		return; // TODO - if map is null - clear resources, etc.
+
+	surfaces_cache_.Clear();
 
 	map_bsp_tree_.reset( new MapBSPTree( map_data ) );
 
