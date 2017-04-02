@@ -134,7 +134,8 @@ private:
 		const ViewClipPlanes& view_clip_planes,
 		const m_Vec3& position,
 		const m_Mat4& rotation_matrix,
-		const m_Mat4& view_matrix );
+		const m_Mat4& view_matrix,
+		bool fullbright= false );
 
 	void DrawSky(
 		const m_Mat4& matrix,

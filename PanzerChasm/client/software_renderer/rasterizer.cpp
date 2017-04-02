@@ -694,6 +694,11 @@ void Rasterizer::SetTexture(
 	texture_data_= data;
 }
 
+void Rasterizer::SetLight( const fixed16_t light )
+{
+	light_= light;
+}
+
 void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertices, const uint32_t color )
 {
 	PC_ASSERT( vertices[0].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );

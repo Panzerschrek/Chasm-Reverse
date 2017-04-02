@@ -282,7 +282,8 @@ void MapDrawerSoft::Draw(
 			view_clip_planes,
 			item.pos,
 			rotate_mat,
-			cam_mat );
+			cam_mat,
+			item.fullbright );
 	}
 
 	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
@@ -295,13 +296,15 @@ void MapDrawerSoft::Draw(
 		rotate_max_x.RotateX( rocket.angle[1] );
 		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
 
+
 		DrawModel(
 			rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
 			rocket.frame,
 			view_clip_planes,
 			rocket.pos,
 			rotate_max_x * rotate_mat_z,
-			cam_mat );
+			cam_mat,
+			game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
 	}
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -952,7 +955,8 @@ void MapDrawerSoft::DrawModel(
 	const ViewClipPlanes& view_clip_planes,
 	const m_Vec3& position,
 	const m_Mat4& rotation_matrix,
-	const m_Mat4& view_matrix )
+	const m_Mat4& view_matrix,
+	const bool fullbright )
 {
 	unsigned int active_clip_planes_mask= 0u;
 
@@ -1009,8 +1013,9 @@ void MapDrawerSoft::DrawModel(
 		out_plane.dist= in_plane.dist + in_plane.normal * position;
 	}
 
-	// Calculate final matrix
-	const m_Mat4 final_mat= rotation_matrix * translate_mat * view_matrix;
+	// Calculate final matrix.
+	const m_Mat4 to_world_mat= rotation_matrix * translate_mat;
+	const m_Mat4 final_mat= to_world_mat * view_matrix;
 
 	// Select triangle rasterization func.
 	// Calculate bounding box w_min/w_max.
@@ -1068,12 +1073,14 @@ void MapDrawerSoft::DrawModel(
 		&Rasterizer::DrawTexturedTriangleSpanCorrected<
 			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes>;
 	alpha_draw_func=
 		&Rasterizer::DrawTexturedTriangleSpanCorrected<
 			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 			Rasterizer::AlphaTest::Yes,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes>;
 
 	if( w_min > 0.0f /* && w_max > 0.0f */ )
 	{
@@ -1085,11 +1092,13 @@ void MapDrawerSoft::DrawModel(
 			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes>;
 			alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::Yes,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes>;
 		}
 	}
 
@@ -1107,6 +1116,7 @@ void MapDrawerSoft::DrawModel(
 
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
+		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
 			const Model::Vertex& vertex= model.vertices[ model.regular_triangles_indeces[t + tv] ];
@@ -1115,6 +1125,8 @@ void MapDrawerSoft::DrawModel(
 			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
 			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f;
 			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
+
+			triangle_center+= clipped_vertices_[tv].pos;
 		}
 		clipped_vertices_[0].next= &clipped_vertices_[1];
 		clipped_vertices_[1].next= &clipped_vertices_[2];
@@ -1153,6 +1165,19 @@ void MapDrawerSoft::DrawModel(
 			out_v.v= fixed16_t( v->tc.y );
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
+
+		fixed16_t light= g_fixed16_one;
+		if( !fullbright )
+		{
+			triangle_center*= 1.0f / 3.0f;
+			const m_Vec2 triangle_center_world_space= ( triangle_center * to_world_mat ).xy();
+			const unsigned int lightmap_x= static_cast<unsigned int>( triangle_center_world_space.x * float(MapData::c_lightmap_scale) );
+			const unsigned int lightmap_y= static_cast<unsigned int>( triangle_center_world_space.y * float(MapData::c_lightmap_scale) );
+
+			if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
+				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );
+		}
+		rasterizer_.SetLight( light );
 
 		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
 		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
