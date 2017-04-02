@@ -26,9 +26,9 @@ void TicksCounter::Tick( const unsigned int count )
 
 	if( dt >= frequency_calc_interval_ )
 	{
-		output_ticks_frequency_= float(current_sample_ticks_) / frequency_calc_interval_.ToSeconds();
+		output_ticks_frequency_= float(current_sample_ticks_) / dt.ToSeconds();
 		current_sample_ticks_= 0u;
-		last_update_time_+= dt;
+		last_update_time_= current_time;
 	}
 }
 

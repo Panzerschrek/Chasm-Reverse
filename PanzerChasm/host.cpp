@@ -271,11 +271,18 @@ bool Host::Loop()
 
 		if( settings_.GetOrSetBool( "cl_draw_fps", false ) )
 		{
-			char str[16];
-			std::snprintf( str, sizeof(str), "fps: %02.2f", loops_counter_.GetTicksFrequency() );
+			char str[32];
 			const unsigned int scale= 1u;
+			const unsigned int offset= shared_drawers_->menu->GetViewportSize().Width() - 4u * scale;
+
+			std::snprintf( str, sizeof(str), "fps: %02.2f", loops_counter_.GetTicksFrequency() );
 			shared_drawers_->text->Print(
-				shared_drawers_->menu->GetViewportSize().Width() - 4u * scale, 0u,
+				offset, 0u,
+				str, scale, ITextDrawer::FontColor::Golden, ITextDrawer::Alignment::Right );
+
+			std::snprintf( str, sizeof(str), "frame time: %03.1f ms", 1000.0f / loops_counter_.GetTicksFrequency() );
+			shared_drawers_->text->Print(
+				offset, shared_drawers_->text->GetLineHeight(),
 				str, scale, ITextDrawer::FontColor::Golden, ITextDrawer::Alignment::Right );
 		}
 
