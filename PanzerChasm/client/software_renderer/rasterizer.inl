@@ -173,7 +173,7 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 }
 
 template<Rasterizer::Lighting lighting>
-uint32_t Rasterizer::ApplyLight( const uint32_t texel ) const
+inline uint32_t Rasterizer::ApplyLight( const uint32_t texel ) const
 {
 	if( lighting == Lighting::No )
 		return texel;
