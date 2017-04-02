@@ -47,6 +47,8 @@ public:
 		m_Vec2 vert_pos[2];
 		float vert_tex_coord[2];
 		unsigned char texture_id;
+
+		unsigned char lightmap[8];
 	};
 
 	struct StaticModel
@@ -300,7 +302,8 @@ private:
 
 private:
 	void LoadLightmap( const Vfs::FileContent& map_file, MapData& map_data );
-	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask );
+	const unsigned char* GetWallsLightmapData( const Vfs::FileContent& map_file );
+	void LoadWalls( const Vfs::FileContent& map_file, MapData& map_data, const DynamicWallsMask& dynamic_walls_mask, const unsigned char* walls_lightmap_data );
 	void LoadFloorsAndCeilings( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadAmbientLight( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data );

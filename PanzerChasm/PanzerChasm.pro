@@ -46,6 +46,7 @@ SOURCES+= \
 	client/movement_controller.cpp \
 	client/software_renderer/map_bsp_tree.cpp \
 	client/software_renderer/rasterizer.cpp \
+	client/software_renderer/surfaces_cache.cpp \
 	client/weapon_state.cpp \
 	commands_processor.cpp \
 	connection_info.cpp \
@@ -123,6 +124,7 @@ HEADERS+= \
 	client/software_renderer/map_bsp_tree.inl \
 	client/software_renderer/rasterizer.hpp \
 	client/software_renderer/rasterizer.inl \
+	client/software_renderer/surfaces_cache.hpp \
 	client/weapon_state.hpp \
 	commands_processor.hpp \
 	connection_info.hpp \
