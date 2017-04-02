@@ -103,6 +103,15 @@ static void MakeBinaryAlpha( uint32_t* const pixels, const unsigned int pixel_co
 	}
 }
 
+static fixed16_t ScaleLightmapLight( const unsigned char lightmap_value )
+{
+	// Overbright constant must be equal to same constant in shader. See shaders/constants.glsl.
+	static constexpr float c_overbright= 1.3f;
+	static constexpr fixed16_t scale= static_cast<fixed16_t>( ( c_overbright * 65536.0f ) / 255.0f );
+
+	return lightmap_value * scale;
+}
+
 MapDrawerSoft::MapDrawerSoft(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
@@ -115,6 +124,7 @@ MapDrawerSoft::MapDrawerSoft(
 	, rasterizer_(
 		rendering_context.viewport_size.Width(), rendering_context.viewport_size.Height(),
 		rendering_context.row_pixels, rendering_context.window_surface_data )
+	, surfaces_cache_( rendering_context_.viewport_size )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -158,11 +168,14 @@ void MapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 	if( map_data == nullptr )
 		return; // TODO - if map is null - clear resources, etc.
 
+	surfaces_cache_.Clear();
+
 	map_bsp_tree_.reset( new MapBSPTree( map_data ) );
 
 	LoadModelsGroup( map_data->models, map_models_ );
 	LoadWallsTextures( *map_data );
 	LoadFloorsTextures( *map_data );
+	LoadWalls( *map_data );
 	LoadFloorsAndCeilings( *map_data );
 
 	// Sky
@@ -269,7 +282,8 @@ void MapDrawerSoft::Draw(
 			view_clip_planes,
 			item.pos,
 			rotate_mat,
-			cam_mat );
+			cam_mat,
+			item.fullbright );
 	}
 
 	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
@@ -282,13 +296,15 @@ void MapDrawerSoft::Draw(
 		rotate_max_x.RotateX( rocket.angle[1] );
 		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
 
+
 		DrawModel(
 			rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
 			rocket.frame,
 			view_clip_planes,
 			rocket.pos,
 			rotate_max_x * rotate_mat_z,
-			cam_mat );
+			cam_mat,
+			game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
 	}
 
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -506,6 +522,31 @@ void MapDrawerSoft::LoadFloorsTextures( const MapData& map_data )
 	}
 }
 
+void MapDrawerSoft::LoadWalls( const MapData& map_data )
+{
+	static_walls_ .resize( map_data.static_walls .size() );
+	dynamic_walls_.resize( map_data.dynamic_walls.size() );
+
+	const auto setup_wall=
+	[]( const MapData::Wall& in_wall, DrawWall& out_wall ) -> void
+	{
+		out_wall.surface_width= static_cast<unsigned int>( 128.0f * in_wall.vert_tex_coord[0] );
+		PC_ASSERT( out_wall.surface_width == 64u || out_wall.surface_width == 128u );
+
+		out_wall.texture_id= in_wall.texture_id;
+		std::memcpy( out_wall.lightmap, in_wall.lightmap, 8u );
+
+		for( SurfacesCache::Surface*& surf_ptr : out_wall.mips_surfaces )
+			surf_ptr= nullptr;
+	};
+
+	for( unsigned int i= 0u; i < static_walls_ .size(); i++ )
+		setup_wall( map_data.static_walls [i], static_walls_ [i] );
+
+	for( unsigned int i= 0u; i < dynamic_walls_.size(); i++ )
+		setup_wall( map_data.dynamic_walls[i], dynamic_walls_[i] );
+}
+
 void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 {
 	map_floors_and_ceilings_.clear();
@@ -531,34 +572,35 @@ void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 			cell.xy[0]= x;
 			cell.xy[1]= y;
 			cell.texture_id= texture_number;
+
+			for( SurfacesCache::Surface*& surf_ptr : cell.mips_surfaces )
+				surf_ptr= nullptr;
 		}
 	}
 }
 
 template< bool is_dynamic_wall >
 void MapDrawerSoft::DrawWallSegment(
+	DrawWall& wall,
 	const m_Vec2& vert_pos0, const m_Vec2& vert_pos1, const float z,
-	const float tc_0, const float tc_1, const unsigned int texture_id,
+	const float tc_0, const float tc_1,
 	const m_Mat4& matrix,
 	const m_Vec2& camera_position_xy,
 	const ViewClipPlanes& view_clip_planes )
 {
-	// TODO - use texture coordinates.
-	// Warp it, if needed.
-	PC_UNUSED( tc_0 );
-	PC_UNUSED( tc_1 );
-
 	PC_ASSERT( z >= 0.0f );
 
-	PC_ASSERT( texture_id < MapData::c_max_walls_textures );
-	const WallTexture& texture= wall_textures_[ texture_id ];
+	PC_ASSERT( wall.texture_id < MapData::c_max_walls_textures );
+	const WallTexture& texture= wall_textures_[ wall.texture_id ];
 	if( texture.size[0] == 0u || texture.size[1] == 0u )
 		return;
 	if( texture.full_alpha_row[0] == texture.full_alpha_row[1] )
 		return;
 
 	// Discard back faces.
-	if( texture_id < MapData::c_first_transparent_texture_id &&
+	// TODO - know, what discard criteria was in original game.
+	if( !is_dynamic_wall &&
+		wall.texture_id < MapData::c_first_transparent_texture_id &&
 		mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f )
 		return;
 
@@ -569,14 +611,16 @@ void MapDrawerSoft::DrawWallSegment(
 	};
 	const float tc_top= float( texture.full_alpha_row[0] << 16u ) + z * ( 65536.0f * float(g_wall_texture_height) / float(GameConstants::walls_height) );
 
+	const float tc_scale= float( wall.surface_width << 16u );
+
 	clipped_vertices_[0].pos= m_Vec3( vert_pos0, z_bottom_top[0] );
 	clipped_vertices_[1].pos= m_Vec3( vert_pos0, z_bottom_top[1] );
 	clipped_vertices_[2].pos= m_Vec3( vert_pos1, z_bottom_top[1] );
 	clipped_vertices_[3].pos= m_Vec3( vert_pos1, z_bottom_top[0] );
-	clipped_vertices_[0].tc= m_Vec2( 0.0f, tc_top );
-	clipped_vertices_[1].tc= m_Vec2( 0.0f, float( texture.full_alpha_row[1] << 16u ) );
-	clipped_vertices_[2].tc= m_Vec2( float(texture.size[0] << 16u ), float( texture.full_alpha_row[1] << 16u ) );
-	clipped_vertices_[3].tc= m_Vec2( float(texture.size[0] << 16u ), tc_top );
+	clipped_vertices_[0].tc= m_Vec2( tc_1 * tc_scale, tc_top );
+	clipped_vertices_[1].tc= m_Vec2( tc_1 * tc_scale, float( texture.full_alpha_row[1] << 16u ) );
+	clipped_vertices_[2].tc= m_Vec2( tc_0 * tc_scale, float( texture.full_alpha_row[1] << 16u ) );
+	clipped_vertices_[3].tc= m_Vec2( tc_0 * tc_scale, tc_top );
 	clipped_vertices_[0].next= &clipped_vertices_[1];
 	clipped_vertices_[1].next= &clipped_vertices_[2];
 	clipped_vertices_[2].next= &clipped_vertices_[3];
@@ -634,6 +678,7 @@ void MapDrawerSoft::DrawWallSegment(
 		return;
 
 	int mip= 0;
+	const SurfacesCache::Surface* surface;
 	if( min_worlz_z_vertex != max_world_z_vertex )
 	{
 		// Calculate only vertical texture scale.
@@ -645,12 +690,27 @@ void MapDrawerSoft::DrawWallSegment(
 		const int d_tc_d_len_square= FixedMul<16+8>( dv, dv ) / std::max( d_len_square, 1 );
 
 		if( d_tc_d_len_square < 2 * 2 )
+		{
 			mip= 0;
+			surface= GetWallSurface<0>( wall );
+		}
 		else
 		{
-			if( d_tc_d_len_square < 4 * 4 ) mip= 1;
-			else if( d_tc_d_len_square < 8 * 8 ) mip= 2;
-			else mip= 3;
+			if( d_tc_d_len_square < 4 * 4 )
+			{
+				mip= 1;
+				surface= GetWallSurface<1>( wall );
+			}
+			else if( d_tc_d_len_square < 8 * 8 )
+			{
+				surface= GetWallSurface<2>( wall );
+				mip= 2;
+			}
+			else
+			{
+				surface= GetWallSurface<3>( wall );
+				mip= 3;
+			}
 
 			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
 			{
@@ -659,8 +719,10 @@ void MapDrawerSoft::DrawWallSegment(
 			}
 		}
 	}
+	else
+		surface= GetWallSurface<3>( wall );
 
-	rasterizer_.SetTexture( texture.size[0] >> mip, texture.size[1] >> mip, mip == 0 ? texture.mip0 : texture.mips[ mip - 1 ] );
+	rasterizer_.SetTexture( surface->size[0], surface->size[1], surface->GetData() );
 
 	RasterizerVertex traingle_vertices[3];
 	traingle_vertices[0]= verties_projected[0];
@@ -715,20 +777,39 @@ void MapDrawerSoft::DrawWalls(
 		camera_position_xy,
 		[&]( const MapBSPTree::WallSegment& segment )
 		{
-			const MapData::Wall& wall= current_map_data_->static_walls[ segment.wall_index ];
 			DrawWallSegment<false>(
+				static_walls_[ segment.wall_index ],
 				segment.vert_pos[0], segment.vert_pos[1], 0.0f,
-				0.0f, 1.0f, wall.texture_id,
+				segment.start, segment.end,
 				matrix, camera_position_xy, view_clip_planes );
 		} );
 
 
 	// TODO - maybe, we can dynamically add dynamic walls to BSP-tree?
-	for( const MapState::DynamicWall& wall : map_state.GetDynamicWalls() )
+	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
+	for( unsigned int w= 0u; w < dynamic_walls_.size(); w++ )
 	{
+		const MapState::DynamicWall& wall= dynamic_walls[w];
+		DrawWall& draw_wall= dynamic_walls_[w];
+		if( draw_wall.texture_id != wall.texture_id )
+		{
+			draw_wall.texture_id= wall.texture_id;
+
+			// Reset surfaces cache for this wall, if texture changed.
+			for( SurfacesCache::Surface*& surf_ptr : draw_wall.mips_surfaces )
+			{
+				if( surf_ptr != nullptr )
+				{
+					surf_ptr->owner= nullptr;
+					surf_ptr= nullptr;
+				}
+			}
+		}
+
 		DrawWallSegment<true>(
+			draw_wall,
 			wall.vert_pos[0], wall.vert_pos[1], wall.z,
-			0.0f, 1.0f, wall.texture_id,
+			0.0f, 1.0f,
 			matrix, camera_position_xy, view_clip_planes );
 	}
 }
@@ -737,7 +818,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 {
 	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
 	{
-		const FloorCeilingCell& cell= map_floors_and_ceilings_[i];
+		FloorCeilingCell& cell= map_floors_and_ceilings_[i];
 		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
 
 		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
@@ -808,7 +889,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			}
 		}
 		int mip= 0;
-		const uint32_t* mip_texture_data;
+		const SurfacesCache::Surface* surface;
 		// Calculate d_tc / d_length for longest edge, select mip.
 		unsigned int prev_v= longest_edge_index == 0u ? (polygon_vertex_count - 1u) : (longest_edge_index - 1u);
 		const fixed16_t du= verties_projected[longest_edge_index].u - verties_projected[prev_v].u;
@@ -819,21 +900,24 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		if( d_tc_d_len_square < 1 * 1 )
 		{
 			mip= 0;
-			mip_texture_data= floor_textures_[ cell.texture_id ].data;
+			surface= GetFloorCeilingSurface<0>( cell );
 		}
 		else
 		{
 			if( d_tc_d_len_square < 2 * 2 )
 			{
-				mip= 1; mip_texture_data= floor_textures_[ cell.texture_id ].mip1;
+				mip= 1;
+				surface= GetFloorCeilingSurface<1>( cell );
 			}
 			else if( d_tc_d_len_square < 4 * 4 )
 			{
-				mip= 2; mip_texture_data= floor_textures_[ cell.texture_id ].mip2;
+				mip= 2;
+				surface= GetFloorCeilingSurface<2>( cell );
 			}
 			else
 			{
-				mip= 3; mip_texture_data= floor_textures_[ cell.texture_id ].mip3;
+				mip= 3;
+				surface= GetFloorCeilingSurface<3>( cell );
 			}
 
 			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
@@ -844,8 +928,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 		}
 
 		rasterizer_.SetTexture(
-			MapData::c_floor_texture_size >> mip, MapData::c_floor_texture_size >> mip,
-			mip_texture_data );
+			surface->size[0], surface->size[1],
+			surface->GetData() );
 
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
@@ -873,7 +957,8 @@ void MapDrawerSoft::DrawModel(
 	const ViewClipPlanes& view_clip_planes,
 	const m_Vec3& position,
 	const m_Mat4& rotation_matrix,
-	const m_Mat4& view_matrix )
+	const m_Mat4& view_matrix,
+	const bool fullbright )
 {
 	unsigned int active_clip_planes_mask= 0u;
 
@@ -930,8 +1015,9 @@ void MapDrawerSoft::DrawModel(
 		out_plane.dist= in_plane.dist + in_plane.normal * position;
 	}
 
-	// Calculate final matrix
-	const m_Mat4 final_mat= rotation_matrix * translate_mat * view_matrix;
+	// Calculate final matrix.
+	const m_Mat4 to_world_mat= rotation_matrix * translate_mat;
+	const m_Mat4 final_mat= to_world_mat * view_matrix;
 
 	// Select triangle rasterization func.
 	// Calculate bounding box w_min/w_max.
@@ -989,12 +1075,14 @@ void MapDrawerSoft::DrawModel(
 		&Rasterizer::DrawTexturedTriangleSpanCorrected<
 			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes>;
 	alpha_draw_func=
 		&Rasterizer::DrawTexturedTriangleSpanCorrected<
 			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 			Rasterizer::AlphaTest::Yes,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes>;
 
 	if( w_min > 0.0f /* && w_max > 0.0f */ )
 	{
@@ -1006,11 +1094,13 @@ void MapDrawerSoft::DrawModel(
 			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes>;
 			alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
 				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 				Rasterizer::AlphaTest::Yes,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>;
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes>;
 		}
 	}
 
@@ -1028,6 +1118,7 @@ void MapDrawerSoft::DrawModel(
 
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
+		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
 			const Model::Vertex& vertex= model.vertices[ model.regular_triangles_indeces[t + tv] ];
@@ -1036,6 +1127,8 @@ void MapDrawerSoft::DrawModel(
 			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
 			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f;
 			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
+
+			triangle_center+= clipped_vertices_[tv].pos;
 		}
 		clipped_vertices_[0].next= &clipped_vertices_[1];
 		clipped_vertices_[1].next= &clipped_vertices_[2];
@@ -1074,6 +1167,19 @@ void MapDrawerSoft::DrawModel(
 			out_v.v= fixed16_t( v->tc.y );
 			out_v.z= fixed16_t( w * 65536.0f );
 		}
+
+		fixed16_t light= g_fixed16_one;
+		if( !fullbright )
+		{
+			triangle_center*= 1.0f / 3.0f;
+			const m_Vec2 triangle_center_world_space= ( triangle_center * to_world_mat ).xy();
+			const unsigned int lightmap_x= static_cast<unsigned int>( triangle_center_world_space.x * float(MapData::c_lightmap_scale) );
+			const unsigned int lightmap_y= static_cast<unsigned int>( triangle_center_world_space.y * float(MapData::c_lightmap_scale) );
+
+			if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
+				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );
+		}
+		rasterizer_.SetLight( light );
 
 		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
 		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
@@ -1279,6 +1385,32 @@ void MapDrawerSoft::DrawEffectsSprites(
 			sprite_texture.size[0], sprite_texture.size[1],
 			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
 
+		Rasterizer::TriangleDrawFunc draw_func;
+
+		if( !sprite_description.light_on )
+		{
+			fixed16_t light= g_fixed16_one;
+			const unsigned int lightmap_x= static_cast<unsigned int>( sprite.pos.x * float(MapData::c_lightmap_scale) );
+			const unsigned int lightmap_y= static_cast<unsigned int>( sprite.pos.y * float(MapData::c_lightmap_scale) );
+			if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
+				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );
+			rasterizer_.SetLight( light );
+
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes>;
+		}
+		else
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No>;
+
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
@@ -1288,10 +1420,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::Yes,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
+			(rasterizer_.*draw_func)( traingle_vertices );
 		}
 	}
 }
@@ -1382,6 +1511,128 @@ unsigned int MapDrawerSoft::ClipPolygon(
 	fisrt_clipped_vertex_= new_v0;
 
 	return vertex_count - vertices_behind + 2u;
+}
+
+template<unsigned int mip>
+const SurfacesCache::Surface* MapDrawerSoft::GetWallSurface( DrawWall& wall )
+{
+	PC_ASSERT( mip < 4u );
+	PC_ASSERT( wall.texture_id < MapData::c_max_walls_textures );
+
+	if( wall.mips_surfaces[mip] != nullptr )
+		return wall.mips_surfaces[mip];
+
+	const WallTexture& texture= wall_textures_[wall.texture_id];
+
+	// Do not generate cache pixels for alpha-texels.
+	// TODO - maybe cut surface below full_alpha_row[0] too?
+	const unsigned int y_start= texture.full_alpha_row[0] >> mip;
+	const unsigned int y_end= ( texture.full_alpha_row[1] + ( (1u << mip) - 1u ) ) >> mip;
+
+	const unsigned int surface_height= y_end;
+	const unsigned int surface_width = wall.surface_width >> mip;
+	const unsigned int lightmap_x_shift= ( wall.surface_width == 128u ? 4u : 3u ) - mip;
+
+	surfaces_cache_.AllocateSurface( surface_width, surface_height, &wall.mips_surfaces[mip] );
+	SurfacesCache::Surface* const surface= wall.mips_surfaces[mip];
+	uint32_t* const out_data= surface->GetData();
+
+	const uint32_t* in_data;
+	if( mip == 0u )
+		in_data= texture.mip0;
+	if( mip == 1u )
+		in_data= texture.mips[0];
+	if( mip == 2u )
+		in_data= texture.mips[1];
+	if( mip == 3u )
+		in_data= texture.mips[2];
+
+	const unsigned int texture_width= texture.size[0] >> mip;
+	const unsigned int texture_x_wrap_mask= texture_width - 1u;
+
+	fixed16_t lightmap_scaled[8];
+	for( unsigned int i= 0u; i < 8u; i++ )
+		lightmap_scaled[i]= ScaleLightmapLight( wall.lightmap[i] );
+
+	// TODO - check twice lightmap fetching.
+	for( unsigned int y= y_start; y < y_end; y++ )
+	for( unsigned int x= 0u; x < surface_width ; x++ )
+	{
+		const uint32_t texel= in_data[ ( x & texture_x_wrap_mask ) + y * texture_width ];
+		const fixed16_t light= lightmap_scaled[ (x >> lightmap_x_shift) ];
+		unsigned char components[4];
+		for( unsigned int i= 0u; i < 3u; i++ )
+		{
+			const unsigned int c= reinterpret_cast<const unsigned char*>(&texel)[i] * static_cast<unsigned int>(light) >> 16u;
+			components[i]= std::min( c, 255u );
+		}
+
+		components[3]= reinterpret_cast<const unsigned char*>(&texel)[3];
+
+		std::memcpy( &out_data[ x + y * surface_width ], components, sizeof(uint32_t) );
+	}
+
+	return surface;
+}
+
+template<unsigned int mip>
+const SurfacesCache::Surface* MapDrawerSoft::GetFloorCeilingSurface( FloorCeilingCell& cell )
+{
+	PC_ASSERT( mip < 4u );
+
+	if( cell.mips_surfaces[mip] != nullptr )
+		return cell.mips_surfaces[mip];
+
+	PC_ASSERT( cell.xy[0] < MapData::c_map_size );
+	PC_ASSERT( cell.xy[1] < MapData::c_map_size );
+	PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
+
+	const unsigned int texture_size= MapData::c_floor_texture_size >> mip;
+	const unsigned int monolighted_block_size= ( MapData::c_floor_texture_size / MapData::c_lightmap_scale ) >> mip;
+
+	surfaces_cache_.AllocateSurface( texture_size, texture_size, &cell.mips_surfaces[mip] );
+	SurfacesCache::Surface* const surface= cell.mips_surfaces[mip];
+	uint32_t* const out_data= surface->GetData();
+
+	const uint32_t* in_data;
+	if( mip == 0u )
+		in_data= floor_textures_[cell.texture_id].data;
+	if( mip == 1u )
+		in_data= floor_textures_[cell.texture_id].mip1;
+	if( mip == 2u )
+		in_data= floor_textures_[cell.texture_id].mip2;
+	if( mip == 3u )
+		in_data= floor_textures_[cell.texture_id].mip3;
+
+	for( unsigned int lightmap_cell_y= 0u; lightmap_cell_y < MapData::c_lightmap_scale; lightmap_cell_y++ )
+	for( unsigned int lightmap_cell_x= 0u; lightmap_cell_x < MapData::c_lightmap_scale; lightmap_cell_x++ )
+	{
+		const unsigned int lightmap_global_x= lightmap_cell_x + MapData::c_lightmap_scale * cell.xy[0];
+		const unsigned int lightmap_global_y= lightmap_cell_y + MapData::c_lightmap_scale * cell.xy[1];
+
+		// TODO - Maybe scale light?
+		const unsigned char lightmap_value= current_map_data_->lightmap[ lightmap_global_x + lightmap_global_y * MapData::c_lightmap_size ];
+		const fixed16_t light= ScaleLightmapLight( lightmap_value );
+
+		for( unsigned int texel_y= 0u; texel_y < monolighted_block_size; texel_y++ )
+		for( unsigned int texel_x= 0u; texel_x < monolighted_block_size; texel_x++ )
+		{
+			const unsigned int texture_x= texel_x + lightmap_cell_x * monolighted_block_size;
+			const unsigned int texture_y= texel_y + lightmap_cell_y * monolighted_block_size;
+			const unsigned int texel_address= texture_x + texture_y * texture_size;
+			const uint32_t texel= in_data[ texel_address ];
+			unsigned char components[4];
+			for( unsigned int i= 0u; i < 3u; i++ )
+			{
+				const unsigned int c= reinterpret_cast<const unsigned char*>(&texel)[i] * static_cast<unsigned int>(light) >> 16u;
+				components[i]= std::min( c, 255u );
+			}
+
+			std::memcpy( &out_data[ texel_address ], components, sizeof(uint32_t) );
+		}
+	} // for lightmap cells
+
+	return surface;
 }
 
 } // PanzerChasm

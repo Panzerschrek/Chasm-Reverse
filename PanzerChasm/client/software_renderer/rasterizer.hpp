@@ -54,6 +54,8 @@ public:
 	{ Yes, No };
 	enum class OcclusionWrite
 	{ Yes, No };
+	enum class Lighting
+	{ Yes, No };
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -82,24 +84,30 @@ public:
 		unsigned int size_y,
 		const uint32_t* data );
 
+	// final_color= ( light * color ) >> 16
+	void SetLight( fixed16_t light );
+
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No>
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No>
 	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
@@ -110,6 +118,9 @@ private:
 	template<unsigned int level>
 	unsigned int UpdateOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
 
+	template<Lighting lighting>
+	uint32_t ApplyLight( uint32_t texel ) const;
+
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
 
@@ -118,19 +129,22 @@ private:
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting>
 	void DrawAffineTexturedTrianglePart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting>
 	void DrawTexturedTrianglePerLineCorrectedPart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
-		OcclusionTest occlusion_test, OcclusionWrite occlusion_write>
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting>
 	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
@@ -192,6 +206,9 @@ private:
 	fixed16_t max_valid_tc_u_= 0;
 	fixed16_t max_valid_tc_v_= 0;
 	const uint32_t* texture_data_= nullptr;
+
+	// Light
+	fixed16_t light_= g_fixed16_one;
 
 	// Intermediate variables
 
