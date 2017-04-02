@@ -1,4 +1,5 @@
 #include <matrix.hpp>
+#include <plane.hpp>
 
 #include "../assert.hpp"
 #include "../math_utils.hpp"
@@ -12,14 +13,6 @@
 
 namespace PanzerChasm
 {
-
-struct ClipPlane
-{
-	m_Vec2 normal;
-	float dist;
-
-	// if( vertex * normal + dist > 0 ) - behind plane
-};
 
 static const float g_z_near= 1.0f / 16.0f;
 static const unsigned int g_view_buffer_size= GameConstants::min_screen_width;
@@ -48,7 +41,7 @@ static void BuildViewMatrix(
 // Returns +1, if fully accepted
 // Returns  0, if splitted
 static int ClipLineSegment(
-	const ClipPlane& clip_plane,
+	const m_Plane2& clip_plane,
 	m_Vec2& v0, m_Vec2& v1 /* in-out vertices */ )
 {
 	//return ( rand() % 3 ) - 1;
@@ -56,8 +49,8 @@ static int ClipLineSegment(
 	float dist[2];
 	bool vert_pos[2];
 
-	dist[0]= clip_plane.normal * v0 + clip_plane.dist;
-	dist[1]= clip_plane.normal * v1 + clip_plane.dist;
+	dist[0]= clip_plane.GetSignedDistance( v0 );
+	dist[1]= clip_plane.GetSignedDistance( v1 );
 	vert_pos[0]= dist[0] > 0.0f;
 	vert_pos[1]= dist[1] > 0.0f;
 
@@ -130,7 +123,7 @@ void MinimapState::Update(
 
 	// Setup clip planes
 	const unsigned int c_clip_planes= 3u;
-	ClipPlane clip_planes[ c_clip_planes ];
+	m_Plane2 clip_planes[ c_clip_planes ];
 	{
 		const float c_rot= Constants::half_pi; // I Don`t know why, but this needs.
 		const float plane_1_angle= c_rot + view_angle_z + ( Constants::half_pi - 0.5f * c_fov );
