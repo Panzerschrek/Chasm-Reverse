@@ -1383,6 +1383,32 @@ void MapDrawerSoft::DrawEffectsSprites(
 			sprite_texture.size[0], sprite_texture.size[1],
 			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
 
+		Rasterizer::TriangleDrawFunc draw_func;
+
+		if( !sprite_description.light_on )
+		{
+			fixed16_t light= g_fixed16_one;
+			const unsigned int lightmap_x= static_cast<unsigned int>( sprite.pos.x * float(MapData::c_lightmap_scale) );
+			const unsigned int lightmap_y= static_cast<unsigned int>( sprite.pos.y * float(MapData::c_lightmap_scale) );
+			if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
+				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );
+			rasterizer_.SetLight( light );
+
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes>;
+		}
+		else
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No>;
+
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];
 		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
@@ -1392,10 +1418,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::Yes,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No>( traingle_vertices );
+			(rasterizer_.*draw_func)( traingle_vertices );
 		}
 	}
 }
