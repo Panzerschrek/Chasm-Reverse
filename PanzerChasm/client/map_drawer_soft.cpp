@@ -598,7 +598,9 @@ void MapDrawerSoft::DrawWallSegment(
 		return;
 
 	// Discard back faces.
-	if( wall.texture_id < MapData::c_first_transparent_texture_id &&
+	// TODO - know, what discard criteria was in original game.
+	if( !is_dynamic_wall &&
+		wall.texture_id < MapData::c_first_transparent_texture_id &&
 		mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f )
 		return;
 
