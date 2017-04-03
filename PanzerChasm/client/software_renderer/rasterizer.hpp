@@ -73,7 +73,7 @@ public:
 		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 		fixed16_t z_min, fixed16_t z_max ) const;
 
-	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count );
+	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count, bool has_alpha );
 	bool IsOccluded( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count ) const;
 
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
@@ -117,6 +117,9 @@ private:
 	// Returns 1, if cell fully occluded, else - 0
 	template<unsigned int level>
 	unsigned int UpdateOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
+
+	template<unsigned int level>
+	void SetToOneOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
 
 	template<Lighting lighting>
 	uint32_t ApplyLight( uint32_t texel ) const;

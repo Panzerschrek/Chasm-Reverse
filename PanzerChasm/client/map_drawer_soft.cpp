@@ -763,7 +763,7 @@ void MapDrawerSoft::DrawWallSegment(
 		}
 	}
 
-	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
+	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, texture.has_alpha );
 }
 
 void MapDrawerSoft::DrawWalls(
@@ -945,7 +945,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 
 		// TODO - does this needs?
 		// Maybe update whole screen hierarchy after floors and ceilings?
-		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
+		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, false );
 	}
 }
 
