@@ -2429,6 +2429,11 @@ const SurfacesCache::Surface* MapDrawerSoft::GetWallSurface( DrawWall& wall )
 	for( unsigned int i= 0u; i < 8u; i++ )
 		lightmap_scaled[i]= ScaleLightmapLight( wall.lightmap[i] );
 
+	// Set alpha beginning - make "valgrind" happy.
+	for( unsigned int y= 0u; y < y_start; y++ )
+	for( unsigned int x= 0u; x < surface_width ; x++ )
+		out_data[ x + y * surface_width ]= 0u;
+
 	// TODO - check twice lightmap fetching.
 	for( unsigned int y= y_start; y < y_end; y++ )
 	for( unsigned int x= 0u; x < surface_width ; x++ )
