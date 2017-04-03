@@ -24,6 +24,12 @@ CONFIG( debug, debug|release ) {
 	DEFINES+= DEBUG
 }
 
+#MMX instructions here.
+# remove compiler option and define, if you do not need mmx, or if build target is not x86.
+QMAKE_CXXFLAGS += -mmmx
+DEFINES+= PC_MMX_INSTRUCTIONS
+
+
 win32: RC_FILE= PanzerChasm.rc
 
 INCLUDEPATH+= ../panzer_ogl_lib
