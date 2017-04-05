@@ -188,6 +188,7 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			vertex.vertex_id= polygon.vertices_indeces[j];
 
 			vertex.alpha_test_mask= alpha_test_mask;
+			vertex.groups_mask= 255u;
 		}
 
 		auto& dst_indeces=

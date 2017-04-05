@@ -246,7 +246,8 @@ void MapDrawerSoft::Draw(
 			view_clip_planes,
 			static_model.pos,
 			rotate_mat,
-			cam_mat );
+			cam_mat,
+			255u );
 	}
 
 	for( const MapState::Item& item : map_state.GetItems() )
@@ -264,7 +265,8 @@ void MapDrawerSoft::Draw(
 			view_clip_planes,
 			item.pos,
 			rotate_mat,
-			cam_mat );
+			cam_mat,
+			255u );
 	}
 
 	for( const MapState::DynamicItemsContainer::value_type& dynamic_item_value : map_state.GetDynamicItems() )
@@ -283,6 +285,7 @@ void MapDrawerSoft::Draw(
 			item.pos,
 			rotate_mat,
 			cam_mat,
+			255u,
 			item.fullbright );
 	}
 
@@ -304,6 +307,7 @@ void MapDrawerSoft::Draw(
 			rocket.pos,
 			rotate_max_x * rotate_mat_z,
 			cam_mat,
+			255u,
 			game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
 	}
 
@@ -329,7 +333,8 @@ void MapDrawerSoft::Draw(
 			view_clip_planes,
 			monster.pos,
 			rotate_mat,
-			cam_mat );
+			cam_mat,
+			monster.body_parts_mask );
 	}
 
 	// TRANSPARENT SECTION
@@ -958,6 +963,7 @@ void MapDrawerSoft::DrawModel(
 	const m_Vec3& position,
 	const m_Mat4& rotation_matrix,
 	const m_Mat4& view_matrix,
+	const unsigned char visible_groups_mask,
 	const bool fullbright )
 {
 	unsigned int active_clip_planes_mask= 0u;
@@ -1118,6 +1124,11 @@ void MapDrawerSoft::DrawModel(
 
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
+		const Model::Vertex& first_vertex= model.vertices[ model.regular_triangles_indeces[t] ];
+
+		if( ( first_vertex.groups_mask & visible_groups_mask ) == 0u )
+			continue;
+
 		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
@@ -1181,7 +1192,7 @@ void MapDrawerSoft::DrawModel(
 		}
 		rasterizer_.SetLight( light );
 
-		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
+		const bool triangle_needs_alpha_test= first_vertex.alpha_test_mask != 0u;
 		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
 
 		RasterizerVertex traingle_vertices[3];

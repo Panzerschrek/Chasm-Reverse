@@ -135,6 +135,7 @@ private:
 		const m_Vec3& position,
 		const m_Mat4& rotation_matrix,
 		const m_Mat4& view_matrix,
+		unsigned char visible_groups_mask,
 		bool fullbright= false );
 
 	void DrawSky(
