@@ -64,11 +64,14 @@ void Monster::Tick(
 	float distance_for_melee_attack= Constants::max_float;
 	if( target != nullptr )
 	{
-		target_.position= target->Position();
-		target_.have_position= true;
+		if( CanSee( map, target->Position() ) )
+		{
+			target_.position= target->Position();
+			target_.have_position= true;
 
-		distance_for_melee_attack=
-			( pos_ - target_.position ).xy().Length() - game_resources_->monsters_description[ target->MonsterId() ].w_radius;
+			distance_for_melee_attack=
+				( pos_ - target_.position ).xy().Length() - game_resources_->monsters_description[ target->MonsterId() ].w_radius;
+		}
 	}
 
 	const float last_tick_delta_s= last_tick_delta.ToSeconds();
@@ -124,7 +127,7 @@ void Monster::Tick(
 			{
 				if( description.rock >= 0 && target != nullptr &&
 					have_right_hand_ && // Monster hold weapon in right hand
-					map.CanSee( pos_ + g_see_point_delta, target->Position() + g_see_point_delta ) )
+					CanSee( map, target->Position() ) )
 				{
 					state_= State::RemoteAttack;
 					current_animation_= GetAnimation( AnimationId::RemoteAttack );
@@ -429,6 +432,11 @@ bool Monster::IsBoss() const
 	return false;
 }
 
+bool Monster::CanSee( const Map& map, const m_Vec3& pos ) const
+{
+	return map.CanSee( pos_ + g_see_point_delta, pos + g_see_point_delta );
+}
+
 void Monster::FallDown( const float time_delta_s )
 {
 	vertical_speed_+= time_delta_s * GameConstants::vertical_acceleration;
@@ -526,9 +534,7 @@ bool Monster::SelectTarget( const Map& map )
 		if( angle_cos < c_half_view_angle_cos )
 			continue;
 
-		if( map.CanSee(
-				Position() + g_see_point_delta,
-				player.Position() + g_see_point_delta ) )
+		if( CanSee( map, player.Position() ) )
 		{
 			nearest_player_distance= distance_to_player;
 			nearest_player= &player_value;

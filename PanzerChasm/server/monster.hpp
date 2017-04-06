@@ -63,6 +63,8 @@ private:
 private:
 	bool IsBoss() const;
 
+	bool CanSee( const Map& map, const m_Vec3& pos ) const;
+
 	void FallDown( float time_delta_s );
 	void MoveToTarget( float time_delta_s );
 	void RotateToTarget( float time_delta_s );
