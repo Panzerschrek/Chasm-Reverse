@@ -86,7 +86,21 @@ void Monster::Tick(
 			current_animation_start_time_ = current_time;
 		}
 		else if( animation_frame_unwrapped >= frame_count )
+		{
+			const int idle_animation = GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
+			// Try play boring animation, sometimes. Doubled borng animations is disabled.
+			if( random_generator_->RandBool( 8u ) )
+			{
+				const int boring_animation= GetAnimation( AnimationId::Boring );
+				if( boring_animation >= 0 && int(current_animation_) != boring_animation )
+					current_animation_= boring_animation;
+				else
+					current_animation_= idle_animation;
+			}
+			else
+				current_animation_= idle_animation;
 			current_animation_start_time_+= animation_duration;
+		}
 		break;
 
 	case State::MoveToTarget:
