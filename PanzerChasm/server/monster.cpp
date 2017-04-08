@@ -10,11 +10,94 @@
 namespace PanzerChasm
 {
 
+struct ShootInfo
+{
+	unsigned int count;
+	m_Vec3 positions[4];
+};
+
+// Shoot points of mosters.
+static const ShootInfo g_shoot_info[]=
+{
+	{ // Player
+		1u, { { 0.0f, 0.0f, 0.5f } } // Player is player
+	},
+	{ // Joker
+		1u, { { 0.1f, -0.15f, 0.5f } } // check
+	},
+	{ // Spider
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Wman
+		2u, { { 0.1f, -0.2f, 1.5f }, { 0.1f, 0.2f, 1.5f } } // check
+	},
+	{ // Scelet
+		1u, { { 0.05f, -0.2f, 0.75f } } // check
+	},
+	{ // Punisher
+		1u, { { 0.1f, -0.31f, 0.72f } } // check
+	},
+	{ // Mong
+		1u, { { 0.0f, 0.0f, 0.5f } } // check
+	},
+	{ // Faust
+		1u, { { 0.0f, -0.145f, 0.84f } } // check
+	},
+	{ // Turret
+		1u, { { 0.1f, 0.0f, 0.2f } } // check
+	},
+	{ // SFag
+		1u, { { -0.1f, -0.45f, 1.1f } } // check
+	},
+	{ // Deadman
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{ // Hog
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Alien
+		1u, { { 0.0f, -0.25f, 0.65f } } // check
+	},
+	{ // Mincer
+		// TODO - this monster shoot different from other monsters. Write special code for him.
+		2u, { { 0.0f, -0.3f, 0.5f }, { 0.0f, 0.3f, 0.5f } } // check
+	},
+	{ // Jumper
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Viking
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Lion
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Gross
+		1u, { { 0.0f, 0.4f, 0.6f } } // check
+	},
+	{ // Sphinx
+		1u, { { 0.6f, 0.0f, 0.5f } } // check
+	},
+	{ // Phant
+		3u, { { 1.0f, -0.25f, 0.7f }, { 1.0f, 0.0f, 0.7f }, { 1.0f, +0.25f, 0.7f } } // check
+	},
+	{ // Worm
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+};
+
 static const m_Vec3 g_see_point_delta( 0.0f, 0.0f, 0.5f );
 
-// TODO - use different attack points for differnet mosnters.
-// In original game this points are hardcoded.
-static const m_Vec3 g_shoot_point_delta( 0.0f, 0.0f, 0.5f );
+// Position of aiming on target.
+static const m_Vec3 g_target_shoot_point_delta( 0.0f, 0.0f, 0.5f );
 
 Monster::Monster(
 	const MapData::Monster& map_monster,
@@ -214,16 +297,7 @@ void Monster::Tick(
 				!attack_was_done_ &&
 				target != nullptr )
 			{
-				const m_Vec3 shoot_pos= pos_ + g_shoot_point_delta;
-
-				const m_Vec3 actual_dir= target->Position() + g_see_point_delta - shoot_pos;
-				m_Vec3 dir( std::cos(angle_), std::sin(angle_), actual_dir.z / actual_dir.xy().Length() );
-				dir.Normalize();
-
-				PC_ASSERT( description.rock >= 0 );
-				map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
-				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::RemoteAttack );
-
+				DoShoot( target->Position(), map, monster_id, current_time );
 				attack_was_done_= true;
 			}
 		}
@@ -435,6 +509,33 @@ bool Monster::IsBoss() const
 bool Monster::CanSee( const Map& map, const m_Vec3& pos ) const
 {
 	return map.CanSee( pos_ + g_see_point_delta, pos + g_see_point_delta );
+}
+
+void Monster::DoShoot( const m_Vec3& target_pos, Map& map, const EntityId monster_id, const Time current_time )
+{
+	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
+	const ShootInfo& shoot_info= g_shoot_info[ monster_id_ ];
+
+	m_Mat4 rot_mat;
+	rot_mat.RotateZ( angle_);
+
+	m_Vec3 avg_shoot_pos( 0.0f, 0.0f, 0.0f );
+	for( unsigned int i= 0u; i < shoot_info.count; i++ )
+		avg_shoot_pos+= shoot_info.positions[i] * rot_mat;
+	avg_shoot_pos/= float(shoot_info.count);
+
+	m_Vec3 dir= target_pos + g_target_shoot_point_delta - ( pos_ + avg_shoot_pos );
+	dir.Normalize();
+
+	for( unsigned int i= 0u; i < shoot_info.count; i++ )
+	{
+		const m_Vec3 base_shoot_pos= shoot_info.positions[i] * rot_mat;
+		const m_Vec3 shoot_pos= pos_ + base_shoot_pos;
+
+		PC_ASSERT( description.rock >= 0 );
+		map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
+		map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::RemoteAttack );
+	}
 }
 
 void Monster::FallDown( const float time_delta_s )
