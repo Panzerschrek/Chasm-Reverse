@@ -244,9 +244,8 @@ void MapDrawerSoft::Draw(
 			map_models_, current_map_data_->models, static_model.model_id,
 			static_model.animation_frame,
 			view_clip_planes,
-			static_model.pos,
-			rotate_mat,
-			cam_mat,
+			static_model.pos, rotate_mat,
+			cam_mat, camera_position,
 			255u );
 	}
 
@@ -263,9 +262,8 @@ void MapDrawerSoft::Draw(
 			items_models_, game_resources_->items_models, item.item_id,
 			item.animation_frame,
 			view_clip_planes,
-			item.pos,
-			rotate_mat,
-			cam_mat,
+			item.pos, rotate_mat,
+			cam_mat, camera_position,
 			255u );
 	}
 
@@ -282,9 +280,8 @@ void MapDrawerSoft::Draw(
 			items_models_, game_resources_->items_models, item.item_type_id,
 			item.frame,
 			view_clip_planes,
-			item.pos,
-			rotate_mat,
-			cam_mat,
+			item.pos, rotate_mat,
+			cam_mat, camera_position,
 			255u,
 			item.fullbright );
 	}
@@ -304,9 +301,8 @@ void MapDrawerSoft::Draw(
 			rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
 			rocket.frame,
 			view_clip_planes,
-			rocket.pos,
-			rotate_max_x * rotate_mat_z,
-			cam_mat,
+			rocket.pos, rotate_max_x * rotate_mat_z,
+			cam_mat, camera_position,
 			255u,
 			game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
 	}
@@ -331,9 +327,8 @@ void MapDrawerSoft::Draw(
 			monsters_models_, game_resources_->monsters_models, monster.monster_id,
 			frame,
 			view_clip_planes,
-			monster.pos,
-			rotate_mat,
-			cam_mat,
+			monster.pos, rotate_mat,
+			cam_mat, camera_position,
 			monster.body_parts_mask );
 	}
 
@@ -963,6 +958,7 @@ void MapDrawerSoft::DrawModel(
 	const m_Vec3& position,
 	const m_Mat4& rotation_matrix,
 	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position,
 	const unsigned char visible_groups_mask,
 	const bool fullbright )
 {
@@ -1110,6 +1106,8 @@ void MapDrawerSoft::DrawModel(
 		}
 	}
 
+	const m_Vec3 cam_pos_model_space= ( camera_position - position ) * inv_rotation_mat;
+
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
 	const ModelsGroup::ModelEntry& model_entry= models_group.models[ model_id ];
@@ -1140,6 +1138,13 @@ void MapDrawerSoft::DrawModel(
 			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
 
 			triangle_center+= clipped_vertices_[tv].pos;
+		}
+		{ // Try reject back faces
+			const m_Vec3 v0= clipped_vertices_[1].pos - clipped_vertices_[0].pos;
+			const m_Vec3 v1= clipped_vertices_[2].pos - clipped_vertices_[0].pos;
+			const m_Vec3 vec_to_cam= cam_pos_model_space - clipped_vertices_[0].pos;
+			if( mVec3Cross( v0, v1 ) * vec_to_cam < 0.0f )
+				continue;
 		}
 		clipped_vertices_[0].next= &clipped_vertices_[1];
 		clipped_vertices_[1].next= &clipped_vertices_[2];
