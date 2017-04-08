@@ -142,7 +142,6 @@ void MinimapDrawerSoft::Draw(
 	y_max_f_= y_max_ << 16;
 
 	// Framing
-
 	line_color_= palette[ MinimapParams::framing_contour_color ];
 	line_width_= scale_i * 3;
 	DrawLine( left  << 16, top    << 16, right << 16, top    << 16 );
@@ -215,7 +214,8 @@ void MinimapDrawerSoft::DrawLine(
 			for( int y= y_i - width_minus_delta; y < y_i + width_delta; y++ )
 			{
 				if( y < y_min_ || y >= y_max_ ) continue;
-				dst_pixels[ x + y * dst_row_pixels ]= line_color_;
+				uint32_t& dst= dst_pixels[ x + y * dst_row_pixels ];
+				dst= ( ( ( dst ^ line_color_ ) & 0xFEFEFEFEu ) >> 1u ) + ( dst & line_color_ );
 			}
 		}
 	}
@@ -250,7 +250,8 @@ void MinimapDrawerSoft::DrawLine(
 			for( int x= x_i - width_minus_delta; x < x_i + width_delta; x++ )
 			{
 				if( x < x_min_ || x >= x_max_ ) continue;
-				dst_pixels[ x + y * dst_row_pixels ]= line_color_;
+				uint32_t& dst= dst_pixels[ x + y * dst_row_pixels ];
+				dst= ( ( ( dst ^ line_color_ ) & 0xFEFEFEFEu ) >> 1u ) + ( dst & line_color_ );
 			}
 		}
 	}
