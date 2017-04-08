@@ -4,3 +4,12 @@
   Kolicestvo ispuskajemyh snarädov takže zašito v kod originaljnoj igry.
 * Vypadenije rükzakov zašito v kod.
 * Radius stolknovenija monstra s igrokom jestj radius ataki (a ne w_radius).
+
+Dopolnoteljno vyjasneno:
+* Kak kažetsä, monstr možet dvigatjsä toljko otrezkami, so vremenem, ravnym vremeni animaçii hodjby.
+  Kogda on proigral animaçiju hotjby, on atakujet, ili igrajet novyju animaçiju i prodolžajet idti.
+* Kak kažetsä, monstry ne umejut nahoditj putj, no mogut sledovatj do poslednej poziçii igroka,
+  izvestnoj im.
+* Monstry idut prämo na igroka. Isklücenije sostavläjet MONGF - on nemnogo viläjet na každoj iteraçii
+  približenija k igroku. Takoje povedenije zašito v kod - jesli pomenätj v CHASM.INF etogo mostra s
+  kakim-nibudj drugim, to MONGF perestanet vilätj, no drugoj nacnöt.

@@ -10,11 +10,94 @@
 namespace PanzerChasm
 {
 
+struct ShootInfo
+{
+	unsigned int count;
+	m_Vec3 positions[4];
+};
+
+// Shoot points of mosters.
+static const ShootInfo g_shoot_info[]=
+{
+	{ // Player
+		1u, { { 0.0f, 0.0f, 0.5f } } // Player is player
+	},
+	{ // Joker
+		1u, { { 0.1f, -0.15f, 0.5f } } // check
+	},
+	{ // Spider
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Wman
+		2u, { { 0.1f, -0.2f, 1.5f }, { 0.1f, 0.2f, 1.5f } } // check
+	},
+	{ // Scelet
+		1u, { { 0.05f, -0.2f, 0.75f } } // check
+	},
+	{ // Punisher
+		1u, { { 0.1f, -0.31f, 0.72f } } // check
+	},
+	{ // Mong
+		1u, { { 0.0f, 0.0f, 0.5f } } // check
+	},
+	{ // Faust
+		1u, { { 0.0f, -0.145f, 0.84f } } // check
+	},
+	{ // Turret
+		1u, { { 0.1f, 0.0f, 0.2f } } // check
+	},
+	{ // SFag
+		1u, { { -0.1f, -0.45f, 1.1f } } // check
+	},
+	{ // Deadman
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{ // Hog
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Alien
+		1u, { { 0.0f, -0.25f, 0.65f } } // check
+	},
+	{ // Mincer
+		// TODO - this monster shoot different from other monsters. Write special code for him.
+		2u, { { 0.0f, -0.3f, 0.5f }, { 0.0f, 0.3f, 0.5f } } // check
+	},
+	{ // Jumper
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Viking
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Lion
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{ // Gross
+		1u, { { 0.0f, 0.4f, 0.6f } } // check
+	},
+	{ // Sphinx
+		1u, { { 0.6f, 0.0f, 0.5f } } // check
+	},
+	{ // Phant
+		3u, { { 1.0f, -0.25f, 0.7f }, { 1.0f, 0.0f, 0.7f }, { 1.0f, +0.25f, 0.7f } } // check
+	},
+	{ // Worm
+		1u, { { 0.0f, 0.0f, 0.5f } } // melee only
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+	{
+		1u, { { 0.0f, 0.0f, 0.5f } }
+	},
+};
+
 static const m_Vec3 g_see_point_delta( 0.0f, 0.0f, 0.5f );
 
-// TODO - use different attack points for differnet mosnters.
-// In original game this points are hardcoded.
-static const m_Vec3 g_shoot_point_delta( 0.0f, 0.0f, 0.5f );
+// Position of aiming on target.
+static const m_Vec3 g_target_shoot_point_delta( 0.0f, 0.0f, 0.5f );
 
 Monster::Monster(
 	const MapData::Monster& map_monster,
@@ -57,16 +140,21 @@ void Monster::Tick(
 
 	const unsigned int animation_frame_unwrapped= static_cast<unsigned int>( std::round(frame) );
 	const unsigned int frame_count= model.animations[ current_animation_ ].frame_count;
+	const Time animation_duration= Time::FromSeconds( float(frame_count) / GameConstants::animations_frames_per_second );
 
 	// Update target position if target moves.
 	const MonsterBasePtr target= target_.monster.lock();
 	float distance_for_melee_attack= Constants::max_float;
 	if( target != nullptr )
 	{
-		target_position_= target->Position();
+		if( CanSee( map, target->Position() ) )
+		{
+			target_.position= target->Position();
+			target_.have_position= true;
 
-		distance_for_melee_attack=
-			( pos_ - target_position_ ).xy().Length() - game_resources_->monsters_description[ target->MonsterId() ].w_radius;
+			distance_for_melee_attack=
+				( pos_ - target_.position ).xy().Length() - game_resources_->monsters_description[ target->MonsterId() ].w_radius;
+		}
 	}
 
 	const float last_tick_delta_s= last_tick_delta.ToSeconds();
@@ -76,23 +164,35 @@ void Monster::Tick(
 	switch( state_ )
 	{
 	case State::Idle:
-		if( SelectTarget( map, current_time ) )
+		if( SelectTarget( map ) )
 		{
 			map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Alarmed );
-
 			state_= State::MoveToTarget;
 			current_animation_= GetAnimation( AnimationId::Run );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
+			current_animation_start_time_ = current_time;
 		}
-		else
-			current_animation_frame_= animation_frame_unwrapped % frame_count;
+		else if( animation_frame_unwrapped >= frame_count )
+		{
+			const int idle_animation = GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
+			// Try play boring animation, sometimes. Doubled borng animations is disabled.
+			if( random_generator_->RandBool( 8u ) )
+			{
+				const int boring_animation= GetAnimation( AnimationId::Boring );
+				if( boring_animation >= 0 && int(current_animation_) != boring_animation )
+					current_animation_= boring_animation;
+				else
+					current_animation_= idle_animation;
+			}
+			else
+				current_animation_= idle_animation;
+			current_animation_start_time_+= animation_duration;
+		}
 		break;
 
 	case State::MoveToTarget:
 	{
 		// Try melee attack.
-		if( target != nullptr &&
+		if( animation_frame_unwrapped >= frame_count && target != nullptr &&
 			distance_for_melee_attack <= description.attack_radius )
 		{
 			const int animation= SelectMeleeAttackAnimation();
@@ -100,34 +200,29 @@ void Monster::Tick(
 			{
 				state_= State::MeleeAttack;
 				current_animation_= animation;
-				current_animation_start_time_= current_time;
-				current_animation_frame_= 0u;
+				current_animation_start_time_+= animation_duration;
 				attack_was_done_= false;
 			}
 		}
 		if( state_ == State::MoveToTarget )
 		{
-			if( current_time >= target_change_time_ )
+			if( animation_frame_unwrapped >= frame_count )
 			{
 				if( description.rock >= 0 && target != nullptr &&
 					have_right_hand_ && // Monster hold weapon in right hand
-					map.CanSee( pos_ + g_see_point_delta, target->Position() + g_see_point_delta ) )
+					CanSee( map, target->Position() ) )
 				{
 					state_= State::RemoteAttack;
 					current_animation_= GetAnimation( AnimationId::RemoteAttack );
-					current_animation_start_time_= current_time;
-					current_animation_frame_= 0u;
 					attack_was_done_= false;
 				}
 				else
-					SelectTarget( map, current_time );
+					SelectTarget( map );
+				current_animation_start_time_+= animation_duration;
 			}
 
 			if( state_ == State::MoveToTarget )
-			{
 				MoveToTarget( last_tick_delta_s );
-				current_animation_frame_= animation_frame_unwrapped % frame_count;
-			}
 		}
 	}
 		break;
@@ -136,23 +231,34 @@ void Monster::Tick(
 		if( animation_frame_unwrapped >= frame_count )
 		{
 			state_= State::MoveToTarget;
-			SelectTarget( map, current_time );
+			SelectTarget( map );
 			current_animation_= GetAnimation( AnimationId::Run );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
+			current_animation_start_time_+= animation_duration;
 		}
-		else
-			current_animation_frame_= animation_frame_unwrapped;
 		break;
 
 	case State::MeleeAttack:
 		if( animation_frame_unwrapped >= frame_count )
-		{
+		{			
 			state_= State::MoveToTarget;
-			SelectTarget( map, current_time );
-			current_animation_= GetAnimation( AnimationId::Run );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
+
+			// Try do new melee attack just after previous melee attack.
+			if( target != nullptr && distance_for_melee_attack <= description.attack_radius )
+			{
+				const int animation= SelectMeleeAttackAnimation();
+				if( animation >= 0 )
+				{
+					state_= State::MeleeAttack;
+					current_animation_= animation;
+					attack_was_done_= false;
+				}
+			}
+			if( state_ == State::MoveToTarget )
+			{
+				SelectTarget( map );
+				current_animation_= GetAnimation( AnimationId::Run );
+			}
+			current_animation_start_time_+= animation_duration;
 		}
 		else
 		{
@@ -172,8 +278,6 @@ void Monster::Tick(
 
 				attack_was_done_= true;
 			}
-
-			current_animation_frame_= animation_frame_unwrapped;
 		}
 		break;
 
@@ -181,10 +285,9 @@ void Monster::Tick(
 		if( animation_frame_unwrapped >= frame_count )
 		{
 			state_= State::MoveToTarget;
-			SelectTarget( map, current_time );
+			SelectTarget( map );
 			current_animation_= GetAnimation( AnimationId::Run );
-			current_animation_start_time_= current_time;
-			current_animation_frame_= 0u;
+			current_animation_start_time_+= animation_duration;
 		}
 		else
 		{
@@ -194,26 +297,18 @@ void Monster::Tick(
 				!attack_was_done_ &&
 				target != nullptr )
 			{
-				const m_Vec3 shoot_pos= pos_ + g_shoot_point_delta;
-
-				const m_Vec3 actual_dir= target->Position() + g_see_point_delta - shoot_pos;
-				m_Vec3 dir( std::cos(angle_), std::sin(angle_), actual_dir.z / actual_dir.xy().Length() );
-				dir.Normalize();
-
-				PC_ASSERT( description.rock >= 0 );
-				map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
-				map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::RemoteAttack );
-
+				DoShoot( target->Position(), map, monster_id, current_time );
 				attack_was_done_= true;
 			}
-
-			current_animation_frame_= animation_frame_unwrapped;
 		}
 		break;
 
 	case State::DeathAnimation:
 		if( animation_frame_unwrapped >= frame_count )
+		{
 			state_= State::Dead;
+			current_animation_frame_= frame_count - 1u;
+		}
 		else
 			current_animation_frame_= animation_frame_unwrapped;
 		break;
@@ -222,6 +317,16 @@ void Monster::Tick(
 		current_animation_frame_= frame_count - 1u; // Last frame of death animation
 		break;
 	};
+
+	// Set frame for new animation.
+	if( state_ != State::Dead )
+	{
+		const float new_time_delta_s= (current_time - current_animation_start_time_ ).ToSeconds();
+		const float new_frame= new_time_delta_s * GameConstants::animations_frames_per_second;
+		const unsigned int new_frame_i= static_cast<unsigned int>(new_frame);
+		const unsigned int current_animation_frame_count= model.animations[ current_animation_ ].frame_count;
+		current_animation_frame_= std::min( new_frame_i, current_animation_frame_count - 1u );
+	}
 }
 
 void Monster::Hit(
@@ -381,7 +486,7 @@ void Monster::SetOnFloor( const bool on_floor )
 void Monster::Teleport( const m_Vec3& pos, const float angle )
 {
 	pos_= pos;
-	angle_= angle;
+	angle_= angle + Constants::half_pi;
 	vertical_speed_= 0.0f;
 }
 
@@ -401,6 +506,38 @@ bool Monster::IsBoss() const
 	return false;
 }
 
+bool Monster::CanSee( const Map& map, const m_Vec3& pos ) const
+{
+	return map.CanSee( pos_ + g_see_point_delta, pos + g_see_point_delta );
+}
+
+void Monster::DoShoot( const m_Vec3& target_pos, Map& map, const EntityId monster_id, const Time current_time )
+{
+	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
+	const ShootInfo& shoot_info= g_shoot_info[ monster_id_ ];
+
+	m_Mat4 rot_mat;
+	rot_mat.RotateZ( angle_);
+
+	m_Vec3 avg_shoot_pos( 0.0f, 0.0f, 0.0f );
+	for( unsigned int i= 0u; i < shoot_info.count; i++ )
+		avg_shoot_pos+= shoot_info.positions[i] * rot_mat;
+	avg_shoot_pos/= float(shoot_info.count);
+
+	m_Vec3 dir= target_pos + g_target_shoot_point_delta - ( pos_ + avg_shoot_pos );
+	dir.Normalize();
+
+	for( unsigned int i= 0u; i < shoot_info.count; i++ )
+	{
+		const m_Vec3 base_shoot_pos= shoot_info.positions[i] * rot_mat;
+		const m_Vec3 shoot_pos= pos_ + base_shoot_pos;
+
+		PC_ASSERT( description.rock >= 0 );
+		map.Shoot( monster_id, description.rock, shoot_pos, dir, current_time );
+		map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::RemoteAttack );
+	}
+}
+
 void Monster::FallDown( const float time_delta_s )
 {
 	vertical_speed_+= time_delta_s * GameConstants::vertical_acceleration;
@@ -414,7 +551,10 @@ void Monster::FallDown( const float time_delta_s )
 
 void Monster::MoveToTarget( const float time_delta_s )
 {
-	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
+	if( !target_.have_position )
+		return;
+
+	const m_Vec2 vec_to_target= target_.position.xy() - pos_.xy();
 	const float vec_to_target_length= vec_to_target.Length();
 
 	// Nothing to do, we are on target
@@ -426,22 +566,20 @@ void Monster::MoveToTarget( const float time_delta_s )
 	const float distance_delta= time_delta_s * float( monster_description.speed ) / 10.0f;
 
 	if( distance_delta >= vec_to_target_length )
-	{
-		pos_.x= target_position_.x;
-		pos_.y= target_position_.y;
-	}
-	else
-	{
-		pos_.x+= std::cos(angle_) * distance_delta;
-		pos_.y+= std::sin(angle_) * distance_delta;
-	}
+		target_.have_position= false; // Reached
+
+	pos_.x+= std::cos(angle_) * distance_delta;
+	pos_.y+= std::sin(angle_) * distance_delta;
 
 	RotateToTarget( time_delta_s );
 }
 
 void Monster::RotateToTarget( float time_delta_s )
 {
-	const m_Vec2 vec_to_target= target_position_.xy() - pos_.xy();
+	if( !target_.have_position )
+		return;
+
+	const m_Vec2 vec_to_target= target_.position.xy() - pos_.xy();
 	if( vec_to_target.SquareLength() == 0.0f )
 		return;
 
@@ -469,13 +607,11 @@ void Monster::RotateToTarget( float time_delta_s )
 	}
 }
 
-bool Monster::SelectTarget( const Map& map, const Time current_time )
+bool Monster::SelectTarget( const Map& map )
 {
-	/*
-	const float c_half_view_angle= Constants::pi * 0.25f;
+	const float c_half_view_angle= Constants::half_pi;
 	const float c_half_view_angle_cos= std::cos( c_half_view_angle );
 	const m_Vec2 view_dir( std::cos(angle_), std::sin(angle_) );
-	*/
 
 	float nearest_player_distance= Constants::max_float;
 	const Map::PlayersContainer::value_type* nearest_player= nullptr;
@@ -495,15 +631,11 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 			continue;
 
 		// TODO - add angle check, if needed
-		/*
 		const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
 		if( angle_cos < c_half_view_angle_cos )
 			continue;
-		*/
 
-		if( map.CanSee(
-				Position() + g_see_point_delta,
-				player.Position() + g_see_point_delta ) )
+		if( CanSee( map, player.Position() ) )
 		{
 			nearest_player_distance= distance_to_player;
 			nearest_player= &player_value;
@@ -512,29 +644,13 @@ bool Monster::SelectTarget( const Map& map, const Time current_time )
 
 	if( nearest_player != nullptr )
 	{
-		const float target_change_interval_s= 0.8f;
-
 		target_.monster_id= nearest_player->first;
 		target_.monster= nearest_player->second;
-		target_position_= nearest_player->second->Position();
-		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
-
-		return true;
+		target_.position= nearest_player->second->Position();
+		target_.have_position= true;
 	}
-	else
-	{
-		const float direction= random_generator_->RandAngle();
-		const float distance= random_generator_->RandValue( 2.0f, 5.0f );
-		const float target_change_interval_s= random_generator_->RandValue( 0.5f, 2.0f );
 
-		target_.monster_id= 0u;
-		target_.monster= MonsterPtr();
-
-		target_position_= pos_ + distance * m_Vec3( std::cos(direction), std::sin(direction), 0.0f );
-		target_change_time_= current_time + Time::FromSeconds(target_change_interval_s);
-
-		return false;
-	}
+	return target_.have_position;
 }
 
 int Monster::SelectMeleeAttackAnimation()

@@ -431,8 +431,8 @@ void Monster::Save( SaveStream& save_stream )
 	save_stream.WriteBool( attack_was_done_ );
 	save_stream.WriteUInt16( target_.monster_id );
 	// monster weak ptr - TODO
-	save_stream.WriteVec3( target_position_ );
-	save_stream.WriteTime( target_change_time_ );
+	save_stream.WriteVec3( target_.position );
+	save_stream.WriteBool( target_.have_position );
 }
 
 Monster::Monster(
@@ -453,8 +453,8 @@ Monster::Monster(
 	load_stream.ReadBool( attack_was_done_ );
 	load_stream.ReadUInt16( target_.monster_id );
 	// monster weak ptr - TODO
-	load_stream.ReadVec3( target_position_ );
-	load_stream.ReadTime( target_change_time_ );
+	load_stream.ReadVec3( target_.position );
+	load_stream.ReadBool( target_.have_position );
 }
 
 void Player::Save( SaveStream& save_stream )

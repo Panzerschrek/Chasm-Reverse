@@ -63,10 +63,13 @@ private:
 private:
 	bool IsBoss() const;
 
+	bool CanSee( const Map& map, const m_Vec3& pos ) const;
+
+	void DoShoot( const m_Vec3& target_pos, Map& map, EntityId monster_id, Time current_time );
 	void FallDown( float time_delta_s );
 	void MoveToTarget( float time_delta_s );
 	void RotateToTarget( float time_delta_s );
-	bool SelectTarget( const Map& map, Time current_time ); // returns true, if selected
+	bool SelectTarget( const Map& map ); // returns true, if selected
 	int SelectMeleeAttackAnimation();
 	void SpawnBodyPart( Map& map, unsigned char part_id );
 
@@ -85,10 +88,9 @@ private:
 	{
 		EntityId monster_id= 0u;
 		MonsterBaseWeakPtr monster;
+		m_Vec3 position;
+		bool have_position= false;
 	} target_;
-
-	m_Vec3 target_position_;
-	Time target_change_time_= Time::FromSeconds(0);
 };
 
 } // namespace PanzerChasm
