@@ -49,10 +49,10 @@ void MinimapDrawerSoft::Draw(
 	const int map_viewport_width = right - left;
 	const int map_viewport_height= bottom - top;
 
-	x_min_= left;
-	y_min_= top;
-	x_max_= right;
-	y_max_= bottom;
+	x_min_= left  ; x_min_f_= x_min_ << 16;
+	y_min_= top   ; y_min_f_= y_min_ << 16;
+	x_max_= right ; x_max_f_= x_max_ << 16;
+	y_max_= bottom; y_max_f_= y_max_ << 16;
 
 	const float transform_x= float(map_viewport_width ) * 0.5f;
 	const float transform_y= float(map_viewport_height) * 0.5f;
@@ -128,6 +128,10 @@ void MinimapDrawerSoft::Draw(
 	y_min_= 0;
 	x_max_= rendering_context_.viewport_size.Width ();
 	y_max_= rendering_context_.viewport_size.Height();
+	x_min_f_= x_min_ << 16;
+	y_min_f_= y_min_ << 16;
+	x_max_f_= x_max_ << 16;
+	y_max_f_= y_max_ << 16;
 
 	DrawLine( left  << 16, top    << 16, right << 16, top    << 16, palette[ MinimapParams::framing_color ] );
 	DrawLine( left  << 16, top    << 16, left  << 16, bottom << 16, palette[ MinimapParams::framing_color ] );
@@ -140,6 +144,12 @@ void MinimapDrawerSoft::DrawLine(
 	const fixed16_t x1, const fixed16_t y1,
 	const uint32_t color )
 {
+	// Do fast line reject.
+	if( x0 <  x_min_f_ && x1 <  x_min_f_ ) return;
+	if( y0 <  y_min_f_ && y1 <  y_min_f_ ) return;
+	if( x0 >= x_max_f_ && x1 >= x_max_f_ ) return;
+	if( y0 >= y_max_f_ && y1 >= y_min_f_ ) return;
+
 	uint32_t* const dst_pixels= rendering_context_.window_surface_data;
 	const int dst_row_pixels= rendering_context_.row_pixels;
 

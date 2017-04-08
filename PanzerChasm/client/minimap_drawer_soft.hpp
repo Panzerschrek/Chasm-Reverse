@@ -34,6 +34,7 @@ private:
 	MapDataConstPtr current_map_data_;
 
 	int x_min_, y_min_, x_max_, y_max_;
+	fixed16_t x_min_f_, y_min_f_, x_max_f_, y_max_f_;
 };
 
 } // namespace PanzerChasm
