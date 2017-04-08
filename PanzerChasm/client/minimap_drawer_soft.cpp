@@ -40,7 +40,10 @@ void MinimapDrawerSoft::Draw(
 
 	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
 
-	const float scale= static_cast<float>( CalculateMinimapScale( rendering_context_.viewport_size ) );
+	const unsigned int scale_i= CalculateMinimapScale( rendering_context_.viewport_size );
+	const float scale= static_cast<float>( scale_i );
+
+	line_width_= scale;
 
 	const int top= static_cast<int>( MinimapParams::top_offset_px * scale );
 	const int left= static_cast<int>( MinimapParams::left_offset_px * scale );
@@ -76,6 +79,7 @@ void MinimapDrawerSoft::Draw(
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state.GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state.GetDynamicWallsVisibility();
 
+	line_color_= palette[ MinimapParams::walls_color ];
 	for( unsigned int w= 0u; w < current_map_data_->static_walls.size(); w++ )
 	{
 		if( !static_walls_visibility[w] )
@@ -87,8 +91,7 @@ void MinimapDrawerSoft::Draw(
 
 		DrawLine(
 			fixed16_t( v0.x * 65536.0f ), fixed16_t( v0.y * 65536.0f ),
-			fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ),
-			palette[ MinimapParams::walls_color ] );
+			fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ) );
 	}
 
 	const MapState::DynamicWalls& dynamic_walls= map_state.GetDynamicWalls();
@@ -103,8 +106,7 @@ void MinimapDrawerSoft::Draw(
 
 		DrawLine(
 			fixed16_t( v0.x * 65536.0f ), fixed16_t( v0.y * 65536.0f ),
-			fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ),
-			palette[ MinimapParams::walls_color ] );
+			fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ) );
 	}
 
 	{ // Arrow
@@ -115,6 +117,8 @@ void MinimapDrawerSoft::Draw(
 		static m_Vec2 c_arrow_vertices[]=
 			{ { -0.25f, -0.5f }, { 0.25f, -0.5f }, { 0.0f, 0.5f } };
 
+		line_color_= palette[ MinimapParams::arrow_color ];
+
 		for( unsigned int i= 0u; i < sizeof(c_arrow_vertices)/ sizeof(c_arrow_vertices[0]); i++ )
 		{
 			unsigned int prev_i= i == 0u ? sizeof(c_arrow_vertices)/ sizeof(c_arrow_vertices[0]) - 1u : i - 1u;
@@ -124,8 +128,7 @@ void MinimapDrawerSoft::Draw(
 
 			DrawLine(
 				fixed16_t( v0.x * 65536.0f ), fixed16_t( v0.y * 65536.0f ),
-				fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ),
-				palette[ MinimapParams::arrow_color ] );
+				fixed16_t( v1.x * 65536.0f ), fixed16_t( v1.y * 65536.0f ) );
 		}
 	}
 
@@ -138,16 +141,27 @@ void MinimapDrawerSoft::Draw(
 	x_max_f_= x_max_ << 16;
 	y_max_f_= y_max_ << 16;
 
-	DrawLine( left  << 16, top    << 16, right << 16, top    << 16, palette[ MinimapParams::framing_color ] );
-	DrawLine( left  << 16, top    << 16, left  << 16, bottom << 16, palette[ MinimapParams::framing_color ] );
-	DrawLine( right << 16, top    << 16, right << 16, bottom << 16, palette[ MinimapParams::framing_color ] );
-	DrawLine( left  << 16, bottom << 16, right << 16, bottom << 16, palette[ MinimapParams::framing_color ] );
+	// Framing
+
+	line_color_= palette[ MinimapParams::framing_contour_color ];
+	line_width_= scale_i * 3;
+	DrawLine( left  << 16, top    << 16, right << 16, top    << 16 );
+	DrawLine( left  << 16, top    << 16, left  << 16, bottom << 16 );
+	DrawLine( right << 16, top    << 16, right << 16, bottom << 16 );
+	DrawLine( left  << 16, bottom << 16, right << 16, bottom << 16 );
+
+	line_color_= palette[ MinimapParams::framing_color ];
+	line_width_= scale_i;
+	DrawLine( left  << 16, top    << 16, right << 16, top    << 16 );
+	DrawLine( left  << 16, top    << 16, left  << 16, bottom << 16 );
+	DrawLine( right << 16, top    << 16, right << 16, bottom << 16 );
+	DrawLine( left  << 16, bottom << 16, right << 16, bottom << 16 );
+
 }
 
 void MinimapDrawerSoft::DrawLine(
 	const fixed16_t x0, const fixed16_t y0,
-	const fixed16_t x1, const fixed16_t y1,
-	const uint32_t color )
+	const fixed16_t x1, const fixed16_t y1 )
 {
 	// Do fast line reject.
 	if( x0 <  x_min_f_ && x1 <  x_min_f_ ) return;
@@ -157,6 +171,10 @@ void MinimapDrawerSoft::DrawLine(
 
 	uint32_t* const dst_pixels= rendering_context_.window_surface_data;
 	const int dst_row_pixels= rendering_context_.row_pixels;
+
+	const int width= line_width_;
+	const int width_minus_delta= width / 2;
+	const int width_delta= width - width_minus_delta;
 
 	const fixed16_t dx= x1 - x0;
 	const fixed16_t dy= y1 - y0;
@@ -194,8 +212,11 @@ void MinimapDrawerSoft::DrawLine(
 		for( int x= x_start_i; x < x_end_i; x++, y+= dy_dx )
 		{
 			const int y_i= Fixed16RoundToInt(y);
-			if( y_i < y_min_ || y_i >= y_max_ ) continue;
-			dst_pixels[ x + y_i * dst_row_pixels ]= color;
+			for( int y= y_i - width_minus_delta; y < y_i + width_delta; y++ )
+			{
+				if( y < y_min_ || y >= y_max_ ) continue;
+				dst_pixels[ x + y * dst_row_pixels ]= line_color_;
+			}
 		}
 	}
 	else
@@ -226,8 +247,11 @@ void MinimapDrawerSoft::DrawLine(
 		for( int y= y_start_i; y < y_end_i; y++, x+= dx_dy )
 		{
 			const int x_i= Fixed16RoundToInt(x);
-			if( x_i < x_min_ || x_i >= x_max_ ) continue;
-			dst_pixels[ x_i + y * dst_row_pixels ]= color;
+			for( int x= x_i - width_minus_delta; x < x_i + width_delta; x++ )
+			{
+				if( x < x_min_ || x >= x_max_ ) continue;
+				dst_pixels[ x + y * dst_row_pixels ]= line_color_;
+			}
 		}
 	}
 }

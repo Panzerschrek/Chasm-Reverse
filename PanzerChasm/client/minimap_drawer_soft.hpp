@@ -24,8 +24,7 @@ public:
 
 	void DrawLine(
 		fixed16_t x0, fixed16_t y0,
-		fixed16_t x1, fixed16_t y1,
-		uint32_t color );
+		fixed16_t x1, fixed16_t y1 );
 
 private:
 	const RenderingContextSoft rendering_context_;
@@ -35,6 +34,9 @@ private:
 
 	int x_min_, y_min_, x_max_, y_max_;
 	fixed16_t x_min_f_, y_min_f_, x_max_f_, y_max_f_;
+
+	uint32_t line_color_;
+	int line_width_;
 };
 
 } // namespace PanzerChasm
