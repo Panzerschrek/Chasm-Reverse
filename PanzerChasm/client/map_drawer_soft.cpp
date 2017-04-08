@@ -231,108 +231,112 @@ void MapDrawerSoft::Draw(
 
 	rasterizer_.BuildDepthBufferHierarchy();
 
-	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+	// Draw regular polygons of models, than transparent
+	for( unsigned int t= 0u; t < 2u; t++ )
 	{
-		if( static_model.model_id >= current_map_data_->models_description.size() ||
-			!static_model.visible )
-			continue;
+		const bool transparent= t == 1u;
 
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( static_model.angle );
+		for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+		{
+			if( static_model.model_id >= current_map_data_->models_description.size() ||
+				!static_model.visible )
+				continue;
 
-		DrawModel(
-			map_models_, current_map_data_->models, static_model.model_id,
-			static_model.animation_frame,
-			view_clip_planes,
-			static_model.pos,
-			rotate_mat,
-			cam_mat );
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( static_model.angle );
+
+			DrawModel(
+				map_models_, current_map_data_->models, static_model.model_id,
+				static_model.animation_frame,
+				view_clip_planes,
+				static_model.pos, rotate_mat,
+				cam_mat, camera_position,
+				255u, transparent );
+		}
+
+		for( const MapState::Item& item : map_state.GetItems() )
+		{
+			if( item.item_id >= game_resources_->items_models.size() ||
+				item.picked_up )
+				continue;
+
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( item.angle );
+
+			DrawModel(
+				items_models_, game_resources_->items_models, item.item_id,
+				item.animation_frame,
+				view_clip_planes,
+				item.pos, rotate_mat,
+				cam_mat, camera_position,
+				255u, transparent );
+		}
+
+		for( const MapState::DynamicItemsContainer::value_type& dynamic_item_value : map_state.GetDynamicItems() )
+		{
+			const MapState::DynamicItem& item= dynamic_item_value.second;
+			if( item.item_type_id >= game_resources_->items_models.size() )
+				continue;
+
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( item.angle );
+
+			DrawModel(
+				items_models_, game_resources_->items_models, item.item_type_id,
+				item.frame,
+				view_clip_planes,
+				item.pos, rotate_mat,
+				cam_mat, camera_position,
+				255u, transparent,
+				item.fullbright );
+		}
+
+		for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
+		{
+			const MapState::Rocket& rocket= rocket_value.second;
+			if( rocket.rocket_id >= game_resources_->rockets_models.size() )
+				continue;
+
+			m_Mat4 rotate_max_x, rotate_mat_z;
+			rotate_max_x.RotateX( rocket.angle[1] );
+			rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
+
+
+			DrawModel(
+				rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
+				rocket.frame,
+				view_clip_planes,
+				rocket.pos, rotate_max_x * rotate_mat_z,
+				cam_mat, camera_position,
+				255u, transparent,
+				game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
+		}
+
+		for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
+		{
+			const MapState::Monster& monster= monster_value.second;
+			if( monster.monster_id >= game_resources_->monsters_models.size() )
+				continue;
+
+			if( monster_value.first == player_monster_id )
+				continue;
+
+			const unsigned int frame=
+				game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
+				monster.animation_frame;
+
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( monster.angle + Constants::half_pi );
+
+			DrawModel(
+				monsters_models_, game_resources_->monsters_models, monster.monster_id,
+				frame,
+				view_clip_planes,
+				monster.pos, rotate_mat,
+				cam_mat, camera_position,
+				monster.body_parts_mask, transparent );
+		}
 	}
-
-	for( const MapState::Item& item : map_state.GetItems() )
-	{
-		if( item.item_id >= game_resources_->items_models.size() ||
-			item.picked_up )
-			continue;
-
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( item.angle );
-
-		DrawModel(
-			items_models_, game_resources_->items_models, item.item_id,
-			item.animation_frame,
-			view_clip_planes,
-			item.pos,
-			rotate_mat,
-			cam_mat );
-	}
-
-	for( const MapState::DynamicItemsContainer::value_type& dynamic_item_value : map_state.GetDynamicItems() )
-	{
-		const MapState::DynamicItem& item= dynamic_item_value.second;
-		if( item.item_type_id >= game_resources_->items_models.size() )
-			continue;
-
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( item.angle );
-
-		DrawModel(
-			items_models_, game_resources_->items_models, item.item_type_id,
-			item.frame,
-			view_clip_planes,
-			item.pos,
-			rotate_mat,
-			cam_mat,
-			item.fullbright );
-	}
-
-	for( const MapState::RocketsContainer::value_type& rocket_value : map_state.GetRockets() )
-	{
-		const MapState::Rocket& rocket= rocket_value.second;
-		if( rocket.rocket_id >= game_resources_->rockets_models.size() )
-			continue;
-
-		m_Mat4 rotate_max_x, rotate_mat_z;
-		rotate_max_x.RotateX( rocket.angle[1] );
-		rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
-
-
-		DrawModel(
-			rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
-			rocket.frame,
-			view_clip_planes,
-			rocket.pos,
-			rotate_max_x * rotate_mat_z,
-			cam_mat,
-			game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
-	}
-
-	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
-	{
-		const MapState::Monster& monster= monster_value.second;
-		if( monster.monster_id >= game_resources_->monsters_models.size() )
-			continue;
-
-		if( monster_value.first == player_monster_id )
-			continue;
-
-		const unsigned int frame=
-			game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
-			monster.animation_frame;
-
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
-
-		DrawModel(
-			monsters_models_, game_resources_->monsters_models, monster.monster_id,
-			frame,
-			view_clip_planes,
-			monster.pos,
-			rotate_mat,
-			cam_mat );
-	}
-
-	// TRANSPARENT SECTION
 
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
@@ -763,7 +767,7 @@ void MapDrawerSoft::DrawWallSegment(
 		}
 	}
 
-	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
+	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, texture.has_alpha );
 }
 
 void MapDrawerSoft::DrawWalls(
@@ -945,7 +949,7 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 
 		// TODO - does this needs?
 		// Maybe update whole screen hierarchy after floors and ceilings?
-		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count );
+		rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, false );
 	}
 }
 
@@ -958,13 +962,19 @@ void MapDrawerSoft::DrawModel(
 	const m_Vec3& position,
 	const m_Mat4& rotation_matrix,
 	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position,
+	const unsigned char visible_groups_mask,
+	const bool transparent,
 	const bool fullbright )
 {
+	const Model& model= model_group_models[ model_id ];
+	const std::vector<unsigned short>& indeces= transparent ? model.transparent_triangles_indeces : model.regular_triangles_indeces;
+	if( indeces.size() == 0u )
+		return;
+
 	unsigned int active_clip_planes_mask= 0u;
 
-	const Model& model= model_group_models[ model_id ];
 	PC_ASSERT( animation_frame < model.frame_count );
-
 	const m_BBox3& bbox= model.animations_bboxes[ animation_frame ];
 
 	m_Mat4 translate_mat, bbox_mat;
@@ -1071,18 +1081,36 @@ void MapDrawerSoft::DrawModel(
 
 	Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
 
-	draw_func=
-		&Rasterizer::DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-			Rasterizer::Lighting::Yes>;
-	alpha_draw_func=
-		&Rasterizer::DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::Yes,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-			Rasterizer::Lighting::Yes>;
+	if( transparent )
+	{
+		draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
+		alpha_draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
+	}
+	else
+	{
+		draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::No>;
+		alpha_draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::No>;
+	}
 
 	if( w_min > 0.0f /* && w_max > 0.0f */ )
 	{
@@ -1091,18 +1119,36 @@ void MapDrawerSoft::DrawModel(
 		const float ratio= w_max / w_min;
 		if( ratio < c_ratio_threshold )
 		{
-			draw_func= &Rasterizer::DrawAffineTexturedTriangle<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-				Rasterizer::Lighting::Yes>;
-			alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::Yes,
-				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-				Rasterizer::Lighting::Yes>;
+			if( transparent )
+			{
+				draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
+				alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
+			}
+			else
+			{
+				draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes, Rasterizer::Blending::No>;
+				alpha_draw_func= &Rasterizer::DrawAffineTexturedTriangle<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::Yes, Rasterizer::Blending::No>;
+			}
 		}
 	}
+
+	const m_Vec3 cam_pos_model_space= ( camera_position - position ) * inv_rotation_mat;
 
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
@@ -1116,12 +1162,17 @@ void MapDrawerSoft::DrawModel(
 
 	// TODO - use original QUADS from .3o/.car models.
 
-	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
+	for( unsigned int t= 0u; t < indeces.size(); t+= 3u )
 	{
+		const Model::Vertex& first_vertex= model.vertices[ indeces[t] ];
+
+		if( ( first_vertex.groups_mask & visible_groups_mask ) == 0u )
+			continue;
+
 		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
 		for( unsigned int tv= 0u; tv < 3u; tv++ )
 		{
-			const Model::Vertex& vertex= model.vertices[ model.regular_triangles_indeces[t + tv] ];
+			const Model::Vertex& vertex= model.vertices[ indeces[t + tv] ];
 			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
 
 			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
@@ -1129,6 +1180,13 @@ void MapDrawerSoft::DrawModel(
 			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
 
 			triangle_center+= clipped_vertices_[tv].pos;
+		}
+		{ // Try reject back faces
+			const m_Vec3 v0= clipped_vertices_[1].pos - clipped_vertices_[0].pos;
+			const m_Vec3 v1= clipped_vertices_[2].pos - clipped_vertices_[0].pos;
+			const m_Vec3 vec_to_cam= cam_pos_model_space - clipped_vertices_[0].pos;
+			if( mVec3Cross( v0, v1 ) * vec_to_cam < 0.0f )
+				continue;
 		}
 		clipped_vertices_[0].next= &clipped_vertices_[1];
 		clipped_vertices_[1].next= &clipped_vertices_[2];
@@ -1181,7 +1239,7 @@ void MapDrawerSoft::DrawModel(
 		}
 		rasterizer_.SetLight( light );
 
-		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
+		const bool triangle_needs_alpha_test= first_vertex.alpha_test_mask != 0u;
 		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
 
 		RasterizerVertex traingle_vertices[3];
@@ -1401,7 +1459,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-					Rasterizer::Lighting::Yes>;
+					Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
 		}
 		else
 			draw_func=
@@ -1409,7 +1467,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-					Rasterizer::Lighting::No>;
+					Rasterizer::Lighting::No, Rasterizer::Blending::Yes>;
 
 		RasterizerVertex traingle_vertices[3];
 		traingle_vertices[0]= verties_projected[0];

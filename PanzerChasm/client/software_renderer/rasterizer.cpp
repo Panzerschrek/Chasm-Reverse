@@ -423,12 +423,43 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 	return cell_value == 0xFFFFu ? 1u : 0u;
 }
 
-void Rasterizer::UpdateOcclusionHierarchy(
-	const RasterizerVertex* const polygon_vertices, const unsigned int polygon_vertex_count )
+template<unsigned int level>
+void Rasterizer::SetToOneOcclusionHierarchyCell_r( const unsigned int cell_x, const unsigned int cell_y )
 {
-	// TODO - use polygon vertices for fast "zero" and "one" occlusion hierarchy cells.
-	// Profile that method, when it will be implemented.
+	static_assert( level < c_occlusion_hierarchy_levels, "Invalid level" );
+	auto& hierarchy_level= occlusion_hierarchy_levels_[level];
+	PC_ASSERT( cell_x < hierarchy_level.size[0] );
+	PC_ASSERT( cell_y < hierarchy_level.size[1] );
+	unsigned short& cell_value= hierarchy_level.data[ cell_x + cell_y * hierarchy_level.size[0] ];
 
+	if( level == 0u )
+	{
+		cell_value= 0xFFFFu;
+		return;
+	}
+
+	for( unsigned int subcell_y= 0u; subcell_y < 4u; subcell_y++ )
+	for( unsigned int subcell_x= 0u; subcell_x < 4u; subcell_x++ )
+	{
+		const unsigned int bit_number= subcell_x + ( subcell_y << 2u );
+		const unsigned int bit_mask= 1u << bit_number;
+		if( ( cell_value & bit_mask ) != 0u )
+			continue;
+
+		SetToOneOcclusionHierarchyCell_r< level == 0u ? 0u : level - 1u >(
+			cell_x * 4u + subcell_x,
+			cell_y * 4u + subcell_y );
+	}
+
+	cell_value= 0xFFFFu;
+}
+
+void Rasterizer::UpdateOcclusionHierarchy(
+	const RasterizerVertex* const polygon_vertices, const unsigned int polygon_vertex_count,
+	const bool has_alpha )
+{
+	constexpr unsigned int c_max_vertices= 32u;
+	PC_ASSERT( polygon_vertex_count < c_max_vertices );
 	PC_ASSERT( polygon_vertex_count >= 3u );
 
 	fixed16_t x_min= viewport_size_x_ << 16, x_max= 0;
@@ -454,31 +485,119 @@ void Rasterizer::UpdateOcclusionHierarchy(
 
 	// TODO - calibrate hierarchy level selection.
 	int hierarchy_level= 0;
-	while( (max_delta >> 3) > ( 16 << (hierarchy_level*2) ) )
+	while( (max_delta >> 4) > ( 16 << (hierarchy_level*2) ) )
 		hierarchy_level++;
 
 	hierarchy_level= std::min( hierarchy_level, int(c_occlusion_hierarchy_levels) - 1 );
 
-	{ // Update cells of selected level recursively from upper to lower.
-		const int cell_size_log2= 4 + (hierarchy_level*2);
-		const int cell_size= 1 << cell_size_log2;
+	const int cell_size_log2= 4 + (hierarchy_level*2);
+	const int cell_size= 1 << cell_size_log2;
 
-		const int cell_x_min= x_min_i >> cell_size_log2;
-		const int cell_x_max= ( x_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
-		const int cell_y_min= y_min_i >> cell_size_log2;
-		const int cell_y_max= ( y_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+	const int cell_x_min= x_min_i >> cell_size_log2;
+	const int cell_x_max= ( x_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+	const int cell_y_min= y_min_i >> cell_size_log2;
+	const int cell_y_max= ( y_max_i + ( cell_size - 1 ) ) >> cell_size_log2;
+
+	unsigned int (Rasterizer::*update_cell_func)( unsigned int, unsigned int );
+	void (Rasterizer::*set_one_cell_func)( unsigned int, unsigned int );
+	switch(hierarchy_level)
+	{
+	case 0:
+		update_cell_func= &Rasterizer::UpdateOcclusionHierarchyCell_r<0>;
+		set_one_cell_func= &Rasterizer::SetToOneOcclusionHierarchyCell_r<0>;
+		break;
+	case 1:
+		update_cell_func= &Rasterizer::UpdateOcclusionHierarchyCell_r<1>;
+		set_one_cell_func= &Rasterizer::SetToOneOcclusionHierarchyCell_r<1>;
+		break;
+	case 2:
+		update_cell_func= &Rasterizer::UpdateOcclusionHierarchyCell_r<2>;
+		set_one_cell_func= &Rasterizer::SetToOneOcclusionHierarchyCell_r<2>;
+		break;
+	default:
+		PC_ASSERT(false); update_cell_func= nullptr; set_one_cell_func= nullptr;
+		break;
+	};
+
+	// For small polygons or polygons with alpha just update whole polygon bounding box.
+	if( has_alpha || (max_delta >> 4) < 8 )
+	{
+		// Update cells of selected level recursively from upper to lower.
+		for( int cell_y= cell_y_min; cell_y < cell_y_max; cell_y++ )
+		for( int cell_x= cell_x_min; cell_x < cell_x_max; cell_x++ )
+			(this->*update_cell_func)( cell_x, cell_y );
+	}
+	else
+	{
+		// For levels > 0 test cells inside polygon for fast accept/reject.
+		// If cell is fully inside polygon - set this cell and low levels related cells to one.
+		// If cell is fully outside polygon - reject if.
+		// Else - make deep hierarchy update.
+
+		fixed16_t normals[c_max_vertices][2], center[2]= { 0, 0 };
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+		{
+			const unsigned int next_i= ( i == polygon_vertex_count - 1u ) ? 0u : (i+1u);
+			const float dx= ( polygon_vertices[next_i].x - polygon_vertices[i].x ) / 65536.0f;
+			const float dy= ( polygon_vertices[next_i].y - polygon_vertices[i].y ) / 65536.0f;
+			const float length= std::sqrt( dx * dx + dy * dy );
+			normals[i][0]= -fixed16_t( 65536.0f * float(dy) / length );
+			normals[i][1]= +fixed16_t( 65536.0f * float(dx) / length );
+
+			center[0]+= polygon_vertices[i].x;
+			center[1]+= polygon_vertices[i].y;
+		}
+		center[0]/= polygon_vertex_count;
+		center[1]/= polygon_vertex_count;
+
+		// Reverse normals, if they directed from polygon center.
+		fixed16_t center_vec[2];
+		center_vec[0]= center[0]- polygon_vertices[0].x;
+		center_vec[1]= center[1]- polygon_vertices[0].y;
+		if( Fixed16Mul( center_vec[0], normals[0][0] ) + Fixed16Mul( center_vec[1], normals[0][1] ) < 0 )
+		{
+			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+			{
+				normals[i][0]= -normals[i][0];
+				normals[i][1]= -normals[i][1];
+			}
+		}
+
+		const fixed16_t cell_outer_radius= ( cell_size << 16 ) * 3 / 4; // Radius of quad - side * sqrt(2) / 2 ~ 0.7. Use close number.
+		const fixed16_t half_cell_size= 1 << ( cell_size_log2 + 16 - 1 );
 
 		for( int cell_y= cell_y_min; cell_y < cell_y_max; cell_y++ )
 		for( int cell_x= cell_x_min; cell_x < cell_x_max; cell_x++ )
 		{
-			switch(hierarchy_level)
+			const fixed16_t cell_center_x= ( cell_x << ( cell_size_log2 + 16 ) ) + half_cell_size;
+			const fixed16_t cell_center_y= ( cell_y << ( cell_size_log2 + 16 ) ) + half_cell_size;
+
+			int status= 1; // -1 outside, 0 mixed, 1 - inside
+			for( unsigned int v= 0u; v < polygon_vertex_count; v++ )
 			{
-			case 0: UpdateOcclusionHierarchyCell_r<0>( cell_x, cell_y ); break;
-			case 1: UpdateOcclusionHierarchyCell_r<1>( cell_x, cell_y ); break;
-			case 2: UpdateOcclusionHierarchyCell_r<2>( cell_x, cell_y ); break;
-			//case 3: UpdateOcclusionHierarchyCell_r<3>( cell_x, cell_y ); break;
-			default: PC_ASSERT(false); break;
+				fixed16_t vec[2];
+				vec[0]= cell_center_x - polygon_vertices[v].x;
+				vec[1]= cell_center_y - polygon_vertices[v].y;
+				const fixed16_t signed_distance= Fixed16Mul( normals[v][0], vec[0] ) + Fixed16Mul( normals[v][1], vec[1] );
+				if( signed_distance < -cell_outer_radius )
+				{
+					status= -1;
+					break;
+				}
+				else if( signed_distance > cell_outer_radius ) {}
+				else
+				{
+					status= 0;
+					break;
+				}
 			}
+
+			if( status == 0 )
+				(this->*update_cell_func)( cell_x, cell_y );
+			else if( status == 1 )
+				(this->*set_one_cell_func)( cell_x, cell_y );
+			else // if( status == -1 )
+				continue;
 		}
 	}
 

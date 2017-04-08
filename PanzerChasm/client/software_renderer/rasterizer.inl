@@ -1,6 +1,10 @@
 #pragma once
 #include "rasterizer.hpp"
 
+#ifdef PC_MMX_INSTRUCTIONS
+#include <mmintrin.h>
+#endif
+
 namespace PanzerChasm
 {
 
@@ -8,7 +12,7 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 {
 	PC_ASSERT( vertices[0].z > ( g_fixed16_one >> c_max_inv_z_min_log2 ) );
@@ -106,7 +110,7 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 			triangle_part_vertices_[3]= vertices[ upper_index ];
 			trianlge_part_tc_left_= vertices[ lower_index ];
 			triangle_part_inv_z_scaled_left_= lower_vertex_inv_z_scaled;
-			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting >();
+			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending >();
 		}
 		if( upper_middle_dy > 0 )
 		{
@@ -121,7 +125,7 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 			triangle_part_vertices_[3]= vertices[ upper_index ];
 			trianlge_part_tc_left_= vertices[ middle_index ];
 			triangle_part_inv_z_scaled_left_= middle_vertex_inv_z_scaled;
-			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting >();
+			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending >();
 		}
 	}
 	else
@@ -158,7 +162,7 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 			triangle_part_vertices_[1]= vertices[ upper_index ];
 			triangle_part_vertices_[2]= vertices[ lower_index ];
 			triangle_part_vertices_[3]= vertices[ middle_index ];
-			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting >();
+			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending >();
 		}
 		if( upper_middle_dy > 0 )
 		{
@@ -167,7 +171,7 @@ void Rasterizer::DrawAffineTexturedTriangle( const RasterizerVertex* vertices )
 			triangle_part_vertices_[1]= vertices[ upper_index ];
 			triangle_part_vertices_[2]= vertices[ middle_index ];
 			triangle_part_vertices_[3]= vertices[ upper_index ];
-			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting >();
+			DrawAffineTexturedTrianglePart< depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending >();
 		}
 	}
 }
@@ -190,6 +194,15 @@ inline uint32_t Rasterizer::ApplyLight( const uint32_t texel ) const
 		std::memcpy( &result, components, sizeof(uint32_t) );
 		return result;
 	}
+}
+
+template<Rasterizer::Blending blending>
+inline void Rasterizer::ApplyBlending( uint32_t& dst, uint32_t texel ) const
+{
+	if( blending == Blending::No )
+		dst= texel;
+	else
+		dst= ( ( ( dst ^ texel ) & 0xFEFEFEFEu ) >> 1u ) + ( dst & texel );
 }
 
 template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
@@ -371,7 +384,7 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawAffineTexturedTrianglePart()
 {
 	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
@@ -472,7 +485,7 @@ void Rasterizer::DrawAffineTexturedTrianglePart()
 				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
 				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
 
-				dst[x]= ApplyLight<lighting>( tex_value );
+				ApplyBlending<blending>( dst[x], ApplyLight<lighting>( tex_value ) );
 			}
 		}
 	} // for y
@@ -482,7 +495,7 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 {
 	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
@@ -600,7 +613,7 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 				if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
 				if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3u ] |= 1u << (x&7u); // TODO - maybe set occlusion at end of line processing?
 
-				dst[x]= ApplyLight<lighting>( tex_value );
+				ApplyBlending<blending>( dst[x], ApplyLight<lighting>( tex_value ) );
 			}
 		}
 	} // for y
@@ -610,9 +623,36 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 {
+	// TODO - maybe add mmx lighting support for other triangle-filling functions?
+#ifdef PC_MMX_INSTRUCTIONS
+	__m64 mm_light; // Store light in 10.6 fixed format.
+	__m64 mm_zero;
+	constexpr int c_mm_light_shift= 2;
+	if( lighting == Lighting::Yes )
+	{
+		mm_zero= _mm_setzero_si64();
+		mm_light= _mm_set1_pi16( light_ >> c_mm_light_shift );
+	}
+
+	#define DO_LIGHTING(tex_value, destination)\
+	if( lighting == Lighting::Yes )\
+	{\
+		__m64 components= _mm_cvtsi32_si64( tex_value ); /* write 4 byte componenst to register */\
+		__m64 components_depacked= _mm_unpacklo_pi8( components, mm_zero ); /* convert* 8bit components to 16bit components */\
+		__m64 mul_result= _mm_mulhi_pi16( mm_light, components_depacked ); /* multiplicate light by each color component, save hight bits */\
+		__m64 result_shifted= _m_psllwi( mul_result, c_mm_light_shift ); /* compensate light shift */\
+		__m64 result_8bit= _m_packuswb( result_shifted, mm_zero ); /* pack 16-bit colors to 8-bits colors with unsigned saturation */\
+		ApplyBlending<blending>( destination, _m_to_int(result_8bit) );\
+	}\
+	else\
+		ApplyBlending<blending>( destination, ApplyLight<lighting>(tex_value) );
+#else
+	#define DO_LIGHTING(tex_value, destination) destination= ApplyLight<lighting>(tex_value);
+#endif
+
 	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
 	const fixed16_t y_end_f= std::min( triangle_part_vertices_[1].y, triangle_part_vertices_[3].y );
 	const int y_start= std::max( 0, Fixed16RoundToInt( y_start_f ) );
@@ -718,7 +758,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					if( depth_write == DepthWrite::Yes ) depth_dst[ full_x ]= depth;
 					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ full_x >> 3 ] |= 1 << (full_x&7);  // TODO - maybe set occlusion at end of line processing?
 
-					dst[ full_x ]= ApplyLight<lighting>( tex_value );
+					DO_LIGHTING(tex_value, dst[full_x]);
 				}
 			} // for span pixels
 
@@ -784,7 +824,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					if( depth_write == DepthWrite::Yes ) depth_dst[ span_x + x ]= depth;
 					if( occlusion_write == OcclusionWrite::Yes && alpha_test == AlphaTest::Yes ) occlusion_value|= 1 << x;
 
-					dst[ span_x + x ]= ApplyLight<lighting>( tex_value );
+					DO_LIGHTING(tex_value, dst[ span_x + x ]);
 				}
 			} // for span pixels
 
@@ -841,23 +881,30 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					if( depth_write == DepthWrite::Yes ) depth_dst[x]= depth;
 					if( occlusion_write == OcclusionWrite::Yes ) occlusion_dst[ x >> 3 ] |= 1 << (x&7); // TODO - maybe set occlusion at end of line processing?
 
-					dst[x]= ApplyLight<lighting>( tex_value );
+					DO_LIGHTING(tex_value, dst[x]);
 				}
 			}
 		}
 	} // for y
+
+#ifdef PC_MMX_INSTRUCTIONS
+	// At end of using MMX we need call "emms" instructions for correct usage of FPU after this function.
+	if( lighting == Lighting::Yes )
+		_mm_empty();
+#endif
+	#undef DO_LIGHTING // Remove function-local macro.
 }
 
 template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* vertices )
 {
 	Rasterizer::DrawTrianglePerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
-		&Rasterizer::DrawTexturedTrianglePerLineCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting > >
+		&Rasterizer::DrawTexturedTrianglePerLineCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
 			( vertices );
 }
 
@@ -865,13 +912,13 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedTriangleSpanCorrected( const RasterizerVertex* vertices )
 {
 
 	DrawTrianglePerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
-		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting > >
+		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
 			( vertices );
 }
 

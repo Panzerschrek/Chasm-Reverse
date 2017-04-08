@@ -56,6 +56,8 @@ public:
 	{ Yes, No };
 	enum class Lighting
 	{ Yes, No };
+	enum class Blending
+	{ Yes, No };
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -73,7 +75,7 @@ public:
 		fixed16_t x_min, fixed16_t y_min, fixed16_t x_max, fixed16_t y_max,
 		fixed16_t z_min, fixed16_t z_max ) const;
 
-	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count );
+	void UpdateOcclusionHierarchy( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count, bool has_alpha );
 	bool IsOccluded( const RasterizerVertex* polygon_vertices, unsigned int polygon_vertex_count ) const;
 
 	void DebugDrawDepthHierarchy( unsigned int tick_count );
@@ -93,21 +95,21 @@ public:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
@@ -118,8 +120,13 @@ private:
 	template<unsigned int level>
 	unsigned int UpdateOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
 
+	template<unsigned int level>
+	void SetToOneOcclusionHierarchyCell_r( unsigned int cell_x, unsigned int cell_y );
+
 	template<Lighting lighting>
 	uint32_t ApplyLight( uint32_t texel ) const;
+	template<Blending blending>
+	void ApplyBlending( uint32_t& dst, uint32_t texel ) const;
 
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
@@ -130,21 +137,21 @@ private:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawAffineTexturedTrianglePart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawTexturedTrianglePerLineCorrectedPart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
