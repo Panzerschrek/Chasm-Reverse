@@ -2,6 +2,7 @@
 
 #include "../rendering_context.hpp"
 #include "i_minimap_drawer.hpp"
+#include "software_renderer/fixed.hpp"
 
 namespace PanzerChasm
 {
@@ -20,7 +21,19 @@ public:
 	virtual void Draw(
 		const MapState& map_state, const MinimapState& minimap_state,
 		const m_Vec2& camera_position, float view_angle ) override;
+
+	void DrawLine(
+		fixed16_t x0, fixed16_t y0,
+		fixed16_t x1, fixed16_t y1,
+		uint32_t color );
+
 private:
+	const RenderingContextSoft rendering_context_;
+	const GameResourcesConstPtr game_resources_;
+
+	MapDataConstPtr current_map_data_;
+
+	int x_min_, y_min_, x_max_, y_max_;
 };
 
 } // namespace PanzerChasm

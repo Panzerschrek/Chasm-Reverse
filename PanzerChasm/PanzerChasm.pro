@@ -122,7 +122,9 @@ HEADERS+= \
 	client/map_drawer_soft.hpp \
 	client/map_light.hpp \
 	client/map_state.hpp \
+	client/minimap_drawers_common.hpp \
 	client/minimap_drawer_gl.hpp \
+	client/minimap_drawer_soft.hpp \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
 	client/software_renderer/fixed.hpp \

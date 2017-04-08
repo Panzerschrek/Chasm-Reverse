@@ -2,9 +2,9 @@
 #include <shaders_loading.hpp>
 
 #include "../assert.hpp"
-#include "../game_constants.hpp"
 #include "../map_loader.hpp"
 #include "map_state.hpp"
+#include "minimap_drawers_common.hpp"
 
 #include "minimap_drawer_gl.hpp"
 
@@ -21,16 +21,6 @@ static const unsigned int g_arrow_lines= 3u;
 static const unsigned int g_arrow_vertices= g_arrow_lines * 2u;
 static const unsigned int g_framing_lines= 4u;
 static const unsigned int g_framing_vertices= g_framing_lines * 2u;
-
-static unsigned int CalculateMinimapScale( const Size2& viewport_size )
-{
-	float scale_f=
-		0.65f * std::min(
-			float( viewport_size.Width () ) / float( GameConstants::min_screen_width  ),
-			float( viewport_size.Height() ) / float( GameConstants::min_screen_height ) );
-
-	return std::max( 1u, static_cast<unsigned int>( scale_f ) );
-}
 
 MinimapDrawerGL::MinimapDrawerGL(
 	Settings& settings,
@@ -164,22 +154,13 @@ void MinimapDrawerGL::Draw(
 	UpdateDynamicWalls( map_state );
 	UpdateWallsVisibility( minimap_state );
 
-	const unsigned char c_walls_color= 15u * 16u + 8u;
-	const unsigned char c_arrow_color= 10u * 16u + 3u;
-	const unsigned char c_framing_color= 0u * 16u + 8u;
-	const unsigned char c_framing_contour_color= 0u * 16u + 0u;
-
-	const float c_left_offset_px= 16.0f;
-	const float c_top_offset_px= 16.0f;
-	const float c_bottom_offset_rel= 1.0f / 3.0f;
-	const float c_righ_offset_from_center_px= 32.0f;
 
 	const float scale= static_cast<float>( CalculateMinimapScale( rendering_context_.viewport_size ) );
 
-	const unsigned int top= static_cast<unsigned int>( c_top_offset_px * scale );
-	const unsigned int left= static_cast<unsigned int>( c_left_offset_px * scale );
-	const unsigned int right= rendering_context_.viewport_size.Width() / 2u - static_cast<unsigned int>( c_righ_offset_from_center_px * scale );
-	const unsigned int bottom= static_cast<unsigned int>( ( 1.0f - c_bottom_offset_rel ) * static_cast<float>( rendering_context_.viewport_size.Height() ) );
+	const unsigned int top= static_cast<unsigned int>( MinimapParams::top_offset_px * scale );
+	const unsigned int left= static_cast<unsigned int>( MinimapParams::left_offset_px * scale );
+	const unsigned int right= rendering_context_.viewport_size.Width() / 2u - static_cast<unsigned int>( MinimapParams::right_offset_from_center_px * scale );
+	const unsigned int bottom= static_cast<unsigned int>( ( 1.0f - MinimapParams::bottom_offset_rel ) * static_cast<float>( rendering_context_.viewport_size.Height() ) );
 	const unsigned int map_viewport_width = right - left;
 	const unsigned int map_viewport_height= bottom - top;
 
@@ -213,7 +194,7 @@ void MinimapDrawerGL::Draw(
 	glLineWidth( scale );
 
 	// Walls
-	BindColor( c_walls_color );
+	BindColor( MinimapParams::walls_color );
 	lines_shader_.Uniform( "view_matrix", shift_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
 
 	glEnable( GL_SCISSOR_TEST );
@@ -234,7 +215,7 @@ void MinimapDrawerGL::Draw(
 		arrow_scale_matrix.Scale( m_Vec3( c_arrow_scale, c_arrow_scale, 1.0f ) );
 		rotate_matrix.RotateZ( view_angle );
 
-		BindColor( c_arrow_color );
+		BindColor( MinimapParams::arrow_color );
 		lines_shader_.Uniform( "view_matrix", arrow_scale_matrix * rotate_matrix * scale_matrix * viewport_scale_matrix * viewport_shift_matrix );
 
 		glDrawArrays( GL_LINES, arrow_vertices_offset_, g_arrow_vertices );
@@ -250,11 +231,11 @@ void MinimapDrawerGL::Draw(
 
 		lines_shader_.Uniform( "view_matrix", framing_scale_mat * viewport_shift_matrix );
 
-		BindColor( c_framing_contour_color );
+		BindColor( MinimapParams::framing_contour_color );
 		glLineWidth( scale * 3u );
 		glDrawArrays( GL_LINES, framing_vertices_offset_, g_framing_vertices );
 
-		BindColor( c_framing_color );
+		BindColor( MinimapParams::framing_color );
 		glLineWidth( scale );
 		glDrawArrays( GL_LINES, framing_vertices_offset_, g_framing_vertices );
 	}
