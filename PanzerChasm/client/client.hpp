@@ -96,7 +96,6 @@ private:
 
 	IMapDrawerPtr map_drawer_;
 	IMinimapDrawerPtr minimap_drawer_;
-	unsigned int current_map_number_= ~0u;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<MapState> map_state_;
 	std::unique_ptr<MinimapState> minimap_state_;

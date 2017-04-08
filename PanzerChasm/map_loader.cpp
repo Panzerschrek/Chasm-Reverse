@@ -175,7 +175,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	if( map_number >= 100 )
 		return nullptr;
 
-	if( map_number == last_loaded_map_number_ && last_loaded_map_ != nullptr )
+	if( last_loaded_map_ != nullptr && last_loaded_map_->number == map_number )
 		return last_loaded_map_;
 
 	Log::Info( "Loading map ", map_number );
@@ -242,8 +242,8 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 
 	LoadModels( *result );
 
-	// Cache result and return it
-	last_loaded_map_number_= map_number;
+	// Cache result and return it.
+	result->number= map_number;
 	last_loaded_map_= result;
 	return result;
 }

@@ -73,7 +73,6 @@ private:
 	CommandsMapConstPtr commands_;
 
 	GameRules game_rules_= GameRules::SinglePlayer;
-	unsigned int current_map_number_= ~0;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<Map> map_;
 

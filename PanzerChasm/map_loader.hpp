@@ -250,6 +250,8 @@ public:
 	};
 
 public:
+	unsigned int number;
+
 	std::vector<Wall> static_walls;
 	std::vector<Wall> dynamic_walls;
 	std::vector<StaticModel> static_models;
@@ -330,7 +332,6 @@ private:
 private:
 	const VfsPtr vfs_;
 
-	unsigned int last_loaded_map_number_= 0;
 	MapDataConstPtr last_loaded_map_;
 
 	char textures_path_[ MapData::c_max_file_name_size ];

@@ -62,7 +62,7 @@ Client::~Client()
 
 void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 {
-	PC_ASSERT( current_map_number_ != ~0u );
+	PC_ASSERT( current_map_data_ != nullptr );
 	PC_ASSERT( minimap_state_ != nullptr );
 	if( minimap_state_ == nullptr ) return;
 
@@ -70,7 +70,7 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 
 	save_stream.WriteUInt32( requested_weapon_index_ );
 	save_stream.WriteBool( minimap_mode_ );
-	save_stream.WriteUInt32( current_map_number_ );
+	save_stream.WriteUInt32( current_map_data_->number );
 
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state_->GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state_->GetDynamicWallsVisibility();
@@ -86,7 +86,7 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 		save_stream.WriteBool( wall_visibility );
 
 	// Write comment
-	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_number_, player_state_.health );
+	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_data_->number, player_state_.health );
 }
 
 void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
@@ -450,7 +450,6 @@ void Client::operator()( const Messages::MapChange& message )
 
 	hud_drawer_->ResetMessage();
 
-	current_map_number_= message.map_number;
 	current_map_data_= map_data;
 
 	show_progress( 1.0f );
@@ -476,7 +475,6 @@ void Client::StopMap()
 	if( current_map_data_ != nullptr && sound_engine_ != nullptr )
 		sound_engine_->SetMap( nullptr );
 
-	current_map_number_= ~0u;
 	current_map_data_= nullptr;
 	map_state_= nullptr;
 	minimap_state_= nullptr;
