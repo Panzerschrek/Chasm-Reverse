@@ -486,7 +486,7 @@ void Monster::SetOnFloor( const bool on_floor )
 void Monster::Teleport( const m_Vec3& pos, const float angle )
 {
 	pos_= pos;
-	angle_= angle;
+	angle_= angle + Constants::half_pi;
 	vertical_speed_= 0.0f;
 }
 
