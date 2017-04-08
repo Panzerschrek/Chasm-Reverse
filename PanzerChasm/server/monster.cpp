@@ -609,7 +609,7 @@ void Monster::RotateToTarget( float time_delta_s )
 
 bool Monster::SelectTarget( const Map& map )
 {
-	const float c_half_view_angle= Constants::pi * 0.25f;
+	const float c_half_view_angle= Constants::half_pi;
 	const float c_half_view_angle_cos= std::cos( c_half_view_angle );
 	const m_Vec2 view_dir( std::cos(angle_), std::sin(angle_) );
 
