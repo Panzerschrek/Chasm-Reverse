@@ -56,6 +56,8 @@ public:
 	{ Yes, No };
 	enum class Lighting
 	{ Yes, No };
+	enum class Blending
+	{ Yes, No };
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -93,21 +95,21 @@ public:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawAffineTexturedTriangle( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTrianglePerLineCorrected( const RasterizerVertex* trianlge_vertices );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No>
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 private:
@@ -123,6 +125,8 @@ private:
 
 	template<Lighting lighting>
 	uint32_t ApplyLight( uint32_t texel ) const;
+	template<Blending blending>
+	void ApplyBlending( uint32_t& dst, uint32_t texel ) const;
 
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
@@ -133,21 +137,21 @@ private:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawAffineTexturedTrianglePart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawTexturedTrianglePerLineCorrectedPart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting>
+		Lighting lighting, Blending blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:
