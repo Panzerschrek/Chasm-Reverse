@@ -68,6 +68,11 @@ void MinimapDrawerSoft::Draw(
 	screen_shift_mat.Translate( m_Vec3( ransform_add_x, ransform_add_y, 0.0f ) );
 	final_mat= shift_mat * scale_mat * screen_scale_mat * screen_shift_mat;
 
+	// Use 3x3 matrix for 2d space. It is faster, obviously.
+	m_Mat3 final_mat3( final_mat );
+	final_mat3.value[6]= final_mat.value[12];
+	final_mat3.value[7]= final_mat.value[13];
+
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state.GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state.GetDynamicWallsVisibility();
 
@@ -77,8 +82,8 @@ void MinimapDrawerSoft::Draw(
 			continue;
 
 		const MapData::Wall& wall= current_map_data_->static_walls[w];
-		m_Vec2 v0= ( m_Vec3( wall.vert_pos[0], 0.0f ) * final_mat ).xy();
-		m_Vec2 v1= ( m_Vec3( wall.vert_pos[1], 0.0f ) * final_mat ).xy();
+		const m_Vec2 v0= wall.vert_pos[0] * final_mat3;
+		const m_Vec2 v1= wall.vert_pos[1] * final_mat3;
 
 		DrawLine(
 			fixed16_t( v0.x * 65536.0f ), fixed16_t( v0.y * 65536.0f ),
@@ -93,8 +98,8 @@ void MinimapDrawerSoft::Draw(
 			continue;
 
 		const MapState::DynamicWall& wall= dynamic_walls[w];
-		m_Vec2 v0= ( m_Vec3( wall.vert_pos[0], 0.0f ) * final_mat ).xy();
-		m_Vec2 v1= ( m_Vec3( wall.vert_pos[1], 0.0f ) * final_mat ).xy();
+		const m_Vec2 v0= wall.vert_pos[0] * final_mat3;
+		const m_Vec2 v1= wall.vert_pos[1] * final_mat3;
 
 		DrawLine(
 			fixed16_t( v0.x * 65536.0f ), fixed16_t( v0.y * 65536.0f ),
