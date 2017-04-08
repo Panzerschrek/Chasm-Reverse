@@ -341,14 +341,25 @@ void MapState::ProcessMessage( const Messages::MonsterState& message )
 	if( it == monsters_.end() )
 		return;
 
+	if( message.monster_type >= game_resources_->monsters_models.size() )
+		return;
+	const Model& model= game_resources_->monsters_models[ message.monster_type ];
+
 	Monster& monster= it->second;
 
 	MessagePositionToPosition( message.xyz, monster.pos );
 	monster.angle= MessageAngleToAngle( message.angle );
 	monster.monster_id= message.monster_type;
 	monster.body_parts_mask= message.body_parts_mask;
-	monster.animation= message.animation;
-	monster.animation_frame= message.animation_frame;
+
+	monster.animation= 0u;
+	monster.animation_frame= 0u;
+	if( message.animation < model.animations.size() )
+	{
+		monster.animation= message.animation;
+		if( message.animation_frame < model.animations[ monster.animation ].frame_count )
+			monster.animation_frame= message.animation_frame;
+	}
 }
 
 void MapState::ProcessMessage( const Messages::WallPosition& message )
@@ -385,7 +396,12 @@ void MapState::ProcessMessage( const Messages::StaticModelState& message )
 	MessagePositionToPosition( message.xyz, static_model.pos );
 	static_model.model_id= message.model_id;
 
-	static_model.animation_frame= message.animation_frame;
+	static_model.animation_frame= 0u;
+	if( static_model.model_id < map_data_->models.size() )
+	{
+		if( message.animation_frame < map_data_->models[ static_model.model_id ].frame_count )
+			static_model.animation_frame= message.animation_frame;
+	}
 
 	static_model.visible= message.visible;
 }
