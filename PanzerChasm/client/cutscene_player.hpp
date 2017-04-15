@@ -1,5 +1,6 @@
 #pragma once
 #include "../fwd.hpp"
+#include "../system_event.hpp"
 #include "../time.hpp"
 #include "cutscene_script.hpp"
 #include "fwd.hpp"
@@ -18,7 +19,7 @@ public:
 		unsigned int map_number );
 	~CutscenePlayer();
 
-	void Process();
+	void Process( const SystemEvents& events );
 	void Draw();
 
 	bool IsFinished() const;
@@ -26,8 +27,8 @@ public:
 private:
 	struct CharacterState
 	{
-		unsigned int animation_number;
-		Time animation_start_time= Time::FromSeconds(0);
+		unsigned int current_animation_number;
+		Time current_animation_start_time= Time::FromSeconds(0);
 	};
 
 private:
@@ -46,6 +47,8 @@ private:
 
 	m_Vec3 camera_pos_;
 	m_Vec3 camara_angles_;
+
+	Time current_countinuous_command_start_time_= Time::FromSeconds(0); // Zero if no active action.
 };
 
 } // namespace PanzerChasm

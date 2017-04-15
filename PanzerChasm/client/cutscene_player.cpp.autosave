@@ -248,15 +248,12 @@ void CutscenePlayer::Process( const SystemEvents& events )
 		{
 		case CommandType::None:
 			break;
-
 		case CommandType::Delay:
 			command_time= Time::FromSeconds( std::atof( command.params[0].c_str() ) );
 			break;
-
 		case CommandType::Say:
 			Log::Info( command.params[0] );
 			break;
-
 		case CommandType::Voice:
 			break;
 
