@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include "../math_utils.hpp"
+
 #include "cutscene_script.hpp"
 
 namespace PanzerChasm
@@ -26,6 +28,9 @@ static void LoadSetupData( const Vfs::FileContent& file_content, CutsceneScript&
 			line_stream >> script.camera_params.pos.y;
 			line_stream >> script.camera_params.pos.z;
 			line_stream >> script.camera_params.angle;
+
+			script.camera_params.pos/= 64.0f;
+			script.camera_params.angle*= Constants::to_rad;
 		}
 		else if( std::strncmp( line, "ambient:", std::strlen( "ambient:" ) ) == 0 )
 			script.ambient_sound_number= std::atoi( line + std::strlen( "ambient:" ) );
@@ -63,6 +68,11 @@ static void LoadSetupData( const Vfs::FileContent& file_content, CutsceneScript&
 					line_stream >> character.pos.y;
 					line_stream >> character.pos.z;
 					line_stream >> character.angle;
+
+					character.pos.x/= 256.0f;
+					character.pos.y/= 256.0f;
+					character.pos.z/= -4096.0f; // TODO - calibrate z
+					character.angle*= Constants::to_rad;
 				}
 				else if( std::strcmp( line_start, "idle" ) == 0 )
 				{

@@ -10,4 +10,7 @@ struct WeaponState;
 
 struct MapBSPTree;
 
+class CutscenePlayer;
+class MovementController;
+
 } // namespace PanzerChasm

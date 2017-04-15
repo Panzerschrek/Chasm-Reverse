@@ -14,6 +14,7 @@ public:
 		const GameResourcesConstPtr& game_resoruces,
 		MapLoader& map_loader,
 		IMapDrawer& map_drawer,
+		MovementController& movement_controller,
 		unsigned int map_number );
 	~CutscenePlayer();
 
@@ -31,6 +32,7 @@ private:
 
 private:
 	IMapDrawer& map_drawer_;
+	MovementController& camera_controller_;
 	MapDataConstPtr cutscene_map_data_;
 	std::unique_ptr<MapState> map_state_;
 	CutsceneScriptConstPtr script_;
@@ -38,6 +40,12 @@ private:
 	unsigned int first_character_static_model_index_;
 	std::vector<CharacterState> characters_;
 	unsigned int next_action_index_= 0u;
+
+	m_Vec3 room_pos_;
+	float room_angle_;
+
+	m_Vec3 camera_pos_;
+	m_Vec3 camara_angles_;
 };
 
 } // namespace PanzerChasm

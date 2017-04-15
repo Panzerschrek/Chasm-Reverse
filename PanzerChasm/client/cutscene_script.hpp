@@ -40,7 +40,7 @@ public:
 
 public:
 	unsigned int ambient_sound_number;
-	unsigned int room_number= 1u;
+	unsigned int room_number= 0u;
 
 	struct
 	{
