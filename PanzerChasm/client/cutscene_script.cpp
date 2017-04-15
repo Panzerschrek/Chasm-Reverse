@@ -155,6 +155,7 @@ static void LoadAction( const Vfs::FileContent& file_content, CutsceneScript& sc
 						line_stream.getline( text_line + len, sizeof(text_line) - len, '"' );
 
 						out_param= text_line + 1u;
+						if( out_param.back() == '"' ) out_param.pop_back();
 					}
 				}
 				else
