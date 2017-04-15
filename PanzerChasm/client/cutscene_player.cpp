@@ -92,7 +92,7 @@ CutscenePlayer::CutscenePlayer(
 					animations_content.data(), animations_content.size(),
 					model );
 
-				const int c_inv_models_scale= 4;
+				const int c_inv_models_scale= 2;
 				for( Model::AnimationVertex& v : model.animations_vertices )
 				{
 					v.pos[0] /= c_inv_models_scale;
