@@ -1,4 +1,6 @@
 #pragma once
+#include <matrix.hpp>
+
 #include "../fwd.hpp"
 #include "../system_event.hpp"
 #include "../time.hpp"
@@ -33,6 +35,12 @@ private:
 		Time current_animation_start_time= Time::FromSeconds(0);
 	};
 
+	struct Camera
+	{
+		m_Vec3 pos;
+		float angle_z;
+	};
+
 private:
 	const Sound::SoundEnginePtr sound_engine_;
 	const SharedDrawersPtr shared_drawers_;
@@ -47,10 +55,10 @@ private:
 	unsigned int next_action_index_= 0u;
 
 	m_Vec3 room_pos_;
+	m_Mat4 room_rotation_matrix_;
 	float room_angle_;
 
-	m_Vec3 camera_pos_;
-	m_Vec3 camara_angles_;
+	Camera camera_previous_, camera_next_, camera_current_;
 
 	Time current_countinuous_command_start_time_= Time::FromSeconds(0); // Zero if no active action.
 

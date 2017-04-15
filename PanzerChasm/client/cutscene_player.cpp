@@ -54,10 +54,10 @@ CutscenePlayer::CutscenePlayer(
 			}
 		}
 	}
-	m_Mat4 rotation_mat, translate_mat, room_mat;
-	rotation_mat.RotateZ( room_angle_ );
+	m_Mat4 translate_mat, room_mat;
+	room_rotation_matrix_.RotateZ( room_angle_ );
 	translate_mat.Translate( room_pos_ );
-	room_mat= rotation_mat * translate_mat;
+	room_mat= room_rotation_matrix_ * translate_mat;
 
 	// Load characers.
 	first_character_static_model_index_= map_data_patched->static_models.size();
@@ -158,8 +158,9 @@ CutscenePlayer::CutscenePlayer(
 	}
 
 	// Set initial camera position.
-	camera_pos_= script_->camera_params.pos * rotation_mat;
-	camara_angles_.z= script_->camera_params.angle - Constants::half_pi - 0.5f;
+	camera_current_.pos= script_->camera_params.pos * room_rotation_matrix_;
+	camera_current_.angle_z= script_->camera_params.angle;
+	camera_next_= camera_previous_= camera_current_;
 }
 
 CutscenePlayer::~CutscenePlayer()
@@ -236,7 +237,15 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			{
 				const Time move_time= Time::FromSeconds( std::atof( command.params[4].c_str() ) );
 				if( time_since_last_continuous_action < move_time )
+				{
 					continue_action= true;
+
+					const float mix= time_since_last_continuous_action.ToSeconds() / move_time.ToSeconds();
+					camera_current_.pos    = camera_previous_.pos     * (1.0f - mix ) + camera_next_.pos     * mix;
+					camera_current_.angle_z= camera_previous_.angle_z * (1.0f - mix ) + camera_next_.angle_z * mix;
+				}
+				else
+					camera_current_= camera_next_;
 			}
 			break;
 		};
@@ -298,7 +307,19 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			break;
 
 		case CommandType::MoveCamTo:
-			command_time= Time::FromSeconds( std::atof( command.params[4].c_str() ) );
+			{
+				command_time= Time::FromSeconds( std::atof( command.params[4].c_str() ) );
+
+				camera_previous_= camera_next_;
+
+				m_Vec3 pos;
+				pos.x= std::atof( command.params[0].c_str() ) / 64.0f;
+				pos.y= std::atof( command.params[1].c_str() ) / 64.0f;
+				pos.z= std::atof( command.params[2].c_str() ) / 64.0f;
+				camera_next_.pos= pos * room_rotation_matrix_;
+
+				camera_next_.angle_z= std::atof( command.params[3].c_str() ) * Constants::to_rad;
+			}
 			break;
 		};
 
@@ -346,12 +367,13 @@ update_models:
 
 void CutscenePlayer::Draw()
 {
+	const float z_angle= Constants::pi - camera_current_.angle_z;
+	camera_controller_.SetAngles( z_angle, 0.0f );
+
 	const m_Vec3 cam_pos=
 		room_pos_ +
-		camera_pos_
-		+ 0.3f * m_Vec3( -std::sin( camera_controller_.GetViewAngleZ()), std::cos(camera_controller_.GetViewAngleZ()), 0.0f );
-
-//	camera_controller_.SetAngles( camara_angles_.z, 0.0f );
+		camera_current_.pos
+		+ 0.0f * 0.3f * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
 
 	m_Mat4 view_rotation_and_projection_matrix;
 	camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
