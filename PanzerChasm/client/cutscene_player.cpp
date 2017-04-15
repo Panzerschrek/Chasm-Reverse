@@ -12,7 +12,6 @@
 namespace PanzerChasm
 {
 
-
 CutscenePlayer::CutscenePlayer(
 	const GameResourcesConstPtr& game_resoruces,
 	MapLoader& map_loader,
@@ -118,7 +117,8 @@ CutscenePlayer::CutscenePlayer(
 	}
 
 	cutscene_map_data_= map_data_patched;
-	map_state_.reset( new MapState( cutscene_map_data_, game_resoruces, Time::CurrentTime() ) );
+	const Time current_time= Time::CurrentTime();
+	map_state_.reset( new MapState( cutscene_map_data_, game_resoruces, current_time ) );
 	map_drawer.SetMap( cutscene_map_data_ );
 
 	// Set characters z.
@@ -146,7 +146,6 @@ CutscenePlayer::CutscenePlayer(
 	}
 
 	// Set characters.
-	const Time current_time= Time::CurrentTime();
 	characters_.resize( script_->characters.size() );
 	for( unsigned int c= 0u; c < characters_.size(); c++ )
 	{
@@ -171,6 +170,10 @@ void CutscenePlayer::Process( const SystemEvents& events )
 {
 	if( script_ == nullptr )
 		return;
+
+	const Time current_time= Time::CurrentTime();
+	map_state_->Tick( current_time );
+
 	if( IsFinished() )
 		return;
 
@@ -185,8 +188,6 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::Space )
 			key_press_events++;
 	}
-
-	const Time current_time= Time::CurrentTime();
 
 	bool continue_action= false;
 	if( current_countinuous_command_start_time_.ToSeconds() != 0.0f )
