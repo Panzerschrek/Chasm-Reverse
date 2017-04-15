@@ -14,6 +14,7 @@ public:
 	CutscenePlayer(
 		const GameResourcesConstPtr& game_resoruces,
 		MapLoader& map_loader,
+		const Sound::SoundEnginePtr& sound_engine,
 		const SharedDrawersPtr& shared_drawers,
 		IMapDrawer& map_drawer,
 		MovementController& movement_controller,
@@ -33,6 +34,7 @@ private:
 	};
 
 private:
+	const Sound::SoundEnginePtr sound_engine_;
 	const SharedDrawersPtr shared_drawers_;
 	IMapDrawer& map_drawer_;
 	MovementController& camera_controller_;

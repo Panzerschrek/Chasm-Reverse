@@ -84,6 +84,7 @@ void SoundEngine::Tick()
 {
 	UpdateAmbientSoundState();
 	UpdateObjectSoundState();
+	UpdateOneTimeSoundSource();
 	CalculateSourcesVolume();
 
 	driver_.LockChannels();
@@ -107,7 +108,11 @@ void SoundEngine::Tick()
 
 			channel.is_active= true;
 			channel.looped= source.looped;
-			channel.src_sound_data= sounds_[ source.sound_id ].get();
+
+			if( &source == one_time_sound_source_ )
+				channel.src_sound_data= one_time_sound_source_data_.get();
+			else
+				channel.src_sound_data= sounds_[ source.sound_id ].get();
 
 			// Source is over
 			if( channel.is_active &&
@@ -309,6 +314,29 @@ void SoundEngine::PlayHeadSound( const unsigned int sound_number )
 	source->monster_id= 0u;
 }
 
+void SoundEngine::PlayOneTimeSound( const char* const sound_data_file )
+{
+	ISoundDataConstPtr sound_data= LoadSound( sound_data_file,* game_resources_->vfs );
+	if( sound_data == nullptr )
+		return;
+
+	if( one_time_sound_source_ != nullptr ) // Free and kill old sound.
+		one_time_sound_source_->is_free= true;
+
+	one_time_sound_source_= GetFreeSource();
+	if( one_time_sound_source_ == nullptr )
+		return;
+
+	one_time_sound_source_data_= std::move(sound_data);
+
+	one_time_sound_source_->is_free= false;
+	one_time_sound_source_->is_head_relative= true;
+	one_time_sound_source_->looped= false;
+	one_time_sound_source_->monster_id= 0u;
+	one_time_sound_source_->sound_id= 0u;
+	one_time_sound_source_->pos_samples= 0u;
+}
+
 SoundEngine::Source* SoundEngine::GetFreeSource()
 {
 	for( Source& s : sources_ )
@@ -398,6 +426,20 @@ void SoundEngine::UpdateObjectSoundState()
 	}
 }
 
+void SoundEngine::UpdateOneTimeSoundSource()
+{
+	if( one_time_sound_source_ != nullptr )
+	{
+		PC_ASSERT( one_time_sound_source_data_ != nullptr );
+		if( one_time_sound_source_->is_free )
+		{
+			// Free expired sound source.
+			one_time_sound_source_data_= nullptr;
+			one_time_sound_source_= nullptr;
+		}
+	}
+}
+
 void SoundEngine::CalculateSourcesVolume()
 {
 	for( Source& source : sources_ )
@@ -456,6 +498,9 @@ void SoundEngine::CalculateSourcesVolume()
 		object_sound_source_->volume[0]*= volume_scale;
 		object_sound_source_->volume[1]*= volume_scale;
 	}
+
+	if( one_time_sound_source_ != nullptr )
+		one_time_sound_source_->volume[0]= one_time_sound_source_->volume[1]= 1.0f;
 
 	// Read master volume.
 	float master_volume= settings_.GetFloat( SettingsKeys::fx_volume, 0.5f );

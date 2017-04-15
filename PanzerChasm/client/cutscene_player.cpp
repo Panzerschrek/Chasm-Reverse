@@ -1,6 +1,7 @@
 #include "../i_menu_drawer.hpp"
 #include "../i_text_drawer.hpp"
 #include "../map_loader.hpp"
+#include "../sound/sound_engine.hpp"
 #include "../shared_drawers.hpp"
 #include "i_map_drawer.hpp"
 #include "map_state.hpp"
@@ -15,11 +16,13 @@ namespace PanzerChasm
 CutscenePlayer::CutscenePlayer(
 	const GameResourcesConstPtr& game_resoruces,
 	MapLoader& map_loader,
+	const Sound::SoundEnginePtr& sound_engine,
 	const SharedDrawersPtr& shared_drawers,
 	IMapDrawer& map_drawer,
 	MovementController& movement_controller,
 	const unsigned int map_number )
-	: shared_drawers_(shared_drawers)
+	: sound_engine_(sound_engine)
+	, shared_drawers_(shared_drawers)
 	, map_drawer_(map_drawer)
 	, camera_controller_(movement_controller)
 {
@@ -262,6 +265,8 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			}
 			break;
 		case CommandType::Voice:
+			if( sound_engine_ != nullptr )
+				sound_engine_->PlayOneTimeSound( command.params[1].c_str() );
 			break;
 
 		case CommandType::Setani:

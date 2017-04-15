@@ -47,6 +47,9 @@ public:
 
 	void PlayHeadSound( unsigned int sound_number );
 
+	// TODO - make non-head-relaive, create position source.
+	void PlayOneTimeSound( const char* sound_data_file );
+
 private:
 	struct Source
 	{
@@ -67,6 +70,7 @@ private:
 	Source* GetFreeSource();
 	void UpdateAmbientSoundState();
 	void UpdateObjectSoundState();
+	void UpdateOneTimeSoundSource();
 	void CalculateSourcesVolume();
 	void ForceStopAllChannels();
 
@@ -104,6 +108,9 @@ private:
 
 	ObjectsSoundsProcessor objects_sounds_processor_;
 	Source* object_sound_source_= nullptr;
+
+	ISoundDataConstPtr one_time_sound_source_data_;
+	Source* one_time_sound_source_= nullptr;
 };
 
 } // namespace Sound
