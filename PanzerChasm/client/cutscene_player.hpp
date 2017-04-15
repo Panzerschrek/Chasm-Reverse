@@ -14,6 +14,7 @@ public:
 	CutscenePlayer(
 		const GameResourcesConstPtr& game_resoruces,
 		MapLoader& map_loader,
+		const SharedDrawersPtr& shared_drawers,
 		IMapDrawer& map_drawer,
 		MovementController& movement_controller,
 		unsigned int map_number );
@@ -32,6 +33,7 @@ private:
 	};
 
 private:
+	const SharedDrawersPtr shared_drawers_;
 	IMapDrawer& map_drawer_;
 	MovementController& camera_controller_;
 	MapDataConstPtr cutscene_map_data_;
@@ -49,6 +51,11 @@ private:
 	m_Vec3 camara_angles_;
 
 	Time current_countinuous_command_start_time_= Time::FromSeconds(0); // Zero if no active action.
+
+	// Say text.
+	static constexpr unsigned int c_say_lines= 5u;
+	std::string say_lines_[ c_say_lines ];
+	unsigned int next_say_line_= 0u;
 };
 
 } // namespace PanzerChasm

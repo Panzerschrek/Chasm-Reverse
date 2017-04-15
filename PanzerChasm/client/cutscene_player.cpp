@@ -1,5 +1,7 @@
-#include "../log.hpp"
+#include "../i_menu_drawer.hpp"
+#include "../i_text_drawer.hpp"
 #include "../map_loader.hpp"
+#include "../shared_drawers.hpp"
 #include "i_map_drawer.hpp"
 #include "map_state.hpp"
 #include "movement_controller.hpp"
@@ -13,10 +15,12 @@ namespace PanzerChasm
 CutscenePlayer::CutscenePlayer(
 	const GameResourcesConstPtr& game_resoruces,
 	MapLoader& map_loader,
+	const SharedDrawersPtr& shared_drawers,
 	IMapDrawer& map_drawer,
 	MovementController& movement_controller,
 	const unsigned int map_number )
-	: map_drawer_(map_drawer)
+	: shared_drawers_(shared_drawers)
+	, map_drawer_(map_drawer)
 	, camera_controller_(movement_controller)
 {
 	const Vfs& vfs= *game_resoruces->vfs;
@@ -248,15 +252,15 @@ void CutscenePlayer::Process( const SystemEvents& events )
 		{
 		case CommandType::None:
 			break;
-
 		case CommandType::Delay:
 			command_time= Time::FromSeconds( std::atof( command.params[0].c_str() ) );
 			break;
-
 		case CommandType::Say:
-			Log::Info( command.params[0] );
+			{
+				say_lines_[ next_say_line_ ]= command.params[0];
+				next_say_line_= ( next_say_line_ + 1u ) % c_say_lines;
+			}
 			break;
-
 		case CommandType::Voice:
 			break;
 
@@ -356,6 +360,22 @@ void CutscenePlayer::Draw()
 		cam_pos,
 		view_clip_planes,
 		0u );
+
+	// Draw text.
+	// TODO - draw brifbar.cel.
+	ITextDrawer& text_drawer= *shared_drawers_->text;
+	const unsigned int text_scale= shared_drawers_->menu->GetMenuScale();
+	const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
+	const unsigned int line_height= text_drawer.GetLineHeight();
+	const unsigned int start_y= viewport_size.Height() - c_say_lines * line_height * text_scale;
+	for( unsigned int s= 0u; s < c_say_lines; s++ )
+	{
+		text_drawer.Print(
+			0,
+			start_y + s * ( text_scale * line_height ),
+			say_lines_[s].c_str(),
+			text_scale );
+	}
 }
 
 bool CutscenePlayer::IsFinished() const
