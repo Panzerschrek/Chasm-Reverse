@@ -932,6 +932,83 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertic
 	}
 }
 
+void Rasterizer::DrawColoredConvexPolygon(
+	const RasterizerVertex* const vertices,
+	const unsigned int vertex_count,
+	const bool is_anticlockwise,
+	const uint32_t color )
+{
+	PC_ASSERT( vertex_count >= 3u && vertex_count <= c_max_polygon_vertices );
+
+	fixed16_t y_min= vertices[0].y, y_max= vertices[0].y;
+	unsigned int lower_vertex_index= 0u, upper_vertex_index= 0u;
+	for( unsigned int v= 0u; v < vertex_count; v++ )
+	{
+		if( vertices[v].y < y_min )
+		{
+			y_min= vertices[v].y;
+			lower_vertex_index= v;
+		}
+		if( vertices[v].y > y_max )
+		{
+			y_max= vertices[v].y;
+			upper_vertex_index= v;
+		}
+	}
+
+	if( lower_vertex_index == upper_vertex_index )
+		return; // Degenerate polygon.
+
+	const auto next_index=
+	[vertex_count]( const unsigned int v ) -> unsigned int
+	{
+		unsigned int result= v + 1u;
+		if( result >= vertex_count ) result-= vertex_count;
+		return result;
+	};
+	const auto prev_index=
+	[vertex_count]( const unsigned int v ) -> unsigned int
+	{
+		return v == 0u ? ( vertex_count - 1u ) : ( v - 1u );
+	};
+
+	unsigned int left_index = lower_vertex_index;
+	unsigned int right_index= lower_vertex_index;
+	for( unsigned int v= 1u; v < vertex_count; v++ )
+	{
+		unsigned int more_upper_left, more_upper_right;
+		if( is_anticlockwise )
+		{
+			more_upper_left = prev_index( left_index  );
+			more_upper_right= next_index( right_index );
+		}
+		else
+
+		{
+			more_upper_left = next_index( left_index  );
+			more_upper_right= prev_index( right_index );
+		}
+
+		const fixed16_t dy_left = vertices[ more_upper_left  ].y - vertices[ left_index  ].y;
+		const fixed16_t dy_right= vertices[ more_upper_right ].y - vertices[ right_index ].y;
+		if( dy_left > 0 && dy_right > 0 )
+		{
+			triangle_part_x_step_left_ = Fixed16Div( vertices[ more_upper_left  ].x - vertices[ left_index  ].x, dy_left  );
+			triangle_part_x_step_right_= Fixed16Div( vertices[ more_upper_right ].x - vertices[ right_index ].x, dy_right );
+			triangle_part_vertices_[0]= vertices[ left_index  ];
+			triangle_part_vertices_[1]= vertices[ more_upper_left  ];
+			triangle_part_vertices_[2]= vertices[ right_index ];
+			triangle_part_vertices_[3]= vertices[ more_upper_right ];
+			DrawAffineColoredTrianglePart( color );
+		}
+
+		if( vertices[ more_upper_left ].y < vertices[ more_upper_right ].y )
+			left_index = more_upper_left ;
+		else
+			right_index= more_upper_right;
+	}
+}
+
 void Rasterizer::DrawAffineColoredTrianglePart( const uint32_t color )
 {
 	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
