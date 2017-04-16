@@ -603,9 +603,10 @@ void MapDrawerSoft::DrawWallSegment(
 
 	// Discard back faces.
 	// TODO - know, what discard criteria was in original game.
+	const bool is_back= mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f;
 	if( !is_dynamic_wall &&
 		wall.texture_id < MapData::c_first_transparent_texture_id &&
-		mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f )
+		is_back )
 		return;
 
 	const float z_bottom_top[]=
@@ -728,43 +729,31 @@ void MapDrawerSoft::DrawWallSegment(
 
 	rasterizer_.SetTexture( surface->size[0], surface->size[1], surface->GetData() );
 
-	RasterizerVertex traingle_vertices[3];
-	traingle_vertices[0]= verties_projected[0];
-	for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+	if( is_dynamic_wall )
 	{
-		traingle_vertices[1]= verties_projected[ i + 1u ];
-		traingle_vertices[2]= verties_projected[ i + 2u ];
-
-		// Draw static walls with occlusion test only, because they are sorted from near to far via bsp-tree.
-		// But, dynamic walls not sorted, so, draw they width depth test.
-		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
-
-		if( is_dynamic_wall )
-		{
-			if( texture.has_alpha )
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::Yes,
-					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-			else
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::No,
-					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+		if( texture.has_alpha )
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
 		else
-		{
-			if( texture.has_alpha )
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::Yes,
-					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-			else
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::No,
-					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
+	}
+	else
+	{
+		if( texture.has_alpha )
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
+		else
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
 	}
 
 	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, texture.has_alpha );
