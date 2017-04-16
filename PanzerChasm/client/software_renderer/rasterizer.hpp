@@ -113,6 +113,13 @@ public:
 		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No, Blending= Blending::No>
+	void DrawTexturedConvexPolygonSpanCorrected( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
+
 private:
 	typedef void (Rasterizer::*TrianglePartDrawFunc)();
 
@@ -131,6 +138,8 @@ private:
 
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
+	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
+	void DrawConvexPolygonPerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
 
 	void DrawAffineColoredTrianglePart( uint32_t color );
 

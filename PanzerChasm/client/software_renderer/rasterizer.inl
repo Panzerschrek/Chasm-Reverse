@@ -380,6 +380,126 @@ void Rasterizer::DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* v
 	}
 }
 
+template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
+void Rasterizer::DrawConvexPolygonPerspectiveCorrectedImpl(
+	const RasterizerVertex* const vertices,
+	const unsigned int vertex_count,
+	const bool is_anticlockwise )
+{
+	PC_ASSERT( vertex_count >= 3u );
+
+	fixed16_t y_min= vertices[0].y, y_max= vertices[0].y;
+	unsigned int lower_vertex_index= 0u, upper_vertex_index= 0u;
+	for( unsigned int v= 0u; v < vertex_count; v++ )
+	{
+		if( vertices[v].y < y_min )
+		{
+			y_min= vertices[v].y;
+			lower_vertex_index= v;
+		}
+		if( vertices[v].y > y_max )
+		{
+			y_max= vertices[v].y;
+			upper_vertex_index= v;
+		}
+	}
+
+	if( lower_vertex_index == upper_vertex_index )
+		return; // Degenerate polygon.
+
+	const auto next_index=
+	[vertex_count]( const unsigned int v )
+	{
+		unsigned int result= v + 1u;
+		if( result >= vertex_count ) result-= vertex_count;
+		return result;
+	};
+	const auto prev_index=
+	[vertex_count]( const unsigned int v )
+	{
+		return v == 0u ? ( vertex_count - 1u ) : ( v - 1u );
+	};
+
+	RasterizerVertexTexCoord tex_coord_div_z[16];
+	fixed_base_t inv_z_scaled[16];
+	for( unsigned int v= 0u; v < vertex_count; v++ )
+	{
+		inv_z_scaled[v]= Fixed16Div( c_inv_z_scaler << 16, vertices[v].z );
+		tex_coord_div_z[v].u= Fixed16Div( vertices[v].u, vertices[v].z );
+		tex_coord_div_z[v].v= Fixed16Div( vertices[v].v, vertices[v].z );
+	}
+
+	unsigned int left_index = lower_vertex_index;
+	unsigned int right_index= lower_vertex_index;
+	for( unsigned int v= 1u; v < vertex_count; v++ )
+	{
+		unsigned int more_upper_left, more_upper_right;
+		if( is_anticlockwise )
+		{
+			more_upper_left = prev_index( left_index  );
+			more_upper_right= next_index( right_index );
+		}
+		else
+
+		{
+			more_upper_left = next_index( left_index  );
+			more_upper_right= prev_index( right_index );
+		}
+
+		const fixed16_t dy_left = vertices[ more_upper_left  ].y - vertices[ left_index  ].y;
+		const fixed16_t dy_right= vertices[ more_upper_right ].y - vertices[ right_index ].y;
+		if( dy_left > 0 && dy_right > 0 )
+		{
+			triangle_part_x_step_left_ = Fixed16Div( vertices[ more_upper_left  ].x - vertices[ left_index  ].x, dy_left  );
+			triangle_part_x_step_right_= Fixed16Div( vertices[ more_upper_right ].x - vertices[ right_index ].x, dy_right );
+			traingle_part_tc_step_left_[0]= Fixed16Div( tex_coord_div_z[ more_upper_left  ].u - tex_coord_div_z[ left_index  ].u, dy_left  );
+			traingle_part_tc_step_left_[1]= Fixed16Div( tex_coord_div_z[ more_upper_left  ].v - tex_coord_div_z[ left_index  ].v, dy_left  );
+			triangle_part_inv_z_scaled_step_left_= Fixed16Div( inv_z_scaled[ more_upper_left  ] - inv_z_scaled[ left_index  ], dy_left  );
+			triangle_part_vertices_[0]= vertices[ left_index  ];
+			triangle_part_vertices_[1]= vertices[ more_upper_left  ];
+			triangle_part_vertices_[2]= vertices[ right_index ];
+			triangle_part_vertices_[3]= vertices[ more_upper_right ];
+			trianlge_part_tc_left_= tex_coord_div_z[ left_index  ];
+			triangle_part_inv_z_scaled_left_= inv_z_scaled[ left_index ];
+
+			// Right steps
+			const fixed16_t triangle_part_inv_z_scaled_step_right= Fixed16Div( inv_z_scaled[ more_upper_right ] - inv_z_scaled[ right_index ], dy_right );
+			const fixed16_t traingle_part_tc_step_right_u= Fixed16Div( tex_coord_div_z[ more_upper_right ].u - tex_coord_div_z[ right_index ].u, dy_right );
+			const fixed16_t traingle_part_tc_step_right_v= Fixed16Div( tex_coord_div_z[ more_upper_right ].v - tex_coord_div_z[ right_index ].v, dy_right );
+
+			const fixed16_t y_min= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
+			const fixed16_t y_max= std::min( triangle_part_vertices_[1].y, triangle_part_vertices_[3].y );
+			const fixed16_t middle_y= ( y_min + y_max ) / 2;
+			const fixed16_t middle_dy_left = middle_y - triangle_part_vertices_[0].y;
+			const fixed16_t middle_dy_right= middle_y - triangle_part_vertices_[2].y;
+
+			// Calculate middle line start/end values.
+			const fixed16_t x_left = vertices[ left_index  ].x + Fixed16Mul( middle_dy_left , triangle_part_x_step_left_  );
+			const fixed16_t x_right= vertices[ right_index ].x + Fixed16Mul( middle_dy_right, triangle_part_x_step_right_ );
+			const fixed16_t dx= x_right - x_left;
+			if( dx > 0 )
+			{
+				const fixed16_t inv_z_scaled_left = inv_z_scaled[ left_index  ] + Fixed16Mul( middle_dy_left , triangle_part_inv_z_scaled_step_left_ );
+				const fixed16_t inv_z_scaled_right= inv_z_scaled[ right_index ] + Fixed16Mul( middle_dy_right, triangle_part_inv_z_scaled_step_right );
+				const fixed16_t tc_left_u = tex_coord_div_z[ left_index  ].u + Fixed16Mul( middle_dy_left , traingle_part_tc_step_left_[0] );
+				const fixed16_t tc_left_v = tex_coord_div_z[ left_index  ].v + Fixed16Mul( middle_dy_left , traingle_part_tc_step_left_[1] );
+				const fixed16_t tc_right_u= tex_coord_div_z[ right_index ].u + Fixed16Mul( middle_dy_right, traingle_part_tc_step_right_u );
+				const fixed16_t tc_right_v= tex_coord_div_z[ right_index ].v + Fixed16Mul( middle_dy_right, traingle_part_tc_step_right_v );
+
+				line_inv_z_scaled_step_= Fixed16Div( inv_z_scaled_right - inv_z_scaled_left, dx );
+				line_tc_step_[0]= Fixed16Div( tc_right_u - tc_left_u, dx );
+				line_tc_step_[1]= Fixed16Div( tc_right_v - tc_left_v, dx );
+				(this->*func)();
+			}
+		}
+
+		if( vertices[ more_upper_left ].y < vertices[ more_upper_right ].y )
+			left_index = more_upper_left ;
+		else
+			right_index= more_upper_right;
+	}
+}
+
 template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
@@ -920,6 +1040,20 @@ void Rasterizer::DrawTexturedTriangleSpanCorrected( const RasterizerVertex* vert
 		TrianglePartDrawFunc,
 		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
 			( vertices );
+}
+
+template<
+	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
+	Rasterizer::AlphaTest alpha_test,
+	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+void Rasterizer::DrawTexturedConvexPolygonSpanCorrected(  const RasterizerVertex* vertices, unsigned int vertex_count, bool is_anticlockwise )
+{
+
+	DrawConvexPolygonPerspectiveCorrectedImpl<
+		TrianglePartDrawFunc,
+		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
+			( vertices, vertex_count, is_anticlockwise );
 }
 
 } // namespace PanzerChasm
