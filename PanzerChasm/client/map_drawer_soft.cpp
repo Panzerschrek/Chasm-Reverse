@@ -1328,17 +1328,10 @@ void MapDrawerSoft::DrawSky(
 		if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
 			continue;
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( traingle_vertices );
-		}
+		rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( verties_projected, polygon_vertex_count, true);
 	}
 }
 
