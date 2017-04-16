@@ -1331,7 +1331,7 @@ void MapDrawerSoft::DrawSky(
 		rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
 			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
 			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( verties_projected, polygon_vertex_count, true);
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( verties_projected, polygon_vertex_count, true );
 	}
 }
 
@@ -1419,7 +1419,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 			sprite_texture.size[0], sprite_texture.size[1],
 			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
 
-		Rasterizer::TriangleDrawFunc draw_func;
+		Rasterizer::ConvexPolygonDrawFunc draw_func;
 
 		if( !sprite_description.light_on )
 		{
@@ -1431,7 +1431,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 			rasterizer_.SetLight( light );
 
 			draw_func=
-				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				&Rasterizer::DrawTexturedConvexPolygonSpanCorrected<
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
@@ -1439,23 +1439,13 @@ void MapDrawerSoft::DrawEffectsSprites(
 		}
 		else
 			draw_func=
-				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				&Rasterizer::DrawTexturedConvexPolygonSpanCorrected<
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
 					Rasterizer::Lighting::No, Rasterizer::Blending::Yes>;
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			// TODO - maybe use affine texturing for far sprites?
-			// TODO - add lighting, blending.
-
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			(rasterizer_.*draw_func)( traingle_vertices );
-		}
+		(rasterizer_.*draw_func)( verties_projected, polygon_vertex_count, false );
 	}
 }
 

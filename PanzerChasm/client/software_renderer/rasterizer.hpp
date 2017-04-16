@@ -43,6 +43,7 @@ public:
 	static constexpr SpanOcclusionType c_span_occlusion_value= std::numeric_limits<SpanOcclusionType>::max();
 
 	typedef void (Rasterizer::*TriangleDrawFunc)(const RasterizerVertex*);
+	typedef void (Rasterizer::*ConvexPolygonDrawFunc)(const RasterizerVertex*, unsigned int, bool);
 
 	enum class DepthTest
 	{ Yes, No };
