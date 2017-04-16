@@ -1035,7 +1035,6 @@ template<
 	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedTriangleSpanCorrected( const RasterizerVertex* vertices )
 {
-
 	DrawTrianglePerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
 		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
@@ -1047,9 +1046,21 @@ template<
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
 	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+void Rasterizer::DrawTexturedConvexPolygonPerLineCorrected(  const RasterizerVertex* vertices, unsigned int vertex_count, bool is_anticlockwise )
+{
+	DrawConvexPolygonPerspectiveCorrectedImpl<
+		TrianglePartDrawFunc,
+		&Rasterizer::DrawTexturedTrianglePerLineCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
+			( vertices, vertex_count, is_anticlockwise );
+}
+
+template<
+	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
+	Rasterizer::AlphaTest alpha_test,
+	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
 void Rasterizer::DrawTexturedConvexPolygonSpanCorrected(  const RasterizerVertex* vertices, unsigned int vertex_count, bool is_anticlockwise )
 {
-
 	DrawConvexPolygonPerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
 		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >

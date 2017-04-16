@@ -812,7 +812,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
 	{
 		FloorCeilingCell& cell= map_floors_and_ceilings_[i];
-		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
+		const bool is_ceiling= i >= first_ceiling_;
+		const float z= is_ceiling ? GameConstants::walls_height : 0.0f;
 
 		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
 
@@ -924,17 +925,10 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			surface->size[0], surface->size[1],
 			surface->GetData() );
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTrianglePerLineCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+		rasterizer_.DrawTexturedConvexPolygonPerLineCorrected<
+			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, is_ceiling );
 
 		// TODO - does this needs?
 		// Maybe update whole screen hierarchy after floors and ceilings?

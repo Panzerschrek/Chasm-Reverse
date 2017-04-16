@@ -118,6 +118,13 @@ public:
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
 		Lighting lighting= Lighting::No, Blending= Blending::No>
+	void DrawTexturedConvexPolygonPerLineCorrected( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedConvexPolygonSpanCorrected( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
 
 private:
