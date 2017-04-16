@@ -935,6 +935,7 @@ void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertic
 void Rasterizer::DrawColoredConvexPolygon(
 	const RasterizerVertex* const vertices,
 	const unsigned int vertex_count,
+	const bool is_anticlockwise,
 	const uint32_t color )
 {
 	PC_ASSERT( vertex_count >= 3u );
@@ -971,34 +972,21 @@ void Rasterizer::DrawColoredConvexPolygon(
 		return v == 0u ? ( vertex_count - 1u ) : ( v - 1u );
 	};
 
-	// Determinate polygon orientation.
-	// THIS CRITERIA IS WRONG! Use valid criteria.
-	bool next_is_left;
-	{
-		const unsigned int upper_next= next_index( upper_vertex_index );
-		const unsigned int lower_next= next_index( lower_vertex_index );
-		const fixed16_t dx0= vertices[ upper_vertex_index ].x - vertices[ lower_vertex_index ].x;
-		const fixed16_t dy0= vertices[ upper_vertex_index ].y - vertices[ lower_vertex_index ].y;
-		const fixed16_t dx1= vertices[ upper_next ].x - vertices[ lower_next ].x;
-		const fixed16_t dy1= vertices[ upper_next ].y - vertices[ lower_next ].y;
-		next_is_left= Fixed16Mul( dx0, dy1 ) - Fixed16Mul( dx1, dy0 ) < 0;
-		next_is_left= false;
-	}
-
 	unsigned int left_index = lower_vertex_index;
 	unsigned int right_index= lower_vertex_index;
 	for( unsigned int v= 1u; v < vertex_count; v++ )
 	{
 		unsigned int more_upper_left, more_upper_right;
-		if( next_is_left )
-		{
-			more_upper_left = next_index( left_index  );
-			more_upper_right= prev_index( right_index );
-		}
-		else
+		if( is_anticlockwise )
 		{
 			more_upper_left = prev_index( left_index  );
 			more_upper_right= next_index( right_index );
+		}
+		else
+
+		{
+			more_upper_left = next_index( left_index  );
+			more_upper_right= prev_index( right_index );
 		}
 
 		const fixed16_t dy_left = vertices[ more_upper_left  ].y - vertices[ left_index  ].y;
