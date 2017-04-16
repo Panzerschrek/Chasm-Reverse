@@ -90,6 +90,7 @@ public:
 	void SetLight( fixed16_t light );
 
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+	void DrawColoredConvexPolygon( const RasterizerVertex* polygon_vertices, unsigned int vertex_count, uint32_t color );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
