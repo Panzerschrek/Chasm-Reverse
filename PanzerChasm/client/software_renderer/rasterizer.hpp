@@ -42,7 +42,10 @@ public:
 		"Size of this type must be euqla to span size" );
 	static constexpr SpanOcclusionType c_span_occlusion_value= std::numeric_limits<SpanOcclusionType>::max();
 
+	static constexpr unsigned int c_max_polygon_vertices= 14u;
+
 	typedef void (Rasterizer::*TriangleDrawFunc)(const RasterizerVertex*);
+	typedef void (Rasterizer::*ConvexPolygonDrawFunc)(const RasterizerVertex*, unsigned int, bool);
 
 	enum class DepthTest
 	{ Yes, No };
@@ -90,6 +93,7 @@ public:
 	void SetLight( fixed16_t light );
 
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
+	void DrawColoredConvexPolygon( const RasterizerVertex* polygon_vertices, unsigned int vertex_count, bool is_anticlockwise, uint32_t color );
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
@@ -112,6 +116,20 @@ public:
 		Lighting lighting= Lighting::No, Blending= Blending::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No, Blending= Blending::No>
+	void DrawTexturedConvexPolygonPerLineCorrected( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
+
+	template<
+		DepthTest depth_test, DepthWrite depth_write,
+		AlphaTest alpha_test,
+		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
+		Lighting lighting= Lighting::No, Blending= Blending::No>
+	void DrawTexturedConvexPolygonSpanCorrected( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
+
 private:
 	typedef void (Rasterizer::*TrianglePartDrawFunc)();
 
@@ -130,6 +148,8 @@ private:
 
 	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
 	void DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices );
+	template< class TrianglePartDrawFunc, TrianglePartDrawFunc func>
+	void DrawConvexPolygonPerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
 
 	void DrawAffineColoredTrianglePart( uint32_t color );
 
@@ -230,12 +250,7 @@ private:
 	fixed16_t traingle_part_tc_step_left_[2]; // For perspective-corrected methods = tc / z
 	fixed16_t triangle_part_inv_z_scaled_step_left_;
 
-	// 0 - lower left   1 - upper left
-	//RasterizerVertexTexCoord triangle_part_tex_coords_[2];
-	//fixed_base_t triangle_part_inv_z_scaled[2];
-
-	// For perspective-corrected methods = tc / z
-	fixed16_t line_tc_step_[2];
+	fixed16_t line_tc_step_[2]; // For perspective-corrected methods = tc / z
 	fixed_base_t line_inv_z_scaled_step_;
 };
 

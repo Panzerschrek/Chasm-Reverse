@@ -603,9 +603,10 @@ void MapDrawerSoft::DrawWallSegment(
 
 	// Discard back faces.
 	// TODO - know, what discard criteria was in original game.
+	const bool is_back= mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f;
 	if( !is_dynamic_wall &&
 		wall.texture_id < MapData::c_first_transparent_texture_id &&
-		mVec2Cross( camera_position_xy - vert_pos0, vert_pos1 - vert_pos0 ) > 0.0f )
+		is_back )
 		return;
 
 	const float z_bottom_top[]=
@@ -728,43 +729,31 @@ void MapDrawerSoft::DrawWallSegment(
 
 	rasterizer_.SetTexture( surface->size[0], surface->size[1], surface->GetData() );
 
-	RasterizerVertex traingle_vertices[3];
-	traingle_vertices[0]= verties_projected[0];
-	for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+	if( is_dynamic_wall )
 	{
-		traingle_vertices[1]= verties_projected[ i + 1u ];
-		traingle_vertices[2]= verties_projected[ i + 2u ];
-
-		// Draw static walls with occlusion test only, because they are sorted from near to far via bsp-tree.
-		// But, dynamic walls not sorted, so, draw they width depth test.
-		// Occlusion write for dynamic walls still needs, because after walls we draw floors/ceilings and sky.
-
-		if( is_dynamic_wall )
-		{
-			if( texture.has_alpha )
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::Yes,
-					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-			else
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::No,
-					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+		if( texture.has_alpha )
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
 		else
-		{
-			if( texture.has_alpha )
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::Yes,
-					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-			else
-				rasterizer_.DrawTexturedTriangleSpanCorrected<
-					Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-					Rasterizer::AlphaTest::No,
-					Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
+	}
+	else
+	{
+		if( texture.has_alpha )
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
+		else
+			rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, !is_back );
 	}
 
 	rasterizer_.UpdateOcclusionHierarchy( verties_projected, polygon_vertex_count, texture.has_alpha );
@@ -823,7 +812,8 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 	for( unsigned int i= 0u; i < map_floors_and_ceilings_.size(); i++ )
 	{
 		FloorCeilingCell& cell= map_floors_and_ceilings_[i];
-		const float z= i < first_ceiling_ ? 0.0f : GameConstants::walls_height;
+		const bool is_ceiling= i >= first_ceiling_;
+		const float z= is_ceiling ? GameConstants::walls_height : 0.0f;
 
 		PC_ASSERT( cell.texture_id < MapData::c_floors_textures_count );
 
@@ -935,17 +925,10 @@ void MapDrawerSoft::DrawFloorsAndCeilings( const m_Mat4& matrix, const ViewClipP
 			surface->size[0], surface->size[1],
 			surface->GetData() );
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTrianglePerLineCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( traingle_vertices );
-		}
+		rasterizer_.DrawTexturedConvexPolygonPerLineCorrected<
+			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::Yes>( verties_projected, polygon_vertex_count, is_ceiling );
 
 		// TODO - does this needs?
 		// Maybe update whole screen hierarchy after floors and ceilings?
@@ -1345,17 +1328,10 @@ void MapDrawerSoft::DrawSky(
 		if( rasterizer_.IsOccluded( verties_projected, polygon_vertex_count ) )
 			continue;
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			rasterizer_.DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
-				Rasterizer::AlphaTest::No,
-				Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( traingle_vertices );
-		}
+		rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+			Rasterizer::DepthTest::No, Rasterizer::DepthWrite::No,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::Yes, Rasterizer::OcclusionWrite::No>( verties_projected, polygon_vertex_count, true );
 	}
 }
 
@@ -1443,7 +1419,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 			sprite_texture.size[0], sprite_texture.size[1],
 			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
 
-		Rasterizer::TriangleDrawFunc draw_func;
+		Rasterizer::ConvexPolygonDrawFunc draw_func;
 
 		if( !sprite_description.light_on )
 		{
@@ -1455,7 +1431,7 @@ void MapDrawerSoft::DrawEffectsSprites(
 			rasterizer_.SetLight( light );
 
 			draw_func=
-				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				&Rasterizer::DrawTexturedConvexPolygonSpanCorrected<
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
@@ -1463,23 +1439,13 @@ void MapDrawerSoft::DrawEffectsSprites(
 		}
 		else
 			draw_func=
-				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				&Rasterizer::DrawTexturedConvexPolygonSpanCorrected<
 					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
 					Rasterizer::AlphaTest::Yes,
 					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
 					Rasterizer::Lighting::No, Rasterizer::Blending::Yes>;
 
-		RasterizerVertex traingle_vertices[3];
-		traingle_vertices[0]= verties_projected[0];
-		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
-		{
-			// TODO - maybe use affine texturing for far sprites?
-			// TODO - add lighting, blending.
-
-			traingle_vertices[1]= verties_projected[ i + 1u ];
-			traingle_vertices[2]= verties_projected[ i + 2u ];
-			(rasterizer_.*draw_func)( traingle_vertices );
-		}
+		(rasterizer_.*draw_func)( verties_projected, polygon_vertex_count, false );
 	}
 }
 
