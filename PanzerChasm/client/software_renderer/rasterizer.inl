@@ -386,7 +386,7 @@ void Rasterizer::DrawConvexPolygonPerspectiveCorrectedImpl(
 	const unsigned int vertex_count,
 	const bool is_anticlockwise )
 {
-	PC_ASSERT( vertex_count >= 3u );
+	PC_ASSERT( vertex_count >= 3u && vertex_count <= c_max_polygon_vertices );
 
 	fixed16_t y_min= vertices[0].y, y_max= vertices[0].y;
 	unsigned int lower_vertex_index= 0u, upper_vertex_index= 0u;
@@ -420,8 +420,8 @@ void Rasterizer::DrawConvexPolygonPerspectiveCorrectedImpl(
 		return v == 0u ? ( vertex_count - 1u ) : ( v - 1u );
 	};
 
-	RasterizerVertexTexCoord tex_coord_div_z[16];
-	fixed_base_t inv_z_scaled[16];
+	RasterizerVertexTexCoord tex_coord_div_z[ c_max_polygon_vertices ];
+	fixed_base_t inv_z_scaled[ c_max_polygon_vertices ];
 	for( unsigned int v= 0u; v < vertex_count; v++ )
 	{
 		inv_z_scaled[v]= Fixed16Div( c_inv_z_scaler << 16, vertices[v].z );

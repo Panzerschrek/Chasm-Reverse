@@ -938,7 +938,7 @@ void Rasterizer::DrawColoredConvexPolygon(
 	const bool is_anticlockwise,
 	const uint32_t color )
 {
-	PC_ASSERT( vertex_count >= 3u );
+	PC_ASSERT( vertex_count >= 3u && vertex_count <= c_max_polygon_vertices );
 
 	fixed16_t y_min= vertices[0].y, y_max= vertices[0].y;
 	unsigned int lower_vertex_index= 0u, upper_vertex_index= 0u;

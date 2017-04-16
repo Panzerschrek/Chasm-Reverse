@@ -42,6 +42,8 @@ public:
 		"Size of this type must be euqla to span size" );
 	static constexpr SpanOcclusionType c_span_occlusion_value= std::numeric_limits<SpanOcclusionType>::max();
 
+	static constexpr unsigned int c_max_polygon_vertices= 14u;
+
 	typedef void (Rasterizer::*TriangleDrawFunc)(const RasterizerVertex*);
 	typedef void (Rasterizer::*ConvexPolygonDrawFunc)(const RasterizerVertex*, unsigned int, bool);
 
