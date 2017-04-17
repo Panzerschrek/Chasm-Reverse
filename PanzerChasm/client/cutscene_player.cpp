@@ -3,7 +3,6 @@
 #include "../map_loader.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../shared_drawers.hpp"
-#include "i_map_drawer.hpp"
 #include "map_state.hpp"
 #include "movement_controller.hpp"
 
@@ -59,14 +58,12 @@ CutscenePlayer::CutscenePlayer(
 	room_mat= room_rotation_matrix_ * translate_mat;
 
 	// Load characers.
-	first_character_static_model_index_= map_data_patched->static_models.size();
+	first_character_model_index_= map_data_patched->models.size();
 	for( const CutsceneScript::Character& character : script_->characters )
 	{
-		const unsigned int model_id= map_data_patched->models.size();
 		map_data_patched->models.emplace_back();
 		map_data_patched->models_description.emplace_back();
 		Model& model= map_data_patched->models.back();
-		// MapData::ModelDescription& description= map_data_patched->models_description.back();
 
 		{ // Load model and animations.
 
@@ -105,15 +102,6 @@ CutscenePlayer::CutscenePlayer(
 				}
 			}
 		}
-
-		map_data_patched->static_models.emplace_back();
-		MapData::StaticModel& static_model= map_data_patched->static_models.back();
-
-		static_model.pos= ( character.pos * room_mat ).xy();
-		static_model.angle= character.angle + room_angle_;
-		static_model.difficulty_flags= 0u;
-		static_model.is_dynamic= false;
-		static_model.model_id= model_id;
 	}
 
 	cutscene_map_data_= map_data_patched;
@@ -121,36 +109,11 @@ CutscenePlayer::CutscenePlayer(
 	map_state_.reset( new MapState( cutscene_map_data_, game_resoruces, current_time ) );
 	map_drawer.SetMap( cutscene_map_data_ );
 
-	// Set characters z.
-	for( const CutsceneScript::Character& character : script_->characters )
-	{
-		const unsigned int index= first_character_static_model_index_ + ( &character - script_->characters.data() );
-		const MapData::StaticModel& static_model= cutscene_map_data_->static_models[ index ];
-		Messages::StaticModelState message;
-
-		PositionToMessagePosition( static_model.pos, message.xyz );
-		message.xyz[2]= CoordToMessageCoord( character.pos.z );
-		message.angle= AngleToMessageAngle( static_model.angle );
-		message.model_id= static_model.model_id;
-		message.static_model_index= index;
-		message.animation_playing= true;
-		message.visible= true;
-
-		const Model& model= cutscene_map_data_->models[ static_model.model_id ];
-		if( !model.animations.empty() )
-			message.animation_frame= model.animations.back().first_frame;
-		else
-			message.animation_frame= 0u;
-
-		map_state_->ProcessMessage( message );
-	}
-
 	// Set characters.
 	characters_.resize( script_->characters.size() );
 	for( unsigned int c= 0u; c < characters_.size(); c++ )
 	{
-		const MapData::StaticModel& static_model= cutscene_map_data_->static_models[ first_character_static_model_index_ + c ];
-		const Model& model= cutscene_map_data_->models[ static_model.model_id ];
+		const Model& model= cutscene_map_data_->models[ first_character_model_index_ + c ];
 
 		characters_[c].current_animation_start_time= current_time;
 		characters_[c].current_animation_number= model.animations.empty() ? 0u : model.animations.size() - 1u;
@@ -218,8 +181,7 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			{
 				const unsigned int character_number= std::atoi( command.params[0].c_str() );
 				const unsigned int animation_number= std::atoi( command.params[1].c_str() );
-				const MapData::StaticModel& static_model= cutscene_map_data_->static_models[ first_character_static_model_index_ + character_number ];
-				const Model& model= cutscene_map_data_->models[ static_model.model_id ];
+				const Model& model= cutscene_map_data_->models[ first_character_model_index_ + character_number ];
 				PC_ASSERT( !model.animations.empty() );
 
 				const unsigned int frame= time_since_last_continuous_action.ToSeconds() * GameConstants::animations_frames_per_second;
@@ -283,8 +245,7 @@ void CutscenePlayer::Process( const SystemEvents& events )
 			{
 				const unsigned int character_number= std::atoi( command.params[0].c_str() );
 				const unsigned int animation_number= std::atoi( command.params[1].c_str() );
-				const MapData::StaticModel& static_model= cutscene_map_data_->static_models[ first_character_static_model_index_ + character_number ];
-				const Model& model= cutscene_map_data_->models[ static_model.model_id ];
+				const Model& model= cutscene_map_data_->models[ first_character_model_index_ + character_number ];
 				if( !model.animations.empty() )
 				{
 					command_time=
@@ -332,38 +293,7 @@ void CutscenePlayer::Process( const SystemEvents& events )
 		}
 	}
 
-update_models:
-	// Update characters
-	for( CharacterState& character : characters_ )
-	{
-		const unsigned int i= &character - characters_.data();
-		const unsigned int index= first_character_static_model_index_ + i;
-		const MapData::StaticModel& static_model= cutscene_map_data_->static_models[ index ];
-		const Model& model= cutscene_map_data_->models[ static_model.model_id ];
-		Messages::StaticModelState message;
-
-		PositionToMessagePosition( static_model.pos, message.xyz );
-		message.xyz[2]= CoordToMessageCoord( script_->characters[i].pos.z );
-		message.angle= AngleToMessageAngle( static_model.angle );
-		message.model_id= static_model.model_id;
-		message.static_model_index= index;
-		message.animation_playing= true;
-		message.visible= true;
-
-		if( !model.animations.empty() )
-		{
-			const Time time_delta= current_time - character.current_animation_start_time;
-			const unsigned int animation_frame=
-				static_cast<unsigned int>( time_delta.ToSeconds() * GameConstants::animations_frames_per_second ) %
-				model.animations[ character.current_animation_number ].frame_count;
-
-			message.animation_frame= model.animations[ character.current_animation_number ].first_frame + animation_frame;
-		}
-		else
-			message.animation_frame= 0u;
-
-		map_state_->ProcessMessage( message );
-	}
+update_models:;
 }
 
 void CutscenePlayer::Draw()
@@ -388,6 +318,43 @@ void CutscenePlayer::Draw()
 		cam_pos,
 		view_clip_planes,
 		0u );
+
+	{
+		const Time current_time= Time::CurrentTime();
+
+		characters_map_models_.resize( characters_.size() );
+		for( unsigned int c= 0u; c < characters_.size(); c++ )
+		{
+			const CutsceneScript::Character& character= script_->characters[c];
+			const CharacterState& character_state= characters_[c];
+			IMapDrawer::MapRelatedModel& out_model= characters_map_models_[c];
+
+			const unsigned int model_id= first_character_model_index_ + c;
+			const Model& model= cutscene_map_data_->models[ model_id ];
+
+			out_model.pos= room_pos_ + ( character.pos * room_rotation_matrix_ );
+			out_model.angle_z= character.angle + room_angle_;
+			out_model.model_id= model_id;
+
+			if( !model.animations.empty() )
+			{
+				const Time time_delta= current_time - character_state.current_animation_start_time;
+				const unsigned int animation_frame=
+					static_cast<unsigned int>( time_delta.ToSeconds() * GameConstants::animations_frames_per_second ) %
+					model.animations[ character_state.current_animation_number ].frame_count;
+
+				out_model.frame= model.animations[ character_state.current_animation_number ].first_frame + animation_frame;
+			}
+			else
+				out_model.frame= 0u;
+		}
+
+		map_drawer_.DrawMapRelatedModels(
+			characters_map_models_.data(), characters_map_models_.size(),
+			view_rotation_and_projection_matrix,
+			cam_pos,
+			view_clip_planes );
+	}
 
 	// Draw text.
 	// TODO - draw brifbar.cel.

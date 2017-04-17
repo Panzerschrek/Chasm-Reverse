@@ -6,6 +6,7 @@
 #include "../time.hpp"
 #include "cutscene_script.hpp"
 #include "fwd.hpp"
+#include "i_map_drawer.hpp"
 
 namespace PanzerChasm
 {
@@ -50,8 +51,10 @@ private:
 	std::unique_ptr<MapState> map_state_;
 	CutsceneScriptConstPtr script_;
 
-	unsigned int first_character_static_model_index_;
+	unsigned int first_character_model_index_;
 	std::vector<CharacterState> characters_;
+	std::vector<IMapDrawer::MapRelatedModel> characters_map_models_;
+
 	unsigned int next_action_index_= 0u;
 
 	m_Vec3 room_pos_;

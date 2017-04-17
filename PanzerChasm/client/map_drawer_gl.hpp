@@ -42,6 +42,12 @@ public:
 		const m_Vec3& camera_position,
 		float x_angle, float z_angle ) override;
 
+	virtual void DrawMapRelatedModels(
+		const MapRelatedModel* models, unsigned int model_count,
+		const m_Mat4& view_rotation_and_projection_matrix,
+		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes ) override;
+
 private:
 	struct FloorGeometryInfo
 	{

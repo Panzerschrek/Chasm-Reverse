@@ -360,6 +360,20 @@ void MapDrawerSoft::DrawWeapon(
 	PC_UNUSED( z_angle );
 }
 
+void MapDrawerSoft::DrawMapRelatedModels(
+	const MapRelatedModel* const models, const unsigned int model_count,
+	const m_Mat4& view_rotation_and_projection_matrix,
+	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes )
+{
+	// TODO
+	PC_UNUSED( models );
+	PC_UNUSED( model_count );
+	PC_UNUSED( view_rotation_and_projection_matrix );
+	PC_UNUSED( camera_position );
+	PC_UNUSED( view_clip_planes );
+}
+
 void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group )
 {
 	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
