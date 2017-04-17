@@ -743,7 +743,7 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending, Rasterizer::DepthHack depth_hack>
 void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 {
 	// TODO - maybe add mmx lighting support for other triangle-filling functions?
@@ -864,7 +864,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_dst[ full_x >> 3 ] & (1<<(full_x&7)) ) != 0u )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[ full_x ] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -930,7 +931,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_value & ( 1 << x ) ) != 0 )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[ span_x + x ] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -986,7 +988,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_dst[ x >> 3 ] & (1<<(x&7)) ) != 0u )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[x] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -1032,12 +1035,12 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending, Rasterizer::DepthHack depth_hack>
 void Rasterizer::DrawTexturedTriangleSpanCorrected( const RasterizerVertex* vertices )
 {
 	DrawTrianglePerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
-		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
+		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending, depth_hack > >
 			( vertices );
 }
 

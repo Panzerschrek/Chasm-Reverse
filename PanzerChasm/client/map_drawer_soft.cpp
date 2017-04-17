@@ -352,12 +352,120 @@ void MapDrawerSoft::DrawWeapon(
 	const m_Vec3& camera_position,
 	const float x_angle, const float z_angle )
 {
-	// TODO
-	PC_UNUSED( weapon_state );
-	PC_UNUSED( projection_matrix );
-	PC_UNUSED( camera_position );
 	PC_UNUSED( x_angle );
 	PC_UNUSED( z_angle );
+
+	m_Mat4 shift_mat, screen_flip_mat;
+	const m_Vec3 additional_shift=
+		g_weapon_shift + g_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
+	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
+	shift_mat.Translate( additional_shift );
+
+	const m_Mat4 final_mat= shift_mat * projection_matrix * screen_flip_mat;
+	const m_Vec3 cam_pos_model_space= -additional_shift;
+
+	// Use only near clip plane for weapon clipping.
+	m_Plane3 clip_plane_transformed;
+	clip_plane_transformed.normal= m_Vec3( 0.0f, 1.0f, 0.0f );
+	const float z_near= 1.5f / float( 1 << Rasterizer::c_max_inv_z_min_log2 );
+	clip_plane_transformed.dist= -z_near + additional_shift * clip_plane_transformed.normal;
+
+	const Model& model= game_resources_->weapons_models[ weapon_state.CurrentWeaponIndex() ];
+	const unsigned int frame= model.animations[ weapon_state.CurrentAnimation() ].first_frame + weapon_state.CurrentAnimationFrame();
+
+	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * frame;
+
+	const ModelsGroup::ModelEntry& model_entry= weapons_models_.models[ weapon_state.CurrentWeaponIndex() ];
+	rasterizer_.SetTexture(
+		model_entry.texture_size[0], model_entry.texture_size[1],
+		weapons_models_.textures_data.data() + model_entry.texture_data_offset );
+
+	{ // Set light.
+		fixed16_t light= g_fixed16_one;
+		const unsigned int lightmap_x= static_cast<unsigned int>( camera_position.x * float(MapData::c_lightmap_scale) );
+		const unsigned int lightmap_y= static_cast<unsigned int>( camera_position.y * float(MapData::c_lightmap_scale) );
+		if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
+				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );
+
+		rasterizer_.SetLight( light );
+	}
+
+	Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
+	draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::No,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+	alpha_draw_func=
+		&Rasterizer::DrawTexturedTriangleSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::Yes,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+
+	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
+	{
+		for( unsigned int tv= 0u; tv < 3u; tv++ )
+		{
+			const Model::Vertex& vertex= model.vertices[ model.regular_triangles_indeces[t + tv] ];
+			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
+
+			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
+			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f;
+			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
+		}
+		const m_Vec3 v0= clipped_vertices_[1].pos - clipped_vertices_[0].pos;
+		const m_Vec3 v1= clipped_vertices_[2].pos - clipped_vertices_[0].pos;
+		const m_Vec3 vec_to_cam= cam_pos_model_space - clipped_vertices_[0].pos;
+		if( mVec3Cross( v0, v1 ) * vec_to_cam < 0.0f )
+			continue;
+
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 3u;
+
+		unsigned int polygon_vertex_count= 3u;
+		polygon_vertex_count= ClipPolygon( clip_plane_transformed, polygon_vertex_count );
+		PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * final_mat;
+			const float w= v->pos.x * final_mat.value[3] + v->pos.y * final_mat.value[7] + v->pos.z * final_mat.value[11] + final_mat.value[15];
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+
+		const bool triangle_needs_alpha_test= model.vertices[ model.regular_triangles_indeces[t] ].alpha_test_mask != 0u;
+		const Rasterizer::TriangleDrawFunc triangle_func= triangle_needs_alpha_test ? alpha_draw_func : draw_func;
+
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			(rasterizer_.*triangle_func)( traingle_vertices );
+		}
+	} // for model triangles
 }
 
 void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group )
