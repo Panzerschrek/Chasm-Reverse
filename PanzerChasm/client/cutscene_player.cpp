@@ -11,6 +11,10 @@
 namespace PanzerChasm
 {
 
+static const float g_cam_pos_scale= 0.5f;
+static const float g_cam_shift= 0.4f;
+static const float g_characters_cam_shift= -0.0f;
+
 CutscenePlayer::CutscenePlayer(
 	const GameResourcesConstPtr& game_resoruces,
 	MapLoader& map_loader,
@@ -88,7 +92,7 @@ CutscenePlayer::CutscenePlayer(
 					animations_content.data(), animations_content.size(),
 					model );
 
-				const int c_inv_models_scale= 2;
+				const int c_inv_models_scale= 4;
 				for( Model::AnimationVertex& v : model.animations_vertices )
 				{
 					v.pos[0] /= c_inv_models_scale;
@@ -301,25 +305,53 @@ void CutscenePlayer::Draw()
 	const float z_angle= Constants::pi - camera_current_.angle_z;
 	camera_controller_.SetAngles( z_angle, 0.0f );
 
-	const m_Vec3 cam_pos=
-		room_pos_ +
-		camera_current_.pos
-		+ 0.0f * 0.3f * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
+	{ // World.
+		const m_Vec3 cam_pos=
+			room_pos_ +
+			m_Vec3( camera_current_.pos.xy() * g_cam_pos_scale, camera_current_.pos.z )
+			+ g_cam_shift * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
 
-	m_Mat4 view_rotation_and_projection_matrix;
-	camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
+		m_Mat4 view_rotation_and_projection_matrix;
+		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
 
-	ViewClipPlanes view_clip_planes;
-	camera_controller_.GetViewClipPlanes( cam_pos, view_clip_planes );
+		ViewClipPlanes view_clip_planes;
+		camera_controller_.GetViewClipPlanes( cam_pos, view_clip_planes );
 
-	map_drawer_.Draw(
-		*map_state_,
-		view_rotation_and_projection_matrix,
-		cam_pos,
-		view_clip_planes,
-		0u );
+		map_drawer_.Draw(
+			*map_state_,
+			view_rotation_and_projection_matrix,
+			cam_pos,
+			view_clip_planes,
+			0u );
+	}
+	{ // Characters.
 
-	{
+		const m_Vec3 cam_pos=
+			room_pos_ +
+			m_Vec3( camera_current_.pos.xy() * g_cam_pos_scale, camera_current_.pos.z )
+			+ g_characters_cam_shift * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
+
+		m_Mat4 rot_x, rot_z, perspective, basis_change;
+		rot_x.Identity();
+		rot_x.value[6]= std::tan( 10.0f * Constants::to_rad );
+		rot_z.RotateZ( -z_angle );
+		basis_change.Identity();
+		basis_change[5]= 0.0f;
+		basis_change[6]= 1.0f;
+		basis_change[9]= 1.0f;
+		basis_change[10]= 0.0f;
+
+		const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
+		const float aspect= float(viewport_size.Width()) / float(viewport_size.Height());
+		const float c_fov= 50.0f;
+		perspective.PerspectiveProjection( aspect, c_fov * Constants::to_rad, 0.1f, 128.0f );
+
+		const m_Mat4 view_rotation_and_projection_matrix= rot_z * rot_x * basis_change * perspective;
+
+		// TODO - calculate correct clip planes.
+		ViewClipPlanes view_clip_planes;
+		camera_controller_.GetViewClipPlanes( cam_pos, view_clip_planes );
+
 		const Time current_time= Time::CurrentTime();
 
 		characters_map_models_.resize( characters_.size() );
@@ -333,6 +365,7 @@ void CutscenePlayer::Draw()
 			const Model& model= cutscene_map_data_->models[ model_id ];
 
 			out_model.pos= room_pos_ + ( character.pos * room_rotation_matrix_ );
+			out_model.pos.z+= cam_pos.z - 0.125f;
 			out_model.angle_z= character.angle + room_angle_;
 			out_model.model_id= model_id;
 

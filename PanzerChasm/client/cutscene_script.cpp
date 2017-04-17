@@ -69,9 +69,9 @@ static void LoadSetupData( const Vfs::FileContent& file_content, CutsceneScript&
 					line_stream >> character.pos.z;
 					line_stream >> character.angle;
 
-					character.pos.x/= 128.0f;
-					character.pos.y/= 128.0f;
-					character.pos.z/= -8192.0f; // TODO - calibrate z
+					character.pos.x/= 1.5f * 128.0f;
+					character.pos.y/= 1.5f * 128.0f;
+					character.pos.z/= 1.5f * 4096.0f; // TODO - calibrate z
 					character.angle*= Constants::to_rad;
 				}
 				else if( std::strcmp( line_start, "idle" ) == 0 )
