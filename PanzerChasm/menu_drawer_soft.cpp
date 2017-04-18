@@ -380,4 +380,9 @@ void MenuDrawerSoft::DrawGameBackground()
 	} // for tiles
 }
 
+void MenuDrawerSoft::DrawBriefBar()
+{
+	// TODO
+}
+
 } // namespace PanzerChas

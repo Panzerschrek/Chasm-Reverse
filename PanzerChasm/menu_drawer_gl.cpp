@@ -222,6 +222,27 @@ MenuDrawerGL::MenuDrawerGL(
 			r_Texture::Filtration::Nearest,
 			r_Texture::Filtration::Nearest );
 	}
+	{ // Briefbar
+		const Size2 viewport_size_scaled(
+			viewport_size_.Width () / menu_scale_,
+			viewport_size_.Height() / menu_scale_ );
+
+		std::vector<unsigned char> texture_data_rgba;
+		Size2 texture_size;
+
+		CreateBriefbarTextureRGBA(
+			viewport_size_scaled, *game_resources.vfs, game_resources.palette, texture_data_rgba, texture_size );
+
+		briefbar_texture_=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				texture_size.Width(), texture_size.Height(),
+				texture_data_rgba.data() );
+
+		briefbar_texture_.SetFiltration(
+			r_Texture::Filtration::Nearest,
+			r_Texture::Filtration::Nearest );
+	}
 
 	// Polygon buffer
 	std::vector<unsigned short> indeces( 6u * g_max_quads );
@@ -670,6 +691,59 @@ void MenuDrawerGL::DrawGameBackground()
 		 m_Vec2(
 			1.0f / float(game_background_texture_.Width ()),
 			1.0f / float(game_background_texture_.Height()) ) );
+
+	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawerGL::DrawBriefBar()
+{
+	Vertex vertices[ 4u ];
+
+	const int scale= int( menu_scale_ );
+	const int x0= ( int(viewport_size_.Width ()) - int(briefbar_texture_.Width ()) * scale ) / 2;
+	const int x1= x0 + int(briefbar_texture_.Width ()) * scale;
+	const int y0= 0;
+	const int y1= y0 + int(briefbar_texture_.Height()) * scale;
+
+	vertices[0].xy[0]= x0;
+	vertices[0].xy[1]= y0;
+	vertices[0].tex_coord[0]= 0;
+	vertices[0].tex_coord[1]= briefbar_texture_.Height();
+
+	vertices[1].xy[0]= x1;
+	vertices[1].xy[1]= y0;
+	vertices[1].tex_coord[0]= briefbar_texture_.Width ();
+	vertices[1].tex_coord[1]= briefbar_texture_.Height();
+
+	vertices[2].xy[0]= x1;
+	vertices[2].xy[1]= y1;
+	vertices[2].tex_coord[0]= briefbar_texture_.Width ();
+	vertices[2].tex_coord[1]= 0;
+
+	vertices[3].xy[0]= x0;
+	vertices[3].xy[1]= y1;
+	vertices[3].tex_coord[0]= 0;
+	vertices[3].tex_coord[1]= 0;
+
+	polygon_buffer_.VertexSubData( vertices , sizeof(vertices), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
+	menu_picture_shader_.Bind();
+
+	briefbar_texture_.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(briefbar_texture_.Width ()),
+			1.0f / float(briefbar_texture_.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }

@@ -220,4 +220,66 @@ void CreateConsoleBackgroundRGBA(
 	}
 }
 
+void CreateBriefbarTexture(
+	const Size2& viewport_size,
+	const Vfs& vfs,
+	std::vector<unsigned char>& out_data_indexed,
+	Size2& out_size )
+{
+	const Vfs::FileContent texture_file= vfs.ReadFile( "BRIFBAR.CEL" );
+	const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( texture_file.data() );
+	const unsigned char* const texture_data= texture_file.data() + sizeof(CelTextureHeader);
+
+	PC_ASSERT( viewport_size.Width() >= header.size[0] );
+
+	out_size.xy[0]= viewport_size.Width();
+	out_size.xy[1]= header.size[1];
+
+	out_data_indexed.resize( out_size.Width() * out_size.Height(), 0u );
+
+	const unsigned int x_start= ( viewport_size.Width() - header.size[0] ) >> 1u;
+	for( unsigned int y= 0u; y < header.size[1]; y++ )
+	for( unsigned int x= 0u; x < header.size[0]; x++ )
+		out_data_indexed[ y * out_size.Width() + x + x_start ]= texture_data[ y * header.size[0] + x ];
+
+	{
+		const Vfs::FileContent tile_file= vfs.ReadFile( "GROUND.CEL" );
+		const CelTextureHeader& tile_header= *reinterpret_cast<const CelTextureHeader*>( tile_file.data() );
+		const unsigned char* const tile_texture_data= tile_file.data() + sizeof(CelTextureHeader);
+
+		// Fill borders with background.
+		for( unsigned int y= 0u; y < header.size[1]; y++ )
+		{
+			for( unsigned int x= 0u; x < x_start; x++ )
+				out_data_indexed[ y * out_size.Width() + x ]=
+					tile_texture_data[ ( x % tile_header.size[0] ) + ( y % tile_header.size[1] ) * tile_header.size[0] ];
+
+			for( unsigned int x= x_start + header.size[0]; x < viewport_size.Width(); x++ )
+				out_data_indexed[ y *  out_size.Width() + x ]=
+					tile_texture_data[ ( x % tile_header.size[0] ) + ( y % tile_header.size[1] ) * tile_header.size[0] ];
+		}
+	}
+}
+
+void CreateBriefbarTextureRGBA(
+	const Size2& viewport_size,
+	const Vfs& vfs,
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba,
+	Size2& out_size )
+{
+	std::vector<unsigned char> data_indexed;
+	CreateBriefbarTexture( viewport_size, vfs, data_indexed, out_size );
+
+	out_data_rgba.resize( data_indexed.size() * 4u );
+	for( unsigned int i= 0u; i < data_indexed.size(); i++ )
+	{
+		const unsigned char color_index= data_indexed[i];
+		out_data_rgba[ i * 4u + 0u ]= palette[ color_index * 3u + 0u ];
+		out_data_rgba[ i * 4u + 1u ]= palette[ color_index * 3u + 1u ];
+		out_data_rgba[ i * 4u + 2u ]= palette[ color_index * 3u + 2u ];
+		out_data_rgba[ i * 4u + 3u ]= 255u;
+	}
+}
+
 } // namespace PanzerChasm

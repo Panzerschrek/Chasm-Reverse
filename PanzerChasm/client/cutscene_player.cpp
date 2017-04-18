@@ -301,7 +301,7 @@ update_models:;
 void CutscenePlayer::Draw()
 {
 	const float c_world_fov_deg= 90.0f;
-	const float c_characters_fov_deg= 50.0f;
+	const float c_characters_fov_deg= 52.0f;
 	const float c_z_near= 0.1f;
 	const float c_z_far= 128.0f;
 	const unsigned int c_briefbar_height= 54;
@@ -359,7 +359,7 @@ void CutscenePlayer::Draw()
 
 		m_Mat4 rot_x, rot_z, perspective, basis_change;
 		rot_x.Identity();
-		rot_x.value[6]= std::tan( 10.0f * Constants::to_rad );
+		rot_x.value[6]= std::tan( 11.0f * Constants::to_rad );
 		rot_z.RotateZ( -z_angle );
 		basis_change.Identity();
 		basis_change[5]= 0.0f;
@@ -407,16 +407,19 @@ void CutscenePlayer::Draw()
 			view_clip_planes );
 	}
 
-	// Draw text.
-	// TODO - draw brifbar.cel.
+	// Draw briefbar and text.
+
+	shared_drawers_->menu->DrawBriefBar();
+
 	ITextDrawer& text_drawer= *shared_drawers_->text;
 	const unsigned int text_scale= menu_scale;
 	const unsigned int line_height= text_drawer.GetLineHeight();
-	const unsigned int start_y= viewport_size.Height() - c_say_lines * line_height * text_scale;
+	const unsigned int start_x= ( 5u * menu_scale + viewport_size.Width() - GameConstants::min_screen_width * menu_scale ) >> 1u;
+	const unsigned int start_y= viewport_size.Height() - ( c_say_lines * line_height + 5u ) * text_scale;
 	for( unsigned int s= 0u; s < c_say_lines; s++ )
 	{
 		text_drawer.Print(
-			0,
+			start_x,
 			start_y + s * ( text_scale * line_height ),
 			say_lines_[s].c_str(),
 			text_scale );

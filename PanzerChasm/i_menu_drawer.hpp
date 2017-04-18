@@ -45,6 +45,7 @@ public:
 	virtual void DrawLoading( float progress )= 0;
 	virtual void DrawPaused()= 0;
 	virtual void DrawGameBackground()= 0;
+	virtual void DrawBriefBar()= 0;
 };
 
 } // namespace PanzerChasm

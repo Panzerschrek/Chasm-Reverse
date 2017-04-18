@@ -11,7 +11,7 @@ const int letter_place_height= 10;
 const int letter_u_offset= 2;
 const int letter_v_offset= 1;
 const int letter_height= 9;
-const int space_width= 6;
+const int space_width= 5;
 
 const unsigned int atlas_width = 16u * letter_place_width ;
 const unsigned int atlas_height= 16u * letter_place_height;

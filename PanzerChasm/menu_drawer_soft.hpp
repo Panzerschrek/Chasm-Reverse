@@ -35,6 +35,7 @@ public:
 	virtual void DrawLoading( float progress ) override;
 	virtual void DrawPaused() override;
 	virtual void DrawGameBackground() override;
+	virtual void DrawBriefBar() override;
 
 private:
 	struct Picture

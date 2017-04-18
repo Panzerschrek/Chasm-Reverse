@@ -55,4 +55,17 @@ void CreateConsoleBackgroundRGBA(
 	const Palette& palette,
 	std::vector<unsigned char>& out_data_rgba );
 
+void CreateBriefbarTexture(
+	const Size2& viewport_size,
+	const Vfs& vfs,
+	std::vector<unsigned char>& out_data_indexed,
+	Size2& out_size );
+
+void CreateBriefbarTextureRGBA(
+	const Size2& viewport_size,
+	const Vfs& vfs,
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba,
+	Size2& out_size );
+
 } // namespace PanzerChasm

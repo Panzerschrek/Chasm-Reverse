@@ -39,6 +39,7 @@ public:
 	virtual void DrawLoading( float progress ) override;
 	virtual void DrawPaused() override;
 	virtual void DrawGameBackground() override;
+	virtual void DrawBriefBar() override;
 
 private:
 	struct Vertex
@@ -65,6 +66,7 @@ private:
 	short framing_tex_coords_[4][2];
 
 	r_Texture console_background_texture_;
+	r_Texture briefbar_texture_;
 
 	r_PolygonBuffer polygon_buffer_;
 
