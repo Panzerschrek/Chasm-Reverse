@@ -1,10 +1,10 @@
 #include "../i_menu_drawer.hpp"
 #include "../i_text_drawer.hpp"
 #include "../map_loader.hpp"
+#include "../math_utils.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../shared_drawers.hpp"
 #include "map_state.hpp"
-#include "movement_controller.hpp"
 
 #include "cutscene_player.hpp"
 
@@ -21,12 +21,10 @@ CutscenePlayer::CutscenePlayer(
 	const Sound::SoundEnginePtr& sound_engine,
 	const SharedDrawersPtr& shared_drawers,
 	IMapDrawer& map_drawer,
-	MovementController& movement_controller,
 	const unsigned int map_number )
 	: sound_engine_(sound_engine)
 	, shared_drawers_(shared_drawers)
 	, map_drawer_(map_drawer)
-	, camera_controller_(movement_controller)
 {
 	const Vfs& vfs= *game_resoruces->vfs;
 
@@ -302,8 +300,31 @@ update_models:;
 
 void CutscenePlayer::Draw()
 {
+	const float c_world_fov_deg= 90.0f;
+	const float c_characters_fov_deg= 50.0f;
+	const float c_z_near= 0.1f;
+	const float c_z_far= 128.0f;
+	const unsigned int c_briefbar_height= 54;
+
 	const float z_angle= Constants::pi - camera_current_.angle_z;
-	camera_controller_.SetAngles( z_angle, 0.0f );
+
+	// TODO - calculate correct clip planes for both projections.
+	ViewClipPlanes view_clip_planes;
+	for( m_Plane3& plane : view_clip_planes )
+	{
+		plane.normal= m_Vec3( 0.0f, 0.0f, 1.0f );
+		plane.dist= 0.0f;
+	}
+
+	const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
+	const float aspect= float(viewport_size.Width()) / float(viewport_size.Height());
+
+	const unsigned int menu_scale= shared_drawers_->menu->GetMenuScale();
+	const float realtive_screen_y_shift= float(c_briefbar_height * menu_scale ) / float(viewport_size.Height());
+
+	m_Mat4 screen_shift_mat;
+	screen_shift_mat.Identity();
+	screen_shift_mat[13]= realtive_screen_y_shift;
 
 	{ // World.
 		const m_Vec3 cam_pos=
@@ -311,11 +332,16 @@ void CutscenePlayer::Draw()
 			m_Vec3( camera_current_.pos.xy() * g_cam_pos_scale, camera_current_.pos.z )
 			+ g_cam_shift * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
 
-		m_Mat4 view_rotation_and_projection_matrix;
-		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
+		m_Mat4  rot_z, perspective, basis_change;
+		rot_z.RotateZ( -z_angle );
+		basis_change.Identity();
+		basis_change[5]= 0.0f;
+		basis_change[6]= 1.0f;
+		basis_change[9]= 1.0f;
+		basis_change[10]= 0.0f;
 
-		ViewClipPlanes view_clip_planes;
-		camera_controller_.GetViewClipPlanes( cam_pos, view_clip_planes );
+		perspective.PerspectiveProjection( aspect, c_world_fov_deg * Constants::to_rad, c_z_near, c_z_far );
+		const m_Mat4 view_rotation_and_projection_matrix= rot_z * basis_change * perspective * screen_shift_mat;
 
 		map_drawer_.Draw(
 			*map_state_,
@@ -341,16 +367,8 @@ void CutscenePlayer::Draw()
 		basis_change[9]= 1.0f;
 		basis_change[10]= 0.0f;
 
-		const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
-		const float aspect= float(viewport_size.Width()) / float(viewport_size.Height());
-		const float c_fov= 50.0f;
-		perspective.PerspectiveProjection( aspect, c_fov * Constants::to_rad, 0.1f, 128.0f );
-
-		const m_Mat4 view_rotation_and_projection_matrix= rot_z * rot_x * basis_change * perspective;
-
-		// TODO - calculate correct clip planes.
-		ViewClipPlanes view_clip_planes;
-		camera_controller_.GetViewClipPlanes( cam_pos, view_clip_planes );
+		perspective.PerspectiveProjection( aspect, c_characters_fov_deg * Constants::to_rad, c_z_near, c_z_far  );
+		const m_Mat4 view_rotation_and_projection_matrix= rot_z * rot_x * basis_change * perspective * screen_shift_mat;
 
 		const Time current_time= Time::CurrentTime();
 
@@ -392,8 +410,7 @@ void CutscenePlayer::Draw()
 	// Draw text.
 	// TODO - draw brifbar.cel.
 	ITextDrawer& text_drawer= *shared_drawers_->text;
-	const unsigned int text_scale= shared_drawers_->menu->GetMenuScale();
-	const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
+	const unsigned int text_scale= menu_scale;
 	const unsigned int line_height= text_drawer.GetLineHeight();
 	const unsigned int start_y= viewport_size.Height() - c_say_lines * line_height * text_scale;
 	for( unsigned int s= 0u; s < c_say_lines; s++ )

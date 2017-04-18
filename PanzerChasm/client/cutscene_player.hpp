@@ -20,7 +20,6 @@ public:
 		const Sound::SoundEnginePtr& sound_engine,
 		const SharedDrawersPtr& shared_drawers,
 		IMapDrawer& map_drawer,
-		MovementController& movement_controller,
 		unsigned int map_number );
 	~CutscenePlayer();
 
@@ -46,7 +45,6 @@ private:
 	const Sound::SoundEnginePtr sound_engine_;
 	const SharedDrawersPtr shared_drawers_;
 	IMapDrawer& map_drawer_;
-	MovementController& camera_controller_;
 	MapDataConstPtr cutscene_map_data_;
 	std::unique_ptr<MapState> map_state_;
 	CutsceneScriptConstPtr script_;
