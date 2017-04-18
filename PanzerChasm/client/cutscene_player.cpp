@@ -302,19 +302,12 @@ void CutscenePlayer::Draw()
 {
 	const float c_world_fov_deg= 90.0f;
 	const float c_characters_fov_deg= 52.0f;
-	const float c_z_near= 0.1f;
+	const float c_fov_scaler= 1.05f;
+	const float c_z_near= 1.0f / 4.0f;
 	const float c_z_far= 128.0f;
 	const unsigned int c_briefbar_height= 54;
 
 	const float z_angle= Constants::pi - camera_current_.angle_z;
-
-	// TODO - calculate correct clip planes for both projections.
-	ViewClipPlanes view_clip_planes;
-	for( m_Plane3& plane : view_clip_planes )
-	{
-		plane.normal= m_Vec3( 0.0f, 0.0f, 1.0f );
-		plane.dist= 0.0f;
-	}
 
 	const Size2 viewport_size= shared_drawers_->menu->GetViewportSize();
 	const float aspect= float(viewport_size.Width()) / float(viewport_size.Height());
@@ -332,8 +325,9 @@ void CutscenePlayer::Draw()
 			m_Vec3( camera_current_.pos.xy() * g_cam_pos_scale, camera_current_.pos.z )
 			+ g_cam_shift * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
 
-		m_Mat4  rot_z, perspective, basis_change;
+		m_Mat4  rot_z, inv_rot_z, perspective, basis_change;
 		rot_z.RotateZ( -z_angle );
+		inv_rot_z.RotateZ( z_angle );
 		basis_change.Identity();
 		basis_change[5]= 0.0f;
 		basis_change[6]= 1.0f;
@@ -342,6 +336,33 @@ void CutscenePlayer::Draw()
 
 		perspective.PerspectiveProjection( aspect, c_world_fov_deg * Constants::to_rad, c_z_near, c_z_far );
 		const m_Mat4 view_rotation_and_projection_matrix= rot_z * basis_change * perspective * screen_shift_mat;
+
+		ViewClipPlanes view_clip_planes;
+
+		const float half_fov_x= std::atan( aspect * std::tan( c_world_fov_deg * ( Constants::to_rad * 0.5f ) ) ) * c_fov_scaler;
+		const float half_fov_y= c_world_fov_deg * ( c_fov_scaler * Constants::to_rad * 0.5f );
+
+		// Near clip plane
+		view_clip_planes[0].normal= m_Vec3( 0.0f, 1.0f, 0.0f ) * inv_rot_z;
+		view_clip_planes[0].dist= -( cam_pos * view_clip_planes[0].normal + c_z_near );
+		// Left
+		view_clip_planes[1].normal= m_Vec3( +std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * inv_rot_z;
+		view_clip_planes[1].dist= -( cam_pos * view_clip_planes[1].normal );
+		// Right
+		view_clip_planes[2].normal= m_Vec3( -std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * inv_rot_z;
+		view_clip_planes[2].dist= -( cam_pos * view_clip_planes[2].normal );
+
+		const float shift= 0.0f; // TODO - set shift for better culling.
+		// Bottom
+		view_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) - shift, +std::cos( half_fov_y ) );
+		view_clip_planes[3].normal.Normalize();
+		view_clip_planes[3].normal= view_clip_planes[3].normal * inv_rot_z;
+		view_clip_planes[3].dist= -( cam_pos * view_clip_planes[3].normal );
+		// Top
+		view_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) + shift, -std::cos( half_fov_y ) );
+		view_clip_planes[4].normal.Normalize();
+		view_clip_planes[4].normal= view_clip_planes[4].normal * inv_rot_z;
+		view_clip_planes[4].dist= -( cam_pos * view_clip_planes[4].normal );
 
 		map_drawer_.Draw(
 			*map_state_,
@@ -357,10 +378,11 @@ void CutscenePlayer::Draw()
 			m_Vec3( camera_current_.pos.xy() * g_cam_pos_scale, camera_current_.pos.z )
 			+ g_characters_cam_shift * m_Vec3( -std::sin(z_angle), std::cos(z_angle), 0.0f );
 
-		m_Mat4 rot_x, rot_z, perspective, basis_change;
+		m_Mat4 rot_x, rot_z, inv_rot_z, perspective, basis_change;
 		rot_x.Identity();
 		rot_x.value[6]= std::tan( 11.0f * Constants::to_rad );
 		rot_z.RotateZ( -z_angle );
+		inv_rot_z.RotateZ( z_angle );
 		basis_change.Identity();
 		basis_change[5]= 0.0f;
 		basis_change[6]= 1.0f;
@@ -369,6 +391,33 @@ void CutscenePlayer::Draw()
 
 		perspective.PerspectiveProjection( aspect, c_characters_fov_deg * Constants::to_rad, c_z_near, c_z_far  );
 		const m_Mat4 view_rotation_and_projection_matrix= rot_z * rot_x * basis_change * perspective * screen_shift_mat;
+
+		ViewClipPlanes view_clip_planes;
+
+		const float half_fov_x= std::atan( aspect * std::tan( c_characters_fov_deg * ( Constants::to_rad * 0.5f ) ) ) * c_fov_scaler;
+		const float half_fov_y= c_characters_fov_deg * ( c_fov_scaler * Constants::to_rad * 0.5f );
+
+		// Near clip plane
+		view_clip_planes[0].normal= m_Vec3( 0.0f, 1.0f, 0.0f ) * inv_rot_z;
+		view_clip_planes[0].dist= -( cam_pos * view_clip_planes[0].normal + c_z_near );
+		// Left
+		view_clip_planes[1].normal= m_Vec3( +std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * inv_rot_z;
+		view_clip_planes[1].dist= -( cam_pos * view_clip_planes[1].normal );
+		// Right
+		view_clip_planes[2].normal= m_Vec3( -std::cos( half_fov_x ), +std::sin( half_fov_x ), 0.0f ) * inv_rot_z;
+		view_clip_planes[2].dist= -( cam_pos * view_clip_planes[2].normal );
+
+		const float shift= -std::cos( half_fov_y ) * rot_x.value[6];
+		// Bottom
+		view_clip_planes[3].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) - shift, +std::cos( half_fov_y ) );
+		view_clip_planes[3].normal.Normalize();
+		view_clip_planes[3].normal= view_clip_planes[3].normal * inv_rot_z;
+		view_clip_planes[3].dist= -( cam_pos * view_clip_planes[3].normal );
+		// Top
+		view_clip_planes[4].normal= m_Vec3( 0.0f, +std::sin( half_fov_y ) + shift, -std::cos( half_fov_y ) );
+		view_clip_planes[4].normal.Normalize();
+		view_clip_planes[4].normal= view_clip_planes[4].normal * inv_rot_z;
+		view_clip_planes[4].dist= -( cam_pos * view_clip_planes[4].normal );
 
 		const Time current_time= Time::CurrentTime();
 

@@ -366,12 +366,38 @@ void MapDrawerSoft::DrawMapRelatedModels(
 	const m_Vec3& camera_position,
 	const ViewClipPlanes& view_clip_planes )
 {
-	// TODO
-	PC_UNUSED( models );
-	PC_UNUSED( model_count );
-	PC_UNUSED( view_rotation_and_projection_matrix );
-	PC_UNUSED( camera_position );
-	PC_UNUSED( view_clip_planes );
+	if( current_map_data_ == nullptr )
+		return;
+
+	rasterizer_.ClearDepthBuffer();
+
+	m_Mat4 cam_shift_mat, cam_mat, screen_flip_mat;
+	cam_shift_mat.Translate( -camera_position );
+	screen_flip_mat.Scale( m_Vec3( 1.0f, -1.0f, 1.0f ) );
+	cam_mat= cam_shift_mat * view_rotation_and_projection_matrix * screen_flip_mat;
+
+	for( unsigned int t= 0u; t < 2u; t++ )
+	{
+		const bool transparent= t > 0u;
+		for( unsigned int m= 0u; m < model_count; m++ )
+		{
+			const MapRelatedModel& model= models[m];
+
+			if( model.model_id >= current_map_data_->models_description.size() )
+				continue;
+
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( model.angle_z );
+
+			DrawModel(
+				map_models_, current_map_data_->models, model.model_id,
+				model.frame,
+				view_clip_planes,
+				model.pos, rotate_mat,
+				cam_mat, camera_position,
+				255u, transparent );
+		} // for models
+	}
 }
 
 void MapDrawerSoft::LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group )
