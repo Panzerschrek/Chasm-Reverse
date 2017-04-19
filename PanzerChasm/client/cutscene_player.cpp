@@ -149,9 +149,17 @@ void CutscenePlayer::Process( const SystemEvents& events )
 	for( const SystemEvent& event : events )
 	{
 		if( event.type == SystemEvent::Type::Key &&
-			event.event.key.pressed &&
-			event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::Space )
-			key_press_events++;
+			event.event.key.pressed )
+		{
+			if( event.event.key.key_code == SystemEvent::KeyEvent::KeyCode::Escape )
+			{
+				// Stop cutscene on escape press.
+				next_action_index_= script_->commands.size();
+				return;
+			}
+			else
+				key_press_events++;
+		}
 	}
 
 	bool continue_action= false;
