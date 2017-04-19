@@ -424,6 +424,7 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 			const unsigned int global_x_start= cell_x * 16u + subcell_x * 4u;
 			const unsigned int global_y_start= cell_y * 16u + subcell_y * 4u;
 
+			/* // Older slow, but more readable version.
 			unsigned int bit4x4= 1u;
 			for( unsigned int bit_y= 0u; bit_y < 4u; bit_y++ )
 			for( unsigned int bit_x= 0u; bit_x < 4u; bit_x++ )
@@ -437,8 +438,19 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 				// TODO - maybe (global_x >> 3u) constant in this loop ?
 				bit4x4&= occlusion_buffer_[ (global_x >> 3u) + global_y * occlusion_buffer_width_ ] >> bit;
 			}
-
 			cell_value|= (bit4x4&1u) << bit_number;
+			*/
+
+			unsigned int bits4x4= 255u; // bits [0-3] or bits [4-7] of "bits4x4" used, other bits is unsignificant.
+			const unsigned int occlusion_byte_x= global_x_start >> 3u;
+			const unsigned int occlusion_byte_shift= global_x_start & 7u;
+			for( unsigned int bit_y= 0u; bit_y < 4u; bit_y++ )
+			{
+				// Fetch 4 x-bits of occlusion byte each iteration.
+				const unsigned int global_y= global_y_start + bit_y;
+				bits4x4&= occlusion_buffer_[ occlusion_byte_x + global_y * static_cast<unsigned int>(occlusion_buffer_width_) ];
+			}
+			cell_value|= ( ( (bits4x4 >> occlusion_byte_shift) & 15u) == 15u ? 1u : 0u ) << bit_number;
 		}
 	}
 	else
