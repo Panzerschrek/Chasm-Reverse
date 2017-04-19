@@ -1461,7 +1461,7 @@ void MapDrawerSoft::DrawModel(
 {
 	const Model& base_model= model_group_models[ model_id ];
 	const Submodel& model= (submodel_id == ~0u) ? base_model : base_model.submodels[ submodel_id ];
-	const std::vector<unsigned short>& indeces= transparent ? model.transparent_triangles_indeces : model.regular_triangles_indeces;
+	const std::vector<unsigned short>& indeces= transparent ? model.transparent_quads_indeces : model.regular_quads_indeces;
 	if( indeces.size() == 0u )
 		return;
 
@@ -1662,26 +1662,27 @@ void MapDrawerSoft::DrawModel(
 	// TODO - make other branch, if clip_planes_transformed_count == 0
 	// Transform animation vertices, then rasterize trianglez directly, without clipping.
 
-	// TODO - use original QUADS from .3o/.car models.
-
-	for( unsigned int t= 0u; t < indeces.size(); t+= 3u )
+	for( unsigned int t= 0u; t < indeces.size(); t+= 4u )
 	{
 		const Model::Vertex& first_vertex= model.vertices[ indeces[t] ];
 
 		if( ( first_vertex.groups_mask & visible_groups_mask ) == 0u )
 			continue;
 
-		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
-		for( unsigned int tv= 0u; tv < 3u; tv++ )
+		const unsigned int initial_polygon_vertex_count= indeces[t+3] >= model.vertices.size() ? 3u : 4u;
+
+		m_Vec3 polygon_center( 0.0f, 0.0f, 0.0f );
+		for( unsigned int tv= 0u; tv < initial_polygon_vertex_count; tv++ )
 		{
-			const Model::Vertex& vertex= model.vertices[ indeces[t + tv] ];
+			const Model::Vertex& vertex= model.vertices[ indeces[ t + tv ] ];
 			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
 
 			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
 			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(base_model.texture_size[0]) * 65536.0f;
 			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(base_model.texture_size[1]) * 65536.0f;
+			clipped_vertices_[tv].next= &clipped_vertices_[tv+1u];
 
-			triangle_center+= clipped_vertices_[tv].pos;
+			polygon_center+= clipped_vertices_[tv].pos;
 		}
 		{ // Try reject back faces
 			const m_Vec3 v0= clipped_vertices_[1].pos - clipped_vertices_[0].pos;
@@ -1690,13 +1691,12 @@ void MapDrawerSoft::DrawModel(
 			if( mVec3Cross( v0, v1 ) * vec_to_cam < 0.0f )
 				continue;
 		}
-		clipped_vertices_[0].next= &clipped_vertices_[1];
-		clipped_vertices_[1].next= &clipped_vertices_[2];
-		clipped_vertices_[2].next= &clipped_vertices_[0];
-		fisrt_clipped_vertex_= &clipped_vertices_[0];
-		next_new_clipped_vertex_= 3u;
 
-		unsigned int polygon_vertex_count= 3u;
+		clipped_vertices_[ initial_polygon_vertex_count - 1u ].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= initial_polygon_vertex_count;
+
+		unsigned int polygon_vertex_count= initial_polygon_vertex_count;
 		for( unsigned int p= 0u; p < clip_planes_transformed_count; p++ )
 		{
 			polygon_vertex_count= ClipPolygon( clip_planes_transformed[p], polygon_vertex_count );
@@ -1731,10 +1731,11 @@ void MapDrawerSoft::DrawModel(
 		fixed16_t light= g_fixed16_one;
 		if( !fullbright )
 		{
-			triangle_center*= 1.0f / 3.0f;
-			const m_Vec2 triangle_center_world_space= ( triangle_center * to_world_mat ).xy();
-			const unsigned int lightmap_x= static_cast<unsigned int>( triangle_center_world_space.x * float(MapData::c_lightmap_scale) );
-			const unsigned int lightmap_y= static_cast<unsigned int>( triangle_center_world_space.y * float(MapData::c_lightmap_scale) );
+			static const float c_inv_vertex_count[]= { 0.0f, 1.0f, 1.0f / 2.0f, 1.0f / 3.0f, 1.0f / 4.0f };
+			polygon_center*= c_inv_vertex_count[ initial_polygon_vertex_count ];
+			const m_Vec2 polygon_center_world_space= ( polygon_center * to_world_mat ).xy();
+			const unsigned int lightmap_x= static_cast<unsigned int>( polygon_center_world_space.x * float(MapData::c_lightmap_scale) );
+			const unsigned int lightmap_y= static_cast<unsigned int>( polygon_center_world_space.y * float(MapData::c_lightmap_scale) );
 
 			if( lightmap_x < MapData::c_lightmap_size && lightmap_y < MapData::c_lightmap_size )
 				light= ScaleLightmapLight( current_map_data_->lightmap[ lightmap_x + lightmap_y * MapData::c_lightmap_size ] );

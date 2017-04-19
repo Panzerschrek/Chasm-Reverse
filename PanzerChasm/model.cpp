@@ -196,9 +196,17 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			transparent
 				? out_model.transparent_triangles_indeces
 				: out_model.regular_triangles_indeces;
+		auto& dst_quad_indeces=
+			transparent
+				? out_model.transparent_quads_indeces
+				: out_model.regular_quads_indeces;
 
 		dst_indeces.resize( dst_indeces.size() + polygon_index_count );
 		unsigned short* ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
+
+		const unsigned int quad_count= polygon_is_twosided ? 2u : 1u;
+		dst_quad_indeces.resize( dst_quad_indeces.size() + quad_count * 4u );
+		unsigned short* quad_ind= dst_quad_indeces.data() + dst_quad_indeces.size() - quad_count * 4u;
 
 		ind[0u]= first_vertex_index + 2u;
 		ind[1u]= first_vertex_index + 1u;
@@ -209,6 +217,10 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 			ind[4u]= first_vertex_index + 3u;
 			ind[5u]= first_vertex_index + 2u;
 		}
+
+		quad_ind[3]= 0xFFFFu;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+			quad_ind[i]= first_vertex_index + polygon_vertex_count - 1u - i;
 
 		if( polygon_is_twosided )
 		{
@@ -222,6 +234,11 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 				ind[4u]= first_vertex_index + 3u;
 				ind[5u]= first_vertex_index + 0u;
 			}
+
+			quad_ind+= 4u;
+			quad_ind[3]= 0xFFFFu;
+			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+				quad_ind[i]= first_vertex_index + i;
 		}
 
 		current_vertex_index+= polygon_vertex_count;
@@ -377,9 +394,17 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 				transparent
 					? out_submodel.transparent_triangles_indeces
 					: out_submodel.regular_triangles_indeces;
+			auto& dst_quad_indeces=
+				transparent
+					? out_submodel.transparent_quads_indeces
+					: out_submodel.regular_quads_indeces;
 
 			dst_indeces.resize( dst_indeces.size() + polygon_index_count );
 			unsigned short* ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
+
+			const unsigned int quad_count= polygon_is_twosided ? 2u : 1u;
+			dst_quad_indeces.resize( dst_quad_indeces.size() + quad_count * 4u );
+			unsigned short* quad_ind= dst_quad_indeces.data() + dst_quad_indeces.size() - quad_count * 4u;
 
 			ind[0u]= first_vertex_index + 2u;
 			ind[1u]= first_vertex_index + 1u;
@@ -390,6 +415,10 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 				ind[4u]= first_vertex_index + 3u;
 				ind[5u]= first_vertex_index + 2u;
 			}
+
+			quad_ind[3]= 0xFFFFu;
+			for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+				quad_ind[i]= first_vertex_index + polygon_vertex_count - 1u - i;
 
 			if( polygon_is_twosided )
 			{
@@ -403,6 +432,11 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 					ind[4u]= first_vertex_index + 3u;
 					ind[5u]= first_vertex_index + 0u;
 				}
+
+				quad_ind+= 4u;
+				quad_ind[3]= 0xFFFFu;
+				for( unsigned int i= 0u; i < polygon_vertex_count; i++ )
+					quad_ind[i]= first_vertex_index + i;
 			}
 
 			current_vertex_index+= polygon_vertex_count;

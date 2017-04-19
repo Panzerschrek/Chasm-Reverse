@@ -51,6 +51,10 @@ struct Submodel
 	std::vector<unsigned short> regular_triangles_indeces;
 	std::vector<unsigned short> transparent_triangles_indeces;
 
+	// Quads from original model. If last quad index greater or equal to vertex size, quad is not a quad, but triangle.
+	std::vector<unsigned short> regular_quads_indeces;
+	std::vector<unsigned short> transparent_quads_indeces;
+
 	// Store separate bounding box for each frame for better culling.
 	std::vector<m_BBox3> animations_bboxes;
 
