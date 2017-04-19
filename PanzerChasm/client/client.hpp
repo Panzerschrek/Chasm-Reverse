@@ -31,6 +31,7 @@ public:
 
 	void SetConnection( IConnectionPtr connection );
 	bool Disconnected() const;
+	bool PlayingCutscene() const;
 
 	void ProcessEvents( const SystemEvents& events );
 
@@ -71,6 +72,7 @@ public: // Messages handlers
 private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
+	void LoadMap( unsigned int map_number );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -94,6 +96,7 @@ private:
 	MovementController camera_controller_;
 	bool minimap_mode_= false;
 
+	SharedDrawersPtr shared_drawers_;
 	IMapDrawerPtr map_drawer_;
 	IMinimapDrawerPtr minimap_drawer_;
 	MapDataConstPtr current_map_data_;
@@ -105,6 +108,9 @@ private:
 	bool shoot_pressed_= false;
 
 	IHudDrawerPtr hud_drawer_;
+
+	std::unique_ptr<CutscenePlayer> cutscene_player_;
+	unsigned int next_map_number_= 0u;
 };
 
 } // PanzerChasm

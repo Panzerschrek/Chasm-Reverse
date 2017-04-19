@@ -218,6 +218,7 @@ bool Host::Loop()
 	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
 
 	const bool really_paused= paused_ || ( is_single_player_ && menu_ != nullptr && menu_->IsActive() );
+	const bool needs_pause_server= client_ != nullptr && client_->PlayingCutscene();
 
 	system_window_->CaptureMouse( !input_goes_to_console && !input_goes_to_menu );
 
@@ -235,7 +236,7 @@ bool Host::Loop()
 
 	// Loop operations
 	if( local_server_ != nullptr )
-		local_server_->Loop( really_paused );
+		local_server_->Loop( really_paused || needs_pause_server );
 
 	if( client_ != nullptr )
 	{

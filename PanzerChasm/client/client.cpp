@@ -10,6 +10,7 @@
 #include "../server/a_code.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
+#include "cutscene_player.hpp"
 #include "i_hud_drawer.hpp"
 #include "i_map_drawer.hpp"
 #include "i_minimap_drawer.hpp"
@@ -43,6 +44,7 @@ Client::Client(
 		settings,
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		shared_drawers->menu->GetViewportSize().GetWidthToHeightRatio() )
+	, shared_drawers_(shared_drawers)
 	, map_drawer_( drawers_factory.CreateMapDrawer() )
 	, minimap_drawer_( drawers_factory.CreateMinimapDrawer() )
 	, weapon_state_( game_resources )
@@ -141,8 +143,20 @@ bool Client::Disconnected() const
 	return connection_info_->connection->Disconnected();
 }
 
+bool Client::PlayingCutscene() const
+{
+	if( cutscene_player_ == nullptr )
+		return false;
+	return !cutscene_player_->IsFinished();
+}
+
 void Client::ProcessEvents( const SystemEvents& events )
 {
+	if( cutscene_player_ != nullptr )
+	{
+		cutscene_player_->Process( events );
+	}
+
 	using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
 	for( const SystemEvent& event : events )
@@ -204,6 +218,19 @@ void Client::Loop( const InputState& input_state, const bool paused )
 			connection_info_->messages_extractor.ProcessMessages( *this );
 	}
 
+	if( cutscene_player_ != nullptr )
+	{
+		if( cutscene_player_->IsFinished() )
+		{
+			cutscene_player_= nullptr;
+			PC_ASSERT( next_map_number_ != 0u );
+			LoadMap( next_map_number_ );
+			next_map_number_= 0u;
+		}
+		else
+			return;
+	}
+
 	shoot_pressed_= input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
 	camera_controller_.Tick( input_state.keyboard );
 
@@ -257,6 +284,12 @@ void Client::Loop( const InputState& input_state, const bool paused )
 
 void Client::Draw()
 {
+	if( cutscene_player_ != nullptr )
+	{
+		cutscene_player_->Draw();
+		return;
+	}
+
 	if( map_state_ != nullptr )
 	{
 		PC_ASSERT( current_map_data_ != nullptr );
@@ -409,50 +442,25 @@ void Client::operator()( const Messages::MonsterSound& message )
 
 void Client::operator()( const Messages::MapChange& message )
 {
-	Log::Info( "Changing client map to ", message.map_number );
-
-	const auto show_progress=
-	[&]( const float progress )
+	if( message.need_play_cutscene )
 	{
-		if( draw_loading_callback_ != nullptr )
-			draw_loading_callback_( progress, "Client" );
-	};
+		cutscene_player_.reset(
+			new CutscenePlayer(
+				game_resources_,
+				*map_loader_,
+				sound_engine_,
+				shared_drawers_,
+				*map_drawer_,
+				message.map_number ) );
 
-	show_progress( 0.0f );
-
-	const MapDataConstPtr map_data= map_loader_->LoadMap( message.map_number );
-	if( map_data == nullptr )
-	{
-		Log::Warning( "Error, server requested map, which does not exist on client" );
-		return;
+		if( cutscene_player_->IsFinished() ) // No cutscene for this map.
+			cutscene_player_= nullptr;
+		else
+			next_map_number_= message.map_number;
 	}
 
-	show_progress( 0.333f );
-	map_drawer_->SetMap( map_data );
-	minimap_drawer_->SetMap( map_data );
-
-	show_progress( 0.666f );
-	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
-	minimap_state_.reset( new MinimapState( map_data ) );
-
-	if( loaded_minimap_state_ != nullptr &&
-		loaded_minimap_state_->map_number == message.map_number )
-	{
-		minimap_state_->SetState(
-			loaded_minimap_state_->static_walls_visibility ,
-			loaded_minimap_state_->dynamic_walls_visibility );
-	}
-	loaded_minimap_state_= nullptr;
-
-	show_progress( 0.8f );
-	if( sound_engine_ != nullptr )
-		sound_engine_->SetMap( map_data );
-
-	hud_drawer_->ResetMessage();
-
-	current_map_data_= map_data;
-
-	show_progress( 1.0f );
+	if( cutscene_player_ == nullptr )
+		LoadMap( message.map_number );
 }
 
 void Client::operator()( const Messages::TextMessage& message )
@@ -494,6 +502,54 @@ void Client::TrySwitchWeaponOnOutOfAmmo()
 	}
 
 	requested_weapon_index_= 0u;
+}
+
+void Client::LoadMap( const unsigned int map_number )
+{
+	Log::Info( "Changing client map to ", map_number );
+
+	const auto show_progress=
+	[&]( const float progress )
+	{
+		if( draw_loading_callback_ != nullptr )
+			draw_loading_callback_( progress, "Client" );
+	};
+
+	show_progress( 0.0f );
+
+	const MapDataConstPtr map_data= map_loader_->LoadMap( map_number );
+	if( map_data == nullptr )
+	{
+		Log::Warning( "Error, server requested map, which does not exist on client" );
+		return;
+	}
+
+	show_progress( 0.333f );
+	map_drawer_->SetMap( map_data );
+	minimap_drawer_->SetMap( map_data );
+
+	show_progress( 0.666f );
+	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
+	minimap_state_.reset( new MinimapState( map_data ) );
+
+	if( loaded_minimap_state_ != nullptr &&
+		loaded_minimap_state_->map_number == map_number )
+	{
+		minimap_state_->SetState(
+			loaded_minimap_state_->static_walls_visibility ,
+			loaded_minimap_state_->dynamic_walls_visibility );
+	}
+	loaded_minimap_state_= nullptr;
+
+	show_progress( 0.8f );
+	if( sound_engine_ != nullptr )
+		sound_engine_->SetMap( map_data );
+
+	hud_drawer_->ResetMessage();
+
+	current_map_data_= map_data;
+
+	show_progress( 1.0f );
 }
 
 } // namespace PanzerChasm

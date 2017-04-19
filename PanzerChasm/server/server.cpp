@@ -101,6 +101,7 @@ void Server::Loop( bool paused )
 		if( current_map_data_ != nullptr )
 		{
 			Messages::MapChange map_change_msg;
+			map_change_msg.need_play_cutscene= game_rules_ == GameRules::SinglePlayer;
 			map_change_msg.map_number= current_map_data_->number;
 			connected_player.connection_info.messages_sender.SendReliableMessage( map_change_msg );
 		}
@@ -263,6 +264,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	{
 		Messages::MapChange message;
 		message.map_number= current_map_data_->number;
+		message.need_play_cutscene= game_rules == GameRules::SinglePlayer;
 
 		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
 

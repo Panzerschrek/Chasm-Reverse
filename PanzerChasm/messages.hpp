@@ -281,6 +281,7 @@ struct MapChange : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(MapChange)
 
 	unsigned int map_number;
+	bool need_play_cutscene;
 };
 
 struct MonsterBirth : public MessageBase
