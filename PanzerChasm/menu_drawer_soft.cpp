@@ -95,6 +95,18 @@ MenuDrawerSoft::MenuDrawerSoft(
 
 	console_background_picture_.size[0]= console_size.Width ();
 	console_background_picture_.size[1]= console_size.Height();
+
+	const Size2 viewport_size_scaled(
+		rendering_context_.viewport_size.Width () / menu_scale_,
+		rendering_context_.viewport_size.Height() / menu_scale_ );
+
+	Size2 briefbar_picture_size;
+
+	CreateBriefbarTexture(
+		viewport_size_scaled, *game_resources.vfs, briefbar_picture_.data, briefbar_picture_size );
+
+	briefbar_picture_.size[0]= briefbar_picture_size.Width ();
+	briefbar_picture_.size[1]= briefbar_picture_size.Height();
 }
 
 MenuDrawerSoft::~MenuDrawerSoft()
@@ -382,7 +394,49 @@ void MenuDrawerSoft::DrawGameBackground()
 
 void MenuDrawerSoft::DrawBriefBar()
 {
-	// TODO
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+	uint32_t* const dst_pixels= rendering_context_.window_surface_data;
+	const int dst_row_pixels= rendering_context_.row_pixels;
+
+	const int viewport_size_x= int(rendering_context_.viewport_size.Width ());
+	const int viewport_size_y= int(rendering_context_.viewport_size.Height());
+
+	PC_ASSERT( int( briefbar_picture_.size[0] * menu_scale_ ) <= viewport_size_x );
+
+	const int y_start= viewport_size_y - int( briefbar_picture_.size[1] * menu_scale_ );
+
+	for( int y= 0; y < int(briefbar_picture_.size[1]); y++ )
+	{
+		for( int x= 0; x < int(briefbar_picture_.size[0]); x++ )
+		{
+			const uint32_t color= palette[ briefbar_picture_.data[ x + y * int(briefbar_picture_.size[0]) ] ];
+
+			for( int sy= 0; sy < int(menu_scale_); sy++ )
+			{
+				const int dst_y= y_start + y * int(menu_scale_) + sy;
+				PC_ASSERT( dst_y >= 0 && dst_y < viewport_size_y );
+				for( int sx= 0; sx < int(menu_scale_); sx++ )
+				{
+					const int dst_x= x * int(menu_scale_) + sx;
+					PC_ASSERT( dst_x >= 0 && dst_x < viewport_size_x );
+					dst_pixels[ dst_x + dst_y * dst_row_pixels ]= color;
+				}
+			}
+		}
+
+		// Pixels at right border.
+		const uint32_t color_right= palette[ briefbar_picture_.data[ int(briefbar_picture_.size[0]-1u) + y * int(briefbar_picture_.size[0]) ] ];
+		for( int x= int( briefbar_picture_.size[0] * menu_scale_); x < viewport_size_x; x++ )
+		{
+			PC_ASSERT( x >= 0 && x < viewport_size_x );
+			for( int sy= 0; sy < int(menu_scale_); sy++ )
+			{
+				const int dst_y= y_start + y * int(menu_scale_) + sy;
+				PC_ASSERT( dst_y >= 0 && dst_y < viewport_size_y );
+				dst_pixels[ x + dst_y * dst_row_pixels ]= color_right;
+			}
+		}
+	} // for y
 }
 
 } // namespace PanzerChas

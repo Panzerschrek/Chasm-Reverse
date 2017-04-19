@@ -57,6 +57,7 @@ private:
 	Picture pause_picture_;
 
 	Picture console_background_picture_;
+	Picture briefbar_picture_;
 };
 
 } // namespace PanzerChasm
