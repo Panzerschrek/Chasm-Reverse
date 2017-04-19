@@ -189,11 +189,49 @@ void Rasterizer::BuildDepthBufferHierarchy()
 
 		for( unsigned int x= 0u; x < first_level_size_truncated_x; x++ )
 		{
+			const unsigned int src_x= x * c_first_depth_hierarchy_level_size;
+			/*
 			unsigned short min_depth= 0xFFFFu;
 			for( unsigned int dy= 0u; dy < c_first_depth_hierarchy_level_size; dy++ )
 			for( unsigned int dx= 0u; dx < c_first_depth_hierarchy_level_size; dx++ )
-				min_depth= std::min( min_depth, src[dy][ x * c_first_depth_hierarchy_level_size + dx] );
+				min_depth= std::min( min_depth, src[dy][ src_x + dx ] );
 			dst[x]= min_depth;
+			*/
+
+			// Manually unrolled min_depth calculation loop.
+			// It contains less std::min calls (15 vs 16) and it has no data-dependent instructions sequentions.
+			static_assert( c_first_depth_hierarchy_level_size == 4u, "You must chaqnge this, if you change c_first_depth_hierarchy_level_size." );
+			const unsigned short d00= src[0][ src_x + 0 ];
+			const unsigned short d01= src[0][ src_x + 1 ];
+			const unsigned short d02= src[0][ src_x + 2 ];
+			const unsigned short d03= src[0][ src_x + 3 ];
+			const unsigned short d10= src[1][ src_x + 0 ];
+			const unsigned short d11= src[1][ src_x + 1 ];
+			const unsigned short d12= src[1][ src_x + 2 ];
+			const unsigned short d13= src[1][ src_x + 3 ];
+			const unsigned short d20= src[2][ src_x + 0 ];
+			const unsigned short d21= src[2][ src_x + 1 ];
+			const unsigned short d22= src[2][ src_x + 2 ];
+			const unsigned short d23= src[2][ src_x + 3 ];
+			const unsigned short d30= src[3][ src_x + 0 ];
+			const unsigned short d31= src[3][ src_x + 1 ];
+			const unsigned short d32= src[3][ src_x + 2 ];
+			const unsigned short d33= src[3][ src_x + 3 ];
+			const unsigned short min00_01= std::min( d00, d01 );
+			const unsigned short min02_03= std::min( d02, d03 );
+			const unsigned short min10_11= std::min( d10, d11 );
+			const unsigned short min12_13= std::min( d12, d13 );
+			const unsigned short min20_21= std::min( d20, d21 );
+			const unsigned short min22_23= std::min( d22, d23 );
+			const unsigned short min30_31= std::min( d30, d31 );
+			const unsigned short min32_33= std::min( d32, d33 );
+			const unsigned short min0= std::min( min00_01, min02_03 );
+			const unsigned short min1= std::min( min10_11, min12_13 );
+			const unsigned short min2= std::min( min20_21, min22_23 );
+			const unsigned short min3= std::min( min30_31, min32_33 );
+			const unsigned short min_l= std::min( min0, min1 );
+			const unsigned short min_h= std::min( min2, min3 );
+			dst[x]= std::min( min_l, min_h );
 		}
 
 		// Last partial column.
