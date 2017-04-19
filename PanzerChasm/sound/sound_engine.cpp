@@ -522,6 +522,9 @@ void SoundEngine::ForceStopAllChannels()
 	ambient_sound_source_= nullptr;
 	object_sound_source_= nullptr;
 
+	one_time_sound_source_data_= nullptr;
+	one_time_sound_source_= nullptr;
+
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
 
