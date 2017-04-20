@@ -142,18 +142,13 @@ unsigned int MapBSPTree::BuildTree_r( const BuildSegments& build_segments )
 			// TODO - check this.
 			if( wall_length > 0.0f )
 			{
-				out_segment.start= ( segment.vert_pos[0] - wall.vert_pos[0] ).Length() / wall_length;
-				out_segment.end  = ( segment.vert_pos[1] - wall.vert_pos[0] ).Length() / wall_length;
+				out_segment.start= ( segment.vert_pos[1] - wall.vert_pos[1] ).Length() / wall_length;
+				out_segment.end  = ( segment.vert_pos[0] - wall.vert_pos[1] ).Length() / wall_length;
 			}
 			else
 			{
 				out_segment.start= 0.0f;
 				out_segment.end= 1.0f;
-			}
-			if( out_segment.start > out_segment.end )
-			{
-				std::swap( out_segment.start, out_segment.end );
-				std::swap( out_segment.vert_pos[0], out_segment.vert_pos[1] );
 			}
 
 			node->segment_count++;
