@@ -152,11 +152,13 @@ static void LoadAction( const Vfs::FileContent& file_content, CutsceneScript& sc
 					{
 						// Read line in ""
 						const int len= std::strlen(text_line);
-						line_stream.getline( text_line + len, sizeof(text_line) - len, '"' );
+						line_stream.getline( text_line + len, sizeof(text_line) - len, '\n' );
 
 						out_param= text_line + 1u;
+						while( !out_param.empty() && std::isspace( out_param.back() ) ) out_param.pop_back();
 						if( out_param.back() == '"' ) out_param.pop_back();
 					}
+					break;
 				}
 				else
 					out_param= text_line;
