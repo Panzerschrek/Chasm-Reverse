@@ -498,6 +498,9 @@ void Client::operator()( const Messages::MapChange& message )
 
 		if( cutscene_player_->IsFinished() ) // No cutscene for this map.
 			cutscene_player_= nullptr;
+
+		if( cutscene_player_ != nullptr && sound_engine_ != nullptr ) // Stop sound at cutscene start.
+			sound_engine_->SetMap( nullptr );
 	}
 
 	// If no cutscene - set map for MapDrawer, MinimapDrawer, SoundEngine.
