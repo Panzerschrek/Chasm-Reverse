@@ -72,7 +72,6 @@ public: // Messages handlers
 private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
-	void LoadMap( unsigned int map_number );
 
 private:
 	const GameResourcesConstPtr game_resources_;
@@ -110,7 +109,6 @@ private:
 	IHudDrawerPtr hud_drawer_;
 
 	std::unique_ptr<CutscenePlayer> cutscene_player_;
-	unsigned int next_map_number_= 0u;
 };
 
 } // PanzerChasm
