@@ -225,7 +225,9 @@ bool Host::Loop()
 	if( input_goes_to_console )
 		console_->ProcessEvents( events_ );
 
-	if( menu_ != nullptr && !input_goes_to_console )
+	if(
+		menu_ != nullptr && !input_goes_to_console &&
+		!( client_ != nullptr && client_->PlayingCutscene() ) /* We must no disable menu, when cutscene played. */ )
 		menu_->ProcessEvents( events_ );
 
 	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu && !really_paused )
