@@ -101,7 +101,7 @@ void Server::Loop( bool paused )
 		if( current_map_data_ != nullptr )
 		{
 			Messages::MapChange map_change_msg;
-			map_change_msg.need_play_cutscene= game_rules_ == GameRules::SinglePlayer;
+			map_change_msg.need_play_cutscene= game_rules_ == GameRules::SinglePlayer && map_changed_from_previous_map_;
 			map_change_msg.map_number= current_map_data_->number;
 			connected_player.connection_info.messages_sender.SendReliableMessage( map_change_msg );
 		}
@@ -208,7 +208,11 @@ void Server::Loop( bool paused )
 			current_map_data_ != nullptr &&
 			current_map_data_->number < 16 )
 		{
-			ChangeMap( current_map_data_->number + 1u, map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty(), game_rules_ );
+			ChangeMap(
+				current_map_data_->number + 1u,
+				map_ == nullptr ? Difficulty::Normal : map_->GetDifficulty(),
+				game_rules_,
+				true );
 		}
 		else
 		{
@@ -217,8 +221,16 @@ void Server::Loop( bool paused )
 	}
 }
 
-bool Server::ChangeMap( const unsigned int map_number, const DifficultyType difficulty, const GameRules game_rules )
+bool Server::ChangeMap(
+	const unsigned int map_number,
+	const DifficultyType difficulty,
+	const GameRules game_rules,
+	const bool is_next_map_change )
 {
+	// Special case - process map #0 as map 1 with previous map.
+	if( map_number == 0u )
+		return ChangeMap( 1u, difficulty, game_rules, true );
+
 	Log::Info( "Changing server map to ", map_number );
 
 	const auto show_progress=
@@ -239,6 +251,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 
 	show_progress( 0.5f );
 	game_rules_= game_rules;
+	map_changed_from_previous_map_= is_next_map_change;
 	current_map_data_= map_data;
 	map_.reset(
 		new Map(
@@ -264,7 +277,7 @@ bool Server::ChangeMap( const unsigned int map_number, const DifficultyType diff
 	{
 		Messages::MapChange message;
 		message.map_number= current_map_data_->number;
-		message.need_play_cutscene= game_rules == GameRules::SinglePlayer;
+		message.need_play_cutscene= game_rules == GameRules::SinglePlayer && map_changed_from_previous_map_;
 
 		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
 

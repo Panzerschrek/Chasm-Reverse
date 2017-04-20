@@ -24,7 +24,7 @@ public:
 	void Loop( bool paused );
 
 	// Returns true, if map successfully changed or restarted.
-	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules );
+	bool ChangeMap( unsigned int map_number, DifficultyType difficulty, GameRules game_rules, bool is_next_map_change= false );
 	void StopMap();
 
 	void Save( SaveLoadBuffer& buffer );
@@ -73,6 +73,7 @@ private:
 	CommandsMapConstPtr commands_;
 
 	GameRules game_rules_= GameRules::SinglePlayer;
+	bool map_changed_from_previous_map_= false;
 	MapDataConstPtr current_map_data_;
 	std::unique_ptr<Map> map_;
 

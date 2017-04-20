@@ -312,7 +312,7 @@ void Host::Quit()
 
 void Host::NewGame( const DifficultyType difficulty )
 {
-	DoRunLevel( 1u, difficulty );
+	DoRunLevel( 0u, difficulty );
 }
 
 void Host::ConnectToServer(
