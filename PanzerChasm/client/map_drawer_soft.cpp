@@ -336,6 +336,29 @@ void MapDrawerSoft::Draw(
 				cam_mat, camera_position,
 				monster.body_parts_mask, transparent );
 		}
+
+		for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
+		{
+			if( part.monster_type >= game_resources_->monsters_models.size() )
+				continue;
+
+			PC_ASSERT( part.body_part_id <= game_resources_->monsters_models[ part.monster_type ].submodels.size() );
+
+			const Submodel& submodel= game_resources_->monsters_models[ part.monster_type ].submodels[ part.body_part_id ];
+			const unsigned int frame= submodel.animations[ part.animation ].first_frame + part.animation_frame;
+
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( part.angle + Constants::half_pi );
+
+			DrawModel(
+				monsters_models_, game_resources_->monsters_models, part.monster_type,
+				frame,
+				view_clip_planes,
+				part.pos, rotate_mat,
+				cam_mat, camera_position,
+				255u, transparent, false,
+				part.body_part_id );
+		}
 	}
 
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
@@ -1056,9 +1079,11 @@ void MapDrawerSoft::DrawModel(
 	const m_Vec3& camera_position,
 	const unsigned char visible_groups_mask,
 	const bool transparent,
-	const bool fullbright )
+	const bool fullbright,
+	const unsigned int submodel_id )
 {
-	const Model& model= model_group_models[ model_id ];
+	const Model& base_model= model_group_models[ model_id ];
+	const Submodel& model= (submodel_id == ~0u) ? base_model : base_model.submodels[ submodel_id ];
 	const std::vector<unsigned short>& indeces= transparent ? model.transparent_triangles_indeces : model.regular_triangles_indeces;
 	if( indeces.size() == 0u )
 		return;
@@ -1267,8 +1292,8 @@ void MapDrawerSoft::DrawModel(
 			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
 
 			clipped_vertices_[tv].pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
-			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(model.texture_size[0]) * 65536.0f;
-			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(model.texture_size[1]) * 65536.0f;
+			clipped_vertices_[tv].tc.x= vertex.tex_coord[0] * float(base_model.texture_size[0]) * 65536.0f;
+			clipped_vertices_[tv].tc.y= vertex.tex_coord[1] * float(base_model.texture_size[1]) * 65536.0f;
 
 			triangle_center+= clipped_vertices_[tv].pos;
 		}

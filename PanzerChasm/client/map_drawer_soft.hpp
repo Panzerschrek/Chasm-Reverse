@@ -138,7 +138,8 @@ private:
 		const m_Vec3& camera_position,
 		unsigned char visible_groups_mask,
 		bool transparent,
-		bool fullbright= false );
+		bool fullbright= false,
+		unsigned int submodel_id= ~0u  /* Submodel of model to draw. ~0 means base model. */ );
 
 	void DrawSky(
 		const m_Mat4& matrix,
