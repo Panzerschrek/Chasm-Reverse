@@ -327,6 +327,21 @@ void SoundEngine::PlayOneTimeSound( const char* const sound_data_file )
 	if( one_time_sound_source_ == nullptr )
 		return;
 
+	{ // Stop channel, which can play now old OneTimeSoundSource.
+		driver_.LockChannels();
+		Channels& channels= driver_.GetChannels();
+		for( unsigned int i= 0u; i < Channel::c_max_channels; i++ )
+		{
+			if( &sources_[i] == one_time_sound_source_ )
+			{
+				channels[i].is_active= false;
+				channels[i].src_sound_data= nullptr;
+				break;
+			}
+		}
+		driver_.UnlockChannels();
+	}
+
 	one_time_sound_source_data_= std::move(sound_data);
 
 	one_time_sound_source_->is_free= false;
