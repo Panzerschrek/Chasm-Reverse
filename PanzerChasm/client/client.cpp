@@ -10,6 +10,7 @@
 #include "../server/a_code.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
+#include "cutscene_player.hpp"
 #include "i_hud_drawer.hpp"
 #include "i_map_drawer.hpp"
 #include "i_minimap_drawer.hpp"
@@ -43,6 +44,7 @@ Client::Client(
 		settings,
 		m_Vec3( 0.0f, 0.0f, 0.0f ),
 		shared_drawers->menu->GetViewportSize().GetWidthToHeightRatio() )
+	, shared_drawers_(shared_drawers)
 	, map_drawer_( drawers_factory.CreateMapDrawer() )
 	, minimap_drawer_( drawers_factory.CreateMinimapDrawer() )
 	, weapon_state_( game_resources )
@@ -62,7 +64,7 @@ Client::~Client()
 
 void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 {
-	PC_ASSERT( current_map_number_ != ~0u );
+	PC_ASSERT( current_map_data_ != nullptr );
 	PC_ASSERT( minimap_state_ != nullptr );
 	if( minimap_state_ == nullptr ) return;
 
@@ -70,7 +72,7 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 
 	save_stream.WriteUInt32( requested_weapon_index_ );
 	save_stream.WriteBool( minimap_mode_ );
-	save_stream.WriteUInt32( current_map_number_ );
+	save_stream.WriteUInt32( current_map_data_->number );
 
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state_->GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state_->GetDynamicWallsVisibility();
@@ -86,7 +88,7 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 		save_stream.WriteBool( wall_visibility );
 
 	// Write comment
-	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_number_, player_state_.health );
+	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_data_->number, player_state_.health );
 }
 
 void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
@@ -141,8 +143,20 @@ bool Client::Disconnected() const
 	return connection_info_->connection->Disconnected();
 }
 
+bool Client::PlayingCutscene() const
+{
+	if( cutscene_player_ == nullptr )
+		return false;
+	return !cutscene_player_->IsFinished();
+}
+
 void Client::ProcessEvents( const SystemEvents& events )
 {
+	if( cutscene_player_ != nullptr )
+	{
+		cutscene_player_->Process( events );
+	}
+
 	using KeyCode= SystemEvent::KeyEvent::KeyCode;
 
 	for( const SystemEvent& event : events )
@@ -204,6 +218,22 @@ void Client::Loop( const InputState& input_state, const bool paused )
 			connection_info_->messages_extractor.ProcessMessages( *this );
 	}
 
+	if( cutscene_player_ != nullptr )
+	{
+		if( cutscene_player_->IsFinished() )
+		{
+			cutscene_player_= nullptr;
+
+			PC_ASSERT( current_map_data_ != nullptr );
+			if( sound_engine_ != nullptr )
+				sound_engine_->SetMap( current_map_data_ );
+			map_drawer_->SetMap( current_map_data_ );
+			minimap_drawer_->SetMap( current_map_data_ );
+		}
+		else
+			return;
+	}
+
 	shoot_pressed_= input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
 	camera_controller_.Tick( input_state.keyboard );
 
@@ -257,6 +287,12 @@ void Client::Loop( const InputState& input_state, const bool paused )
 
 void Client::Draw()
 {
+	if( cutscene_player_ != nullptr )
+	{
+		cutscene_player_->Draw();
+		return;
+	}
+
 	if( map_state_ != nullptr )
 	{
 		PC_ASSERT( current_map_data_ != nullptr );
@@ -427,11 +463,7 @@ void Client::operator()( const Messages::MapChange& message )
 		return;
 	}
 
-	show_progress( 0.333f );
-	map_drawer_->SetMap( map_data );
-	minimap_drawer_->SetMap( map_data );
-
-	show_progress( 0.666f );
+	show_progress( 0.5 );
 	map_state_.reset( new MapState( map_data, game_resources_, Time::CurrentTime() ) );
 	minimap_state_.reset( new MinimapState( map_data ) );
 
@@ -445,15 +477,42 @@ void Client::operator()( const Messages::MapChange& message )
 	loaded_minimap_state_= nullptr;
 
 	show_progress( 0.8f );
-	if( sound_engine_ != nullptr )
-		sound_engine_->SetMap( map_data );
 
 	hud_drawer_->ResetMessage();
 
-	current_map_number_= message.map_number;
 	current_map_data_= map_data;
 
 	show_progress( 1.0f );
+
+	// Try load cutscene.
+	if( message.need_play_cutscene )
+	{
+		cutscene_player_.reset(
+			new CutscenePlayer(
+				game_resources_,
+				*map_loader_,
+				sound_engine_,
+				shared_drawers_,
+				*map_drawer_,
+				message.map_number ) );
+
+		if( cutscene_player_->IsFinished() ) // No cutscene for this map.
+			cutscene_player_= nullptr;
+
+		if( cutscene_player_ != nullptr && sound_engine_ != nullptr ) // Stop sound at cutscene start.
+			sound_engine_->SetMap( nullptr );
+	}
+
+	// If no cutscene - set map for MapDrawer, MinimapDrawer, SoundEngine.
+	// Else - set map only after cutscene end.
+	if( cutscene_player_ == nullptr )
+	{
+		if( sound_engine_ != nullptr )
+			sound_engine_->SetMap( map_data );
+
+		map_drawer_->SetMap( map_data );
+		minimap_drawer_->SetMap( map_data );
+	}
 }
 
 void Client::operator()( const Messages::TextMessage& message )
@@ -476,10 +535,11 @@ void Client::StopMap()
 	if( current_map_data_ != nullptr && sound_engine_ != nullptr )
 		sound_engine_->SetMap( nullptr );
 
-	current_map_number_= ~0u;
 	current_map_data_= nullptr;
 	map_state_= nullptr;
 	minimap_state_= nullptr;
+
+	cutscene_player_= nullptr;
 }
 
 void Client::TrySwitchWeaponOnOutOfAmmo()

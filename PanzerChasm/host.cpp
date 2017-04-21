@@ -218,13 +218,16 @@ bool Host::Loop()
 	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
 
 	const bool really_paused= paused_ || ( is_single_player_ && menu_ != nullptr && menu_->IsActive() );
+	const bool needs_pause_server= client_ != nullptr && client_->PlayingCutscene();
 
 	system_window_->CaptureMouse( !input_goes_to_console && !input_goes_to_menu );
 
 	if( input_goes_to_console )
 		console_->ProcessEvents( events_ );
 
-	if( menu_ != nullptr && !input_goes_to_console )
+	if(
+		menu_ != nullptr && !input_goes_to_console &&
+		!( client_ != nullptr && client_->PlayingCutscene() ) /* We must no disable menu, when cutscene played. */ )
 		menu_->ProcessEvents( events_ );
 
 	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu && !really_paused )
@@ -235,7 +238,7 @@ bool Host::Loop()
 
 	// Loop operations
 	if( local_server_ != nullptr )
-		local_server_->Loop( really_paused );
+		local_server_->Loop( really_paused || needs_pause_server );
 
 	if( client_ != nullptr )
 	{
@@ -311,7 +314,7 @@ void Host::Quit()
 
 void Host::NewGame( const DifficultyType difficulty )
 {
-	DoRunLevel( 1u, difficulty );
+	DoRunLevel( 0u, difficulty );
 }
 
 void Host::ConnectToServer(

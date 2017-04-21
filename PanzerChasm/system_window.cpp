@@ -467,7 +467,8 @@ void SystemWindow::BeginFrame()
 
 	if( IsOpenGLRenderer() )
 	{
-		glClear( ( need_clear ? GL_COLOR_BUFFER_BIT : 0 ) | GL_DEPTH_BUFFER_BIT );
+		if( need_clear )
+			glClear( GL_COLOR_BUFFER_BIT );
 	}
 	else
 	{

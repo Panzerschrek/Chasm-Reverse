@@ -1,0 +1,37 @@
+Vstupiteljnyje sçeny pered urovnämi opisyvajutsä cerez SCRIPT.XX fajl.
+
+Etot skript predstavläjet soboj nabor nacaljnyh dannyh i posledovateljnostj dejstvij.
+
+
+V sekçii "#setup" idöt opisanije resursov sçeny: kanery, personažej.
+
+Parametry:
+
+"room": [num] - nomer komnaty. Kak kažetsä, vse peremescenija scitajutsä otnositeljno
+	çentra komnaty.
+"ambient": [num] - nomer fonovogo zvuka.
+
+Paramettry personažej:
+
+"model" "string" - fajl modeli.
+position - položenije.
+idle [num] "file" - animaçija prostoja.
+ani [num] "file" - animaçija.
+
+
+V sekçii "#action" opisyvajetsä sam sçenarij. Sçenarij jestlj posledovateljnostj
+dejstvij, vypolnenije kotoryh zanimajet kakoje-to vremä.
+
+Komandy sçenarija:
+
+"delay" [num] - zaderžka (v sekundah)?
+"say" "string" - dobavitj stroku na ekran. Stroki dobavläjutsä na ekran sverhu vniz,
+	zaçiclivajasj. Vmestilisce ekrana - 5 strok.
+"voice" "file_name" - nacatj proigryvatj zvuk. Sçenarij ne dožidajetsä okoncanija
+	proigryvanija zvuka, a ostanavlivajetsä daljše.
+"setani" [character_num] [anim_num] - nacatj proigryvatj animaçiju dlä personaža.
+	Skript prodolžit vypolnenije posle okoncanija proigryvanija animaçii.
+"wait_key" - ožidatj nažatija kakoj-libo klavišy klaviatury igrokom.
+"movecamto" [x] [y] [z] [angle] [time] - peremestitj kameru.
+
+

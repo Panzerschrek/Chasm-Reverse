@@ -434,6 +434,8 @@ void MapDrawerGL::Draw(
 
 	const m_Mat4 view_matrix= translate * view_rotation_and_projection_matrix;
 
+	glClear( GL_DEPTH_BUFFER_BIT );
+
 	r_OGLStateManager::UpdateState( g_walls_gl_state );
 	DrawWalls( view_matrix );
 
@@ -544,6 +546,85 @@ void MapDrawerGL::DrawWeapon(
 	draw_model_polygons(true);
 
 	glDepthRange( 0.0f, 1.0f );
+}
+
+void MapDrawerGL::DrawMapRelatedModels(
+	const MapRelatedModel* const models, const unsigned int model_count,
+	const m_Mat4& view_rotation_and_projection_matrix,
+	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes )
+{
+	if( current_map_data_ == nullptr )
+		return;
+
+	glClear( GL_DEPTH_BUFFER_BIT );
+
+	m_Mat4 translate;
+	translate.Translate( -camera_position );
+
+	const m_Mat4 view_matrix= translate * view_rotation_and_projection_matrix;
+
+	models_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, models_textures_array_id_ );
+	active_lightmap_->Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	models_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
+	for( unsigned int t= 0u; t < 2u; t++ )
+	{
+		const bool transparent= t > 0u;
+
+		r_OGLStateManager::UpdateState( transparent ? g_transparent_models_gl_state : g_models_gl_state );
+
+		for( unsigned int m= 0u; m < model_count; m++ )
+		{
+			const MapRelatedModel& map_model= models[m];
+
+			if( map_model.model_id >= models_geometry_.size() )
+				continue;
+
+			const ModelGeometry& model_geometry= models_geometry_[ map_model.model_id ];
+			const Model& model= current_map_data_->models[ map_model.model_id ];
+
+			const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+			if( index_count == 0u )
+				continue;
+
+			const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+			const unsigned int first_animation_vertex=
+				model_geometry.first_animations_vertex +
+				model_geometry.animations_vertex_count * map_model.frame;
+
+			m_Mat4 model_matrix, rotation_matrix;
+			m_Mat3 lightmap_matrix;
+			CreateModelMatrices( map_model.pos, map_model.angle_z, model_matrix, lightmap_matrix );
+			rotation_matrix.RotateZ( map_model.angle_z );
+
+			PC_ASSERT( map_model.frame < model.frame_count );
+
+			const m_BBox3& bbox= model.animations_bboxes[ map_model.frame ];
+			if( BBoxIsOutsideView( view_clip_planes, bbox, model_matrix ) )
+				continue;
+
+			models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+			models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+			models_shader_.Uniform( "rotation_matrix", rotation_matrix );
+			models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+
+			glDrawElementsBaseVertex(
+				GL_TRIANGLES,
+				index_count,
+				GL_UNSIGNED_SHORT,
+				reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+				model_geometry.first_vertex_index );
+		}
+	} // for transparent/untransparent
 }
 
 void MapDrawerGL::LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures )

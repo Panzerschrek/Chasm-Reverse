@@ -43,6 +43,7 @@ MapState::MapState(
 		out_model.angle= in_model.angle;
 		out_model.model_id= in_model.model_id;
 		out_model.animation_frame= 0u;
+		out_model.visible= true;
 	}
 
 	items_.resize( map_data_->items.size() );
