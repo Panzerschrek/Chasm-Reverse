@@ -6,7 +6,9 @@
 #include "../math_utils.hpp"
 #include "../messages_extractor.inl"
 #include "../save_load_streams.hpp"
+#include "../settings.hpp"
 #include "../shared_drawers.hpp"
+#include "../shared_settings_keys.hpp"
 #include "../server/a_code.hpp"
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
@@ -35,7 +37,8 @@ Client::Client(
 	const SharedDrawersPtr& shared_drawers,
 	const Sound::SoundEnginePtr& sound_engine,
 	const DrawLoadingCallback& draw_loading_callback )
-	: game_resources_(game_resources)
+	: settings_(settings)
+	, game_resources_(game_resources)
 	, map_loader_(map_loader)
 	, sound_engine_(sound_engine)
 	, draw_loading_callback_(draw_loading_callback)
@@ -346,7 +349,8 @@ void Client::Draw()
 				player_position_.xy(), camera_controller_.GetViewAngleZ() );
 		}
 
-		hud_drawer_->DrawCrosshair();
+		if( settings_.GetOrSetBool( SettingsKeys::crosshair, true ) )
+			hud_drawer_->DrawCrosshair();
 		hud_drawer_->DrawCurrentMessage( current_tick_time_ );
 		hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
 	}

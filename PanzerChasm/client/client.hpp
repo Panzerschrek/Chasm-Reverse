@@ -74,6 +74,7 @@ private:
 	void TrySwitchWeaponOnOutOfAmmo();
 
 private:
+	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const Sound::SoundEnginePtr sound_engine_;
