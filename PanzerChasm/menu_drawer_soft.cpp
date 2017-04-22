@@ -153,6 +153,11 @@ void MenuDrawerSoft::DrawMenuBackground(
 	const int start_y_corrected= start_y - int( MenuParams::menu_border + MenuParams::menu_caption ) * int(menu_scale_);
 	const int end_y= start_y_corrected + int(height) + int( MenuParams::menu_border * 2u + MenuParams::menu_caption ) * int(menu_scale_);
 
+	// Tone borders
+	const unsigned char c_low= 128u;
+	const unsigned char c_middle= 192u;
+	const unsigned char c_height= 255u;
+
 	for( int y= start_y_corrected; y < end_y; y++ )
 	{
 		PC_ASSERT( y >= 0 && y < int(rendering_context_.viewport_size.Height()) );
@@ -167,9 +172,65 @@ void MenuDrawerSoft::DrawMenuBackground(
 			const int tc_x= x / int(menu_scale_);
 			const int tc_x_warped= tc_x & 63;
 
-			dst_pixels[ y * dst_row_pixels + x ]= palette[ pic.data[ tc_y_warped * 64 + tc_x_warped ] ];
+			unsigned char components[4];
+			std::memcpy( components, &palette[ pic.data[ tc_y_warped * 64 + tc_x_warped ] ], sizeof(uint32_t) );
+			for( unsigned int j= 0u; j < 3u; j++ )
+				components[j]= ( components[j] * c_middle ) >> 8u;
+			std::memcpy( &dst_pixels[ x + y * dst_row_pixels ], components, sizeof(uint32_t) );
 		}
 	}
+
+	const auto toned_texel_fetch=
+	[&]( const int x, const int y, const unsigned char tone ) -> uint32_t
+	{
+		PC_ASSERT( x >= 0 && y < int(rendering_context_.viewport_size.Width()) );
+		PC_ASSERT( y >= 0 && y < int(rendering_context_.viewport_size.Height()) );
+		const int tc_y= y / int(menu_scale_);
+		const int tc_y_warped= tc_y & 63;
+		const int tc_x= x / int(menu_scale_);
+		const int tc_x_warped= tc_x & 63;
+
+		unsigned char components[4];
+		std::memcpy( components, &palette[ pic.data[ tc_y_warped * 64 + tc_x_warped ] ], sizeof(uint32_t) );
+		for( unsigned int j= 0u; j < 3u; j++ )
+			components[j]= ( components[j] * tone ) >> 8u;
+		uint32_t result;
+		std::memcpy( &result, components, sizeof(uint32_t) );
+		return result;
+	};
+
+	// Upper border.
+	for( int y= start_y_corrected; y < start_y_corrected + int(menu_scale_); y++ )
+	for( int x= start_x_corrected; x < end_x; x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_height );
+	// Upper border inner.
+	for( int y= start_y_corrected + int(menu_scale_*12u); y < start_y_corrected + int(menu_scale_*12u) + int(menu_scale_); y++ )
+	for( int x= start_x_corrected + int(menu_scale_* 2u); x < end_x - int(menu_scale_* 2u); x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_low );
+	// Lower border.
+	for( int y= end_y - int(menu_scale_); y < end_y; y++ )
+	for( int x= start_x_corrected; x < end_x; x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_low );
+	// Lower border inner.
+	for( int y= end_y - int(menu_scale_ * 3u); y < end_y - int(menu_scale_ * 2u); y++ )
+	for( int x= start_x_corrected + int(menu_scale_* 2u); x < end_x - int(menu_scale_* 2u); x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_height );
+	// Left border.
+	for( int y= start_y_corrected + int(menu_scale_); y < end_y - int(menu_scale_); y++ )
+	for( int x= start_x_corrected; x < start_x_corrected + int(menu_scale_); x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_height );
+	// Left border inner.
+	for( int y= start_y_corrected + int(menu_scale_*13u); y < end_y - int(menu_scale_*2u); y++ )
+	for( int x= start_x_corrected + int(menu_scale_* 2u); x < start_x_corrected + int(menu_scale_*3u); x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_low );
+	// Right border.
+	for( int y= start_y_corrected + int(menu_scale_); y < end_y - int(menu_scale_); y++ )
+	for( int x= end_x - int(menu_scale_); x < end_x; x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_low );
+	// Right border inner.
+	for( int y= start_y_corrected + int(menu_scale_*13u); y < end_y - int(menu_scale_*2u); y++ )
+	for( int x= end_x - int(menu_scale_*3u); x < end_x  - int(menu_scale_*2u); x++ )
+		dst_pixels[ x + y * dst_row_pixels ]= toned_texel_fetch( x, y, c_height );
 }
 
 void MenuDrawerSoft::DrawMenuPicture(
