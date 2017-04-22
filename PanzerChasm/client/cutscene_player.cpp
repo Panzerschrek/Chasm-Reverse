@@ -125,6 +125,8 @@ CutscenePlayer::CutscenePlayer(
 	camera_current_.pos= script_->camera_params.pos * room_rotation_matrix_;
 	camera_current_.angle_z= script_->camera_params.angle;
 	camera_next_= camera_previous_= camera_current_;
+
+	last_tick_time_= current_time;
 }
 
 CutscenePlayer::~CutscenePlayer()
@@ -272,7 +274,7 @@ void CutscenePlayer::Process( const SystemEvents& events )
 		case CommandType::WaitKey:
 			{
 				if( key_press_events == 0u )
-					goto update_models;
+					goto at_end;
 				else
 					--key_press_events;
 			}
@@ -303,7 +305,8 @@ void CutscenePlayer::Process( const SystemEvents& events )
 		}
 	}
 
-update_models:;
+at_end:;
+	last_tick_time_= current_time;
 }
 
 void CutscenePlayer::Draw()
@@ -427,8 +430,6 @@ void CutscenePlayer::Draw()
 		view_clip_planes[4].normal= view_clip_planes[4].normal * inv_rot_z;
 		view_clip_planes[4].dist= -( cam_pos * view_clip_planes[4].normal );
 
-		const Time current_time= Time::CurrentTime();
-
 		characters_map_models_.resize( characters_.size() );
 		for( unsigned int c= 0u; c < characters_.size(); c++ )
 		{
@@ -446,7 +447,7 @@ void CutscenePlayer::Draw()
 
 			if( !model.animations.empty() )
 			{
-				const Time time_delta= current_time - character_state.current_animation_start_time;
+				const Time time_delta= last_tick_time_ - character_state.current_animation_start_time;
 				const unsigned int animation_frame=
 					static_cast<unsigned int>( time_delta.ToSeconds() * GameConstants::animations_frames_per_second ) %
 					model.animations[ character_state.current_animation_number ].frame_count;

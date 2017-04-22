@@ -61,6 +61,7 @@ private:
 
 	Camera camera_previous_, camera_next_, camera_current_;
 
+	Time last_tick_time_= Time::FromSeconds(0);
 	Time current_countinuous_command_start_time_= Time::FromSeconds(0); // Zero if no active action.
 
 	// Say text.
