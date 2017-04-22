@@ -5,6 +5,8 @@
 #include <mmintrin.h>
 #endif
 
+static constexpr bool g_rasterizer_use_faster_tex_coord_z_div= true;
+
 namespace PanzerChasm
 {
 
@@ -241,12 +243,24 @@ void Rasterizer::DrawTrianglePerspectiveCorrectedImpl( const RasterizerVertex* v
 	RasterizerVertexTexCoord  lower_vertex_tc_div_z;
 	RasterizerVertexTexCoord middle_vertex_tc_div_z;
 	RasterizerVertexTexCoord  upper_vertex_tc_div_z;
-	 lower_vertex_tc_div_z.u= Fixed16Div( vertices[ lower_index  ].u, vertices[ lower_index  ].z );
-	 lower_vertex_tc_div_z.v= Fixed16Div( vertices[ lower_index  ].v, vertices[ lower_index  ].z );
-	middle_vertex_tc_div_z.u= Fixed16Div( vertices[ middle_index ].u, vertices[ middle_index ].z );
-	middle_vertex_tc_div_z.v= Fixed16Div( vertices[ middle_index ].v, vertices[ middle_index ].z );
-	 upper_vertex_tc_div_z.u= Fixed16Div( vertices[ upper_index  ].u, vertices[ upper_index  ].z );
-	 upper_vertex_tc_div_z.v= Fixed16Div( vertices[ upper_index  ].v, vertices[ upper_index  ].z );
+	if( g_rasterizer_use_faster_tex_coord_z_div )
+	{
+		 lower_vertex_tc_div_z.u= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ lower_index  ].u, lower_vertex_inv_z_scaled  );
+		 lower_vertex_tc_div_z.v= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ lower_index  ].v, lower_vertex_inv_z_scaled  );
+		middle_vertex_tc_div_z.u= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ middle_index ].u, middle_vertex_inv_z_scaled );
+		middle_vertex_tc_div_z.v= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ middle_index ].v, middle_vertex_inv_z_scaled );
+		 upper_vertex_tc_div_z.u= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ upper_index  ].u, upper_vertex_inv_z_scaled  );
+		 upper_vertex_tc_div_z.v= FixedMul< 16 + c_inv_z_scaler_log2 >( vertices[ upper_index  ].v, upper_vertex_inv_z_scaled  );
+	}
+	else
+	{
+		 lower_vertex_tc_div_z.u= Fixed16Div( vertices[ lower_index  ].u, vertices[ lower_index  ].z );
+		 lower_vertex_tc_div_z.v= Fixed16Div( vertices[ lower_index  ].v, vertices[ lower_index  ].z );
+		middle_vertex_tc_div_z.u= Fixed16Div( vertices[ middle_index ].u, vertices[ middle_index ].z );
+		middle_vertex_tc_div_z.v= Fixed16Div( vertices[ middle_index ].v, vertices[ middle_index ].z );
+		 upper_vertex_tc_div_z.u= Fixed16Div( vertices[ upper_index  ].u, vertices[ upper_index  ].z );
+		 upper_vertex_tc_div_z.v= Fixed16Div( vertices[ upper_index  ].v, vertices[ upper_index  ].z );
+	}
 
 
 	const fixed16_t long_edge_y_length= vertices[ upper_index ].y - vertices[ lower_index ].y;
@@ -425,8 +439,16 @@ void Rasterizer::DrawConvexPolygonPerspectiveCorrectedImpl(
 	for( unsigned int v= 0u; v < vertex_count; v++ )
 	{
 		inv_z_scaled[v]= Fixed16Div( c_inv_z_scaler << 16, vertices[v].z );
-		tex_coord_div_z[v].u= Fixed16Div( vertices[v].u, vertices[v].z );
-		tex_coord_div_z[v].v= Fixed16Div( vertices[v].v, vertices[v].z );
+		if( g_rasterizer_use_faster_tex_coord_z_div )
+		{
+			tex_coord_div_z[v].u= FixedMul< 16 + c_inv_z_scaler_log2>( vertices[v].u, inv_z_scaled[v] );
+			tex_coord_div_z[v].v= FixedMul< 16 + c_inv_z_scaler_log2>( vertices[v].v, inv_z_scaled[v] );
+		}
+		else
+		{
+			tex_coord_div_z[v].u= Fixed16Div( vertices[v].u, vertices[v].z );
+			tex_coord_div_z[v].v= Fixed16Div( vertices[v].v, vertices[v].z );
+		}
 	}
 
 	unsigned int left_index = lower_vertex_index;
@@ -669,8 +691,17 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 		inv_z_scaled_start= inv_z_scaled_left  + Fixed16Mul( x_cut, line_inv_z_scaled_step_ );
 		if( inv_z_scaled_start < 0 ) inv_z_scaled_start= 0;
 
-		tc_start[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_start[0], inv_z_scaled_start );
-		tc_start[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_start[1], inv_z_scaled_start );
+		if( g_rasterizer_use_faster_tex_coord_z_div )
+		{
+			const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2 >( g_fixed16_one, inv_z_scaled_start );
+			tc_start[0]= Fixed16Mul( tc_div_z_start[0], z );
+			tc_start[1]= Fixed16Mul( tc_div_z_start[1], z );
+		}
+		else
+		{
+			tc_start[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_start[0], inv_z_scaled_start );
+			tc_start[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_start[1], inv_z_scaled_start );
+		}
 
 		if( tc_start[0] < 0 ) tc_start[0]= 0;
 		if( tc_start[0] > max_valid_tc_u_ ) tc_start[0]= max_valid_tc_u_;
@@ -685,8 +716,17 @@ void Rasterizer::DrawTexturedTrianglePerLineCorrectedPart()
 			inv_z_scaled_end= inv_z_scaled_start + effective_dx * line_inv_z_scaled_step_;
 			if( inv_z_scaled_end < 0 ) inv_z_scaled_end= 0;
 
-			tc_end[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_end[0], inv_z_scaled_end );
-			tc_end[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_end[1], inv_z_scaled_end );
+			if( g_rasterizer_use_faster_tex_coord_z_div )
+			{
+				const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2 >( g_fixed16_one, inv_z_scaled_end );
+				tc_end[0]= Fixed16Mul( tc_div_z_end[0], z );
+				tc_end[1]= Fixed16Mul( tc_div_z_end[1], z );
+			}
+			else
+			{
+				tc_end[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_end[0], inv_z_scaled_end );
+				tc_end[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_end[1], inv_z_scaled_end );
+			}
 
 			if( tc_end[0] < 0 ) tc_end[0]= 0;
 			if( tc_end[0] > max_valid_tc_u_ ) tc_end[0]= max_valid_tc_u_;
@@ -743,7 +783,7 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending, Rasterizer::DepthHack depth_hack>
 void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 {
 	// TODO - maybe add mmx lighting support for other triangle-filling functions?
@@ -831,8 +871,18 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 		PC_ASSERT( end_part_dx >= 0 );
 
 		fixed16_t tc_current[2], tc_next[2], tc_step[2], span_tc[2];
-		tc_current[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0], line_inv_z_scaled );
-		tc_current[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1], line_inv_z_scaled );
+		if( g_rasterizer_use_faster_tex_coord_z_div )
+		{
+			const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2>( g_fixed16_one, line_inv_z_scaled );
+			tc_current[0]= Fixed16Mul( tc_div_z_current[0], z );
+			tc_current[1]= Fixed16Mul( tc_div_z_current[1], z );
+		}
+		else
+		{
+			tc_current[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0], line_inv_z_scaled );
+			tc_current[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1], line_inv_z_scaled );
+		}
+
 		if( tc_current[0] < 0 ) tc_current[0]= 0;
 		if( tc_current[0] > max_valid_tc_u_ ) tc_current[0]= max_valid_tc_u_;
 		if( tc_current[1] < 0 ) tc_current[1]= 0;
@@ -841,8 +891,18 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 		if( start_part_dx > 0 )
 		{
 			const fixed_base_t next_inv_z_scaled= line_inv_z_scaled + start_part_dx * line_inv_z_scaled_step_;
-			tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + start_part_dx * line_tc_step_[0], next_inv_z_scaled );
-			tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + start_part_dx * line_tc_step_[1], next_inv_z_scaled );
+			if( g_rasterizer_use_faster_tex_coord_z_div )
+			{
+				const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2>( g_fixed16_one, next_inv_z_scaled );
+				tc_next[0]= Fixed16Mul( tc_div_z_current[0] + start_part_dx * line_tc_step_[0], z );
+				tc_next[1]= Fixed16Mul( tc_div_z_current[1] + start_part_dx * line_tc_step_[1], z );
+			}
+			else
+			{
+				tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + start_part_dx * line_tc_step_[0], next_inv_z_scaled );
+				tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + start_part_dx * line_tc_step_[1], next_inv_z_scaled );
+			}
+
 			if( tc_next[0] < 0 ) tc_next[0]= 0;
 			if( tc_next[0] > max_valid_tc_u_ ) tc_next[0]= max_valid_tc_u_;
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
@@ -864,7 +924,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_dst[ full_x >> 3 ] & (1<<(full_x&7)) ) != 0u )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[ full_x ] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -901,8 +962,18 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			tc_current[1]= tc_next[1];
 
 			const fixed_base_t next_inv_z_scaled= line_inv_z_scaled + ( line_inv_z_scaled_step_ << c_z_correct_span_size_log2 );
-			tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + ( line_tc_step_[0] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
-			tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + ( line_tc_step_[1] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
+			if( g_rasterizer_use_faster_tex_coord_z_div )
+			{
+				const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2>( g_fixed16_one, next_inv_z_scaled );
+				tc_next[0]= Fixed16Mul( tc_div_z_current[0] + ( line_tc_step_[0] << c_z_correct_span_size_log2 ), z );
+				tc_next[1]= Fixed16Mul( tc_div_z_current[1] + ( line_tc_step_[1] << c_z_correct_span_size_log2 ), z );
+			}
+			else
+			{
+				tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + ( line_tc_step_[0] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
+				tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + ( line_tc_step_[1] << c_z_correct_span_size_log2 ), next_inv_z_scaled );
+			}
+
 			if( tc_next[0] < 0 ) tc_next[0]= 0;
 			if( tc_next[0] > max_valid_tc_u_ ) tc_next[0]= max_valid_tc_u_;
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
@@ -930,7 +1001,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_value & ( 1 << x ) ) != 0 )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[ span_x + x ] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -965,8 +1037,18 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 			tc_current[1]= tc_next[1];
 
 			const fixed_base_t next_inv_z_scaled= line_inv_z_scaled + end_part_dx * line_inv_z_scaled_step_;
-			tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + end_part_dx * line_tc_step_[0], next_inv_z_scaled );
-			tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + end_part_dx * line_tc_step_[1], next_inv_z_scaled );
+			if( g_rasterizer_use_faster_tex_coord_z_div )
+			{
+				const fixed16_t z= FixedDiv< 16 + c_inv_z_scaler_log2>( g_fixed16_one, next_inv_z_scaled );
+				tc_next[0]= Fixed16Mul( tc_div_z_current[0] + end_part_dx * line_tc_step_[0], z );
+				tc_next[1]= Fixed16Mul( tc_div_z_current[1] + end_part_dx * line_tc_step_[1], z );
+			}
+			else
+			{
+				tc_next[0]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[0] + end_part_dx * line_tc_step_[0], next_inv_z_scaled );
+				tc_next[1]= FixedDiv< 16 + c_inv_z_scaler_log2 >( tc_div_z_current[1] + end_part_dx * line_tc_step_[1], next_inv_z_scaled );
+			}
+
 			if( tc_next[0] < 0 ) tc_next[0]= 0;
 			if( tc_next[0] > max_valid_tc_u_ ) tc_next[0]= max_valid_tc_u_;
 			if( tc_next[1] < 0 ) tc_next[1]= 0;
@@ -986,7 +1068,8 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 					( occlusion_dst[ x >> 3 ] & (1<<(x&7)) ) != 0u )
 					continue;
 
-				const unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				unsigned short depth= line_inv_z_scaled >> ( c_inv_z_scaler_log2 + c_max_inv_z_min_log2 );
+				if( depth_hack == DepthHack::Yes ) depth= ( int(depth) + 65536 * 3 ) >> 2;
 				if( depth_test == DepthTest::No || depth > depth_dst[x] )
 				{
 					const int u= span_tc[0] >> 16;
@@ -1032,12 +1115,12 @@ template<
 	Rasterizer::DepthTest depth_test, Rasterizer::DepthWrite depth_write,
 	Rasterizer::AlphaTest alpha_test,
 	Rasterizer::OcclusionTest occlusion_test, Rasterizer::OcclusionWrite occlusion_write,
-	Rasterizer::Lighting lighting, Rasterizer::Blending blending>
+	Rasterizer::Lighting lighting, Rasterizer::Blending blending, Rasterizer::DepthHack depth_hack>
 void Rasterizer::DrawTexturedTriangleSpanCorrected( const RasterizerVertex* vertices )
 {
 	DrawTrianglePerspectiveCorrectedImpl<
 		TrianglePartDrawFunc,
-		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending > >
+		&Rasterizer::DrawTexturedTriangleSpanCorrectedPart<depth_test, depth_write, alpha_test, occlusion_test, occlusion_write, lighting, blending, depth_hack > >
 			( vertices );
 }
 

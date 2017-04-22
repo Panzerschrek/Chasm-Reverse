@@ -475,11 +475,6 @@ void MapDrawerGL::DrawWeapon(
 	const m_Vec3& camera_position,
 	const float x_angle, const float z_angle  )
 {
-	// TODO - maybe this points differnet for differnet weapons?
-	// Crossbow: m_Vec3( 0.2f, 0.7f, -0.45f )
-	const m_Vec3 c_weapon_shift= m_Vec3( 0.2f, 0.7f, -0.45f );
-	const m_Vec3 c_weapon_change_shift= m_Vec3( 0.0f, -0.9f, 0.0f );
-
 	weapons_geometry_data_.Bind();
 	models_shader_.Bind();
 
@@ -494,7 +489,7 @@ void MapDrawerGL::DrawWeapon(
 
 	m_Mat4 shift_mat;
 	const m_Vec3 additional_shift=
-		c_weapon_shift + c_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
+		g_weapon_shift + g_weapon_change_shift * ( 1.0f - weapon_state.GetSwitchStage() );
 	shift_mat.Translate( additional_shift );
 
 	m_Mat3 scale_in_lightmap_mat, lightmap_shift_mat, lightmap_scale_mat;
@@ -1819,8 +1814,7 @@ void MapDrawerGL::DrawBMPObjectsSprites(
 		sprites_shader_.Uniform( "tex", int(0) );
 		sprites_shader_.Uniform( "lightmap", int(1) );
 
-		// Generate pseudo-random animation phase for sprite, because synchronous animation of nearby sprites looks ugly.
-		const unsigned int phase= static_cast<unsigned int>( pos.x * 13.0f + pos.y * 19.0f + model.angle * 29.0f );
+		const unsigned int phase= GetModelBMPSpritePhase( model );
 		const unsigned int frame= static_cast<unsigned int>( sprites_frame + phase ) % sprite_picture.frame_count;
 		sprites_shader_.Uniform( "frame", float(frame) );
 		sprites_shader_.Uniform( "lightmap_coord", pos.xy() / float(MapData::c_map_size) );

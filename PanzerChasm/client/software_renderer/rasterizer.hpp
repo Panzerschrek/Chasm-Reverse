@@ -61,6 +61,8 @@ public:
 	{ Yes, No };
 	enum class Blending
 	{ Yes, No };
+	enum class DepthHack
+	{ Yes, No };
 
 	Rasterizer(
 		unsigned int viewport_size_x,
@@ -113,7 +115,7 @@ public:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting= Lighting::No, Blending= Blending::No>
+		Lighting lighting= Lighting::No, Blending blending= Blending::No, DepthHack depth_hack= DepthHack::No>
 	void DrawTexturedTriangleSpanCorrected( const RasterizerVertex* trianlge_vertices );
 
 	template<
@@ -171,7 +173,7 @@ private:
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
 		OcclusionTest occlusion_test, OcclusionWrite occlusion_write,
-		Lighting lighting, Blending blending= Blending::No>
+		Lighting lighting, Blending blending= Blending::No, DepthHack depth_hack= DepthHack::No>
 	void DrawTexturedTriangleSpanCorrectedPart();
 
 private:

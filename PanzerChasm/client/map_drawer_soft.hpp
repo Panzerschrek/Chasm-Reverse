@@ -144,7 +144,8 @@ private:
 		const m_Vec3& camera_position,
 		unsigned char visible_groups_mask,
 		bool transparent,
-		bool fullbright= false );
+		bool fullbright= false,
+		unsigned int submodel_id= ~0u  /* Submodel of model to draw. ~0 means base model. */ );
 
 	void DrawSky(
 		const m_Mat4& matrix,
@@ -152,6 +153,12 @@ private:
 		const ViewClipPlanes& view_clip_planes );
 
 	void DrawEffectsSprites(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes );
+
+	void DrawBMPObjectsSprites(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
 		const m_Vec3& camera_position,
@@ -204,6 +211,7 @@ private:
 	unsigned int first_ceiling_= 0u;
 
 	std::vector<SpriteTexture> sprite_effects_textures_;
+	std::vector<SpriteTexture> bmp_objects_sprites_;
 	SkyTexture sky_texture_;
 
 	// Reuse vector (do not create new vector each frame).
