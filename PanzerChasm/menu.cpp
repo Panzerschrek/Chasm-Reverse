@@ -896,6 +896,179 @@ MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+// Graphics Menu
+
+class GraphicsMenu final : public MenuBase
+{
+public:
+	GraphicsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~GraphicsMenu() override;
+
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	struct Renderer
+	{
+		enum : int
+		{
+			OpenGL, Software, NumRenderers
+		};
+	};
+	struct RowOpenGL
+	{
+		enum : int
+		{
+			Renderer, DynamicLighting, NumRows
+		};
+	};
+	struct RowSoftware
+	{
+		enum : int
+		{
+			Renderer, PixelSize, NumRows
+		};
+	};
+
+private:
+	Settings& settings_;
+	int current_renderer_= 0;
+	int current_row_= 0;
+	int current_num_rows_;
+};
+
+GraphicsMenu::GraphicsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_(host_commands.GetSettings())
+{
+	current_renderer_=
+		settings_.GetOrSetBool( SettingsKeys::software_rendering, false ) ? Renderer::Software : Renderer::OpenGL;
+
+	current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
+}
+
+GraphicsMenu::~GraphicsMenu()
+{}
+
+void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int size[2]= { 200u, text_draw.GetLineHeight() * std::max( int(RowOpenGL::NumRows), int(RowSoftware::NumRows) ) };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 120;
+	const int param_x= x + scale * 130;
+	const int y_step= int(text_draw.GetLineHeight()) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Graphics",
+		scale,
+		ITextDrawer::FontColor::White,ITextDrawer::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + RowOpenGL::Renderer * y_step,
+		"Renderer", scale,
+		current_row_ == RowOpenGL::Renderer ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + RowOpenGL::Renderer * y_step,
+		settings_.GetOrSetBool( SettingsKeys::software_rendering, false ) ? "Software" : "OpenGL",
+		scale,
+		current_row_ == RowOpenGL::Renderer ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
+	if( current_renderer_ == Renderer::Software )
+	{
+		char pixel_size[16];
+		std::snprintf( pixel_size, sizeof(pixel_size), "%d", settings_.GetOrSetInt( SettingsKeys::software_scale, 1 ) );
+
+		text_draw.Print(
+			param_descr_x, y + RowSoftware::PixelSize * y_step,
+			"Pixel size", scale,
+			current_row_ == RowSoftware::PixelSize ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowSoftware::PixelSize * y_step,
+			pixel_size,
+			scale,
+			current_row_ == RowSoftware::PixelSize  ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+	}
+	else if( current_renderer_ == Renderer::OpenGL )
+	{
+		text_draw.Print(
+			param_descr_x, y + RowOpenGL::DynamicLighting* y_step,
+			"Dynamic lighting", scale,
+			current_row_ == RowOpenGL::DynamicLighting ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowOpenGL::DynamicLighting * y_step,
+			settings_.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, true ) ? g_on : g_off,
+			scale,
+			current_row_ == RowOpenGL::DynamicLighting ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+	}
+}
+
+MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		const auto key= event.event.key.key_code;
+
+		if( key == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + current_num_rows_ ) % current_num_rows_;
+		}
+		if( key == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 ) % current_num_rows_;
+		}
+		if( current_row_ == 0 )
+		{
+			if( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter )
+				current_renderer_= current_renderer_ == 1 ? 0 : 1;
+			current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
+			settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
+			PlayMenuSound( Sound::SoundId::MenuChange );
+		}
+
+		if( current_renderer_ == Renderer::Software )
+		{
+			if( current_row_ == RowSoftware::PixelSize &&
+				( key == KeyCode::Left || key == KeyCode::Right ) )
+			{
+				int delta= key == KeyCode::Left ? -1 : 1;
+				const int pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + delta;
+				settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+		}
+		else if( current_renderer_ == Renderer::OpenGL )
+		{
+			if( current_row_ == RowOpenGL::DynamicLighting &&
+				( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+			{
+				settings_.SetSetting(
+					SettingsKeys::opengl_dynamic_lighting,
+					! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
+				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
+		}
+	}
+
+	return this;
+}
+
 // Video Menu
 
 class VideoMenu final : public MenuBase
@@ -1291,7 +1464,7 @@ private:
 	{
 		enum : int
 		{
-			Controls, Video, AlwaysRun, Crosshair, RevertMouse, WeaponReset, FXVolume, CDVolume, MouseSEnsitivity, NumRows
+			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, FXVolume, CDVolume, MouseSEnsitivity, NumRows
 		};
 	};
 	int current_row_= 0;
@@ -1308,6 +1481,7 @@ private:
 
 	ControlsMenu controls_menu_;
 	VideoMenu video_menu_;
+	GraphicsMenu graphics_menu_;
 };
 
 OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
@@ -1315,6 +1489,7 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	, settings_( host_commands.GetSettings() )
 	, controls_menu_( this, sound_engine, host_commands )
 	, video_menu_( this, sound_engine, host_commands )
+	, graphics_menu_( this, sound_engine, host_commands )
 {
 	always_run_= settings_.GetOrSetBool( SettingsKeys::always_run, true );
 	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
@@ -1360,6 +1535,11 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		param_descr_x, y + Row::Video * y_step,
 		"Video...", scale,
 		current_row_ == Row::Video ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_descr_x, y + Row::Graphics * y_step,
+		"Graphics...", scale,
+		current_row_ == Row::Graphics ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Right );
 
 	text_draw.Print(
@@ -1487,6 +1667,9 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 			case Row::Video:
 				PlayMenuSound( Sound::SoundId::MenuSelect );
 				return &video_menu_;
+			case Row::Graphics:
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				return &graphics_menu_;
 			default:
 				break;
 			};

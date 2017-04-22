@@ -10,6 +10,7 @@
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
 #include "../settings.hpp"
+#include "../shared_settings_keys.hpp"
 #include "map_drawers_common.hpp"
 #include "weapon_state.hpp"
 
@@ -180,7 +181,7 @@ MapDrawerGL::MapDrawerGL(
 	const RenderingContextGL& rendering_context )
 	: game_resources_(game_resources)
 	, rendering_context_(rendering_context)
-	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( "r_dynamic_lighting", true ) )
+	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, true ) )
 	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
 {
 	PC_ASSERT( game_resources_ != nullptr );

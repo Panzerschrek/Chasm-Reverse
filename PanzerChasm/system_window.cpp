@@ -169,7 +169,7 @@ SystemWindow::SystemWindow( Settings& settings )
 
 	GetVideoModes();
 
-	const bool is_opengl= ! settings.GetOrSetBool( "r_software_rendering", false );
+	const bool is_opengl= ! settings.GetOrSetBool( SettingsKeys::software_rendering, false );
 
 	int width= 0, height= 0, scale= 1;
 	unsigned int frequency= 0u, display= 0u;
@@ -238,7 +238,7 @@ windowed:
 
 	if( !is_opengl )
 	{
-		scale= settings_.GetInt( "r_software_scale", 1 );
+		scale= settings_.GetInt( SettingsKeys::software_scale, 1 );
 		if( scale < 1 ) scale= 1;
 
 		// Make scale smaller, if it is very big.
@@ -247,7 +247,7 @@ windowed:
 			height / scale < int(GameConstants::min_screen_height) )
 			scale--;
 
-		settings_.SetSetting( "r_software_scale", scale );
+		settings_.SetSetting( SettingsKeys::software_scale, scale );
 	}
 	pixel_size_= scale;
 

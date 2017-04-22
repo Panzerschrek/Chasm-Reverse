@@ -33,6 +33,11 @@ const char fullscreen_width []= "r_fullscreen_width" ;
 const char fullscreen_height[]= "r_fullscreen_height";
 const char fullscreen_frequency[]= "r_fullscreen_frequency";
 
+const char software_rendering[]= "r_software_rendering";
+const char software_scale[]= "r_software_scale";
+
+const char opengl_dynamic_lighting[]= "r_dynamic_lighting";
+
 } // namespace SettingsKeys
 
 } // PanzerChasm
