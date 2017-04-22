@@ -609,7 +609,7 @@ void Monster::RotateToTarget( float time_delta_s )
 
 bool Monster::SelectTarget( const Map& map )
 {
-	const float c_half_view_angle= Constants::half_pi;
+	const float c_half_view_angle= Constants::half_pi * 0.75f;
 	const float c_half_view_angle_cos= std::cos( c_half_view_angle );
 	const m_Vec2 view_dir( std::cos(angle_), std::sin(angle_) );
 
@@ -630,10 +630,13 @@ bool Monster::SelectTarget( const Map& map )
 		if( distance_to_player >= nearest_player_distance )
 			continue;
 
-		// TODO - add angle check, if needed
-		const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
-		if( angle_cos < c_half_view_angle_cos )
-			continue;
+		if( state_ == State::Idle )
+		{
+			// Monsters in Idle state have no back eyes.
+			const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
+			if( angle_cos < c_half_view_angle_cos )
+				continue;
+		}
 
 		if( CanSee( map, player.Position() ) )
 		{
