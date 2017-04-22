@@ -58,4 +58,10 @@ bool BBoxIsOutsideView(
 	return false;
 }
 
+unsigned int GetModelBMPSpritePhase( const MapState::StaticModel& model )
+{
+	// Generate pseudo-random animation phase for sprite, because synchronous animation of nearby sprites looks ugly.
+	return static_cast<unsigned int>( model.pos.x * 13.0f + model.pos.y * 19.0f + model.angle * 29.0f );
+}
+
 } // namespace PanzerChasm

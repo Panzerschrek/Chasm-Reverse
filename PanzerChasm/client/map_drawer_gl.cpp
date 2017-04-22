@@ -1733,8 +1733,7 @@ void MapDrawerGL::DrawBMPObjectsSprites(
 		sprites_shader_.Uniform( "tex", int(0) );
 		sprites_shader_.Uniform( "lightmap", int(1) );
 
-		// Generate pseudo-random animation phase for sprite, because synchronous animation of nearby sprites looks ugly.
-		const unsigned int phase= static_cast<unsigned int>( pos.x * 13.0f + pos.y * 19.0f + model.angle * 29.0f );
+		const unsigned int phase= GetModelBMPSpritePhase( model );
 		const unsigned int frame= static_cast<unsigned int>( sprites_frame + phase ) % sprite_picture.frame_count;
 		sprites_shader_.Uniform( "frame", float(frame) );
 		sprites_shader_.Uniform( "lightmap_coord", pos.xy() / float(MapData::c_map_size) );

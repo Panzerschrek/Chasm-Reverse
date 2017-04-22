@@ -152,6 +152,12 @@ private:
 		const m_Vec3& camera_position,
 		const ViewClipPlanes& view_clip_planes );
 
+	void DrawBMPObjectsSprites(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position,
+		const ViewClipPlanes& view_clip_planes );
+
 	// Returns new vertex count.
 	// clipped_vertices_ used
 	unsigned int ClipPolygon(
@@ -199,6 +205,7 @@ private:
 	unsigned int first_ceiling_= 0u;
 
 	std::vector<SpriteTexture> sprite_effects_textures_;
+	std::vector<SpriteTexture> bmp_objects_sprites_;
 	SkyTexture sky_texture_;
 
 	// Reuse vector (do not create new vector each frame).

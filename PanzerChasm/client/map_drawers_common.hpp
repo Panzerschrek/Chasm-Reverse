@@ -25,4 +25,6 @@ bool BBoxIsOutsideView(
 	const m_BBox3& bbox,
 	const m_Mat4& bbox_mat );
 
+unsigned int GetModelBMPSpritePhase( const MapState::StaticModel& model );
+
 } // namespace PanzerChasm

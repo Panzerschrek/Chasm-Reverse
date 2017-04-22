@@ -154,6 +154,22 @@ MapDrawerSoft::MapDrawerSoft(
 		for( unsigned int j= 0u; j < pixel_count; j++ )
 			out_sprite_texture.data[j]= palette[in_sprite.data[j]];
 	}
+
+	bmp_objects_sprites_.resize( game_resources_->bmp_objects_sprites.size() );
+	for( unsigned int i= 0u; i < bmp_objects_sprites_.size(); i++ )
+	{
+		const ObjSprite& in_sprite= game_resources_->bmp_objects_sprites[i];
+		SpriteTexture& out_sprite_texture= bmp_objects_sprites_[i];
+
+		out_sprite_texture.size[0]= in_sprite.size[0];
+		out_sprite_texture.size[1]= in_sprite.size[1];
+		out_sprite_texture.size[2]= in_sprite.frame_count;
+
+		const unsigned int pixel_count= in_sprite.size[0] * in_sprite.size[1] * in_sprite.frame_count;
+		out_sprite_texture.data.resize( pixel_count );
+		for( unsigned int j= 0u; j < pixel_count; j++ )
+			out_sprite_texture.data[j]= palette[in_sprite.data[j]];
+	}
 }
 
 MapDrawerSoft::~MapDrawerSoft()
@@ -362,6 +378,7 @@ void MapDrawerSoft::Draw(
 	}
 
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
+	DrawBMPObjectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
 	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
 		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
@@ -1579,6 +1596,110 @@ void MapDrawerSoft::DrawEffectsSprites(
 					Rasterizer::Lighting::No, Rasterizer::Blending::Yes>;
 
 		(rasterizer_.*draw_func)( verties_projected, polygon_vertex_count, false );
+	}
+}
+
+void MapDrawerSoft::DrawBMPObjectsSprites(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position,
+	const ViewClipPlanes& view_clip_planes )
+{
+	const float sprites_frame= map_state.GetSpritesFrame();
+
+	// TODO - maybe add hierarchical depth test?
+	for( const MapState::StaticModel& model : map_state.GetStaticModels() )
+	{
+		if( model.model_id >= current_map_data_->models_description.size() )
+			continue;
+
+		const MapData::ModelDescription& model_description= current_map_data_->models_description[ model.model_id ];
+		const int bmp_obj_id= model_description.bobj - 1u;
+		if( bmp_obj_id < 0 || bmp_obj_id > static_cast<int>( game_resources_->bmp_objects_description.size() ) )
+			continue;
+
+		const GameResources::BMPObjectDescription& bmp_description= game_resources_->bmp_objects_description[ bmp_obj_id ];
+		const ObjSprite& sprite_picture= game_resources_->bmp_objects_sprites[ bmp_obj_id ];
+		const SpriteTexture& sprite_texture= bmp_objects_sprites_[ bmp_obj_id ];
+
+		const float additional_scale= ( bmp_description.half_size ? 0.5f : 1.0f ) / 128.0f;
+		const m_Vec3 scale_vec(
+			float(sprite_texture.size[0]) * additional_scale,
+			1.0f,
+			float(sprite_texture.size[1]) * additional_scale );
+
+		m_Vec3 pos= model.pos;
+		pos.z+= float( model_description.bmpz ) / 64.0f + scale_vec.z;
+
+		const m_Vec3 vec_to_sprite= pos - camera_position;
+		float sprite_angles[2];
+		VecToAngles( vec_to_sprite, sprite_angles );
+
+		m_Mat4 rotate_z, shift_mat, sprite_mat;
+		rotate_z.RotateZ( sprite_angles[0] - Constants::half_pi );
+		shift_mat.Translate( pos );
+		sprite_mat= rotate_z * shift_mat;
+
+		clipped_vertices_[0].pos= m_Vec3( -scale_vec.x, 0.0f, -scale_vec.z ) * sprite_mat;
+		clipped_vertices_[1].pos= m_Vec3( +scale_vec.x, 0.0f, -scale_vec.z ) * sprite_mat;
+		clipped_vertices_[2].pos= m_Vec3( +scale_vec.x, 0.0f, +scale_vec.z ) * sprite_mat;
+		clipped_vertices_[3].pos= m_Vec3( -scale_vec.x, 0.0f, +scale_vec.z ) * sprite_mat;
+		clipped_vertices_[0].tc= m_Vec2( 0.0f, 0.0f );
+		clipped_vertices_[1].tc= m_Vec2( float(sprite_texture.size[0] << 16), 0.0f );
+		clipped_vertices_[2].tc= m_Vec2( float(sprite_texture.size[0] << 16), float(sprite_texture.size[1] << 16) );
+		clipped_vertices_[3].tc= m_Vec2( 0.0f, float(sprite_texture.size[1] << 16) );
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[3];
+		clipped_vertices_[3].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 4u;
+
+		unsigned int polygon_vertex_count= 4u;
+		for( const m_Plane3& plane : view_clip_planes )
+		{
+			polygon_vertex_count= ClipPolygon( plane, polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
+				break;
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * view_matrix;
+			const float w= v->pos.x * view_matrix.value[3] + v->pos.y * view_matrix.value[7] + v->pos.z * view_matrix.value[11] + view_matrix.value[15];
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= fixed16_t( v->tc.x );
+			out_v.v= fixed16_t( v->tc.y );
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+
+		const unsigned int phase= GetModelBMPSpritePhase( model );
+		const unsigned int frame= static_cast<unsigned int>( sprites_frame + phase ) % sprite_picture.frame_count;
+
+		rasterizer_.SetTexture(
+			sprite_texture.size[0], sprite_texture.size[1],
+			sprite_texture.data.data() + sprite_texture.size[0] * sprite_texture.size[1] * frame );
+
+		rasterizer_.DrawTexturedConvexPolygonSpanCorrected<
+			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+			Rasterizer::AlphaTest::Yes,
+			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+			Rasterizer::Lighting::No, Rasterizer::Blending::Yes>
+				( verties_projected, polygon_vertex_count, false );
 	}
 }
 
