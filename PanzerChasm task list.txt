@@ -11,7 +11,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   "checkback".
 * Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
-* Dorabotka povedenija monstrov, issledovanije ih povedenija v originaljnoj igre.
+* Dorabotka povedenija monstrov. Draki drug s drugom, reakçija na zvuk.
 * Dorabotka bossov.
 * Kalibrovka castoty animaçij oružija, monstrov, objektov urovnä, podbirajemyh
   predmetov, raket.
@@ -24,7 +24,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Issledovanije vlijanija urovnej složnosti na uron.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto
   rabotajet v originale.
-* Skriptovyje sçeny meždu urovnämi.
 
 
 [GRAFIKA]
@@ -45,13 +44,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 [SOFTWARE RENDERER]
 * Dobavlenije v BSP-derevo dinamiceskih sten.
-* Optimizaçija ijerarhiceskogo testa perekrytija.
-* Surface-cache. Po krajnej mere dlä sten, polov, potolkov.
-* Risovanije poligonov modelej s naloženijem osvescenija pri rasterizaçii.
-* Alpha-blending.
 * Vytaskivanije iz modelej ishodnyh cetyröhugoljnikov, a ne toljko gotovogo
   razbijenija na treugoljniki.
-* Risovanije minikarty.
 * Dinamiceskoje osvescenije.
 * Teni.
 
