@@ -36,6 +36,9 @@ public:
 	bool operator> ( const Time& other ) const;
 	bool operator>=( const Time& other ) const;
 
+	// Upscale time.
+	Time operator*( unsigned int scale ) const;
+
 private:
 	Time()= delete;
 	explicit Time( int64_t points );
@@ -45,5 +48,8 @@ private:
 
 	int64_t time_;
 };
+
+// Upscale time.
+Time operator*( unsigned int scale, const Time& time );
 
 } // namespace PanzerChasm

@@ -111,4 +111,14 @@ Time::Time( const int64_t points )
 	: time_(points)
 {}
 
+Time Time::operator*( const unsigned int scale ) const
+{
+	return Time( time_ * int(scale) );
+}
+
+Time operator*( const unsigned int scale, const Time& time )
+{
+	return time * scale;
+}
+
 } // namespace PanzerChasm

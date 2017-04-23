@@ -32,7 +32,6 @@ Server::Server(
 	, map_end_callback_( [this]{ map_end_triggered_= true; } )
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
-	, last_tick_duration_( Time::FromSeconds(0) )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -154,18 +153,22 @@ void Server::Loop( bool paused )
 	// Do server logic
 	UpdateTimes();
 
-	// Process map inner logic
-	if( map_ != nullptr )
-		map_->Tick( server_accumulated_time_, last_tick_duration_ );
-
-	// Process players position
-	for( const ConnectedPlayerPtr& connected_player : players_ )
+	// Make several map ticks.
+	for( unsigned int t= 0u; t < map_tick_count_; t++ )
 	{
-		if( map_ != nullptr && !connected_player->player->IsNoclip() )
-			map_->ProcessPlayerPosition(
-				server_accumulated_time_,
-				connected_player->player_monster_id,
-				connected_player->connection_info.messages_sender );
+		// Process map inner logic
+		if( map_ != nullptr )
+			map_->Tick( map_ticks_[t].end, map_ticks_[t].duration );
+
+		// Process players position
+		for( const ConnectedPlayerPtr& connected_player : players_ )
+		{
+			if( map_ != nullptr && !connected_player->player->IsNoclip() )
+				map_->ProcessPlayerPosition(
+					map_ticks_[t].end,
+					connected_player->player_monster_id,
+					connected_player->connection_info.messages_sender );
+		}
 	}
 
 	// Send messages
@@ -440,13 +443,50 @@ void Server::UpdateTimes()
 {
 	const Time current_time= Time::CurrentTime();
 	Time dt= current_time - last_tick_;
-	dt= std::min( dt, Time::FromSeconds( 0.060 ) );
-	dt= std::max( dt, Time::FromSeconds( 0.002 ) );
-	last_tick_duration_= dt;
+
+	const float dt_s= dt.ToSeconds();
+	const float c_min_tick_duration_s=  4.0f / 1000.0f;
+	const float c_max_tick_duration_s= 30.0f / 1000.0f;
+	const float c_time_eps= 2.0f / 1000.0f;
+
+	if( dt_s < c_min_tick_duration_s )
+	{
+		// Skip this tick, accumulate more delta.
+		map_tick_count_= 0u;
+		return;
+	}
+	else if( dt_s > c_max_tick_duration_s )
+	{
+		// Devide long tick into 2 or more subticks.
+		// We assume, that server runs very fast, but client on same host is very slow.
+		// Therefore, make multiple fast server ticks per one slow client frame.
+
+		map_tick_count_= static_cast<unsigned int>( std::ceil( dt_s / ( c_max_tick_duration_s - c_time_eps ) ) );
+		if( map_tick_count_ > c_max_multiple_map_ticks )
+			map_tick_count_= c_max_multiple_map_ticks;
+		PC_ASSERT( map_tick_count_ >= 2u );
+
+		const Time map_tick_dt= Time::FromSeconds( dt_s / float(map_tick_count_) );
+		for( unsigned int i= 0u; i < map_tick_count_ - 1u; i++ )
+		{
+			map_ticks_[i].end= server_accumulated_time_ + map_tick_dt * (i+1u);
+			map_ticks_[i].duration= map_tick_dt;
+		}
+
+		map_ticks_[ map_tick_count_ - 1u ].end= server_accumulated_time_ + dt;
+		map_ticks_[ map_tick_count_ - 1u ].duration=
+			map_ticks_[ map_tick_count_ - 1u ].end - map_ticks_[ map_tick_count_ - 2u ].end;
+	}
+	else
+	{
+		// Tick time is in normal range.
+		map_tick_count_= 1u;
+		map_ticks_[0].end= server_accumulated_time_ + dt;
+		map_ticks_[0].duration= dt;
+	}
 
 	last_tick_= current_time;
-
-	server_accumulated_time_+= last_tick_duration_;
+	server_accumulated_time_+= dt;
 }
 
 void Server::GiveAmmo()

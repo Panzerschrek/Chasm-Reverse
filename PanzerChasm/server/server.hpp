@@ -52,6 +52,13 @@ private:
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;
 
+	struct TickTime
+	{
+		Time end= Time::FromSeconds(0);
+		Time duration= Time::FromSeconds(0);
+	};
+	static constexpr unsigned int c_max_multiple_map_ticks= 6u;
+
 private:
 	void UpdateTimes();
 
@@ -85,7 +92,9 @@ private:
 
 	Time last_tick_; // Real time
 	Time server_accumulated_time_; // Not real, can be faster or slower.
-	Time last_tick_duration_;
+
+	TickTime map_ticks_[ c_max_multiple_map_ticks ];
+	unsigned int map_tick_count_;
 
 	// Cheats
 	bool noclip_= false;
