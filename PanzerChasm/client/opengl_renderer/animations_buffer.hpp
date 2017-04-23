@@ -3,7 +3,7 @@
 #include <buffer_texture.hpp>
 #include <texture.hpp>
 
-#include "../model.hpp"
+#include "../../model.hpp"
 
 namespace PanzerChasm
 {

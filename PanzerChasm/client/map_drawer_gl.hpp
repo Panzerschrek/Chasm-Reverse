@@ -7,11 +7,11 @@
 
 #include "../fwd.hpp"
 #include "../rendering_context.hpp"
-#include "animations_buffer.hpp"
 #include "i_map_drawer.hpp"
 #include "fwd.hpp"
-#include "map_light.hpp"
 #include "map_state.hpp"
+#include "opengl_renderer/animations_buffer.hpp"
+#include "opengl_renderer/map_light.hpp"
 
 namespace PanzerChasm
 {

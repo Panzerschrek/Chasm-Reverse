@@ -5,9 +5,9 @@
 #include <polygon_buffer.hpp>
 #include <texture.hpp>
 
-#include "../fwd.hpp"
-#include "../map_loader.hpp"
-#include "../rendering_context.hpp"
+#include "../../fwd.hpp"
+#include "../../map_loader.hpp"
+#include "../../rendering_context.hpp"
 #include "fwd.hpp"
 
 namespace PanzerChasm

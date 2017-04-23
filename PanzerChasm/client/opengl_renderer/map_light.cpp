@@ -2,10 +2,10 @@
 
 #include <ogl_state_manager.hpp>
 
-#include "../game_resources.hpp"
-#include "../map_loader.hpp"
-#include "../math_utils.hpp"
-#include "map_state.hpp"
+#include "../../game_resources.hpp"
+#include "../../map_loader.hpp"
+#include "../../math_utils.hpp"
+#include "../map_state.hpp"
 
 #include "map_light.hpp"
 

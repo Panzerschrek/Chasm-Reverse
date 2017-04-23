@@ -36,7 +36,6 @@ INCLUDEPATH+= ../panzer_ogl_lib
 INCLUDEPATH+= $$SDL_INCLUDES_DIR
 
 SOURCES+= \
-	client/animations_buffer.cpp \
 	client/client.cpp \
 	client/cutscene_player.cpp \
 	client/cutscene_script.cpp \
@@ -46,12 +45,13 @@ SOURCES+= \
 	client/map_drawers_common.cpp \
 	client/map_drawer_gl.cpp \
 	client/map_drawer_soft.cpp \
-	client/map_light.cpp \
 	client/minimap_drawer_gl.cpp \
 	client/minimap_drawer_soft.cpp \
 	client/minimap_state.cpp \
 	client/map_state.cpp \
 	client/movement_controller.cpp \
+	client/opengl_renderer/animations_buffer.cpp \
+	client/opengl_renderer/map_light.cpp \
 	client/software_renderer/map_bsp_tree.cpp \
 	client/software_renderer/rasterizer.cpp \
 	client/software_renderer/surfaces_cache.cpp \
@@ -110,7 +110,6 @@ SOURCES+= \
 
 HEADERS+= \
 	assert.hpp \
-	client/animations_buffer.hpp \
 	client/client.hpp \
 	client/cutscene_player.hpp \
 	client/cutscene_script.hpp \
@@ -124,13 +123,14 @@ HEADERS+= \
 	client/map_drawers_common.hpp \
 	client/map_drawer_gl.hpp \
 	client/map_drawer_soft.hpp \
-	client/map_light.hpp \
 	client/map_state.hpp \
 	client/minimap_drawers_common.hpp \
 	client/minimap_drawer_gl.hpp \
 	client/minimap_drawer_soft.hpp \
 	client/minimap_state.hpp \
 	client/movement_controller.hpp \
+	client/opengl_renderer/animations_buffer.hpp \
+	client/opengl_renderer/map_light.hpp \
 	client/software_renderer/fixed.hpp \
 	client/software_renderer/map_bsp_tree.hpp \
 	client/software_renderer/map_bsp_tree.inl \
