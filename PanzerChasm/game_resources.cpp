@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
@@ -574,8 +575,12 @@ void LoadSoundsDescriptionFromMapResourcesFile(
 		out_sounds[s].volume= 0u;
 	}
 
-	const char* const start= std::strstr( reinterpret_cast<const char*>(resoure_file.data()), "#newsounds" );
-	if( start == nullptr )
+	// Use std::search instead of std::strstr, because input string is not null-terminated.
+	const char* const file_begin= reinterpret_cast<const char*>(resoure_file.data());
+	const char* const file_end= file_begin + resoure_file.size();
+	const char* const str= "#newsounds";
+	const char* const start= std::search( file_begin, file_end, str, str + std::strlen(str) );
+	if( start == file_end )
 		return;
 
 	const char* const end= std::strstr( start, "#end" );
