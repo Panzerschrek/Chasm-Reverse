@@ -108,8 +108,6 @@ Host::Host( const int argc, const char* const* const argv )
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
 
-	net_.reset( new Net() );
-
 	Log::Info( "Create system window" );
 	system_window_.reset( new SystemWindow( settings_ ) );
 	system_window_->SetTitle( base_window_title_ );
@@ -335,6 +333,7 @@ void Host::ConnectToServer(
 	Log::Info( "Connecting to ", address.ToString() );
 
 	EnsureClient();
+	EnsureNet();
 
 	ClearBeforeGameStart();
 
@@ -359,6 +358,7 @@ void Host::StartServer(
 	const uint16_t server_base_udp_port )
 {
 	EnsureServer();
+	EnsureNet();
 	if( !dedicated )
 	{
 		EnsureClient();
@@ -659,6 +659,15 @@ void Host::EnsureLoopbackBuffer()
 
 	Log::Info( "Create loopback buffer" );
 	loopback_buffer_= std::make_shared<LoopbackBuffer>();
+}
+
+void Host::EnsureNet()
+{
+	if( net_ != nullptr )
+		return;
+
+	Log::Info( "Initialize net subsystem" );
+	net_.reset( new Net() );
 }
 
 void Host::ClearBeforeGameStart()

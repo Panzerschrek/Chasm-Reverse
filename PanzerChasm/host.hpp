@@ -70,6 +70,7 @@ private:
 	void EnsureClient();
 	void EnsureServer();
 	void EnsureLoopbackBuffer();
+	void EnsureNet();
 
 	void ClearBeforeGameStart();
 
