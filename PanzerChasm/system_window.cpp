@@ -254,6 +254,7 @@ windowed:
 	viewport_size_.Width ()= static_cast<unsigned int>( width  / scale );
 	viewport_size_.Height()= static_cast<unsigned int>( height / scale );
 
+	use_gl_context_for_software_renderer_= !is_opengl && settings_.GetOrSetBool( "r_software_use_gl_screen_update", true );
 	if( is_opengl )
 	{
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
@@ -267,22 +268,39 @@ windowed:
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
 	}
+	else
+	{
+		// In this mode we required most simple opengl - 1.1 version. It does`nt requires any flags.
+	}
 
 	window_=
 		SDL_CreateWindow(
 			"PanzerChasm",
 			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 			width, height,
-			( is_opengl ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN );
+			( (is_opengl || use_gl_context_for_software_renderer_) ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN );
 
 	if( window_ == nullptr )
 		Log::FatalError( "Can not create window" );
 
-	if( is_opengl )
+	if( is_opengl || use_gl_context_for_software_renderer_ )
 	{
 		gl_context_= SDL_GL_CreateContext( window_ );
 		if( gl_context_ == nullptr )
 			Log::FatalError( "Can not create OpenGL context" );
+
+		Log::Info("");
+		Log::Info( "OpenGL configuration: " );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
+		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
+		Log::Info( "Version: ", glGetString( GL_VERSION ) );
+		Log::Info("");
+
+		if( settings_.GetOrSetBool( "r_gl_vsync", true ) )
+			SDL_GL_SetSwapInterval(1);
+		else
+			SDL_GL_SetSwapInterval(0);
 	}
 
 	if( fullscreen )
@@ -319,25 +337,37 @@ windowed:
 
 	if( is_opengl )
 	{
-		if( settings_.GetOrSetBool( "r_gl_vsync", true ) )
-			SDL_GL_SetSwapInterval(1);
-		else
-			SDL_GL_SetSwapInterval(0);
-
 		GetGLFunctions( SDL_GL_GetProcAddress );
 
 		#ifdef DEBUG
 		if( glDebugMessageCallback != nullptr )
 			glDebugMessageCallback( &GLDebugMessageCallback, NULL );
 		#endif
+	}
+	else if( use_gl_context_for_software_renderer_ )
+	{
+		pixel_colors_order_.components_indeces[ PixelColorsOrder::R ]= 0u;
+		pixel_colors_order_.components_indeces[ PixelColorsOrder::G ]= 1u;
+		pixel_colors_order_.components_indeces[ PixelColorsOrder::B ]= 2u;
+		pixel_colors_order_.components_indeces[ PixelColorsOrder::A ]= 3u;
 
-		Log::Info("");
-		Log::Info( "OpenGL configuration: " );
-		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-		Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
-		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
-		Log::Info( "Version: ", glGetString( GL_VERSION ) );
-		Log::Info("");
+		scaled_viewport_buffer_width_= viewport_size_.Width();
+		scaled_viewport_color_buffer_.resize( scaled_viewport_buffer_width_ * viewport_size_.Height() );
+
+		glGenTextures( 1, &software_renderer_gl_texture_ );
+		glBindTexture( GL_TEXTURE_2D, software_renderer_gl_texture_ );
+		glTexImage2D(
+			GL_TEXTURE_2D, 0,
+			GL_RGBA8, viewport_size_.Width(), viewport_size_.Height(),
+			0,
+			GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+		const GLint filtration=
+			( pixel_size_ > 1u && settings_.GetOrSetBool( "r_software_gl_update_smooth", true ) )
+				? GL_LINEAR : GL_NEAREST;
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtration );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtration );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 	}
 	else
 	{
@@ -399,6 +429,9 @@ windowed:
 
 SystemWindow::~SystemWindow()
 {
+	if( software_renderer_gl_texture_ != ~0u )
+		glDeleteTextures( 1u, &software_renderer_gl_texture_ );
+
 	if( gl_context_ != nullptr )
 		SDL_GL_DeleteContext( gl_context_ );
 
@@ -409,7 +442,7 @@ SystemWindow::~SystemWindow()
 
 bool SystemWindow::IsOpenGLRenderer() const
 {
-	return gl_context_ != nullptr;
+	return gl_context_ != nullptr && !use_gl_context_for_software_renderer_;
 }
 
 Size2 SystemWindow::GetViewportSize() const
@@ -442,7 +475,7 @@ RenderingContextSoft SystemWindow::GetRenderingContextSoft()
 	RenderingContextSoft result;
 
 	result.viewport_size= viewport_size_;
-	if( pixel_size_ == 1u )
+	if( pixel_size_ == 1u && !use_gl_context_for_software_renderer_ )
 	{
 		result.row_pixels= surface_->pitch / 4u;
 		result.window_surface_data= static_cast<unsigned int*>( surface_->pixels );
@@ -470,6 +503,14 @@ void SystemWindow::BeginFrame()
 		if( need_clear )
 			glClear( GL_COLOR_BUFFER_BIT );
 	}
+	else if( use_gl_context_for_software_renderer_ )
+	{
+		if( need_clear )
+			std::memset(
+				scaled_viewport_color_buffer_.data(),
+				0,
+				scaled_viewport_color_buffer_.size() * sizeof(uint32_t) );
+	}
 	else
 	{
 		if( pixel_size_ == 1u && SDL_MUSTLOCK( surface_ ) )
@@ -495,6 +536,25 @@ void SystemWindow::EndFrame()
 {
 	if( IsOpenGLRenderer() )
 	{
+		SDL_GL_SwapWindow( window_ );
+	}
+	else if( use_gl_context_for_software_renderer_ )
+	{
+		glBindTexture( GL_TEXTURE_2D, software_renderer_gl_texture_ );
+		glTexSubImage2D(
+			GL_TEXTURE_2D, 0,
+			0, 0, viewport_size_.Width(), viewport_size_.Height(),
+			GL_RGBA, GL_UNSIGNED_BYTE, scaled_viewport_color_buffer_.data() );
+
+		glEnable( GL_TEXTURE_2D );
+
+		glBegin( GL_QUADS );
+		glTexCoord2f( 0.0f, 0.0f ); glVertex2f( -1.0f, -1.0f * -1.0f );
+		glTexCoord2f( 1.0f, 0.0f ); glVertex2f( +1.0f, -1.0f * -1.0f );
+		glTexCoord2f( 1.0f, 1.0f ); glVertex2f( +1.0f, +1.0f * -1.0f );
+		glTexCoord2f( 0.0f, 1.0f ); glVertex2f( -1.0f, +1.0f * -1.0f );
+		glEnd();
+
 		SDL_GL_SwapWindow( window_ );
 	}
 	else

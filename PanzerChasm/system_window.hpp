@@ -63,6 +63,8 @@ private:
 
 	SDL_Window* window_= nullptr;
 	SDL_GLContext gl_context_= nullptr; // If not null - current mode is OpenGL, else - software.
+	bool use_gl_context_for_software_renderer_= false;
+	unsigned int software_renderer_gl_texture_= ~0u;
 
 	// Software renderer params.
 	SDL_Surface* surface_= nullptr;
