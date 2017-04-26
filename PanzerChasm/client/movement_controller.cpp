@@ -260,15 +260,37 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 	base_sensetivity= std::max( 0.0f, std::min( base_sensetivity, 1.0f ) );
 	settings_.SetSetting( SettingsKeys::mouse_sensetivity, base_sensetivity );
 
+	float d_x_f, d_z_f;
+	if( settings_.GetOrSetBool( "cl_mouse_filter", true ) )
+	{
+		d_x_f= float( delta_x + prev_controller_delta_x_ ) * 0.5f;
+		d_z_f= float( delta_z + prev_controller_delta_z_ ) * 0.5f;
+	}
+	else
+	{
+		d_x_f= float(delta_x);
+		d_z_f= float(delta_z);
+	}
+
+	if( settings_.GetOrSetBool( "cl_mouse_acceleration", true ) )
+	{
+		const float c_acceleration= 0.25f;
+		const float c_max_acceleration_factor= 2.0f;
+		d_x_f= std::min( c_acceleration * std::sqrt(std::abs(d_x_f)), c_max_acceleration_factor ) * d_x_f;
+		d_z_f= std::min( c_acceleration * std::sqrt(std::abs(d_z_f)), c_max_acceleration_factor ) * d_z_f;
+	}
+
 	const float c_max_exp_sensetivity= 8.0f;
 	const float exp_sensetivity= std::exp( base_sensetivity * std::log(c_max_exp_sensetivity) ); // [ 1; c_max_exp_sensetivity ]
 
 	const float c_pix_scale= 1.0f / 1024.0f;
-
 	const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -1.0f : +1.0f;
 
-	angle_.x-= exp_sensetivity * c_pix_scale * float(delta_x) * z_direction;
-	angle_.z-= exp_sensetivity * c_pix_scale * float(delta_z);
+	angle_.x-= exp_sensetivity * c_pix_scale * d_x_f * z_direction;
+	angle_.z-= exp_sensetivity * c_pix_scale * d_z_f * 0.5f;
+
+	prev_controller_delta_x_= delta_x;
+	prev_controller_delta_z_= delta_z;
 }
 
 void MovementController::FetchSettingsParams()

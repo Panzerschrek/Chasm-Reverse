@@ -65,6 +65,8 @@ private:
 
 	const Time start_tick_;
 	Time prev_calc_tick_;
+
+	int prev_controller_delta_x_= 0, prev_controller_delta_z_= 0;
 };
 
 } // namespace ChasmReverse
