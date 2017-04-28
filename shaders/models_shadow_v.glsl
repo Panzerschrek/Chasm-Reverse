@@ -32,5 +32,5 @@ void main()
 #endif
 
 	f_discard_mask= ( enabled_groups_mask & groups_mask ) == 0 ? 0.0 : 1.0;
-	gl_Position= view_matrix * vec4( pos.xy, 0.01, 1.0 );
+	gl_Position= view_matrix * vec4( pos.xy, c_shadows_z_offset, 1.0 );
 }
