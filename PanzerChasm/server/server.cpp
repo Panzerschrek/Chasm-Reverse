@@ -361,6 +361,7 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 	show_progress( 0.5f );
 
 	game_rules_= static_cast<GameRules>( game_rules );
+	map_changed_from_previous_map_= false;
 	current_map_data_= map_data;
 	map_.reset(
 		new Map(
