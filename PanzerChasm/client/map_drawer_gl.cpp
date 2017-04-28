@@ -47,6 +47,14 @@ const r_OGLState g_sky_gl_state(
 	false, false, true, false,
 	g_gl_state_blend_func );
 
+const r_OGLState g_shadows_gl_state(
+	true, true, true, false,
+	g_gl_state_blend_func,
+	r_OGLState::default_clear_color,
+	r_OGLState::default_clear_depth,
+	r_OGLState::default_cull_face_mode,
+	false );
+
 } // namespace
 
 struct FloorVertex
@@ -316,6 +324,12 @@ MapDrawerGL::MapDrawerGL(
 	models_shader_.SetAttribLocation( "alpha_test_mask", 3u );
 	models_shader_.Create();
 
+	models_shadow_shader_.ShaderSource(
+		rLoadShader( "models_shadow_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "models_shadow_v.glsl", rendering_context.glsl_version, models_defines ) );
+	models_shadow_shader_.SetAttribLocation( "vertex_id", 0u );
+	models_shadow_shader_.Create();
+
 	if( use_hd_dynamic_lightmap_ )
 		sprites_shader_.ShaderSource(
 			rLoadShader( "sprites_f.glsl", rendering_context.glsl_version ),
@@ -453,6 +467,11 @@ void MapDrawerGL::Draw(
 
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
 	DrawSky( view_rotation_and_projection_matrix );
+
+	r_OGLStateManager::UpdateState( g_shadows_gl_state );
+	DrawMapModelsShadows( map_state, view_matrix, view_clip_planes );
+	DrawItemsShadows( map_state, view_matrix, view_clip_planes );
+	DrawMonstersShadows( map_state, view_matrix, view_clip_planes, player_monster_id );
 
 	/*
 	TRANSPARENT SECTION
@@ -1884,6 +1903,172 @@ void MapDrawerGL::DrawSky( const m_Mat4& view_rotation_matrix )
 	sky_shader_.Uniform( "view_matrix", view_rotation_matrix );
 
 	sky_geometry_data_.Draw();
+}
+
+
+void MapDrawerGL::DrawMapModelsShadows(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes )
+{
+	PC_UNUSED(view_clip_planes);
+
+	models_geometry_data_.Bind();
+	models_shadow_shader_.Bind();
+
+	models_animations_.Bind( 0 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+
+	const bool transparent= false;
+	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+	{
+		if( static_model.model_id >= models_geometry_.size() ||
+			!static_model.visible )
+			continue;
+
+		const MapData::ModelDescription& description= current_map_data_->models_description[ static_model.model_id ];
+		if( !description.cast_shadow )
+			continue;
+
+		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
+		// const Model& model= current_map_data_->models[ static_model.model_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			model_geometry.animations_vertex_count * static_model.animation_frame;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
+
+		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			model_geometry.first_vertex_index );
+	}
+}
+
+void MapDrawerGL::DrawItemsShadows(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes )
+{
+	PC_UNUSED(view_clip_planes);
+
+	items_geometry_data_.Bind();
+	models_shadow_shader_.Bind();
+
+	items_animations_.Bind( 0 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+
+	const bool transparent= false;
+	for( const MapState::Item& item : map_state.GetItems() )
+	{
+		if( item.picked_up || item.item_id >= items_geometry_.size() )
+			continue;
+
+		const GameResources::ItemDescription& description= game_resources_->items_description[ item.item_id ];
+		if( !description.cast_shadow )
+			continue;
+
+		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
+		// const Model& model= game_resources_->items_models[ item.item_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			model_geometry.animations_vertex_count * item.animation_frame;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
+
+		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			model_geometry.first_vertex_index );
+	}
+}
+
+void MapDrawerGL::DrawMonstersShadows(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
+	const EntityId player_monster_id )
+{
+	PC_UNUSED(view_clip_planes);
+
+	monsters_geometry_data_.Bind();
+	models_shadow_shader_.Bind();
+
+	monsters_animations_.Bind( 0 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+
+	const bool transparent= false;
+	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
+	{
+		if( monster_value.first == player_monster_id ) // TODO - maybe cast player shadow?
+			continue;
+
+		const MapState::Monster& monster= monster_value.second;
+		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
+			monster.body_parts_mask == 0u ) // Monster is invisible.
+			continue;
+
+		// TODO - monsters cast shadows allways?
+		// const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster.monster_id ];
+
+		const MonsterModel& monster_model= monsters_models_[ monster.monster_id ];
+		const ModelGeometry& model_geometry= monster_model.geometry_description;
+		const Model& model= game_resources_->monsters_models[ monster.monster_id ];
+
+		PC_ASSERT( monster.animation < model.animations.size() );
+		PC_ASSERT( monster.animation_frame < model.animations[ monster.animation ].frame_count );
+		const unsigned int frame= model.animations[ monster.animation ].first_frame + monster.animation_frame;
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_animations_vertex=
+			model_geometry.first_animations_vertex +
+			frame * model_geometry.animations_vertex_count;
+
+		m_Mat4 model_matrix;
+		m_Mat3 lightmap_matrix;
+		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+
+		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+		// models_shadow_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) ); // TODO - mask support
+		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			model_geometry.first_vertex_index );
+	}
 }
 
 } // PanzerChasm
