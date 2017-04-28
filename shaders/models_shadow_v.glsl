@@ -1,6 +1,7 @@
 #include "constants.glsl"
 
 uniform mat4 view_matrix;
+uniform int enabled_groups_mask;
 
 #ifdef USE_2D_TEXTURES_FOR_ANIMATIONS
 uniform isampler2D animations_vertices_buffer;
@@ -10,6 +11,9 @@ uniform isamplerBuffer animations_vertices_buffer;
 uniform int first_animation_vertex_number;
 
 in int vertex_id;
+in int groups_mask;
+
+out float f_discard_mask; // Polygon discard
 
 void main()
 {
@@ -27,5 +31,6 @@ void main()
 			first_animation_vertex_number + vertex_id ).xyz ) * c_models_coordinates_scale;
 #endif
 
+	f_discard_mask= ( enabled_groups_mask & groups_mask ) == 0 ? 0.0 : 1.0;
 	gl_Position= view_matrix * vec4( pos.xy, 0.01, 1.0 );
 }

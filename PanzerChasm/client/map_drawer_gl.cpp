@@ -328,6 +328,7 @@ MapDrawerGL::MapDrawerGL(
 		rLoadShader( "models_shadow_f.glsl", rendering_context.glsl_version ),
 		rLoadShader( "models_shadow_v.glsl", rendering_context.glsl_version, models_defines ) );
 	models_shadow_shader_.SetAttribLocation( "vertex_id", 0u );
+	models_shadow_shader_.SetAttribLocation( "groups_mask", 4u );
 	models_shadow_shader_.Create();
 
 	if( use_hd_dynamic_lightmap_ )
@@ -1917,7 +1918,9 @@ void MapDrawerGL::DrawMapModelsShadows(
 	models_shadow_shader_.Bind();
 
 	models_animations_.Bind( 0 );
-	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+	models_shadow_shader_.Uniform( "animations_vertices_buffer", int(0) );
+
+	models_shadow_shader_.Uniform( "enabled_groups_mask", int(255) );
 
 	const bool transparent= false;
 	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
@@ -1969,7 +1972,9 @@ void MapDrawerGL::DrawItemsShadows(
 	models_shadow_shader_.Bind();
 
 	items_animations_.Bind( 0 );
-	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+	models_shadow_shader_.Uniform( "animations_vertices_buffer", int(0) );
+
+	models_shadow_shader_.Uniform( "enabled_groups_mask", int(255) );
 
 	const bool transparent= false;
 	for( const MapState::Item& item : map_state.GetItems() )
@@ -2021,7 +2026,7 @@ void MapDrawerGL::DrawMonstersShadows(
 	models_shadow_shader_.Bind();
 
 	monsters_animations_.Bind( 0 );
-	models_shader_.Uniform( "animations_vertices_buffer", int(0) );
+	models_shadow_shader_.Uniform( "animations_vertices_buffer", int(0) );
 
 	const bool transparent= false;
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
@@ -2059,7 +2064,7 @@ void MapDrawerGL::DrawMonstersShadows(
 		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
 
 		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
-		// models_shadow_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) ); // TODO - mask support
+		models_shadow_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
 		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
 
 		glDrawElementsBaseVertex(
