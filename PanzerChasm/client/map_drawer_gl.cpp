@@ -2043,12 +2043,13 @@ void MapDrawerGL::DrawMonstersShadows(
 	const bool transparent= false;
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
 	{
-		//if( monster_value.first == player_monster_id ) // TODO - maybe cast player shadow?
-		//	continue;
+		if( monster_value.first == player_monster_id ) // TODO - maybe cast player shadow?
+			continue;
 
 		const MapState::Monster& monster= monster_value.second;
 		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
-			monster.body_parts_mask == 0u ) // Monster is invisible.
+			monster.body_parts_mask == 0u || // Monster is invisible.
+			monster.is_fully_dead ) // Dead monsters does not cast shadows.
 			continue;
 
 		m_Vec3 light_pos;

@@ -56,6 +56,7 @@ struct MonsterState : public MessageBase
 	unsigned char body_parts_mask;
 	unsigned short animation;
 	unsigned short animation_frame;
+	bool is_fully_dead;
 };
 
 struct WallPosition : public MessageBase

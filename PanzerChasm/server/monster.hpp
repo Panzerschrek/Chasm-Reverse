@@ -47,6 +47,7 @@ public:
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
 	virtual void SetOnFloor( bool on_floor ) override;
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
+	virtual bool IsFullyDead() const override;
 
 private:
 	enum class State
