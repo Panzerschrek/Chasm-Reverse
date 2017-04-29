@@ -919,14 +919,14 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, NumRows
+			Renderer, DynamicLighting, Shadows, NumRows
 		};
 	};
 	struct RowSoftware
 	{
 		enum : int
 		{
-			Renderer, PixelSize, NumRows
+			Renderer, PixelSize, Shadows, NumRows
 		};
 	};
 
@@ -984,6 +984,22 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		current_row_ == RowOpenGL::Renderer ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
+	const auto draw_shadows_row=
+	[&]()
+	{
+		text_draw.Print(
+			param_descr_x, y + RowOpenGL::Shadows* y_step,
+			"Shadows", scale,
+			current_row_ == RowOpenGL::Shadows ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowOpenGL::Shadows * y_step,
+			settings_.GetOrSetBool( SettingsKeys::shadows, true ) ? g_on : g_off,
+			scale,
+			current_row_ == RowOpenGL::Shadows ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+	};
+
 	if( current_renderer_ == Renderer::Software )
 	{
 		char pixel_size[16];
@@ -1000,6 +1016,8 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			scale,
 			current_row_ == RowSoftware::PixelSize  ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 			ITextDrawer::Alignment::Left );
+
+		draw_shadows_row();
 	}
 	else if( current_renderer_ == Renderer::OpenGL )
 	{
@@ -1014,6 +1032,8 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			scale,
 			current_row_ == RowOpenGL::DynamicLighting ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 			ITextDrawer::Alignment::Left );
+
+		draw_shadows_row();
 	}
 }
 
@@ -1063,6 +1083,16 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 					! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
 				PlayMenuSound( Sound::SoundId::MenuChange );
 			}
+		}
+
+		// Shadows row is same for both renderers.
+		if( current_row_ == RowOpenGL::Shadows &&
+			( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+		{
+			settings_.SetSetting(
+				SettingsKeys::shadows,
+				! settings_.GetBool( SettingsKeys::shadows, true ) );
+			PlayMenuSound( Sound::SoundId::MenuChange );
 		}
 	}
 
