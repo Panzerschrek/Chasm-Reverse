@@ -27,7 +27,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [GRAFIKA]
-* Plavnoje izmenenije urovnä kamery pri hoždenii po stupenjkam.
 * Regulirovka jarkosti.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej. Naloženije
   tenej na dinamiceskije steny.

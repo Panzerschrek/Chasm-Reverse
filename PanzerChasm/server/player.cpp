@@ -663,7 +663,7 @@ bool Player::Move( const Time time_delta )
 	// TODO - calibrate this
 	const float c_acceleration= 40.0f;
 	const float c_deceleration= 20.0f;
-	const float c_jump_speed_delta= 3.3f;
+	const float c_jump_speed_delta= 2.9f;
 
 	const float speed_delta= time_delta_s * mevement_acceleration_ * c_acceleration;
 	const float deceleration_speed_delta= time_delta_s * c_deceleration;

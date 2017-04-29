@@ -394,6 +394,7 @@ void Map::PlayMapEventSound( const m_Vec3& pos, const unsigned int sound_id )
 
 m_Vec3 Map::CollideWithMap(
 	const m_Vec3 in_pos, const float height, const float radius,
+	const Time tick_delta,
 	bool& out_on_floor, MovementRestriction& out_movement_restriction ) const
 {
 	m_Vec2 pos= in_pos.xy();
@@ -450,13 +451,20 @@ m_Vec3 Map::CollideWithMap(
 			if( square_distance <= min_distance * min_distance )
 			{
 				// Pull up or down player.
-				if( model_geometry.z_max - z_bottom <= GameConstants::player_z_pull_distance )
+				if( model_z_max - z_bottom <= GameConstants::z_pull_distance &&
+					model_z_max + height <= GameConstants::walls_height )
 				{
-					new_z= std::max( new_z, model_z_max );
-					out_on_floor= true;
+					new_z+= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+					new_z= std::min( new_z, model_z_max );
+					if( new_z >= model_z_max )
+						out_on_floor= true;
 				}
-				else if( z_top - model_geometry.z_min <= GameConstants::player_z_pull_distance )
-					new_z= std::min( new_z, model_z_min - height );
+				else if( z_top - model_z_min <= GameConstants::z_pull_distance &&
+					model_z_min - height >= 0.0f )
+				{
+					new_z-= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+					new_z= std::max( new_z, model_z_min - height );
+				}
 				// Push sideways.
 				else
 				{
@@ -1426,7 +1434,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		const m_Vec3 old_monster_pos= monster.Position();
 		const m_Vec3 new_monster_pos=
 			CollideWithMap(
-				old_monster_pos, height, radius,
+				old_monster_pos, height, radius, last_tick_delta,
 				on_floor, movement_restriction );
 
 		const m_Vec3 position_delta= new_monster_pos - old_monster_pos;

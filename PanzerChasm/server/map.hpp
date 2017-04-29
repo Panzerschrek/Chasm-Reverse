@@ -75,6 +75,7 @@ public:
 
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
+		Time tick_delta,
 		bool& out_on_floor, MovementRestriction& out_movement_restriction ) const;
 
 	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;

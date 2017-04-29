@@ -33,7 +33,8 @@ constexpr float player_deathcam_level= 1.4f;
 constexpr float player_height= 0.9f;
 constexpr float player_radius= 60.0f / 256.0f;
 constexpr float player_interact_radius= 100.0f / 256.0f;
-constexpr float player_z_pull_distance= 1.0f / 4.0f;
+constexpr float z_pull_distance= 1.0f / 2.5f;
+constexpr float z_pull_speed= 2.5f;
 
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;
