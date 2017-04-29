@@ -1934,7 +1934,7 @@ void MapDrawerGL::DrawMapModelsShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( static_model.pos, map_state, light_pos ) )
+		if( !GetNearestLightSourcePos( static_model.pos, map_state, false, light_pos ) )
 			continue;
 
 		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
@@ -1993,7 +1993,7 @@ void MapDrawerGL::DrawItemsShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( item.pos, map_state, light_pos ) )
+		if( !GetNearestLightSourcePos( item.pos, map_state, true, light_pos ) )
 			continue;
 
 		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
@@ -2053,7 +2053,7 @@ void MapDrawerGL::DrawMonstersShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( monster.pos, map_state, light_pos ) )
+		if( !GetNearestLightSourcePos( monster.pos, map_state, true, light_pos ) )
 			continue;
 
 		// TODO - monsters cast shadows allways?
@@ -2098,6 +2098,7 @@ void MapDrawerGL::DrawMonstersShadows(
 bool MapDrawerGL::GetNearestLightSourcePos(
 	const m_Vec3& pos,
 	const MapState& map_state,
+	const bool use_dynamic_lights,
 	m_Vec3& out_light_pos ) const
 {
 	float nearest_source_square_distance= Constants::max_float;
@@ -2114,27 +2115,30 @@ bool MapDrawerGL::GetNearestLightSourcePos(
 		}
 	}
 
-	for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
+	if( use_dynamic_lights )
 	{
-		const float square_distance= ( light_flash.pos - pos.xy() ).SquareLength();
-		if( square_distance < nearest_source_square_distance )
+		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
 		{
-			nearest_source.x= light_flash.pos.x;
-			nearest_source.y= light_flash.pos.y;
-			nearest_source_square_distance= square_distance;
+			const float square_distance= ( light_flash.pos - pos.xy() ).SquareLength();
+			if( square_distance < nearest_source_square_distance )
+			{
+				nearest_source.x= light_flash.pos.x;
+				nearest_source.y= light_flash.pos.y;
+				nearest_source_square_distance= square_distance;
+			}
 		}
-	}
 
-	for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
-	{
-		const MapState::LightSource& light= light_source_value.second;
-
-		const float square_distance= ( light.pos - pos.xy() ).SquareLength();
-		if( square_distance < nearest_source_square_distance )
+		for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
 		{
-			nearest_source.x= light.pos.x;
-			nearest_source.y= light.pos.y;
-			nearest_source_square_distance= square_distance;
+			const MapState::LightSource& light= light_source_value.second;
+
+			const float square_distance= ( light.pos - pos.xy() ).SquareLength();
+			if( square_distance < nearest_source_square_distance )
+			{
+				nearest_source.x= light.pos.x;
+				nearest_source.y= light.pos.y;
+				nearest_source_square_distance= square_distance;
+			}
 		}
 	}
 

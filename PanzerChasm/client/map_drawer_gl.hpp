@@ -175,7 +175,11 @@ private:
 
 	// Returns false, if no near light source.
 	// TODO - maybe return "upper" light source in this case?
-	bool GetNearestLightSourcePos( const m_Vec3& pos, const MapState& map_state, m_Vec3& out_light_pos ) const;
+	bool GetNearestLightSourcePos(
+		const m_Vec3& pos,
+		const MapState& map_state,
+		bool use_dynamic_lights,
+		m_Vec3& out_light_pos ) const;
 
 private:
 	const GameResourcesConstPtr game_resources_;
