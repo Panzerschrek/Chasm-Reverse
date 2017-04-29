@@ -115,9 +115,10 @@ bool GetNearestLightSourcePos(
 		}
 	}
 
-	if( nearest_source_square_distance < 4.0f * 4.0f )
+	const float c_max_distance_to_light_source= 2.5f;
+	if( nearest_source_square_distance < c_max_distance_to_light_source* c_max_distance_to_light_source )
 	{
-		nearest_source.z= 4.0f;
+		nearest_source.z= GameConstants::walls_height * 2.0f; // Lit from abowe.
 		out_light_pos= nearest_source;
 		return true;
 	}
