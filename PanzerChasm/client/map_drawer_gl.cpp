@@ -1933,6 +1933,10 @@ void MapDrawerGL::DrawMapModelsShadows(
 		if( !description.cast_shadow )
 			continue;
 
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( static_model.pos, map_state, light_pos ) )
+			continue;
+
 		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
 		// const Model& model= current_map_data_->models[ static_model.model_id ];
 
@@ -1946,11 +1950,13 @@ void MapDrawerGL::DrawMapModelsShadows(
 			model_geometry.animations_vertex_count * static_model.animation_frame;
 
 		m_Mat4 model_matrix;
-		m_Mat3 lightmap_matrix;
+		m_Mat3 lightmap_matrix, rotation_matrix;
 		CreateModelMatrices( static_model.pos, static_model.angle, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( -static_model.angle );
 
 		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+		models_shadow_shader_.Uniform( "light_pos", ( light_pos - static_model.pos ) * rotation_matrix );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -1986,6 +1992,10 @@ void MapDrawerGL::DrawItemsShadows(
 		if( !description.cast_shadow )
 			continue;
 
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( item.pos, map_state, light_pos ) )
+			continue;
+
 		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
 		// const Model& model= game_resources_->items_models[ item.item_id ];
 
@@ -1999,11 +2009,13 @@ void MapDrawerGL::DrawItemsShadows(
 			model_geometry.animations_vertex_count * item.animation_frame;
 
 		m_Mat4 model_matrix;
-		m_Mat3 lightmap_matrix;
+		m_Mat3 lightmap_matrix, rotation_matrix;
 		CreateModelMatrices( item.pos, item.angle, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( - item.angle );
 
 		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+		models_shadow_shader_.Uniform( "light_pos", ( light_pos - item.pos ) * rotation_matrix );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -2031,12 +2043,16 @@ void MapDrawerGL::DrawMonstersShadows(
 	const bool transparent= false;
 	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
 	{
-		if( monster_value.first == player_monster_id ) // TODO - maybe cast player shadow?
-			continue;
+		//if( monster_value.first == player_monster_id ) // TODO - maybe cast player shadow?
+		//	continue;
 
 		const MapState::Monster& monster= monster_value.second;
 		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
 			monster.body_parts_mask == 0u ) // Monster is invisible.
+			continue;
+
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( monster.pos, map_state, light_pos ) )
 			continue;
 
 		// TODO - monsters cast shadows allways?
@@ -2060,12 +2076,14 @@ void MapDrawerGL::DrawMonstersShadows(
 			frame * model_geometry.animations_vertex_count;
 
 		m_Mat4 model_matrix;
-		m_Mat3 lightmap_matrix;
+		m_Mat3 lightmap_matrix, rotation_matrix;
 		CreateModelMatrices( monster.pos, monster.angle + Constants::half_pi, model_matrix, lightmap_matrix );
+		rotation_matrix.RotateZ( -( monster.angle + Constants::half_pi ) );
 
 		models_shadow_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
 		models_shadow_shader_.Uniform( "enabled_groups_mask", int(monster.body_parts_mask) );
 		models_shadow_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
+		models_shadow_shader_.Uniform( "light_pos", ( light_pos - monster.pos ) * rotation_matrix );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
@@ -2074,6 +2092,59 @@ void MapDrawerGL::DrawMonstersShadows(
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
 			model_geometry.first_vertex_index );
 	}
+}
+
+bool MapDrawerGL::GetNearestLightSourcePos(
+	const m_Vec3& pos,
+	const MapState& map_state,
+	m_Vec3& out_light_pos ) const
+{
+	float nearest_source_square_distance= Constants::max_float;
+	m_Vec3 nearest_source( 0.0f, 0.0f, 0.0f );
+
+	for( const MapData::Light& light : current_map_data_->lights )
+	{
+		const float square_distance= ( light.pos - pos.xy() ).SquareLength();
+		if( square_distance < nearest_source_square_distance )
+		{
+			nearest_source.x= light.pos.x;
+			nearest_source.y= light.pos.y;
+			nearest_source_square_distance= square_distance;
+		}
+	}
+
+	for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
+	{
+		const float square_distance= ( light_flash.pos - pos.xy() ).SquareLength();
+		if( square_distance < nearest_source_square_distance )
+		{
+			nearest_source.x= light_flash.pos.x;
+			nearest_source.y= light_flash.pos.y;
+			nearest_source_square_distance= square_distance;
+		}
+	}
+
+	for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
+	{
+		const MapState::LightSource& light= light_source_value.second;
+
+		const float square_distance= ( light.pos - pos.xy() ).SquareLength();
+		if( square_distance < nearest_source_square_distance )
+		{
+			nearest_source.x= light.pos.x;
+			nearest_source.y= light.pos.y;
+			nearest_source_square_distance= square_distance;
+		}
+	}
+
+	if( nearest_source_square_distance < 4.0f * 4.0f )
+	{
+		nearest_source.z= 4.0f;
+		out_light_pos= nearest_source;
+		return true;
+	}
+
+	return false;
 }
 
 } // PanzerChasm

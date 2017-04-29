@@ -2,6 +2,7 @@
 
 uniform mat4 view_matrix;
 uniform int enabled_groups_mask;
+uniform vec3 light_pos; // Model space light position.
 
 #ifdef USE_2D_TEXTURES_FOR_ANIMATIONS
 uniform isampler2D animations_vertices_buffer;
@@ -32,5 +33,8 @@ void main()
 #endif
 
 	f_discard_mask= ( enabled_groups_mask & groups_mask ) == 0 ? 0.0 : 1.0;
-	gl_Position= view_matrix * vec4( pos.xy, c_shadows_z_offset, 1.0 );
+
+	vec3 vec_from_light= pos - light_pos;
+	vec3 pos_projected= light_pos + vec_from_light / vec_from_light.z * (-light_pos.z);
+	gl_Position= view_matrix * vec4( pos_projected.xy, c_shadows_z_offset, 1.0 );
 }
