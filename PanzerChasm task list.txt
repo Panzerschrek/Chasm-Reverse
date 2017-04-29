@@ -38,7 +38,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Otsecenije objektov po piramide vidimosti.
 * Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
 * Sglaživanije.
-* Teni pod objektami, dlä kotoryh stoit flag "shadow".
+* Dorabotki tenej. Otbrasyvanije neskoljkih tenej objektami.
 * Risovanije modelej igrokov raznym çvetom.
 * Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
 
@@ -47,7 +47,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Vytaskivanije iz modelej ishodnyh cetyröhugoljnikov, a ne toljko gotovogo
   razbijenija na treugoljniki.
 * Dinamiceskoje osvescenije.
-* Teni.
 
 
 [ZVUK]
