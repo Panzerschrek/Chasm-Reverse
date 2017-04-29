@@ -79,6 +79,7 @@ public:
 		unsigned char body_parts_mask;
 		unsigned int animation;
 		unsigned int animation_frame;
+		bool is_fully_dead;
 	};
 
 	typedef std::unordered_map< EntityId, Monster > MonstersContainer;

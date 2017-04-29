@@ -490,6 +490,11 @@ void Monster::Teleport( const m_Vec3& pos, const float angle )
 	vertical_speed_= 0.0f;
 }
 
+bool Monster::IsFullyDead() const
+{
+	return state_ == State::Dead;
+}
+
 bool Monster::IsBoss() const
 {
 	// Bosses have hardcoded id.

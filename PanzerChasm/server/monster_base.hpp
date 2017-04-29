@@ -61,6 +61,7 @@ public:
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal )= 0;
 	virtual void SetOnFloor( bool on_floor )= 0;
 	virtual void Teleport( const m_Vec3& pos, float angle )= 0;
+	virtual bool IsFullyDead() const= 0;
 
 protected:
 	// TODO - check this. Some numbers may be incorrect.

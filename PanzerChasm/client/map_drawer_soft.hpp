@@ -147,6 +147,18 @@ private:
 		bool fullbright= false,
 		unsigned int submodel_id= ~0u  /* Submodel of model to draw. ~0 means base model. */ );
 
+	void DrawModelShadow(
+		const Model& base_model,
+		unsigned int animation_frame,
+		const ViewClipPlanes& view_clip_planes,
+		const m_Vec3& position,
+		const m_Mat4& rotation_matrix,
+		const m_Mat4& view_matrix,
+		const m_Vec3& camera_position,
+		const m_Vec3& light_pos,
+		unsigned char visible_groups_mask,
+		unsigned int submodel_id= ~0u  /* Submodel of model to draw. ~0 means base model. */ );
+
 	void DrawSky(
 		const m_Mat4& matrix,
 		const m_Vec3& sky_pos,

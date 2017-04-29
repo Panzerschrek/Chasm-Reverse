@@ -339,6 +339,11 @@ void Player::Teleport( const m_Vec3& pos, const float angle )
 	speed_.x= speed_.y= speed_.z= 0.0f;
 }
 
+bool Player::IsFullyDead() const
+{
+	return state_ == State::Dead;
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;
@@ -577,11 +582,6 @@ void Player::SetGodMode( const bool god_mode )
 		health_= GameConstants::player_max_health;
 		armor_= GameConstants::player_max_armor;
 	}
-}
-
-bool Player::IsFullyDead() const
-{
-	return state_ == State::Dead;
 }
 
 void Player::GiveWeapon()

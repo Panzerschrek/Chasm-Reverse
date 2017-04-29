@@ -157,7 +157,24 @@ private:
 
 	void DrawSky( const m_Mat4& view_rotation_and_projection_matrix );
 
+	void DrawMapModelsShadows(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes );
+
+	void DrawItemsShadows(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes );
+
+	void DrawMonstersShadows(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
+		EntityId player_monster_id );
+
 private:
+	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextGL rendering_context_;
 
@@ -189,6 +206,7 @@ private:
 	std::vector<WallVertex> dynamc_walls_vertices_;
 
 	r_GLSLProgram models_shader_;
+	r_GLSLProgram models_shadow_shader_;
 
 	std::vector<ModelGeometry> models_geometry_;
 	r_PolygonBuffer models_geometry_data_;
