@@ -6,6 +6,7 @@
 #include "../map_loader.hpp"
 #include "../math_utils.hpp"
 #include "../settings.hpp"
+#include "../shared_settings_keys.hpp"
 #include "map_drawers_common.hpp"
 #include "software_renderer/map_bsp_tree.hpp"
 #include "software_renderer/map_bsp_tree.inl"
@@ -378,88 +379,90 @@ void MapDrawerSoft::Draw(
 	}
 
 	// Shadows.
-
-	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+	if( settings_.GetOrSetBool( SettingsKeys::shadows, true ) )
 	{
-		if( static_model.model_id >= current_map_data_->models_description.size() ||
-			!static_model.visible )
-			continue;
+		for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+		{
+			if( static_model.model_id >= current_map_data_->models_description.size() ||
+				!static_model.visible )
+				continue;
 
-		const MapData::ModelDescription& description= current_map_data_->models_description[ static_model.model_id ];
-		if( !description.cast_shadow )
-			continue;
+			const MapData::ModelDescription& description= current_map_data_->models_description[ static_model.model_id ];
+			if( !description.cast_shadow )
+				continue;
 
-		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( static_model.pos, *current_map_data_, map_state, false, light_pos ) )
-			continue;
+			m_Vec3 light_pos;
+			if( !GetNearestLightSourcePos( static_model.pos, *current_map_data_, map_state, false, light_pos ) )
+				continue;
 
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( static_model.angle );
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( static_model.angle );
 
-		DrawModelShadow(
-			current_map_data_->models[ static_model.model_id ],
-			static_model.animation_frame,
-			view_clip_planes,
-			static_model.pos, rotate_mat,
-			cam_mat, camera_position, light_pos,
-			255u );
-	}
+			DrawModelShadow(
+				current_map_data_->models[ static_model.model_id ],
+				static_model.animation_frame,
+				view_clip_planes,
+				static_model.pos, rotate_mat,
+				cam_mat, camera_position, light_pos,
+				255u );
+		}
 
-	for( const MapState::Item& item : map_state.GetItems() )
-	{
-		if( item.item_id >= game_resources_->items_models.size() ||
-			item.picked_up )
-			continue;
+		for( const MapState::Item& item : map_state.GetItems() )
+		{
+			if( item.item_id >= game_resources_->items_models.size() ||
+				item.picked_up )
+				continue;
 
-		const GameResources::ItemDescription& description= game_resources_->items_description[ item.item_id ];
-		if( !description.cast_shadow )
-			continue;
+			const GameResources::ItemDescription& description= game_resources_->items_description[ item.item_id ];
+			if( !description.cast_shadow )
+				continue;
 
-		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( item.pos, *current_map_data_, map_state, true, light_pos ) )
-			continue;
+			m_Vec3 light_pos;
+			if( !GetNearestLightSourcePos( item.pos, *current_map_data_, map_state, true, light_pos ) )
+				continue;
 
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( item.angle );
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( item.angle );
 
-		DrawModelShadow(
-			game_resources_->items_models[ item.item_id ],
-			item.animation_frame,
-			view_clip_planes,
-			item.pos, rotate_mat,
-			cam_mat, camera_position, light_pos,
-			255u );
-	}
+			DrawModelShadow(
+				game_resources_->items_models[ item.item_id ],
+				item.animation_frame,
+				view_clip_planes,
+				item.pos, rotate_mat,
+				cam_mat, camera_position, light_pos,
+				255u );
+		}
 
-	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
-	{
-		const MapState::Monster& monster= monster_value.second;
-		if( monster.monster_id >= game_resources_->monsters_models.size() )
-			continue;
-		if( monster_value.first == player_monster_id )
-			continue;
-		if( monster.is_fully_dead )
-			continue;
+		for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
+		{
+			const MapState::Monster& monster= monster_value.second;
+			if( monster.monster_id >= game_resources_->monsters_models.size() )
+				continue;
+			if( monster_value.first == player_monster_id )
+				continue;
+			if( monster.is_fully_dead )
+				continue;
 
-		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( monster.pos, *current_map_data_, map_state, true, light_pos ) )
-			continue;
+			m_Vec3 light_pos;
+			if( !GetNearestLightSourcePos( monster.pos, *current_map_data_, map_state, true, light_pos ) )
+				continue;
 
-		const unsigned int frame=
-			game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
-			monster.animation_frame;
+			const unsigned int frame=
+				game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
+				monster.animation_frame;
 
-		m_Mat4 rotate_mat;
-		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
+			m_Mat4 rotate_mat;
+			rotate_mat.RotateZ( monster.angle + Constants::half_pi );
 
-		DrawModelShadow(
-			game_resources_->monsters_models[ monster.monster_id ],
-			frame,
-			view_clip_planes,
-			monster.pos, rotate_mat,
-			cam_mat, camera_position, light_pos,
-			monster.body_parts_mask );
-	}
+			DrawModelShadow(
+				game_resources_->monsters_models[ monster.monster_id ],
+				frame,
+				view_clip_planes,
+				monster.pos, rotate_mat,
+				cam_mat, camera_position, light_pos,
+				monster.body_parts_mask );
+		}
+	} // if shadows
 
 	// Transparent objects.
 

@@ -38,6 +38,8 @@ const char software_scale[]= "r_software_scale";
 
 const char opengl_dynamic_lighting[]= "r_dynamic_lighting";
 
+const char shadows[]= "r_shadows";
+
 } // namespace SettingsKeys
 
 } // PanzerChasm

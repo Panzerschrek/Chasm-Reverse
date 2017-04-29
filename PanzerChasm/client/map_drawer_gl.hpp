@@ -174,6 +174,7 @@ private:
 		EntityId player_monster_id );
 
 private:
+	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextGL rendering_context_;
 

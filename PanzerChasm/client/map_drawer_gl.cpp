@@ -187,7 +187,8 @@ MapDrawerGL::MapDrawerGL(
 	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContextGL& rendering_context )
-	: game_resources_(game_resources)
+	: settings_(settings)
+	, game_resources_(game_resources)
 	, rendering_context_(rendering_context)
 	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, true ) )
 	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
@@ -469,10 +470,13 @@ void MapDrawerGL::Draw(
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
 	DrawSky( view_rotation_and_projection_matrix );
 
-	r_OGLStateManager::UpdateState( g_shadows_gl_state );
-	DrawMapModelsShadows( map_state, view_matrix, view_clip_planes );
-	DrawItemsShadows( map_state, view_matrix, view_clip_planes );
-	DrawMonstersShadows( map_state, view_matrix, view_clip_planes, player_monster_id );
+	if( settings_.GetOrSetBool( SettingsKeys::shadows, true ) )
+	{
+		r_OGLStateManager::UpdateState( g_shadows_gl_state );
+		DrawMapModelsShadows( map_state, view_matrix, view_clip_planes );
+		DrawItemsShadows( map_state, view_matrix, view_clip_planes );
+		DrawMonstersShadows( map_state, view_matrix, view_clip_planes, player_monster_id );
+	}
 
 	/*
 	TRANSPARENT SECTION
