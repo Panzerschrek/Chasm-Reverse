@@ -377,6 +377,92 @@ void MapDrawerSoft::Draw(
 		}
 	}
 
+	// Shadows.
+
+	for( const MapState::StaticModel& static_model : map_state.GetStaticModels() )
+	{
+		if( static_model.model_id >= current_map_data_->models_description.size() ||
+			!static_model.visible )
+			continue;
+
+		const MapData::ModelDescription& description= current_map_data_->models_description[ static_model.model_id ];
+		if( !description.cast_shadow )
+			continue;
+
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( static_model.pos, *current_map_data_, map_state, false, light_pos ) )
+			continue;
+
+		m_Mat4 rotate_mat;
+		rotate_mat.RotateZ( static_model.angle );
+
+		DrawModelShadow(
+			current_map_data_->models[ static_model.model_id ],
+			static_model.animation_frame,
+			view_clip_planes,
+			static_model.pos, rotate_mat,
+			cam_mat, camera_position, light_pos,
+			255u );
+	}
+
+	for( const MapState::Item& item : map_state.GetItems() )
+	{
+		if( item.item_id >= game_resources_->items_models.size() ||
+			item.picked_up )
+			continue;
+
+		const GameResources::ItemDescription& description= game_resources_->items_description[ item.item_id ];
+		if( !description.cast_shadow )
+			continue;
+
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( item.pos, *current_map_data_, map_state, true, light_pos ) )
+			continue;
+
+		m_Mat4 rotate_mat;
+		rotate_mat.RotateZ( item.angle );
+
+		DrawModelShadow(
+			game_resources_->items_models[ item.item_id ],
+			item.animation_frame,
+			view_clip_planes,
+			item.pos, rotate_mat,
+			cam_mat, camera_position, light_pos,
+			255u );
+	}
+
+	for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
+	{
+		const MapState::Monster& monster= monster_value.second;
+		if( monster.monster_id >= game_resources_->monsters_models.size() )
+			continue;
+		if( monster_value.first == player_monster_id )
+			continue;
+		if( monster.is_fully_dead )
+			continue;
+
+		m_Vec3 light_pos;
+		if( !GetNearestLightSourcePos( monster.pos, *current_map_data_, map_state, true, light_pos ) )
+			continue;
+
+		const unsigned int frame=
+			game_resources_->monsters_models[ monster.monster_id ].animations[ monster.animation ].first_frame +
+			monster.animation_frame;
+
+		m_Mat4 rotate_mat;
+		rotate_mat.RotateZ( monster.angle + Constants::half_pi );
+
+		DrawModelShadow(
+			game_resources_->monsters_models[ monster.monster_id ],
+			frame,
+			view_clip_planes,
+			monster.pos, rotate_mat,
+			cam_mat, camera_position, light_pos,
+			monster.body_parts_mask );
+	}
+
+	// Transparent objects.
+
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 	DrawBMPObjectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
@@ -1422,6 +1508,234 @@ void MapDrawerSoft::DrawModel(
 			traingle_vertices[1]= verties_projected[ i + 1u ];
 			traingle_vertices[2]= verties_projected[ i + 2u ];
 			(rasterizer_.*triangle_func)( traingle_vertices );
+		}
+	} // for model triangles
+}
+
+void MapDrawerSoft::DrawModelShadow(
+	const Model& base_model,
+	const unsigned int animation_frame,
+	const ViewClipPlanes& view_clip_planes,
+	const m_Vec3& position,
+	const m_Mat4& rotation_matrix,
+	const m_Mat4& view_matrix,
+	const m_Vec3& camera_position,
+	const m_Vec3& light_pos,
+	const unsigned char visible_groups_mask,
+	const unsigned int submodel_id )
+{
+	const float c_shadow_z_offset= 0.02f;
+
+	const Submodel& model= (submodel_id == ~0u) ? base_model : base_model.submodels[ submodel_id ];
+	const std::vector<unsigned short>& indeces=  model.regular_triangles_indeces;
+	if( indeces.size() == 0u )
+		return;
+
+	m_Mat4 inv_rotation_mat= rotation_matrix;
+	inv_rotation_mat.Transpose(); // For rotation matrix transpose is euqivalent for inverse.
+
+	const m_Vec3 light_pos_model_space= ( light_pos - position ) * inv_rotation_mat;
+
+	PC_ASSERT( animation_frame < model.frame_count );
+	const m_BBox3& bbox= model.animations_bboxes[ animation_frame ];
+
+	const auto project_model_vertex=
+	[&]( const m_Vec3& v ) -> m_Vec3
+	{
+		const m_Vec3 vec_from_light= v - light_pos_model_space;
+		return m_Vec3( light_pos_model_space.xy() + vec_from_light.xy() / vec_from_light.z * (-light_pos_model_space.z), c_shadow_z_offset );
+	};
+
+	// Project bouning box to 2d bounding box.
+	m_BBox2 bbox_projected;
+	bbox_projected.min= bbox_projected.max= project_model_vertex( bbox.min ).xy();
+	for( unsigned int z= 0u; z < 2u; z++ )
+	for( unsigned int y= 0u; y < 2u; y++ )
+	for( unsigned int x= 0u; x < 2u; x++ )
+	{
+		const m_Vec3 point(
+			x == 0 ? bbox.min.x : bbox.max.x,
+			y == 0 ? bbox.min.y : bbox.max.y,
+			z == 0 ? bbox.min.z : bbox.max.z );
+
+		bbox_projected+= project_model_vertex( point ).xy();
+	}
+
+	unsigned int active_clip_planes_mask= 0u;
+
+	m_Mat4 translate_mat, bbox_mat;
+	translate_mat.Translate( position );
+	bbox_mat= rotation_matrix * translate_mat;
+
+	// Clip-planes bounding box test
+	for( const m_Plane3& clip_plane : view_clip_planes )
+	{
+		unsigned int vertices_inside= 0u;
+		for( unsigned int y= 0u; y < 2u; y++ )
+		for( unsigned int x= 0u; x < 2u; x++ )
+		{
+			const m_Vec3 point(
+				x == 0 ? bbox_projected.min.x : bbox_projected.max.x,
+				y == 0 ? bbox_projected.min.y : bbox_projected.max.y,
+				c_shadow_z_offset );
+
+			if( clip_plane.IsPointAheadPlane( point * bbox_mat ) )
+				vertices_inside++;
+		}
+
+		if( vertices_inside == 0u )
+			return; // Discard model - it is fully outside view
+
+		if( vertices_inside != 8u )
+			active_clip_planes_mask|= 1u << ( &clip_plane - &view_clip_planes[0] );
+	} // For clip planes
+
+	// Transform clip planes into model space.
+	ViewClipPlanes clip_planes_transformed;
+	unsigned int clip_planes_transformed_count= 0u;
+
+	for( unsigned int i= 0u; i < view_clip_planes.size(); i++ )
+	{
+		if( ( active_clip_planes_mask & ( 1 << i ) ) == 0u )
+			continue;
+
+		const m_Plane3& in_plane= view_clip_planes[i];
+		m_Plane3& out_plane= clip_planes_transformed[ clip_planes_transformed_count ];
+		clip_planes_transformed_count++;
+
+		out_plane.normal= in_plane.normal * inv_rotation_mat;
+		out_plane.dist= in_plane.dist + in_plane.normal * position;
+	}
+
+	// Calculate final matrix.
+	const m_Mat4 to_world_mat= rotation_matrix * translate_mat;
+	const m_Mat4 final_mat= to_world_mat * view_matrix;
+
+	// Calculate screen-space bounding box.
+	float x_min= Constants::max_float, x_max= Constants::min_float;
+	float y_min= Constants::max_float, y_max= Constants::min_float;
+	float w_min= Constants::max_float, w_max= Constants::min_float;
+	for( unsigned int y= 0u; y < 2u; y++ )
+	for( unsigned int x= 0u; x < 2u; x++ )
+	{
+		const m_Vec3 point(
+			x == 0 ? bbox_projected.min.x : bbox_projected.max.x,
+			y == 0 ? bbox_projected.min.y : bbox_projected.max.y,
+			c_shadow_z_offset );
+
+		const float w= point.x * final_mat.value[3] + point.y * final_mat.value[7] + point.z * final_mat.value[11] + final_mat.value[15];
+		if( w < w_min ) w_min= w;
+		if( w > w_max ) w_max= w;
+
+		if( w > 0.0f )
+		{
+			m_Vec2 vertex_projected= ( point * final_mat ).xy();
+			vertex_projected/= w;
+			const float screen_x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			const float screen_y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+			if( screen_x < x_min ) x_min= screen_x;
+			if( screen_x > x_max ) x_max= screen_x;
+			if( screen_y < y_min ) y_min= screen_y;
+			if( screen_y > y_max ) y_max= screen_y;
+		}
+	}
+
+	// Try to reject model, using hierarchical depth-test.
+	// Model must be not so near for thist test - farther, then z_near.
+	if( w_min > 1.1f / float( 1u << Rasterizer::c_max_inv_z_min_log2 ) )
+	{
+		PC_ASSERT( w_max >= w_min );
+
+		x_min= std::min( std::max( x_min, 0.0f ), screen_transform_x_ * 2.0f );
+		y_min= std::min( std::max( y_min, 0.0f ), screen_transform_y_ * 2.0f );
+		x_max= std::min( std::max( x_max, 0.0f ), screen_transform_x_ * 2.0f );
+		y_max= std::min( std::max( y_max, 0.0f ), screen_transform_y_ * 2.0f );
+		if( rasterizer_.IsDepthOccluded(
+			fixed16_t(x_min * 65536.0f), fixed16_t(y_min * 65536.0f),
+			fixed16_t(x_max * 65536.0f), fixed16_t(y_max * 65536.0f),
+			fixed16_t(w_min * 65536.0f), fixed16_t(w_max * 65536.0f) ) )
+			return;
+	}
+
+	const m_Vec3 cam_pos_model_space= ( camera_position - position ) * inv_rotation_mat;
+	if( cam_pos_model_space.z < 0.0f )
+		return; // We can not see shadow from bottom.
+
+	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
+
+	// Draw shadow triangles.
+	for( unsigned int t= 0u; t < indeces.size(); t+= 3u )
+	{
+		const Model::Vertex& first_vertex= model.vertices[ indeces[t] ];
+
+		if( ( first_vertex.groups_mask & visible_groups_mask ) == 0u )
+			continue;
+
+		m_Vec3 triangle_center( 0.0f, 0.0f, 0.0f );
+		for( unsigned int tv= 0u; tv < 3u; tv++ )
+		{
+			const Model::Vertex& vertex= model.vertices[ indeces[t + tv] ];
+			const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
+			const m_Vec3 vert_pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
+
+			clipped_vertices_[tv].pos= project_model_vertex( vert_pos );
+			clipped_vertices_[tv].tc.x= 0.0f;
+			clipped_vertices_[tv].tc.y= 0.0f;
+
+			triangle_center+= clipped_vertices_[tv].pos;
+		}
+		{ // Try reject back faces
+			const m_Vec3 v0= clipped_vertices_[1].pos - clipped_vertices_[0].pos;
+			const m_Vec3 v1= clipped_vertices_[2].pos - clipped_vertices_[0].pos;
+			const m_Vec3 vec_to_cam= cam_pos_model_space - clipped_vertices_[0].pos;
+			if( mVec3Cross( v0, v1 ) * vec_to_cam < 0.0f )
+				continue;
+		}
+		clipped_vertices_[0].next= &clipped_vertices_[1];
+		clipped_vertices_[1].next= &clipped_vertices_[2];
+		clipped_vertices_[2].next= &clipped_vertices_[0];
+		fisrt_clipped_vertex_= &clipped_vertices_[0];
+		next_new_clipped_vertex_= 3u;
+
+		unsigned int polygon_vertex_count= 3u;
+		for( unsigned int p= 0u; p < clip_planes_transformed_count; p++ )
+		{
+			polygon_vertex_count= ClipPolygon( clip_planes_transformed[p], polygon_vertex_count );
+			PC_ASSERT( polygon_vertex_count == 0u || polygon_vertex_count >= 3u );
+			if( polygon_vertex_count == 0u )
+				break;
+		}
+		if( polygon_vertex_count == 0u )
+			continue;
+
+		RasterizerVertex verties_projected[ c_max_clip_vertices_ ];
+		ClippedVertex* v= fisrt_clipped_vertex_;
+		for( unsigned int i= 0u; i < polygon_vertex_count; i++, v= v->next )
+		{
+			m_Vec3 vertex_projected= v->pos * final_mat;
+			const float w= v->pos.x * final_mat.value[3] + v->pos.y * final_mat.value[7] + v->pos.z * final_mat.value[11] + final_mat.value[15];
+
+			vertex_projected/= w;
+			vertex_projected.z= w;
+
+			vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+			vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+			RasterizerVertex& out_v= verties_projected[ i ];
+			out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+			out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+			out_v.u= 0;
+			out_v.v= 0;
+			out_v.z= fixed16_t( w * 65536.0f );
+		}
+
+		RasterizerVertex traingle_vertices[3];
+		traingle_vertices[0]= verties_projected[0];
+		for( unsigned int i= 0u; i < polygon_vertex_count - 2u; i++ )
+		{
+			traingle_vertices[1]= verties_projected[ i + 1u ];
+			traingle_vertices[2]= verties_projected[ i + 2u ];
+			rasterizer_.DrawShadowTriangle( traingle_vertices );
 		}
 	} // for model triangles
 }

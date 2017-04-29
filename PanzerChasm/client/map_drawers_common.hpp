@@ -27,4 +27,13 @@ bool BBoxIsOutsideView(
 
 unsigned int GetModelBMPSpritePhase( const MapState::StaticModel& model );
 
+// Returns false, if no near light source.
+// TODO - maybe return "upper" light source in this case?
+bool GetNearestLightSourcePos(
+	const m_Vec3& pos,
+	const MapData& map_data,
+	const MapState& map_state,
+	bool use_dynamic_lights,
+	m_Vec3& out_light_pos );
+
 } // namespace PanzerChasm

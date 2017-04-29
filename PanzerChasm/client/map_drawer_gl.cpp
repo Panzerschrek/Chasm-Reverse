@@ -1934,7 +1934,7 @@ void MapDrawerGL::DrawMapModelsShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( static_model.pos, map_state, false, light_pos ) )
+		if( !GetNearestLightSourcePos( static_model.pos, *current_map_data_, map_state, false, light_pos ) )
 			continue;
 
 		const ModelGeometry& model_geometry= models_geometry_[ static_model.model_id ];
@@ -1993,7 +1993,7 @@ void MapDrawerGL::DrawItemsShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( item.pos, map_state, true, light_pos ) )
+		if( !GetNearestLightSourcePos( item.pos, *current_map_data_, map_state, true, light_pos ) )
 			continue;
 
 		const ModelGeometry& model_geometry= items_geometry_[ item.item_id ];
@@ -2053,7 +2053,7 @@ void MapDrawerGL::DrawMonstersShadows(
 			continue;
 
 		m_Vec3 light_pos;
-		if( !GetNearestLightSourcePos( monster.pos, map_state, true, light_pos ) )
+		if( !GetNearestLightSourcePos( monster.pos, *current_map_data_, map_state, true, light_pos ) )
 			continue;
 
 		// TODO - monsters cast shadows allways?
@@ -2093,63 +2093,6 @@ void MapDrawerGL::DrawMonstersShadows(
 			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
 			model_geometry.first_vertex_index );
 	}
-}
-
-bool MapDrawerGL::GetNearestLightSourcePos(
-	const m_Vec3& pos,
-	const MapState& map_state,
-	const bool use_dynamic_lights,
-	m_Vec3& out_light_pos ) const
-{
-	float nearest_source_square_distance= Constants::max_float;
-	m_Vec3 nearest_source( 0.0f, 0.0f, 0.0f );
-
-	for( const MapData::Light& light : current_map_data_->lights )
-	{
-		const float square_distance= ( light.pos - pos.xy() ).SquareLength();
-		if( square_distance < nearest_source_square_distance )
-		{
-			nearest_source.x= light.pos.x;
-			nearest_source.y= light.pos.y;
-			nearest_source_square_distance= square_distance;
-		}
-	}
-
-	if( use_dynamic_lights )
-	{
-		for( const MapState::LightFlash& light_flash : map_state.GetLightFlashes() )
-		{
-			const float square_distance= ( light_flash.pos - pos.xy() ).SquareLength();
-			if( square_distance < nearest_source_square_distance )
-			{
-				nearest_source.x= light_flash.pos.x;
-				nearest_source.y= light_flash.pos.y;
-				nearest_source_square_distance= square_distance;
-			}
-		}
-
-		for( const MapState::LightSourcesContainer::value_type& light_source_value : map_state.GetLightSources() )
-		{
-			const MapState::LightSource& light= light_source_value.second;
-
-			const float square_distance= ( light.pos - pos.xy() ).SquareLength();
-			if( square_distance < nearest_source_square_distance )
-			{
-				nearest_source.x= light.pos.x;
-				nearest_source.y= light.pos.y;
-				nearest_source_square_distance= square_distance;
-			}
-		}
-	}
-
-	if( nearest_source_square_distance < 4.0f * 4.0f )
-	{
-		nearest_source.z= 4.0f;
-		out_light_pos= nearest_source;
-		return true;
-	}
-
-	return false;
 }
 
 } // PanzerChasm

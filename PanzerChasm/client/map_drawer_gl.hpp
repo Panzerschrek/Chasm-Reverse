@@ -173,14 +173,6 @@ private:
 		const ViewClipPlanes& view_clip_planes,
 		EntityId player_monster_id );
 
-	// Returns false, if no near light source.
-	// TODO - maybe return "upper" light source in this case?
-	bool GetNearestLightSourcePos(
-		const m_Vec3& pos,
-		const MapState& map_state,
-		bool use_dynamic_lights,
-		m_Vec3& out_light_pos ) const;
-
 private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextGL rendering_context_;

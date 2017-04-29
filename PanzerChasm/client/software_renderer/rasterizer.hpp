@@ -97,6 +97,9 @@ public:
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
 	void DrawColoredConvexPolygon( const RasterizerVertex* polygon_vertices, unsigned int vertex_count, bool is_anticlockwise, uint32_t color );
 
+	// Draw triangle with depth test, without depth-write, with blending and black color.
+	void DrawShadowTriangle( const RasterizerVertex* trianlge_vertices );
+
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
 		AlphaTest alpha_test,
@@ -154,6 +157,7 @@ private:
 	void DrawConvexPolygonPerspectiveCorrectedImpl( const RasterizerVertex* trianlge_vertices, unsigned int vertex_count, bool is_anticlockwise );
 
 	void DrawAffineColoredTrianglePart( uint32_t color );
+	void DrawShadowTrianglePart();
 
 	template<
 		DepthTest depth_test, DepthWrite depth_write,
