@@ -75,6 +75,7 @@ void Map::ProcessElementLinks(
 
 Map::Map(
 	const DifficultyType difficulty,
+	GameRules game_rules,
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
 	const Time map_start_time,
@@ -88,6 +89,10 @@ Map::Map(
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
+
+	unsigned int difficulty_mask= static_cast<unsigned int>( difficulty_ );
+	if( game_rules == GameRules::Deathmatch )
+		difficulty_mask|= 8u;
 
 	std::memset( wind_field_, 0, sizeof(wind_field_) );
 	std::memset( death_field_, 0, sizeof(death_field_) );
@@ -111,7 +116,7 @@ Map::Map(
 		const MapData::StaticModel& in_model= map_data_->static_models[m];
 		StaticModel& out_model= static_models_[m];
 
-		if( ( in_model.difficulty_flags & difficulty_ ) == 0u )
+		if( ( in_model.difficulty_flags & difficulty_mask ) == 0u )
 			out_model.model_id= 255; // Disable model for current difficulty. TODO - maybe tihs is not enough.
 		else
 			out_model.model_id= in_model.model_id;
@@ -160,7 +165,7 @@ Map::Map(
 		out_item.item_id= in_item.item_id;
 		out_item.pos= m_Vec3( in_item.pos, 0.0f );
 		out_item.picked_up= false;
-		out_item.enabled= ( in_item.difficulty_flags & difficulty_ ) != 0u;
+		out_item.enabled= ( in_item.difficulty_flags & difficulty_mask ) != 0u;
 	}
 
 	// Pull up items, which placed atop of models
@@ -189,7 +194,7 @@ Map::Map(
 		if( map_monster.monster_id == 0u )
 			continue;
 
-		if( ( map_monster.difficulty_flags & difficulty_ ) == 0u )
+		if( ( map_monster.difficulty_flags & difficulty_mask ) == 0u )
 			continue;
 
 		const EntityId& monster_id= GetNextMonsterId();

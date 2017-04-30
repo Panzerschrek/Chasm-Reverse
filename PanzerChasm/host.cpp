@@ -59,7 +59,6 @@ static DifficultyType DifficultyNumberToDifficulty( const unsigned int n )
 	case 0: return Difficulty::Easy;
 	case 1: return Difficulty::Normal;
 	case 2: return Difficulty::Hard;
-	case 3: return Difficulty::Deathmatch;
 	default: return Difficulty::Normal;
 	};
 }

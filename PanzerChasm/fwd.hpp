@@ -83,7 +83,6 @@ struct Difficulty
 		Easy= 1u,
 		Normal= 2u,
 		Hard= 4u,
-		Deathmatch= 8u,
 	};
 };
 

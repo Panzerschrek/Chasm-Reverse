@@ -95,7 +95,7 @@ public:
 
 private:
 	HostCommands& host_commands_;
-	int current_row_= 0;
+	int current_row_= 1;
 };
 
 NewGameMenu::NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
@@ -470,11 +470,11 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 			}
 			if( current_row_ == Row::Difficulty )
 			{
-				if( event.event.key.key_code == KeyCode::Left )
+				if( event.event.key.key_code == KeyCode::Right )
 					difficulty_++;
 				else
 					difficulty_--;
-				difficulty_= ( difficulty_ + 4u ) % 4u ;
+				difficulty_= ( difficulty_ + 3u ) % 3u ;
 			}
 			if( current_row_ == Row::Dedicated )
 				dedicated_= !dedicated_;
@@ -543,7 +543,6 @@ const char* NetworkCreateServerMenu::GetDifficultyStr()
 	case Difficulty::Easy: return "easy";
 	case Difficulty::Normal: return "normal";
 	case Difficulty::Hard: return "hard";
-	case Difficulty::Deathmatch: return "deathmatch";
 	};
 	return "";
 }

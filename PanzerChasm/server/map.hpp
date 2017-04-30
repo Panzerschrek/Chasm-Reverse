@@ -26,6 +26,7 @@ public:
 
 	Map(
 		DifficultyType difficulty,
+		GameRules game_rules,
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
 		Time map_start_time,

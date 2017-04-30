@@ -259,6 +259,7 @@ bool Server::ChangeMap(
 	map_.reset(
 		new Map(
 			difficulty,
+			game_rules,
 			map_data,
 			game_resources_,
 			server_accumulated_time_,
