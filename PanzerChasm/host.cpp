@@ -352,6 +352,7 @@ void Host::ConnectToServer(
 void Host::StartServer(
 	const unsigned int map_number,
 	const DifficultyType difficulty,
+	const GameRules game_rules,
 	const bool dedicated,
 	const uint16_t server_tcp_port,
 	const uint16_t server_base_udp_port )
@@ -378,7 +379,7 @@ void Host::StartServer(
 	}
 
 	const bool map_changed=
-		local_server_->ChangeMap( map_number, difficulty, GameRules::Cooperative /* todo - select */ );
+		local_server_->ChangeMap( map_number, difficulty, game_rules );
 
 	if( !map_changed )
 		return;
@@ -480,7 +481,7 @@ void Host::RunServerCommand( const CommandsArguments& args )
 	// TODO - parse args, somehow
 	PC_UNUSED(args);
 
-	StartServer( 1u, Difficulty::Normal, false, 0u, 0u );
+	StartServer( 1u, Difficulty::Normal, GameRules::Deathmatch, false, 0u, 0u );
 }
 
 void Host::SaveCommand( const CommandsArguments& args )

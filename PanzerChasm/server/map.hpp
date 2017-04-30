@@ -35,6 +35,7 @@ public:
 	// Construct from save
 	Map(
 		DifficultyType difficulty,
+		GameRules game_rules,
 		const MapDataConstPtr& map_data,
 		LoadStream& load_stream,
 		const GameResourcesConstPtr& game_resources,
@@ -315,6 +316,7 @@ private:
 
 private:
 	const DifficultyType difficulty_;
+	const GameRules game_rules_;
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const MapEndCallback map_end_callback_;

@@ -332,13 +332,14 @@ private:
 	{
 		enum : int
 		{
-			Map= 0, Difficulty, Dedicated, TCPPort, UDPBasePort, Start, NumRows
+			Map= 0, Difficulty, GameRules, Dedicated, TCPPort, UDPBasePort, Start, NumRows
 		};
 	};
 	int current_row_= 0;
 
 	unsigned int map_number_= 1u;
 	unsigned int difficulty_= 1u;
+	GameRules game_rules_= GameRules::Deathmatch;
 	bool dedicated_= false;
 
 	static constexpr unsigned int c_port_str_max_size= 8u;
@@ -399,6 +400,16 @@ void NetworkCreateServerMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_
 		param_x, y + Row::Difficulty * y_step,
 		GetDifficultyStr(), scale,
 		current_row_ == Row::Difficulty ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::GameRules * y_step,
+		"game type:", scale,
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::GameRules * y_step,
+		game_rules_ == GameRules::Deathmatch ? "deathmatch" : "cooperative", scale,
+		current_row_ == Row::GameRules ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
@@ -476,6 +487,10 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 					difficulty_--;
 				difficulty_= ( difficulty_ + 3u ) % 3u ;
 			}
+			if( current_row_ == Row::GameRules )
+			{
+				game_rules_= game_rules_ == GameRules::Cooperative ? GameRules::Deathmatch : GameRules::Cooperative;
+			}
 			if( current_row_ == Row::Dedicated )
 				dedicated_= !dedicated_;
 		}
@@ -506,6 +521,7 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 			host_commands_.StartServer(
 				map_number_,
 				static_cast<DifficultyType>( 1u << difficulty_ ),
+				game_rules_,
 				dedicated_,
 				std::atoi( tcp_port_ ),
 				std::atoi( base_udp_port_ ) );

@@ -171,11 +171,13 @@ void Map::Save( SaveStream& save_stream ) const
 
 Map::Map(
 	const DifficultyType difficulty,
+	const GameRules game_rules,
 	const MapDataConstPtr& map_data,
 	LoadStream& load_stream,
 	const GameResourcesConstPtr& game_resources,
 	MapEndCallback map_end_callback )
 	: difficulty_(difficulty)
+	, game_rules_(game_rules)
 	, map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )

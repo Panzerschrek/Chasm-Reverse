@@ -75,12 +75,13 @@ void Map::ProcessElementLinks(
 
 Map::Map(
 	const DifficultyType difficulty,
-	GameRules game_rules,
+	const GameRules game_rules,
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
 	const Time map_start_time,
 	MapEndCallback map_end_callback )
 	: difficulty_(difficulty)
+	, game_rules_(game_rules)
 	, map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
@@ -188,32 +189,35 @@ Map::Map(
 	}
 
 	// Spawn monsters
-	for( const MapData::Monster& map_monster : map_data_->monsters )
+	if( game_rules_ != GameRules::Deathmatch )
 	{
-		// Skip players
-		if( map_monster.monster_id == 0u )
-			continue;
+		for( const MapData::Monster& map_monster : map_data_->monsters )
+		{
+			// Skip players
+			if( map_monster.monster_id == 0u )
+				continue;
 
-		if( ( map_monster.difficulty_flags & difficulty_mask ) == 0u )
-			continue;
+			if( ( map_monster.difficulty_flags & difficulty_mask ) == 0u )
+				continue;
 
-		const EntityId& monster_id= GetNextMonsterId();
-		const MonsterBasePtr& monster=
-			monsters_[ monster_id ]=
-				MonsterPtr(
-					new Monster(
-						map_monster,
-						GetFloorLevel( map_monster.pos ),
-						game_resources_,
-						random_generator_,
-						map_start_time ) );
+			const EntityId& monster_id= GetNextMonsterId();
+			const MonsterBasePtr& monster=
+				monsters_[ monster_id ]=
+					MonsterPtr(
+						new Monster(
+							map_monster,
+							GetFloorLevel( map_monster.pos ),
+							game_resources_,
+							random_generator_,
+							map_start_time ) );
 
-		monsters_birth_messages_.emplace_back();
-		Messages::MonsterBirth& message= monsters_birth_messages_.back();
+			monsters_birth_messages_.emplace_back();
+			Messages::MonsterBirth& message= monsters_birth_messages_.back();
 
-		PrepareMonsterStateMessage( *monster, message.initial_state );
-		message.initial_state.monster_id= monster_id;
-		message.monster_id= monster_id;
+			PrepareMonsterStateMessage( *monster, message.initial_state );
+			message.initial_state.monster_id= monster_id;
+			message.monster_id= monster_id;
+		}
 	}
 }
 
@@ -1857,8 +1861,9 @@ void Map::TryActivateProcedure(
 		( !procedure. blue_key_required || player.HaveBlueKey() );
 
 	if(
-		have_necessary_keys &&
-		!procedure_state.locked &&
+		// Can open if have keys, procedure not locked.
+		// All proceduras are unlocked in deathmatch.
+		( ( have_necessary_keys && !procedure_state.locked ) || game_rules_ == GameRules::Deathmatch ) &&
 		procedure_state.movement_state == ProcedureState::MovementState::None )
 	{
 		ActivateProcedure( procedure_number, current_time );
@@ -1881,7 +1886,8 @@ void Map::TryActivateProcedure(
 		text_message.text_message_number= procedure.first_message_number;
 		messages_sender.SendUnreliableMessage( text_message );
 	}
-	if( procedure.lock_message_number != 0u &&
+	if( game_rules_ != GameRules::Deathmatch &&
+		procedure.lock_message_number != 0u &&
 		( procedure_state.locked || !have_necessary_keys ) )
 	{
 		Messages::TextMessage text_message;

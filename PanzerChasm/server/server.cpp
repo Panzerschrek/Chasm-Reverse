@@ -367,6 +367,7 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 	map_.reset(
 		new Map(
 			static_cast<DifficultyType>(difficulty),
+			GameRules::SinglePlayer,
 			map_data,
 			load_stream,
 			game_resources_,

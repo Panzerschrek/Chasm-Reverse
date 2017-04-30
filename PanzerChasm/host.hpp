@@ -40,6 +40,7 @@ public: // HostCommands
 	virtual void StartServer(
 		unsigned int map_number,
 		DifficultyType difficulty,
+		GameRules game_rules,
 		bool dedicated,
 		uint16_t server_tcp_port,
 		uint16_t server_base_udp_port ) override;
