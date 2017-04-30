@@ -59,7 +59,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [OBSCEJE]
-* Ukazyvanije pri zapuske igry direktorii s CSM.BIN fajlom.
 * Jedinyj progress zagruzki pri odnovremennoj rabote klijenta i servera na odnoj
   mašine.
 * Dorabotka sohranenija i zagruzki igry. Sohranenije vmeste s sostojanijem

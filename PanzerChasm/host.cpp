@@ -88,6 +88,14 @@ Host::Host( const int argc, const char* const* const argv )
 
 	{
 		Log::Info( "Read game archive" );
+
+		const char* csm_file= "CSM.BIN";
+		if( const char* const overrided_csm_file = program_arguments_.GetParamValue( "csm" ) )
+		{
+			csm_file= overrided_csm_file;
+			Log::Info( "Trying to load CSM file: \"", overrided_csm_file, "\"" );
+		}
+
 		const char* const addon_path= program_arguments_.GetParamValue( "addon" );
 		if( addon_path != nullptr )
 		{
@@ -97,7 +105,7 @@ Host::Host( const int argc, const char* const* const argv )
 			Log::Info( "Trying to load addon \"", addon_path, "\"" );
 		}
 
-		vfs_= std::make_shared<Vfs>( "CSM.BIN", addon_path );
+		vfs_= std::make_shared<Vfs>( csm_file, addon_path );
 	}
 
 	// Create directory for saves.
