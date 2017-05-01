@@ -563,6 +563,135 @@ const char* NetworkCreateServerMenu::GetDifficultyStr()
 	return "";
 }
 
+// PlayerSetupMenu
+
+class PlayerSetupMenu final : public MenuBase
+{
+public:
+	PlayerSetupMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands );
+	~PlayerSetupMenu() override;
+
+	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
+	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+
+private:
+	const char* GetDifficultyStr();
+
+private:
+	Settings& settings_;
+
+	struct Row
+	{
+		enum : int
+		{
+			Accept, NickName, Color, NumRows
+		};
+	};
+	int current_row_= 0;
+
+	static constexpr int c_max_nick_name_length= 15;
+	char nick_name_[ c_max_nick_name_length + 1 ];
+
+	int color_;
+};
+
+PlayerSetupMenu::PlayerSetupMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
+	: MenuBase( parent, sound_engine )
+	, settings_( host_commands.GetSettings() )
+{
+	// TODO - nickname
+	nick_name_[0]= '\0';
+
+	color_= settings_.GetOrSetInt( SettingsKeys::player_color, 0 );
+}
+
+PlayerSetupMenu::~PlayerSetupMenu()
+{}
+
+void PlayerSetupMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
+{
+	const Size2 viewport_size= menu_drawer.GetViewportSize();
+
+	const int scale= int( menu_drawer.GetMenuScale() );
+	const unsigned int font_step= text_draw.GetLineHeight() + 5u;
+	const unsigned int size[2]= { 210u, font_step * ( Row::NumRows + 2 ) };
+
+	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
+	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 75;
+	const int param_x= x + scale * 85;
+	const int y_step= int(font_step) * scale;
+
+	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
+
+	text_draw.Print(
+		int( viewport_size.xy[0] >> 1u ),
+		y - int( ( g_menu_caption_offset + text_draw.GetLineHeight() ) * scale ),
+		"Player setup:",
+		scale,
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Accept * y_step,
+		"Accept", scale,
+		current_row_ == Row::Accept ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+
+	text_draw.Print(
+		param_descr_x, y + Row::NickName * y_step,
+		"Nick name:", scale,
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::NickName * y_step,
+		"TODO", scale,
+		current_row_ == Row::NickName ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::Color * y_step,
+		"Color:", scale,
+		current_row_ == Row::Color ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	menu_drawer.DrawPlayerTorso(
+		param_x, y + Row::Color * y_step,
+		color_ );
+}
+
+MenuBase* PlayerSetupMenu::ProcessEvent( const SystemEvent& event )
+{
+	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	{
+		if( event.event.key.key_code == KeyCode::Up )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+		}
+
+		if( event.event.key.key_code == KeyCode::Down )
+		{
+			PlayMenuSound( Sound::SoundId::MenuChange );
+			current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;
+		}
+
+		if( current_row_ == Row::Color )
+		{
+			if( event.event.key.key_code == KeyCode::Left )
+				color_= ( color_ + int( GameConstants::player_colors_count ) - 1 ) % GameConstants::player_colors_count;
+			if( event.event.key.key_code == KeyCode::Right )
+				color_= ( color_ + 1 ) % GameConstants::player_colors_count;
+		}
+
+		if( current_row_ == Row::Accept && event.event.key.key_code == KeyCode::Enter )
+		{
+			settings_.SetSetting( SettingsKeys::player_color, color_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			return GetParent();
+		}
+	}
+
+	return this;
+}
+
 // NetworkMenu
 
 class NetworkMenu final : public MenuBase
@@ -586,6 +715,7 @@ NetworkMenu::NetworkMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 {
 	submenus_[0].reset( new NetworkConnectMenu( this, sound_engine, host_commands ) );
 	submenus_[1].reset( new NetworkCreateServerMenu( this, sound_engine, host_commands ) );
+	submenus_[2].reset( new PlayerSetupMenu( this, sound_engine, host_commands ) );
 }
 
 NetworkMenu::~NetworkMenu()
