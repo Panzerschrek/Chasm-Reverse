@@ -233,25 +233,48 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 {
 	PC_ASSERT( player != nullptr );
 
-	unsigned int min_spawn_number= ~0u;
-	const MapData::Monster* spawn_with_min_number= nullptr;
+	const MapData::Monster* target_spawn= nullptr;
 
-	for( const MapData::Monster& monster : map_data_->monsters )
+	if( game_rules_ == GameRules::SinglePlayer || game_rules_ == GameRules::Cooperative )
 	{
-		if( monster.difficulty_flags < min_spawn_number )
+		// In campagn modes spawn players only on first spawn point.
+		unsigned int min_spawn_number= ~0u;
+
+		for( const MapData::Monster& monster : map_data_->monsters )
 		{
-			min_spawn_number= monster.difficulty_flags;
-			spawn_with_min_number= &monster;
+			if( monster.monster_id == 0u && monster.difficulty_flags < min_spawn_number )
+			{
+				min_spawn_number= monster.difficulty_flags;
+				target_spawn= &monster;
+			}
 		}
 	}
+	else
+	{
+		// In deathmatch spawn players sequentially on all spawns.
+		unsigned int spawn_count= 0u;
+		for( const MapData::Monster& monster : map_data_->monsters )
+		{
+			if( monster.monster_id == 0u )
+			{
+				if( next_spawn_number_ == monster.difficulty_flags )
+					target_spawn= &monster;
+				spawn_count++;
+			}
+		}
+		PC_ASSERT( spawn_count > 0u );
+		if( spawn_count == 0u ) spawn_count= 1u;
 
-	if( spawn_with_min_number != nullptr )
+		next_spawn_number_= ( next_spawn_number_ + 1u ) % spawn_count;
+	}
+
+	if( target_spawn != nullptr )
 	{
 		player->Teleport(
 			m_Vec3(
-				spawn_with_min_number->pos,
-				GetFloorLevel( spawn_with_min_number->pos, GameConstants::player_radius ) ),
-			spawn_with_min_number->angle );
+				target_spawn->pos,
+				GetFloorLevel( target_spawn->pos, GameConstants::player_radius ) ),
+			target_spawn->angle );
 	}
 	else
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );

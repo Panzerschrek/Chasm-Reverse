@@ -323,6 +323,8 @@ private:
 
 	const LongRandPtr random_generator_;
 
+	unsigned int next_spawn_number_= 0u; // For multiplayer modes only. Do not save.
+
 	DynamicWalls dynamic_walls_;
 
 	std::vector<ProcedureState> procedures_;
