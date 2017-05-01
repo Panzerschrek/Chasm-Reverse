@@ -1688,7 +1688,10 @@ void MapDrawerGL::DrawMonsters(
 		monsters_shader_.Uniform( "rotation_matrix", rotation_matrix );
 		monsters_shader_.Uniform( "first_animation_vertex_number", int(first_animations_vertex) );
 
-		monster_model.texture.Bind(0);
+		if( monster.monster_id == 0u )
+			GetPlayerTexture( monster.color ).Bind(0);
+		else
+			monster_model.texture.Bind(0);
 		monsters_shader_.Uniform( "tex", int(0) );
 
 		glDrawElementsBaseVertex(
