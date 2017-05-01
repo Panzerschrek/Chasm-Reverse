@@ -11,6 +11,7 @@ const char crosshair[]= "cl_crosshair";
 const char reverse_mouse[]= "in_reverse_mouse";
 const char weapon_reset[]= "cl_weapon_reset";
 const char player_color[]= "cl_color";
+const char player_name[]= "cl_name";
 
 const char fx_volume[]= "s_volume";
 const char cd_volume[]= "cd_volume";

@@ -599,8 +599,10 @@ PlayerSetupMenu::PlayerSetupMenu( MenuBase* parent, const Sound::SoundEnginePtr&
 	: MenuBase( parent, sound_engine )
 	, settings_( host_commands.GetSettings() )
 {
-	// TODO - nickname
-	nick_name_[0]= '\0';
+	std::strncpy(
+		nick_name_,
+		settings_.GetOrSetString( SettingsKeys::player_name, "n00b" ),
+		sizeof(nick_name_) );
 
 	color_= settings_.GetOrSetInt( SettingsKeys::player_color, 0 );
 }
@@ -641,9 +643,11 @@ void PlayerSetupMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		param_descr_x, y + Row::NickName * y_step,
 		"Nick name:", scale,
 		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
+	char nick_with_cursor[ c_max_nick_name_length + 1 + 4 ];
+	std::snprintf( nick_with_cursor, sizeof(nick_with_cursor), "%s%s", nick_name_, current_row_ == Row::NickName ? "_" : "" );
 	text_draw.Print(
 		param_x, y + Row::NickName * y_step,
-		"TODO", scale,
+		nick_with_cursor, scale,
 		current_row_ == Row::NickName ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
@@ -684,8 +688,25 @@ MenuBase* PlayerSetupMenu::ProcessEvent( const SystemEvent& event )
 		if( current_row_ == Row::Accept && event.event.key.key_code == KeyCode::Enter )
 		{
 			settings_.SetSetting( SettingsKeys::player_color, color_ );
+			settings_.SetSetting( SettingsKeys::player_name, nick_name_ );
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			return GetParent();
+		}
+
+		if( current_row_ == Row::NickName && event.event.key.key_code == KeyCode::Backspace )
+		{
+			const unsigned int len= std::strlen( nick_name_ );
+			if( len > 0 ) nick_name_[ len - 1u ]= '\0';
+		}
+	}
+
+	if( current_row_ == Row::NickName && event.type == SystemEvent::Type::CharInput )
+	{
+		const unsigned int l= std::strlen( nick_name_ );
+		if( l < c_max_nick_name_length - 1u )
+		{
+			nick_name_[l]= event.event.char_input.ch;
+			nick_name_[l + 1u]= 0u;
 		}
 	}
 
