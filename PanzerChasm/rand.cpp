@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "assert.hpp"
 #include "math_utils.hpp"
 
@@ -91,6 +93,20 @@ bool LongRand::RandBool( const RandResultType chance_numerator, const RandResult
 	return
 		static_cast<ExtendedType>(Rand()) * static_cast<ExtendedType>(chance_denominator) <
 		static_cast<ExtendedType>(c_max_rand_plus_one_) * static_cast<ExtendedType>(chance_numerator);
+}
+
+uint32_t LongRand::GetInnerState() const
+{
+	uint32_t result;
+	// We assume, that std::linear_congruential_engine is simple struct without pointers.
+	std::memcpy( &result, &generator_, sizeof(Generator) );
+	return result;
+}
+
+void LongRand::SetInnerState( const uint32_t state )
+{
+	// We assume, that std::linear_congruential_engine is simple struct without pointers.
+	std::memcpy( &generator_, &state, sizeof(Generator) );
 }
 
 } // namespace PanzerChasm

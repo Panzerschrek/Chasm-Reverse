@@ -36,12 +36,20 @@ public:
 	// Returns "true" with chanse= chance_numerator / denominator.
 	bool RandBool( RandResultType chance_numerator, RandResultType chance_denominator );
 
+	// Serialization.
+	uint32_t GetInnerState() const;
+	void SetInnerState( uint32_t state );
+
 private:
 	// Simple and fast generator.
 	// Produces good result for bits 0-31.
 	// Parameters, same as in rand() from glibc.
 	typedef std::linear_congruential_engine< RandResultType, 1103515245u, 12345u, 1u << 31u > Generator;
 	typedef long long unsigned int ExtendedType;
+
+	static_assert(
+		sizeof(uint32_t) >= sizeof(Generator),
+		"Generator is too big. You need rewrite serialization methods" );
 
 public:
 	static constexpr RandResultType c_max_rand_plus_one_= Generator::modulus;

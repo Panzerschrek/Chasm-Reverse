@@ -8,6 +8,9 @@ namespace PanzerChasm
 
 void Map::Save( SaveStream& save_stream ) const
 {
+	// Random generator.
+	save_stream.WriteUInt32( random_generator_->GetInnerState() );
+
 	// Dynamic walls
 	save_stream.WriteUInt32( static_cast<uint32_t>( dynamic_walls_.size() ) );
 	for( const DynamicWall& wall : dynamic_walls_ )
@@ -186,6 +189,11 @@ Map::Map(
 {
 	PC_ASSERT( map_data_ != nullptr );
 	PC_ASSERT( game_resources_ != nullptr );
+
+	// Random generator.
+	uint32_t rand_state;
+	load_stream.ReadUInt32( rand_state );
+	random_generator_->SetInnerState( rand_state );
 
 	// Dynamic walls
 	unsigned int dynamic_walls_count;
