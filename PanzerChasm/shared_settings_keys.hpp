@@ -10,6 +10,7 @@ const char always_run[]= "sv_always_run";
 const char crosshair[]= "cl_crosshair";
 const char reverse_mouse[]= "in_reverse_mouse";
 const char weapon_reset[]= "cl_weapon_reset";
+const char player_color[]= "cl_color";
 
 const char fx_volume[]= "s_volume";
 const char cd_volume[]= "cd_volume";

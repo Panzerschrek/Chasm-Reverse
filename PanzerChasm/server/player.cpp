@@ -344,6 +344,11 @@ bool Player::IsFullyDead() const
 	return state_ == State::Dead;
 }
 
+unsigned char Player::GetColor() const
+{
+	return color_;
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;
@@ -562,6 +567,8 @@ void Player::UpdateMovement( const Messages::PlayerMove& move_message )
 	view_angle_x_= MessageAngleToAngle( move_message.view_dir_angle_x );
 	view_angle_z_= MessageAngleToAngle( move_message.view_dir_angle_z );
 	shoot_pressed_= move_message.shoot_pressed;
+
+	color_= move_message.color;
 }
 
 void Player::SetNoclip( const bool noclip )

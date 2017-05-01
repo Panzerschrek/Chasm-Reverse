@@ -56,7 +56,8 @@ struct MonsterState : public MessageBase
 	unsigned char body_parts_mask;
 	unsigned short animation;
 	unsigned short animation_frame;
-	bool is_fully_dead;
+	bool is_fully_dead : 1;
+	unsigned char color : 4; // For players only.
 };
 
 struct WallPosition : public MessageBase
@@ -314,11 +315,12 @@ struct PlayerMove : public MessageBase
 	AngleType view_direction;
 	AngleType move_direction;
 	unsigned char acceleration; // 0 - stay, 128 - walk, 255 - run
-	bool jump_pressed;
 	unsigned char weapon_index;
 	AngleType view_dir_angle_x;
 	AngleType view_dir_angle_z;
-	bool shoot_pressed;
+	bool shoot_pressed : 1;
+	bool jump_pressed : 1;
+	unsigned char color : 4;
 };
 
 #undef DEFINE_MESSAGE_CONSTRUCTOR
