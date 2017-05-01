@@ -351,7 +351,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				monster.pos, rotate_mat,
 				cam_mat, camera_position,
-				monster.body_parts_mask, transparent );
+				monster.body_parts_mask, transparent,
+				false, ~0u, monster.color );
 		}
 
 		for( const MapState::MonsterBodyPart& part : map_state.GetMonstersBodyParts() )
@@ -828,6 +829,60 @@ void MapDrawerSoft::LoadWalls( const MapData& map_data )
 		setup_wall( map_data.dynamic_walls[i], dynamic_walls_[i] );
 }
 
+MapDrawerSoft::TextureView MapDrawerSoft::GetPlayerTexture( const unsigned char color )
+{
+	// Should be done after monsters loading.
+	PC_ASSERT( !monsters_models_.models.empty() );
+
+	const unsigned char color_corrected= color % GameConstants::player_colors_count;
+
+	// Default texture (unshifted).
+	if( color_corrected == 0u )
+	{
+		TextureView result;
+		const ModelsGroup::ModelEntry& model_entry= monsters_models_.models.front();
+		result.size[0]= model_entry.texture_size[0];
+		result.size[1]= model_entry.texture_size[1];
+		result.data= monsters_models_.textures_data.data() + model_entry.texture_data_offset;
+		return result;
+	}
+
+	if( player_textures_.size() <= color_corrected )
+		player_textures_.resize( color_corrected + 1u );
+
+	PlayerTexture& texture= player_textures_[ color_corrected ];
+	if( texture.data.empty() )
+	{
+		// Generate new texture and save it.
+		const Model& model= game_resources_->monsters_models.front();
+		const unsigned int pixel_count= model.texture_data.size();
+
+		// TODO - maybe cache buffers?
+		std::vector<unsigned char> data_shifted( pixel_count );
+		texture.data.resize( pixel_count );
+
+		ColorShift(
+			14 * 16u, 14 * 16u + 16u,
+			GameConstants::player_colors_shifts[ color_corrected ],
+			pixel_count,
+			model.texture_data.data(),
+			data_shifted.data() );
+
+		const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+		for( unsigned int i= 0u; i < pixel_count; i++ )
+			texture.data[i]= palette[ data_shifted[i] ];
+
+		texture.size[0]= model.texture_size[0];
+		texture.size[1]= model.texture_size[1];
+	}
+
+	TextureView result;
+	result.size[0]= texture.size[0];
+	result.size[1]= texture.size[1];
+	result.data= texture.data.data();
+	return result;
+}
+
 void MapDrawerSoft::LoadFloorsAndCeilings( const MapData& map_data )
 {
 	map_floors_and_ceilings_.clear();
@@ -1226,7 +1281,8 @@ void MapDrawerSoft::DrawModel(
 	const unsigned char visible_groups_mask,
 	const bool transparent,
 	const bool fullbright,
-	const unsigned int submodel_id )
+	const unsigned int submodel_id,
+	const unsigned char color )
 {
 	const Model& base_model= model_group_models[ model_id ];
 	const Submodel& model= (submodel_id == ~0u) ? base_model : base_model.submodels[ submodel_id ];
@@ -1414,10 +1470,19 @@ void MapDrawerSoft::DrawModel(
 
 	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * animation_frame;
 
-	const ModelsGroup::ModelEntry& model_entry= models_group.models[ model_id ];
-	rasterizer_.SetTexture(
-		model_entry.texture_size[0], model_entry.texture_size[1],
-		models_group.textures_data.data() + model_entry.texture_data_offset );
+	if( &models_group == &monsters_models_ && model_id == 0u )
+	{
+		// Detect player - set colored texture.
+		const TextureView texture_view= GetPlayerTexture( color );
+		rasterizer_.SetTexture( texture_view.size[0], texture_view.size[1], texture_view.data );
+	}
+	else
+	{
+		const ModelsGroup::ModelEntry& model_entry= models_group.models[ model_id ];
+		rasterizer_.SetTexture(
+			model_entry.texture_size[0], model_entry.texture_size[1],
+			models_group.textures_data.data() + model_entry.texture_data_offset );
+	}
 
 	// TODO - make other branch, if clip_planes_transformed_count == 0
 	// Transform animation vertices, then rasterize trianglez directly, without clipping.
