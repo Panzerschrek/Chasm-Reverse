@@ -62,6 +62,19 @@ constexpr float max_vertical_speed= 5.0f;
 
 constexpr float particles_vertical_acceleration= -5.0f;
 
+const unsigned int player_colors_count= 8u;
+const int player_colors_shifts[ player_colors_count ]=
+{
+	0, // Original blue
+	- 2 * 16,
+	- 5 * 16, // green.
+	- 9 * 16,
+	-12 * 16,
+	- 6 * 16,
+	-14 * 16,
+	- 1 * 16,
+};
+
 } // namespace GameConstants
 
 } // namespace PanzerChasm

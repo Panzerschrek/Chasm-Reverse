@@ -82,7 +82,7 @@ private:
 private:
 	void LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures );
 	void PrepareSkyGeometry();
-	void PreparePlayerTextures();
+	const r_Texture& GetPlayerTexture( unsigned char color );
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
