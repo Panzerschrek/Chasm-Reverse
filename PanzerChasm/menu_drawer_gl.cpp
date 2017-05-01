@@ -243,6 +243,41 @@ MenuDrawerGL::MenuDrawerGL(
 			r_Texture::Filtration::Nearest,
 			r_Texture::Filtration::Nearest );
 	}
+	{ // Player torso
+		const Vfs::FileContent ptors= game_resources.vfs->ReadFile( MenuParams::player_torso_picture );
+		const CelTextureHeader* const cel_header=
+			reinterpret_cast<const CelTextureHeader*>( ptors.data() );
+		const unsigned char* const data= ptors.data() + sizeof(CelTextureHeader);
+
+		const unsigned int pixel_count= cel_header->size[0] * cel_header->size[1];
+
+		std::vector<unsigned char> data_shifted( pixel_count );
+		std::vector<unsigned char> data_rgba( pixel_count * 4u );
+
+		for( unsigned int i= 0u; i < GameConstants::player_colors_count; i++ )
+		{
+			ColorShift(
+				14 * 16u, 14 * 16u + 16u,
+				GameConstants::player_colors_shifts[ i ],
+				pixel_count,
+				data,
+				data_shifted.data() );
+			ConvertToRGBA(
+				pixel_count,
+				data_shifted.data(),
+				game_resources.palette,
+				data_rgba.data() );
+
+			player_torso_textures_[i]=
+				r_Texture(
+					r_Texture::PixelFormat::RGBA8,
+					cel_header->size[0], cel_header->size[1],
+					data_rgba.data() );
+			player_torso_textures_[i].SetFiltration(
+				r_Texture::Filtration::Nearest,
+				r_Texture::Filtration::Nearest );
+		}
+	}
 
 	// Polygon buffer
 	std::vector<unsigned short> indeces( 6u * g_max_quads );
@@ -744,6 +779,62 @@ void MenuDrawerGL::DrawBriefBar()
 		 m_Vec2(
 			1.0f / float(briefbar_texture_.Width ()),
 			1.0f / float(briefbar_texture_.Height()) ) );
+
+	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
+}
+
+void MenuDrawerGL::DrawPlayerTorso(
+	const int x, const int y, const unsigned char color )
+{
+	Vertex vertices[ 4u ];
+
+	const r_Texture& texture= player_torso_textures_[ color % GameConstants::player_colors_count ];
+
+	const int scale= int( menu_scale_ );
+	const int x0= x;
+	const int y1= viewport_size_.Height() - y;
+	const int x1= x0 + int(texture.Width ()) * scale;
+	const int y0= y1 - int(texture.Height()) * scale;
+
+	vertices[0].xy[0]= x0;
+	vertices[0].xy[1]= y0;
+	vertices[0].tex_coord[0]= 0;
+	vertices[0].tex_coord[1]= texture.Height();
+
+	vertices[1].xy[0]= x1;
+	vertices[1].xy[1]= y0;
+	vertices[1].tex_coord[0]= texture.Width ();
+	vertices[1].tex_coord[1]= texture.Height();
+
+	vertices[2].xy[0]= x1;
+	vertices[2].xy[1]= y1;
+	vertices[2].tex_coord[0]= texture.Width ();
+	vertices[2].tex_coord[1]= 0;
+
+	vertices[3].xy[0]= x0;
+	vertices[3].xy[1]= y1;
+	vertices[3].tex_coord[0]= 0;
+	vertices[3].tex_coord[1]= 0;
+
+	polygon_buffer_.VertexSubData( vertices , sizeof(vertices), 0u );
+
+	// Draw
+	r_OGLStateManager::UpdateState( g_gl_state );
+
+	menu_picture_shader_.Bind();
+
+	texture.Bind(0u);
+	menu_picture_shader_.Uniform( "tex", int(0) );
+
+	menu_picture_shader_.Uniform(
+		"inv_viewport_size",
+		m_Vec2( 1.0f / float(viewport_size_.xy[0]), 1.0f / float(viewport_size_.xy[1]) ) );
+
+	menu_picture_shader_.Uniform(
+		"inv_texture_size",
+		 m_Vec2(
+			1.0f / float(texture.Width ()),
+			1.0f / float(texture.Height()) ) );
 
 	glDrawElements( GL_TRIANGLES, 6u, GL_UNSIGNED_SHORT, nullptr );
 }

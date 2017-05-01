@@ -36,6 +36,7 @@ public:
 	virtual void DrawPaused() override;
 	virtual void DrawGameBackground() override;
 	virtual void DrawBriefBar() override;
+	virtual void DrawPlayerTorso( int x, int y, unsigned char color ) override;
 
 private:
 	struct Picture
@@ -58,6 +59,7 @@ private:
 
 	Picture console_background_picture_;
 	Picture briefbar_picture_;
+	Picture player_torso_picutre_;
 };
 
 } // namespace PanzerChasm

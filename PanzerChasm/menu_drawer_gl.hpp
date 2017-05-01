@@ -5,6 +5,7 @@
 #include <texture.hpp>
 
 #include "fwd.hpp"
+#include "game_constants.hpp"
 #include "i_menu_drawer.hpp"
 #include "rendering_context.hpp"
 
@@ -40,6 +41,7 @@ public:
 	virtual void DrawPaused() override;
 	virtual void DrawGameBackground() override;
 	virtual void DrawBriefBar() override;
+	virtual void DrawPlayerTorso( int x, int y, unsigned char color ) override;
 
 private:
 	struct Vertex
@@ -67,6 +69,8 @@ private:
 
 	r_Texture console_background_texture_;
 	r_Texture briefbar_texture_;
+
+	r_Texture player_torso_textures_[ GameConstants::player_colors_count ];
 
 	r_PolygonBuffer polygon_buffer_;
 
