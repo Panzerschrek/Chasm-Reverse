@@ -282,6 +282,7 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
 		message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
 		message.shoot_pressed= shoot_pressed_;
+		message.color= settings_.GetOrSetInt( SettingsKeys::player_color );
 
 		connection_info_->messages_sender.SendUnreliableMessage( message );
 		connection_info_->messages_sender.Flush();

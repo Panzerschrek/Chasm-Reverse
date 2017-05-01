@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "assert.hpp"
+#include "game_constants.hpp"
 #include "game_resources.hpp"
 #include "images.hpp"
 #include "menu_drawers_common.hpp"
@@ -43,6 +44,7 @@ MenuDrawerSoft::MenuDrawerSoft(
 	load_picture( MenuParams::loading_picture, loading_picture_ );
 	load_picture( MenuParams::background_picture, game_background_picture_ );
 	load_picture( MenuParams::pause_picture, pause_picture_ );
+	load_picture( MenuParams::player_torso_picture, player_torso_picutre_ );
 
 	for( unsigned int i= 0u; i < size_t(MenuPicture::PicturesCount); i++ )
 	{
@@ -498,6 +500,49 @@ void MenuDrawerSoft::DrawBriefBar()
 			}
 		}
 	} // for y
+}
+
+void MenuDrawerSoft::DrawPlayerTorso(
+	const int x_start, const int y_start,
+	const unsigned char color )
+{
+	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
+	uint32_t* const dst_pixels= rendering_context_.window_surface_data;
+	const int dst_row_pixels= rendering_context_.row_pixels;
+
+	const int viewport_size_x= int(rendering_context_.viewport_size.Width ());
+	const int viewport_size_y= int(rendering_context_.viewport_size.Height());
+	PC_UNUSED(viewport_size_x);
+	PC_UNUSED(viewport_size_y);
+
+	const int color_shift= GameConstants::player_colors_shifts[ color % GameConstants::player_colors_count ];
+
+	for( int y= 0; y < int(player_torso_picutre_.size[1]); y++ )
+	{
+		for( int x= 0; x < int(player_torso_picutre_.size[0]); x++ )
+		{
+			int color_index= player_torso_picutre_.data[ x + y * int(player_torso_picutre_.size[0]) ];
+			if( color_index == 255 )
+				continue;
+
+			if( color_index >= 14 * 16 && color_index < 14 * 16 + 16 )
+				color_index+= color_shift;
+
+			const uint32_t color= palette[ color_index ];
+
+			for( int sy= 0; sy < int(menu_scale_); sy++ )
+			{
+				const int dst_y= y_start + y * int(menu_scale_) + sy;
+				PC_ASSERT( dst_y >= 0 && dst_y < viewport_size_y );
+				for( int sx= 0; sx < int(menu_scale_); sx++ )
+				{
+					const int dst_x= x_start + x * int(menu_scale_) + sx;
+					PC_ASSERT( dst_x >= 0 && dst_x < viewport_size_x );
+					dst_pixels[ dst_x + dst_y * dst_row_pixels ]= color;
+				}
+			}
+		}
+	}
 }
 
 } // namespace PanzerChas

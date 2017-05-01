@@ -48,6 +48,7 @@ public:
 	virtual void SetOnFloor( bool on_floor ) override;
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
 	virtual bool IsFullyDead() const override;
+	virtual unsigned char GetColor() const override;
 
 private:
 	enum class State

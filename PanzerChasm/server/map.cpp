@@ -2826,6 +2826,7 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
 	message.is_fully_dead= monster.IsFullyDead();
+	message.color= monster.GetColor();
 }
 
 void Map::PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message )

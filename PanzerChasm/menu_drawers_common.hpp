@@ -18,6 +18,7 @@ const char tile_picture[]= "M_TILE1.CEL";
 const char loading_picture[]= "COMMON/LOADING.CEL";
 const char background_picture[]= "GROUND.CEL";
 const char pause_picture[]= "M_PAUSE.CEL";
+const char player_torso_picture[]= "PTORS.CEL";
 
 const unsigned int menu_pictures_shifts_count= 3u;
 const int menu_pictures_shifts[ menu_pictures_shifts_count ]=

@@ -113,12 +113,25 @@ private:
 		std::vector<uint32_t> data;
 	};
 
+	struct TextureView
+	{
+		unsigned int size[2];
+		const uint32_t* data;
+	};
+
+	struct PlayerTexture
+	{
+		unsigned int size[2];
+		std::vector<uint32_t> data;
+	};
+
 private:
 	void LoadModelsGroup( const std::vector<Model>& models, ModelsGroup& out_group );
 	void LoadWallsTextures( const MapData& map_data );
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWalls( const MapData& map_data );
 	void LoadFloorsAndCeilings( const MapData& map_data );
+	TextureView GetPlayerTexture( unsigned char color );
 
 	template< bool is_dynamic_wall >
 	void DrawWallSegment(
@@ -145,7 +158,8 @@ private:
 		unsigned char visible_groups_mask,
 		bool transparent,
 		bool fullbright= false,
-		unsigned int submodel_id= ~0u  /* Submodel of model to draw. ~0 means base model. */ );
+		unsigned int submodel_id= ~0u,  /* Submodel of model to draw. ~0 means base model. */
+		unsigned char color= 0u /* For players only. */ );
 
 	void DrawModelShadow(
 		const Model& base_model,
@@ -225,6 +239,8 @@ private:
 	std::vector<SpriteTexture> sprite_effects_textures_;
 	std::vector<SpriteTexture> bmp_objects_sprites_;
 	SkyTexture sky_texture_;
+
+	std::vector<PlayerTexture> player_textures_;
 
 	// Reuse vector (do not create new vector each frame).
 	std::vector<const MapState::SpriteEffect*> sorted_sprites_;

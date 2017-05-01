@@ -62,6 +62,7 @@ public:
 	virtual void SetOnFloor( bool on_floor )= 0;
 	virtual void Teleport( const m_Vec3& pos, float angle )= 0;
 	virtual bool IsFullyDead() const= 0;
+	virtual unsigned char GetColor() const= 0;
 
 protected:
 	// TODO - check this. Some numbers may be incorrect.
@@ -127,6 +128,8 @@ protected:
 
 	m_Vec3 pos_;
 	float angle_; // [ 0; 2 * pi )
+
+	unsigned char color_= 0u;
 
 	int health_;
 

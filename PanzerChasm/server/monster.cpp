@@ -495,6 +495,11 @@ bool Monster::IsFullyDead() const
 	return state_ == State::Dead;
 }
 
+unsigned char Monster::GetColor() const
+{
+	return 0u;
+}
+
 bool Monster::IsBoss() const
 {
 	// Bosses have hardcoded id.
