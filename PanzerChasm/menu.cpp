@@ -1670,7 +1670,7 @@ private:
 	bool reverse_mouse_;
 	bool weapon_reset_;
 
-	const int c_max_slider_value= 16;
+	const int c_max_slider_value= 15;
 	int fx_volume_;
 	int cd_volume_;
 	int mouse_sensetivity_;
@@ -1785,7 +1785,11 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	slider_back_text[9]= '\0';
 	static const char slder_text[]= { ITextDrawer::c_slider_letter_code, '\0' };
 
-	const int c_slider_pos_scale= 7;
+	const auto slider_pos=
+	[&]( const int slider_value ) -> int
+	{
+		return param_x + slider_value * 15 / 4 * scale;
+	};
 
 	text_draw.Print(
 		param_descr_x, y + Row::FXVolume * y_step,
@@ -1798,7 +1802,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Left );
 	text_draw.Print(
-		param_x + fx_volume_ * c_slider_pos_scale, y + Row::FXVolume * y_step,
+		slider_pos( fx_volume_ ), y + Row::FXVolume * y_step,
 		slder_text, scale,
 		ITextDrawer::FontColor::Golden,
 		ITextDrawer::Alignment::Left );
@@ -1814,7 +1818,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Left );
 	text_draw.Print(
-		param_x + cd_volume_ * c_slider_pos_scale, y + Row::CDVolume * y_step,
+		slider_pos( cd_volume_ ), y + Row::CDVolume * y_step,
 		slder_text, scale,
 		ITextDrawer::FontColor::Golden,
 		ITextDrawer::Alignment::Left );
@@ -1830,7 +1834,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Left );
 	text_draw.Print(
-		param_x + mouse_sensetivity_ * c_slider_pos_scale, y + Row::MouseSEnsitivity * y_step,
+		slider_pos( mouse_sensetivity_ ), y + Row::MouseSEnsitivity * y_step,
 		slder_text, scale,
 		ITextDrawer::FontColor::Golden,
 		ITextDrawer::Alignment::Left );
