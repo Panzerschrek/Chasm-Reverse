@@ -82,6 +82,7 @@ private:
 private:
 	void LoadSprites( const std::vector<ObjSprite>& sprites, std::vector<GLuint>& out_textures );
 	void PrepareSkyGeometry();
+	void PreparePlayerTextures();
 
 	void LoadFloorsTextures( const MapData& map_data );
 	void LoadWallsTextures( const MapData& map_data );
@@ -230,6 +231,8 @@ private:
 	std::vector<MonsterModel> monsters_models_;
 	r_PolygonBuffer monsters_geometry_data_;
 	AnimationsBuffer monsters_animations_;
+
+	std::vector<r_Texture> player_textures_;
 
 	char current_sky_texture_file_name_[32];
 	r_GLSLProgram sky_shader_;

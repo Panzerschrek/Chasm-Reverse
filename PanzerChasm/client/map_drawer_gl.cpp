@@ -253,6 +253,7 @@ MapDrawerGL::MapDrawerGL(
 
 	// Monsters
 	LoadMonstersModels();
+	PreparePlayerTextures();
 
 	// Rockets
 	LoadModels(
@@ -710,6 +711,66 @@ void MapDrawerGL::PrepareSkyGeometry()
 	sky_geometry_data_.VertexData( c_sky_vertices, sizeof(c_sky_vertices), sizeof(float) * 3u );
 	sky_geometry_data_.IndexData( c_sky_indeces, sizeof(c_sky_indeces), GL_UNSIGNED_SHORT, GL_TRIANGLES );
 	sky_geometry_data_.VertexAttribPointer( 0u, 3u, GL_FLOAT, false, 0u );
+}
+
+void MapDrawerGL::PreparePlayerTextures()
+{
+	// Should be done after monsters loading.
+	PC_ASSERT( !monsters_models_.empty() );
+
+	const unsigned int c_colors= 8u;
+	const int c_colors_shifts[c_colors]=
+	{
+		0, // Original blue
+		- 2 * 16,
+		- 5 * 16, // green.
+		- 9 * 16,
+		-12 * 16,
+		- 6 * 16,
+		-14 * 16,
+		- 1 * 16,
+	};
+
+	player_textures_.resize( c_colors );
+
+	const Model& model= game_resources_->monsters_models.front();
+	const unsigned int pixel_count= model.texture_data.size();
+
+	std::vector<unsigned char> data_shifted( pixel_count );
+	std::vector<unsigned char> data_rgba( pixel_count * 4u );
+
+	for( unsigned int i= 0u; i < player_textures_.size(); i++ )
+	{
+		if( i == 0u )
+		{
+			ConvertToRGBA(
+				pixel_count,
+				model.texture_data.data(),
+				game_resources_->palette,
+				data_rgba.data() );
+		}
+		else
+		{
+			ColorShift(
+				14 * 16u, 14 * 16u + 16u, c_colors_shifts[i],
+				pixel_count,
+				model.texture_data.data(),
+				data_shifted.data() );
+			ConvertToRGBA(
+				pixel_count,
+				data_shifted.data(),
+				game_resources_->palette,
+				data_rgba.data() );
+		}
+
+		player_textures_[i]=
+			r_Texture(
+				r_Texture::PixelFormat::RGBA8,
+				model.texture_size[0], model.texture_size[1],
+				data_rgba.data() );
+		player_textures_[i].SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+		player_textures_[i].BuildMips();
+	}
 }
 
 void MapDrawerGL::LoadFloorsTextures( const MapData& map_data )
