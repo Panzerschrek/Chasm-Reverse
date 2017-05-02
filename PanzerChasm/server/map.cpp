@@ -424,6 +424,15 @@ void Map::PlayMapEventSound( const m_Vec3& pos, const unsigned int sound_id )
 	message.sound_id= sound_id;
 }
 
+void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
+{
+	particles_effects_messages_.emplace_back();
+	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
+
+	PositionToMessagePosition( pos, message.xyz );
+	message.effect_id= static_cast<unsigned char>( particle_effect );
+}
+
 m_Vec3 Map::CollideWithMap(
 	const m_Vec3 in_pos, const float height, const float radius,
 	const Time tick_delta,
@@ -2911,15 +2920,6 @@ void Map::EmitModelDestructionEffects( const unsigned int model_number )
 
 	if( description.break_sfx_number != 0 )
 		PlayMapEventSound( pos, description.break_sfx_number );
-}
-
-void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_effect )
-{
-	particles_effects_messages_.emplace_back();
-	Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
-
-	PositionToMessagePosition( pos, message.xyz );
-	message.effect_id= static_cast<unsigned char>( particle_effect );
 }
 
 void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int rocket_type_id )

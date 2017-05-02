@@ -75,6 +75,8 @@ public:
 
 	void PlayMapEventSound( const m_Vec3& pos, unsigned int sound_id );
 
+	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
+
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
 		Time tick_delta,
@@ -311,7 +313,6 @@ private:
 	static void PrepareLightSourceBirthMessage( const LightSource& light_source, EntityId light_source_id, Messages::LightSourceBirth& message );
 
 	void EmitModelDestructionEffects( unsigned int model_number );
-	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
 	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
 
 private:
