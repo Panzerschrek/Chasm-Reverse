@@ -226,6 +226,7 @@ private:
 	ModelsGroup map_models_;
 	ModelsGroup items_models_;
 	ModelsGroup rockets_models_;
+	ModelsGroup gibs_models_;
 	ModelsGroup weapons_models_;
 	ModelsGroup monsters_models_;
 

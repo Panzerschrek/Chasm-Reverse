@@ -17,6 +17,8 @@ public:
 
 	constexpr static unsigned int c_max_global_sounds= 80u;
 
+	constexpr static unsigned int c_first_gib_number= 71u;
+
 	struct ItemDescription
 	{
 		char model_file_name[ c_max_file_name_size ];
@@ -124,6 +126,12 @@ public:
 		int smoke_trail_effect_id; // Trail sprite effect type
 	};
 
+	struct GibDescription
+	{
+		char model_file_name[ c_max_file_name_size ];
+		unsigned char sound_number;
+	};
+
 	struct SoundDescription
 	{
 		static constexpr unsigned char c_max_volume= 128u;
@@ -153,6 +161,9 @@ public:
 
 	std::vector<RocketDescription> rockets_description;
 	std::vector<Model> rockets_models;
+
+	std::vector<GibDescription> gibs_description;
+	std::vector<Model> gibs_models;
 
 	SoundDescription sounds[ c_max_global_sounds ];
 };

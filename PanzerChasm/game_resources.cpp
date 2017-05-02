@@ -323,6 +323,72 @@ static void LoadRocketsDescription(
 	}
 }
 
+static void LoadGibsDescription(
+	const Vfs::FileContent& inf_file,
+	GameResources& game_resources )
+{
+	const char* const gibs_start=
+		std::strstr( reinterpret_cast<const char*>(inf_file.data()), "[GIBS]" );
+	const char* const gibs_end= reinterpret_cast<const char*>(inf_file.data()) + inf_file.size() - 1u;
+
+	std::istringstream stream( std::string( gibs_start, gibs_end ) );
+
+	char line[ 512 ];
+	stream.getline( line, sizeof(line), '\n' );
+
+	game_resources.gibs_description.reserve( 16u );
+
+	unsigned int gib_number= 0u;
+	while( !stream.fail() )
+	{
+		stream.getline( line, sizeof(line), '\n' );
+		if( stream.eof() )
+			break;
+		if( std::strncmp( line, "#end", std::strlen( "#end" ) ) == 0 )
+			break;
+
+		const char* s= line;
+
+		//const unsigned int gib_number= std::atoi(s) - GameResources::c_first_gib_number;
+
+		while( std::isdigit( *s ) ) s++;
+		while( std::isspace( *s ) ) s++;
+		s++; // :
+		while( *s != '=' ) s++;
+		s++; // =
+		while( std::isspace( *s ) && s != '\0' ) s++;
+
+		if( *s == '\0' )
+			continue;
+
+		if( gib_number >= game_resources.gibs_description.size() )
+			game_resources.gibs_description.resize( gib_number + 1u );
+
+		GameResources::GibDescription& gib= game_resources.gibs_description[ gib_number ];
+		gib.model_file_name[0]= '\0';
+		gib.sound_number= 0u;
+
+		char* file_name_dst= gib.model_file_name;
+		while( !std::isspace( *s ) && *s != '\0' )
+		{
+			*file_name_dst= *s;
+			file_name_dst++;
+			s++;
+		}
+		*file_name_dst= '\0';
+
+		while( std::isspace( *s ) && *s != '\0' ) s++;
+
+		if( *s == 's' || *s == 's' )
+		{
+			s+=2u;// s:
+			gib.sound_number= std::atoi( s );
+		}
+
+		gib_number++;
+	}
+}
+
 static void LoadSoundsDescriptionFromFileData(
 	const char* start, const char* end,
 	unsigned int first_sound,
@@ -531,6 +597,29 @@ static void LoadRocketsModels(
 	}
 }
 
+static void LoadGibsModels(
+	const Vfs& vfs,
+	GameResources& game_resources )
+{
+	game_resources.gibs_models.resize( game_resources.gibs_description.size() );
+
+	Vfs::FileContent model_file_content;
+
+	for( unsigned int i= 0u; i < game_resources.gibs_models.size(); i++ )
+	{
+		const GameResources::GibDescription& gib_description= game_resources.gibs_description[i];
+
+		if( gib_description.model_file_name[0] == '\0' )
+			continue;
+
+		char model_file_path[ GameResources::c_max_file_path_size ]= "MODELS/";
+		std::strcat( model_file_path, gib_description.model_file_name );
+
+		vfs.ReadFile( model_file_path, model_file_content );
+		LoadModel_o3( model_file_content, Vfs::FileContent(), game_resources.gibs_models[i] );
+	}
+}
+
 GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 {
 	PC_ASSERT( vfs != nullptr );
@@ -552,6 +641,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadBMPObjectsDescription( inf_file, *result );
 	LoadWeaponsDescription( inf_file, *result );
 	LoadRocketsDescription( inf_file, *result );
+	LoadGibsDescription( inf_file, *result );
 	LoadSoundsDescription( inf_file, *result );
 
 	LoadItemsModels( *vfs, *result );
@@ -560,6 +650,7 @@ GameResourcesConstPtr LoadGameResources( const VfsPtr& vfs )
 	LoadBMPObjectsSprites( *vfs, *result );
 	LoadWeaponsModels( *vfs, *result );
 	LoadRocketsModels( *vfs, *result );
+	LoadGibsModels( *vfs, *result );
 
 	return result;
 }

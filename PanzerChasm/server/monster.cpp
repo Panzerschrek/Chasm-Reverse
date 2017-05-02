@@ -413,18 +413,33 @@ void Monster::Hit(
 		else
 		{
 			const bool is_boss= IsBoss();
+			const int c_fragmentation_health_limit= -20;
 
 			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0 } );
-			if( animation < 0 || is_boss )
+			if( animation < 0 || is_boss || health_ <= c_fragmentation_health_limit )
 			{
 				// Fragment monster body.
-				// TODO - fragment body not only for bosses, but else if damage is too hight.
-				// TODO - produce gibs, jumping head, etc.
 				state_= State::Dead;
 				fragmented_= true;
+
+				// Produce simple gibs.
+				// TODO - make more complex gibs.
+				const m_Vec2 z_min_max= GetZMinMax();
+				map.AddParticleEffect(
+					pos_ + m_Vec3( 0.0f, 0.0f, 0.5f * ( z_min_max.x + z_min_max.y ) ),
+					static_cast<ParticleEffect>( static_cast<unsigned char>(ParticleEffect::FirstBlowEffect) + 72u ) );
+
+				SpawnBodyPart( map, BodyPartSubmodelId::Head );
 			}
 			else
 			{
+				// If we not fragmented - spawn head with some chance.
+				if( random_generator_->RandBool() )
+				{
+					have_head_= false;
+					SpawnBodyPart( map, BodyPartSubmodelId::Head );
+				}
+
 				state_= State::DeathAnimation;
 				current_animation_= static_cast<unsigned int>(animation);
 			}

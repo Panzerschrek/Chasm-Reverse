@@ -146,6 +146,12 @@ private:
 		const ViewClipPlanes& view_clip_planes,
 		bool transparent );
 
+	void DrawGibs(
+		const MapState& map_state,
+		const m_Mat4& view_matrix,
+		const ViewClipPlanes& view_clip_planes,
+		bool transparent );
+
 	void DrawBMPObjectsSprites(
 		const MapState& map_state,
 		const m_Mat4& view_matrix,
@@ -190,6 +196,7 @@ private:
 	GLuint models_textures_array_id_= ~0;
 	GLuint items_textures_array_id_= ~0;
 	GLuint rockets_textures_array_id_= ~0;
+	GLuint gibs_textures_array_id_= ~0;
 	GLuint weapons_textures_array_id_= ~0;
 
 	std::vector<GLuint> sprites_textures_arrays_;
@@ -220,6 +227,10 @@ private:
 	std::vector<ModelGeometry> rockets_geometry_;
 	r_PolygonBuffer rockets_geometry_data_;
 	AnimationsBuffer rockets_animations_;
+
+	std::vector<ModelGeometry> gibs_geometry_;
+	r_PolygonBuffer gibs_geometry_data_;
+	AnimationsBuffer gibs_animations_;
 
 	std::vector<ModelGeometry> weapons_geometry_;
 	r_PolygonBuffer weapons_geometry_data_;

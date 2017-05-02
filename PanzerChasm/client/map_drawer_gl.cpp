@@ -203,6 +203,7 @@ MapDrawerGL::MapDrawerGL(
 	glGenTextures( 1, &models_textures_array_id_ );
 	glGenTextures( 1, &items_textures_array_id_ );
 	glGenTextures( 1, &rockets_textures_array_id_ );
+	glGenTextures( 1, &gibs_textures_array_id_ );
 	glGenTextures( 1, &weapons_textures_array_id_ );
 
 	LoadSprites( game_resources_->effects_sprites, sprites_textures_arrays_ );
@@ -261,6 +262,14 @@ MapDrawerGL::MapDrawerGL(
 		rockets_geometry_data_,
 		rockets_animations_,
 		rockets_textures_array_id_ );
+
+	// Rockets
+	LoadModels(
+		game_resources_->gibs_models,
+		gibs_geometry_,
+		gibs_geometry_data_,
+		gibs_animations_,
+		gibs_textures_array_id_ );
 
 	// Weapons
 	LoadModels(
@@ -373,6 +382,7 @@ MapDrawerGL::~MapDrawerGL()
 	glDeleteTextures( 1, &models_textures_array_id_ );
 	glDeleteTextures( 1, &items_textures_array_id_ );
 	glDeleteTextures( 1, &rockets_textures_array_id_ );
+	glDeleteTextures( 1, &gibs_textures_array_id_ );
 	glDeleteTextures( 1, &weapons_textures_array_id_ );
 
 	glDeleteTextures( sprites_textures_arrays_.size(), sprites_textures_arrays_.data() );
@@ -466,6 +476,7 @@ void MapDrawerGL::Draw(
 	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, false );
 	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, false );
 	DrawRockets( map_state, view_matrix, view_clip_planes, false );
+	DrawGibs( map_state, view_matrix, view_clip_planes, false );
 
 	r_OGLStateManager::UpdateState( g_sky_gl_state );
 	DrawSky( view_rotation_and_projection_matrix );
@@ -488,6 +499,7 @@ void MapDrawerGL::Draw(
 	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, true );
 	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, true );
 	DrawRockets( map_state, view_matrix, view_clip_planes, true );
+	DrawGibs( map_state, view_matrix, view_clip_planes, true );
 
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
 	DrawBMPObjectsSprites( map_state, view_matrix, camera_position );
@@ -1832,6 +1844,80 @@ void MapDrawerGL::DrawRockets(
 			map_light_.GetFullbrightLightmapDummy().Bind(1);
 		else
 			active_lightmap_->Bind(1);
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			model_geometry.first_vertex_index );
+	}
+}
+
+void MapDrawerGL::DrawGibs(
+	const MapState& map_state,
+	const m_Mat4& view_matrix,
+	const ViewClipPlanes& view_clip_planes,
+	bool transparent )
+{
+	models_shader_.Bind();
+	gibs_geometry_data_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, gibs_textures_array_id_ );
+	active_lightmap_->Bind(1);
+	models_shader_.Uniform( "tex", int(0) );
+
+	active_lightmap_->Bind(1);
+	models_shader_.Uniform( "lightmap", int(1) );
+
+	gibs_animations_.Bind( 2 );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
+	for( const MapState::Gib& gib : map_state.GetGibs() )
+	{
+		if( gib.gib_id >= game_resources_->gibs_models.size() )
+			continue;
+
+		const ModelGeometry& model_geometry= gibs_geometry_[ gib.gib_id  ];
+		const Model& model= game_resources_->gibs_models[ gib.gib_id ];
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int frame= 0u;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+		const unsigned int first_animation_vertex=
+			model_geometry.first_animations_vertex +
+			frame * model_geometry.animations_vertex_count;
+
+		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
+		rotate_max_x.RotateX( gib.angle_x );
+		rotate_mat_z.RotateZ( gib.angle_z );
+		shift_mat.Translate( gib.pos );
+		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+
+		const m_Mat4 rotate_mat= rotate_max_x * rotate_mat_z;
+		const m_Mat4 model_mat= rotate_mat * shift_mat;
+
+		m_Mat3 lightmap_fetch_mat, lightmap_shift_mat, lightmap_scale_mat, lightmap_mat;
+		lightmap_fetch_mat.Scale( 0.0f ); // Convert coordinates to zero - fetch lightmap from one point for whole model.
+		lightmap_shift_mat.Translate( gib.pos.xy() );
+		lightmap_scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
+		lightmap_mat= lightmap_fetch_mat * lightmap_shift_mat * lightmap_scale_mat;
+
+		PC_ASSERT( frame< model.frame_count );
+
+		const m_BBox3& bbox= model.animations_bboxes[ frame ];
+		if( BBoxIsOutsideView( view_clip_planes, bbox, model_mat ) )
+			continue;
+
+		models_shader_.Uniform( "view_matrix", model_mat * view_matrix );
+		models_shader_.Uniform( "lightmap_matrix", lightmap_mat );
+		models_shader_.Uniform( "rotation_matrix", rotate_mat );
+		models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
 
 		glDrawElementsBaseVertex(
 			GL_TRIANGLES,
