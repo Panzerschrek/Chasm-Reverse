@@ -172,7 +172,7 @@ Map::Map(
 	// Pull up items, which placed atop of models
 	for( Item& item : items_ )
 	{
-		item.pos.z= GetFloorLevel( item.pos.xy(), GameConstants::player_interact_radius );
+		item.pos.z= GetFloorLevel( item.pos.xy(), 0.0f );
 	}
 	for( StaticModel& model : static_models_ )
 	{
