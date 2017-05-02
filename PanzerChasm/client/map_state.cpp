@@ -217,8 +217,8 @@ void MapState::Tick( const Time current_time )
 		// Update gib angles, if it is not totaly on floor.
 		if( !( gib.pos.z < 0.2f && std::abs( gib.speed.z ) < 0.3f ) )
 		{
-			gib.angle_x= time_delta_s * 7.0f;
-			gib.angle_z= time_delta_s * 5.0f;
+			gib.angle_x= ( time_delta_s + gib.time_phase ) * 7.0f;
+			gib.angle_z= ( time_delta_s + gib.time_phase ) * 5.0f;
 		}
 
 		if( time_delta_s > 8.0f )
@@ -649,6 +649,7 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 						gib.speed= random_generator_.RandDirection() * random_generator_.RandValue( 1.0f, 1.5f );
 						gib.pos= pos + random_generator_.RandPointInSphere( 0.01f );
 						gib.angle_x= gib.angle_z= 0.0f;
+						gib.time_phase= random_generator_.RandValue( 16.0f );
 						gib.gib_id= gibs_effect_id - GameResources::c_first_gib_number;
 					}
 				}

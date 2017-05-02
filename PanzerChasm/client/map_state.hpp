@@ -61,6 +61,7 @@ public:
 		m_Vec3 pos;
 		m_Vec3 speed;
 		float angle_x, angle_z;
+		float time_phase;
 		unsigned int gib_id;
 	};
 
