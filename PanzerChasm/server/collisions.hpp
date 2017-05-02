@@ -13,6 +13,14 @@ bool CollideCircleWithLineSegment(
 	float circle_radius,
 	m_Vec2& out_pos );
 
+bool CollideCircleWithSquare(
+	const m_Vec2& square_center,
+	float square_angle,
+	float square_side_half,
+	const m_Vec2& circle_center,
+	float circle_radius,
+	m_Vec2& out_pos );
+
 bool CircleIntersectsWithSquare(
 	const m_Vec2& cirecle_center,
 	float circle_radius,

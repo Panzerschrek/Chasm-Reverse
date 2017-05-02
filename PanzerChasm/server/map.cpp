@@ -484,12 +484,31 @@ m_Vec3 Map::CollideWithMap(
 			if( z_top < model_z_min || z_bottom > model_z_max )
 				goto end;
 
-			const float min_distance= radius + model_description.radius;
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			bool collided= false;
 
-			const m_Vec2 vec_to_pos= pos - model.pos.xy();
-			const float square_distance= vec_to_pos.SquareLength();
+			m_Vec2 collide_pos;
+			if( collide_with_square )
+			{
+				collided=
+					CollideCircleWithSquare(
+						model.pos.xy(), model.angle, model_description.radius,
+						pos, radius,
+						collide_pos );
+			}
+			else
+			{
+				const float min_distance= radius + model_description.radius;
+				const m_Vec2 vec_to_pos= pos - model.pos.xy();
+				const float square_distance= vec_to_pos.SquareLength();
+				if( square_distance < min_distance * min_distance )
+				{
+					collided= true;
+					collide_pos= model.pos.xy() + vec_to_pos * min_distance / std::sqrt( square_distance );
+				}
+			}
 
-			if( square_distance <= min_distance * min_distance )
+			if( collided )
 			{
 				// Pull up or down player.
 				if( model_z_max - z_bottom <= GameConstants::z_pull_distance &&
@@ -509,10 +528,13 @@ m_Vec3 Map::CollideWithMap(
 				// Push sideways.
 				else
 				{
-					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+					const m_Vec2 normal= collide_pos - pos;
+					const float normal_square_length= normal.SquareLength();
+					if( normal_square_length > 0.0f )
+						out_movement_restriction.AddRestriction( normal / normal_square_length );
 
-					const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
-					out_movement_restriction.AddRestriction( normal );
+					pos.x= collide_pos.x;
+					pos.y= collide_pos.y;
 				}
 			}
 		}
