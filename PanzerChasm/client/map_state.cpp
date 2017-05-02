@@ -679,6 +679,14 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 
 void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )
 {
+	if( message.monster_type >= game_resources_->monsters_models.size() )
+		return;
+	const Model& monster_model= game_resources_->monsters_models[ message.monster_type ];
+	if( message.part_id >= monster_model.submodels.size() )
+		return;
+	if( monster_model.submodels[ message.part_id ].frame_count == 0u )
+		return;
+
 	monsters_body_parts_.emplace_back();
 	MonsterBodyPart& part= monsters_body_parts_.back();
 
