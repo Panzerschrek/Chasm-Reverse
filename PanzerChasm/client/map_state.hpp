@@ -60,6 +60,7 @@ public:
 		Time start_time= Time::FromSeconds(0);
 		m_Vec3 pos;
 		m_Vec3 speed;
+		float angle_x, angle_z;
 		unsigned int gib_id;
 	};
 

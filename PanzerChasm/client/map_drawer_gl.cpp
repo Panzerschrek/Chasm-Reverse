@@ -1894,8 +1894,8 @@ void MapDrawerGL::DrawGibs(
 			frame * model_geometry.animations_vertex_count;
 
 		m_Mat4 rotate_max_x, rotate_mat_z, shift_mat, scale_mat;
-		rotate_max_x.RotateX( 0.0f ); // TODO - set angles.
-		rotate_mat_z.RotateZ( 0.0f );
+		rotate_max_x.RotateX( gib.angle_x );
+		rotate_mat_z.RotateZ( gib.angle_z );
 		shift_mat.Translate( gib.pos );
 		scale_mat.Scale( 1.0f / float(MapData::c_map_size) );
 
