@@ -514,16 +514,22 @@ m_Vec3 Map::CollideWithMap(
 				if( model_z_max - z_bottom <= GameConstants::z_pull_distance &&
 					model_z_max + height <= GameConstants::walls_height )
 				{
-					new_z+= GameConstants::z_pull_speed * tick_delta.ToSeconds();
-					new_z= std::min( new_z, model_z_max );
-					if( new_z >= model_z_max )
-						out_on_floor= true;
+					if( new_z < model_z_max )
+					{
+						new_z+= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+						new_z= std::min( new_z, model_z_max );
+						if( new_z >= model_z_max )
+							out_on_floor= true;
+					}
 				}
 				else if( z_top - model_z_min <= GameConstants::z_pull_distance &&
 					model_z_min - height >= 0.0f )
 				{
-					new_z-= GameConstants::z_pull_speed * tick_delta.ToSeconds();
-					new_z= std::max( new_z, model_z_min - height );
+					if( new_z > model_z_min - height )
+					{
+						new_z-= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+						new_z= std::max( new_z, model_z_min - height );
+					}
 				}
 				// Push sideways.
 				else
