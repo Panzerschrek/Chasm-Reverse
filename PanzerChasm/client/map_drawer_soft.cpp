@@ -133,6 +133,7 @@ MapDrawerSoft::MapDrawerSoft(
 
 	LoadModelsGroup( game_resources_->items_models, items_models_ );
 	LoadModelsGroup( game_resources_->rockets_models, rockets_models_ );
+	LoadModelsGroup( game_resources_->gibs_models, gibs_models_ );
 	LoadModelsGroup( game_resources_->weapons_models, weapons_models_ );
 	LoadModelsGroup( game_resources_->monsters_models, monsters_models_ );
 
@@ -318,7 +319,6 @@ void MapDrawerSoft::Draw(
 			rotate_max_x.RotateX( rocket.angle[1] );
 			rotate_mat_z.RotateZ( rocket.angle[0] - Constants::half_pi );
 
-
 			DrawModel(
 				rockets_models_, game_resources_->rockets_models, rocket.rocket_id,
 				rocket.frame,
@@ -327,6 +327,24 @@ void MapDrawerSoft::Draw(
 				cam_mat, camera_position,
 				255u, transparent,
 				game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
+		}
+
+		for( const MapState::Gib& gib : map_state.GetGibs() )
+		{
+			if( gib.gib_id >= gibs_models_.models.size() )
+				continue;
+
+			m_Mat4 rotate_max_x, rotate_mat_z;
+			rotate_max_x.RotateX( gib.angle_x );
+			rotate_mat_z.RotateZ( gib.angle_z );
+
+			DrawModel(
+				gibs_models_, game_resources_->gibs_models, gib.gib_id,
+				0u,
+				view_clip_planes,
+				gib.pos, rotate_max_x * rotate_mat_z,
+				cam_mat, camera_position,
+				255u, transparent );
 		}
 
 		for( const MapState::MonstersContainer::value_type& monster_value : map_state.GetMonsters() )
