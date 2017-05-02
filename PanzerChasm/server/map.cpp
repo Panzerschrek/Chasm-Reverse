@@ -2812,7 +2812,8 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 {
 	float max_dz= 0.0f;
 
-	const float c_max_floor_level= 1.2f;
+	const float c_max_floor_level= GameConstants::walls_height - GameConstants::player_height - 0.05f;
+	const float c_min_ceiling_level= GameConstants::player_height + 0.05f;
 
 	const auto func=
 	[&]( const MapData::IndexElement& index_element ) -> bool
@@ -2835,7 +2836,8 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 				goto end;
 
 			const Model& model= map_data_->models[ map_model.model_id ];
-			if( model.z_max >= c_max_floor_level )
+			if( model.z_max >= c_max_floor_level || // There is no space abowe.
+				model.z_min >= c_min_ceiling_level ) // Enought space below.
 				goto end;
 
 			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
