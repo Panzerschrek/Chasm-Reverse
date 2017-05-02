@@ -1,0 +1,20 @@
+Pri ubijstve monstrov so znaciteljnym uronom, a tak že pri razrušenii nekotoryh
+objektov karty vyletajut ošmötki.
+
+Ošmötki predstavläjut soboj modeli, pohože cto bez animaçij.
+V igre eti modeli otskakivajut ot sten, polov i potolkov, izdajut zvuk.
+Modeli v polöte vrascajutsä.
+
+Kakije ošmötki poroždeny pri razrušenii modelej - ponätno, ih nomera
+(nacinaja s 71 ) stojat v pole "Blow" opisanija modeli urovnä.
+
+S monstrami vsö složneje. V fajlah modelej jestj 3 unsigned short polä, nacinaja
+so smescenija 0x40? v kotoryh, predpoložiteljno, ukazany nomera ošmötkov. No eti
+nomera ne sootvetstvujut dejstviteljnosti. Monstry poroždajut drugije ošmötki.
+Jesli pomenätj mestami opisanija monstrov v fajle CHASM.INF, to monstry nacnut
+poroždatj drugije ošmötki. Jestj predpoloženije, cto pri razrabotke originaljnoj
+igry razrtabotciki izmenili porädok opisanija ošmötkov, a ctoby ne peredelyvatj
+fajly modelej, zašili nužnyje ošmöki v kod.
+
+Tem ne meneje, monstry garantirovano otbrasyvajut modelj golovy pri razrušenii
+tela.
