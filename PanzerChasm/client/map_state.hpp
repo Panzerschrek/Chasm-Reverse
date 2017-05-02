@@ -55,6 +55,16 @@ public:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
+	struct Gib
+	{
+		Time start_time= Time::FromSeconds(0);
+		m_Vec3 pos;
+		m_Vec3 speed;
+		unsigned int gib_id;
+	};
+
+	typedef std::vector<Gib> Gibs;
+
 	struct MonsterBodyPart
 	{
 		m_Vec3 pos;
@@ -150,6 +160,7 @@ public:
 	const StaticModels& GetStaticModels() const;
 	const Items& GetItems() const;
 	const SpriteEffects& GetSpriteEffects() const;
+	const Gibs& GetGibs() const;
 	const MonstersBodyParts& GetMonstersBodyParts() const;
 	const MonstersContainer& GetMonsters() const;
 	const RocketsContainer& GetRockets() const;
@@ -197,6 +208,7 @@ private:
 	StaticModels static_models_;
 	Items items_;
 	SpriteEffects sprite_effects_;
+	Gibs gibs_;
 	MonstersBodyParts monsters_body_parts_;
 	MonstersContainer monsters_;
 	RocketsContainer rockets_;

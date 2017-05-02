@@ -83,6 +83,11 @@ const MapState::SpriteEffects& MapState::GetSpriteEffects() const
 	return sprite_effects_;
 }
 
+const MapState::Gibs& MapState::GetGibs() const
+{
+	return gibs_;
+}
+
 const MapState::MonstersBodyParts& MapState::GetMonstersBodyParts() const
 {
 	return monsters_body_parts_;
@@ -189,6 +194,33 @@ void MapState::Tick( const Time current_time )
 			effect.frame= std::fmod( effect.frame, sprite_frame_count );
 			i++;
 		}
+	}
+
+	for( unsigned int g= 0u; g < gibs_.size(); )
+	{
+		Gib& gib= gibs_[g];
+
+		gib.speed.z+= tick_delta_s * GameConstants::particles_vertical_acceleration;
+		gib.pos+= tick_delta_s * gib.speed;
+
+		if( gib.pos.z < 0.0f )
+		{
+			const float c_speed_scale= 0.5f;
+			gib.speed.x*= c_speed_scale;
+			gib.speed.y*= c_speed_scale;
+			gib.speed.z*= -c_speed_scale;
+			gib.pos.z= 0.0f;
+		}
+
+		const float time_delta_s= ( current_time - gib.start_time ).ToSeconds();
+		if( time_delta_s > 8.0f )
+		{
+			if( g < gibs_.size() - 1u )
+				gibs_[g]= gibs_.back();
+			gibs_.pop_back();
+		}
+		else
+			g++;
 	}
 
 	for( unsigned int p= 0u; p < monsters_body_parts_.size(); )
@@ -587,6 +619,29 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 					effect.pos= pos + random_generator_.RandPointInSphere( 0.01f );
 
 					effect.start_time= last_tick_time_;
+				}
+			}
+			else
+			{
+				const unsigned int gibs_effect_id=
+					static_cast<unsigned int>(effect) - static_cast<unsigned int>(ParticleEffect::FirstBlowEffect);
+				if( gibs_effect_id >= GameResources::c_first_gib_number )
+				{
+					const unsigned int c_gibs_count= 8u;
+					gibs_.resize( gibs_.size() + c_gibs_count );
+					Gib* const gibs= gibs_.data() + gibs_.size() - c_gibs_count;
+
+					m_Vec3 pos;
+					MessagePositionToPosition( message.xyz, pos );
+
+					for( unsigned int i= 0u; i < c_gibs_count; i++ )
+					{
+						Gib& gib= gibs[i];
+						gib.start_time= last_tick_time_;
+						gib.speed= random_generator_.RandDirection() * random_generator_.RandValue( 1.0f, 1.5f );
+						gib.pos= pos + random_generator_.RandPointInSphere( 0.01f );
+						gib.gib_id= gibs_effect_id - GameResources::c_first_gib_number;
+					}
 				}
 			}
 		}
