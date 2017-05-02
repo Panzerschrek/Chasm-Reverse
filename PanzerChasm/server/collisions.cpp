@@ -81,7 +81,7 @@ bool CollideCircleWithLineSegment(
 
 bool CollideCircleWithSquare(
 	const m_Vec2& square_center,
-	const float square_angle,
+	const float angle,
 	const float square_side_half,
 	const m_Vec2& circle_center,
 	const float circle_radius,
@@ -90,7 +90,7 @@ bool CollideCircleWithSquare(
 	const m_Vec2 vec_to_circle= circle_center - square_center;
 
 	m_Mat3 rot_mat;
-	rot_mat.RotateZ( -square_angle );
+	rot_mat.RotateZ( -angle );
 
 	const m_Vec2 vec_to_circle_transformed= vec_to_circle * rot_mat;
 	m_Vec2 out_vec_transformed;

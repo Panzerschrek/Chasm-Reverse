@@ -15,7 +15,7 @@ bool CollideCircleWithLineSegment(
 
 bool CollideCircleWithSquare(
 	const m_Vec2& square_center,
-	float square_angle,
+	float angle,
 	float square_side_half,
 	const m_Vec2& circle_center,
 	float circle_radius,

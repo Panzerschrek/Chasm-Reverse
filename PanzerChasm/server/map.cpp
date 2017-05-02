@@ -2834,18 +2834,28 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 			if( model_radius <= 0.0f )
 				goto end;
 
-			const float square_distance= ( pos - map_model.pos ).SquareLength();
-			const float collision_distance= model_radius + radius;
-			if( square_distance > collision_distance * collision_distance )
-				goto end;
-
-			// Hit here
 			const Model& model= map_data_->models[ map_model.model_id ];
-
 			if( model.z_max >= c_max_floor_level )
 				goto end;
 
-			max_dz= std::max( max_dz, model.z_max );
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			if( collide_with_square )
+			{
+				m_Vec2 collide_pos;
+				if( CollideCircleWithSquare(
+						map_model.pos, map_model.angle, model_radius,
+						pos, radius, collide_pos ) )
+					max_dz= std::max( max_dz, model.z_max );
+			}
+			else
+			{
+				const float square_distance= ( pos - map_model.pos ).SquareLength();
+				const float collision_distance= model_radius + radius;
+				if( square_distance > collision_distance * collision_distance )
+					goto end;
+
+				max_dz= std::max( max_dz, model.z_max );
+			}
 		}
 
 		end:
