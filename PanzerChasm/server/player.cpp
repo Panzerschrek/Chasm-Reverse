@@ -319,8 +319,13 @@ void Player::Hit(
 	// Add blood falshes.
 	if( health_damage > 0 )
 	{
-		fullscreen_blend_messages_.emplace_back();
-		fullscreen_blend_messages_.back().color_index= 63u;
+		// Flash intensity depends on dagage.
+		unsigned int flash_count= std::min( 3u, static_cast<unsigned int>(health_damage + 20) / 20u );
+		for( unsigned int i= 0u; i < flash_count; i++ )
+		{
+			fullscreen_blend_messages_.emplace_back();
+			fullscreen_blend_messages_.back().color_index= 63u;
+		}
 	}
 }
 

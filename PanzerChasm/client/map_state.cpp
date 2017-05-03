@@ -135,9 +135,10 @@ void MapState::GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const
 	out_color= m_Vec3( 0.0f, 0.0f, 0.0f );
 	float alpha_sum= 0.0f;
 
+	// Calculate color, proportional to alpha.
 	for( const FullscreenBlendEffect& effect : fullscreen_blend_effects_ )
 	{
-		const float alpha= std::max( 0.0f, 0.75f - ( last_tick_time_ - effect.birth_time ).ToSeconds() * 2.0f );
+		const float alpha= std::max( 0.0f, 0.25f * ( 1.0f - ( last_tick_time_ - effect.birth_time ).ToSeconds() ) );
 		alpha_sum+= alpha;
 		const float weight= alpha;
 
@@ -148,7 +149,7 @@ void MapState::GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const
 	if( alpha_sum > 0.0f )
 	{
 		out_color/= alpha_sum;
-		out_alpha= alpha_sum / float(fullscreen_blend_effects_.size() );
+		out_alpha= std::min( 0.8f, alpha_sum );
 	}
 	else
 		out_alpha= 0.0f;
