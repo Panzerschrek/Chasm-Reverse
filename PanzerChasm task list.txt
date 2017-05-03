@@ -9,7 +9,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
   Vyjasnenije znacenija parametra "bobj".
 * Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
   "checkback".
-* Dorabotka fiziki monstrov, ctoby oni ne mogli zatalkivatj drug druga v steny.
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
 * Dorabotka povedenija monstrov. Draki drug s drugom, reakçija na zvuk.
 * Dorabotka bossov.
@@ -19,6 +18,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Kalibrovka skorosti proçedur. Vyjasnenije nalicija ili otsutstvija skorosti ot
   priväzannyh k proçedure dvižuscihsä sten i procih objektov.
 * Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
+* Dorabotka ošmötkov. Otbrasyvanije monstrami ošmötkov raznyh vidov. Raznyj
+  nabor ošmötkov dlä raznyh monstrov.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Issledovanije vlijanija urovnej složnosti na uron.
@@ -27,9 +28,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [GRAFIKA]
-* Regulirovka jarkosti.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej. Naloženije
   tenej na dinamiceskije steny.
+* Pylevoj šlejf ot ošmötkov, podnätije pyli upavšimi telami monstrov.
 * Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
   proçedur.
 * Plavnyje animaçii, po krajnej mere casti objektov.
