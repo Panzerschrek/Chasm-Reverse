@@ -53,6 +53,7 @@ private:
 
 private:
 	void GetVideoModes();
+	void UpdateBrightness();
 
 	template<class ScaleGetter>
 	void CopyAndScaleViewportToSystemViewport( const ScaleGetter& scale_getter );
@@ -75,6 +76,8 @@ private:
 	unsigned int scaled_viewport_buffer_width_= 0u;
 
 	bool mouse_captured_= false;
+
+	float previous_brightness_= -1.0f;
 
 	DispaysVideoModes displays_video_modes_;
 };

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstring>
 
 #include <panzer_ogl_lib.hpp>
@@ -496,6 +497,8 @@ RenderingContextSoft SystemWindow::GetRenderingContextSoft()
 
 void SystemWindow::BeginFrame()
 {
+	UpdateBrightness();
+
 	const bool need_clear= settings_.GetOrSetBool( "r_clear", false );
 
 	if( IsOpenGLRenderer() )
@@ -730,6 +733,34 @@ void SystemWindow::GetVideoModes()
 
 			video_modes.back().supported_frequencies.emplace_back( mode.refresh_rate );
 		}
+	}
+}
+
+void SystemWindow::UpdateBrightness()
+{
+	float new_brightness= settings_.GetFloat( SettingsKeys::brightness, 0.5f );
+	if( new_brightness < 0.0f ) new_brightness= 0.0f;
+	if( new_brightness > 1.0f ) new_brightness= 1.0f;
+	settings_.SetSetting( SettingsKeys::brightness, new_brightness );
+
+	if( previous_brightness_ <= 0.0f || previous_brightness_ != new_brightness )
+	{
+		previous_brightness_= new_brightness;
+
+		Uint16 gamma_ramp[256];
+
+		const float c_min_gamma= 0.4f;
+		const float c_max_gamma= 1.5f;
+		const float gamma= c_max_gamma - new_brightness * ( c_max_gamma - c_min_gamma );
+		for( unsigned int i= 0u; i < 256u; i++ )
+		{
+			float p= std::pow( ( float(i) + 0.5f ) / 255.5f, gamma ) * 65535.0f;
+			int p_i= int(std::round(p));
+			if( p_i < 0 ) p_i= 0;
+			if( p_i > 65535 ) p_i= 65535;
+			gamma_ramp[i]= p_i;
+		}
+		SDL_SetWindowGammaRamp( window_, gamma_ramp, gamma_ramp, gamma_ramp );
 	}
 }
 
