@@ -466,19 +466,36 @@ void Server::UpdateTimes()
 
 		map_tick_count_= static_cast<unsigned int>( std::ceil( dt_s / ( c_max_tick_duration_s - c_time_eps ) ) );
 		if( map_tick_count_ > c_max_multiple_map_ticks )
-			map_tick_count_= c_max_multiple_map_ticks;
-		PC_ASSERT( map_tick_count_ >= 2u );
-
-		const Time map_tick_dt= Time::FromSeconds( dt_s / float(map_tick_count_) );
-		for( unsigned int i= 0u; i < map_tick_count_ - 1u; i++ )
 		{
-			map_ticks_[i].end= server_accumulated_time_ + map_tick_dt * (i+1u);
-			map_ticks_[i].duration= map_tick_dt;
-		}
+			// If tick count is too height, slow down game time.
+			// It can happens in debugging, for example.
+			map_tick_count_= c_max_multiple_map_ticks;
 
-		map_ticks_[ map_tick_count_ - 1u ].end= server_accumulated_time_ + dt;
-		map_ticks_[ map_tick_count_ - 1u ].duration=
-			map_ticks_[ map_tick_count_ - 1u ].end - map_ticks_[ map_tick_count_ - 2u ].end;
+			const Time map_tick_dt= Time::FromSeconds( c_max_tick_duration_s );
+			for( unsigned int i= 0u; i < map_tick_count_; i++ )
+			{
+				map_ticks_[i].end= server_accumulated_time_ + map_tick_dt * (i+1u);
+				map_ticks_[i].duration= map_tick_dt;
+			}
+			server_accumulated_time_= map_ticks_[ map_tick_count_ - 1u ].end;
+		}
+		else
+		{
+			PC_ASSERT( map_tick_count_ >= 2u );
+
+			const Time map_tick_dt= Time::FromSeconds( dt_s / float(map_tick_count_) );
+			for( unsigned int i= 0u; i < map_tick_count_ - 1u; i++ )
+			{
+				map_ticks_[i].end= server_accumulated_time_ + map_tick_dt * (i+1u);
+				map_ticks_[i].duration= map_tick_dt;
+			}
+
+			map_ticks_[ map_tick_count_ - 1u ].end= server_accumulated_time_ + dt;
+			map_ticks_[ map_tick_count_ - 1u ].duration=
+				map_ticks_[ map_tick_count_ - 1u ].end - map_ticks_[ map_tick_count_ - 2u ].end;
+
+			server_accumulated_time_+= dt;
+		}
 	}
 	else
 	{
@@ -486,10 +503,10 @@ void Server::UpdateTimes()
 		map_tick_count_= 1u;
 		map_ticks_[0].end= server_accumulated_time_ + dt;
 		map_ticks_[0].duration= dt;
+		server_accumulated_time_+= dt;
 	}
 
 	last_tick_= current_time;
-	server_accumulated_time_+= dt;
 }
 
 void Server::GiveAmmo()
