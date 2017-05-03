@@ -53,7 +53,7 @@ public:
 	void BuildStateMessage( Messages::PlayerState& out_state_message ) const;
 	void BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const;
 	bool BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, bool force= false ) const; // returns true, if newly-spawned
-	void SendItemPickupMessages( MessagesSender& messages_sender );
+	void SendInternalMessages( MessagesSender& messages_sender );
 
 	void OnMapChange();
 	void UpdateMovement( const Messages::PlayerMove& move_message );
@@ -149,6 +149,7 @@ private:
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
 
 	std::vector<Messages::PlayerItemPickup> pickup_messages_;
+	std::vector<Messages::FullscreenBlendEffect> fullscreen_blend_messages_;
 };
 
 } // namespace PanzerChasm

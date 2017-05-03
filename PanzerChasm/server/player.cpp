@@ -315,6 +315,13 @@ void Player::Hit(
 
 		speed_+= m_Vec3( speed_delta, 0.0f );
 	}
+
+	// Add blood falshes.
+	if( health_damage > 0 )
+	{
+		fullscreen_blend_messages_.emplace_back();
+		fullscreen_blend_messages_.back().color_index= 63u;
+	}
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
@@ -533,12 +540,15 @@ bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, const 
 	return true;
 }
 
-void Player::SendItemPickupMessages( MessagesSender& messages_sender )
+void Player::SendInternalMessages( MessagesSender& messages_sender )
 {
 	for( const auto& message : pickup_messages_ )
 		messages_sender.SendUnreliableMessage( message );
+	for( const auto& message : fullscreen_blend_messages_ )
+		messages_sender.SendUnreliableMessage( message );
 
 	pickup_messages_.clear();
+	fullscreen_blend_messages_.clear();
 }
 
 void Player::OnMapChange()
