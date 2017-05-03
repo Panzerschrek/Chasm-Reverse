@@ -1560,20 +1560,40 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		for( MonstersContainer::value_type& monster_value : monsters_ )
 		{
 			MonsterBase& monster= *monster_value.second;
-
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
-			const float collide_distance= monster_radius + model_radius;
 
-			const m_Vec2 vec_to_monster= monster.Position().xy() - model.pos.xy();
-			if( vec_to_monster.SquareLength() >= collide_distance * collide_distance )
-				continue;
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			bool collided= false;
+			m_Vec2 new_pos;
+			if( collide_with_square )
+			{
+				collided=
+					CollideCircleWithSquare(
+						model.pos.xy(), model.angle, model_radius,
+						monster.Position().xy(), monster_radius,
+						new_pos );
+			}
+			else
+			{
+				const float collide_distance= monster_radius + model_radius;
+				const m_Vec2 vec_to_monster= monster.Position().xy() - model.pos.xy();
+				if( vec_to_monster.SquareLength() < collide_distance * collide_distance )
+				{
+					collided= true;
+					new_pos= vec_to_monster / vec_to_monster.Length() * collide_distance;
+				}
+			}
+			if( collided )
+			{
+				m_Vec2 normal= new_pos - monster.Position().xy();
+				normal.Normalize();
 
-			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
-			if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
-				monster.Hit(
-					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
-					*this,
-					monster_value.first, current_time );
+				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
+					monster.Hit(
+						GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+						*this,
+						monster_value.first, current_time );
+			}
 		}
 	}
 
