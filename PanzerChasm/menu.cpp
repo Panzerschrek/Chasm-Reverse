@@ -1660,7 +1660,7 @@ private:
 	{
 		enum : int
 		{
-			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, FXVolume, CDVolume, MouseSEnsitivity, NumRows
+			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, Brightness, FXVolume, CDVolume, MouseSEnsitivity, NumRows
 		};
 	};
 	int current_row_= 0;
@@ -1671,6 +1671,7 @@ private:
 	bool weapon_reset_;
 
 	const int c_max_slider_value= 15;
+	int brightness_;
 	int fx_volume_;
 	int cd_volume_;
 	int mouse_sensetivity_;
@@ -1692,6 +1693,7 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	reverse_mouse_= settings_.GetOrSetBool( SettingsKeys::reverse_mouse, false );
 	weapon_reset_= settings_.GetOrSetBool( SettingsKeys::weapon_reset, false );
 
+	brightness_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::brightness, 0.5f ) ) );
 	fx_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::fx_volume, 0.5f ) ) );
 	cd_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::cd_volume, 0.5f ) ) );
 	mouse_sensetivity_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f ) ) );
@@ -1790,6 +1792,22 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	{
 		return param_x + slider_value * 15 / 4 * scale;
 	};
+
+	text_draw.Print(
+		param_descr_x, y + Row::Brightness * y_step,
+		"Brightness ", scale,
+		current_row_ == Row::Brightness ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::Brightness * y_step,
+		slider_back_text, scale,
+		ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Left );
+	text_draw.Print(
+		slider_pos( brightness_ ), y + Row::Brightness * y_step,
+		slder_text, scale,
+		ITextDrawer::FontColor::Golden,
+		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
 		param_descr_x, y + Row::FXVolume * y_step,
@@ -1913,6 +1931,15 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 
 			switch(current_row_)
 			{
+			case Row::Brightness:
+				new_value= std::max( 0, std::min( brightness_ + shift, c_max_slider_value ) );
+				if( new_value != brightness_ )
+				{
+					brightness_= new_value;
+					settings_.SetSetting( SettingsKeys::brightness, float(brightness_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
 			case Row::FXVolume:
 				new_value= std::max( 0, std::min( fx_volume_ + shift, c_max_slider_value ) );
 				if( new_value != fx_volume_ )
