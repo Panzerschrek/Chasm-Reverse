@@ -1648,6 +1648,13 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			else
 				first_monster_k= 0.5f;
 
+			const bool  first_blocked=  first_monster.GetMovementRestriction().MovementIsBlocked( -collide_vec );
+			const bool second_blocked= second_monster.GetMovementRestriction().MovementIsBlocked(  collide_vec );
+			if(  first_blocked && !second_blocked )
+				first_monster_k= 0.0f;
+			if( !first_blocked &&  second_blocked )
+				first_monster_k= 1.0f;
+
 			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta * first_monster_k;
 			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta * ( 1.0f - first_monster_k );
 
