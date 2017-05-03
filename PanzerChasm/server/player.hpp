@@ -85,6 +85,7 @@ private:
 	// Returns true, if jumped.
 	bool Move( Time time_delta );
 	void GenItemPickupMessage( unsigned char item_id );
+	void AddItemPickupFlash();
 
 private:
 	enum class State
