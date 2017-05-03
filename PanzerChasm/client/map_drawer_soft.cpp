@@ -501,7 +501,7 @@ void MapDrawerSoft::Draw(
 			int c= static_cast<int>( std::round( 255.0f * blend_color.ToArr()[j] ) );
 			if( c < 0 ) c= 0;
 			if( c > 255 ) c= 255;
-			blend_color_i[j]= c;
+			blend_color_i[ rendering_context_.color_indeces_rgba[j] ]= c;
 		}
 
 		blend_alpha_i= std::max( 0u, std::min( 65536u, static_cast<unsigned int>( std::round( blend_alpha * 65536.0f ) ) ) );
