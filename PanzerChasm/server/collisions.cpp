@@ -1,5 +1,7 @@
 #include <algorithm>
 
+#include <matrix.hpp>
+
 #include "../assert.hpp"
 #include "../math_utils.hpp"
 
@@ -75,6 +77,49 @@ bool CollideCircleWithLineSegment(
 	}
 
 	return false;
+}
+
+bool CollideCircleWithSquare(
+	const m_Vec2& square_center,
+	const float angle,
+	const float square_side_half,
+	const m_Vec2& circle_center,
+	const float circle_radius,
+	m_Vec2& out_pos )
+{
+	const m_Vec2 vec_to_circle= circle_center - square_center;
+
+	m_Mat3 rot_mat;
+	rot_mat.RotateZ( -angle );
+
+	const m_Vec2 vec_to_circle_transformed= vec_to_circle * rot_mat;
+	m_Vec2 out_vec_transformed;
+
+	const float min_distance= square_side_half + circle_radius;
+
+	if( std::abs( vec_to_circle_transformed.x ) > std::abs( vec_to_circle_transformed.y ) )
+	{
+		const float abs_x= std::abs(vec_to_circle_transformed.x);
+		if( abs_x < min_distance )
+			out_vec_transformed= vec_to_circle_transformed * min_distance / abs_x;
+		else
+			return false;
+	}
+	else
+	{
+		const float abs_y= std::abs(vec_to_circle_transformed.y);
+		if( abs_y < min_distance )
+			out_vec_transformed= vec_to_circle_transformed * min_distance / abs_y;
+		else
+			return false;
+	}
+
+	// TODO - sometimes, we must push position from corners, but not sides.
+	// But, it seems, that original game behaviour is same.
+
+	rot_mat.Transpose();
+	out_pos= square_center + ( out_vec_transformed * rot_mat );
+	return true;
 }
 
 bool CircleIntersectsWithSquare(

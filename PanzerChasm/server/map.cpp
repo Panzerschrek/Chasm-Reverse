@@ -172,7 +172,7 @@ Map::Map(
 	// Pull up items, which placed atop of models
 	for( Item& item : items_ )
 	{
-		item.pos.z= GetFloorLevel( item.pos.xy(), GameConstants::player_interact_radius );
+		item.pos.z= GetFloorLevel( item.pos.xy(), 0.0f );
 	}
 	for( StaticModel& model : static_models_ )
 	{
@@ -484,35 +484,63 @@ m_Vec3 Map::CollideWithMap(
 			if( z_top < model_z_min || z_bottom > model_z_max )
 				goto end;
 
-			const float min_distance= radius + model_description.radius;
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			bool collided= false;
 
-			const m_Vec2 vec_to_pos= pos - model.pos.xy();
-			const float square_distance= vec_to_pos.SquareLength();
+			m_Vec2 collide_pos;
+			if( collide_with_square )
+			{
+				collided=
+					CollideCircleWithSquare(
+						model.pos.xy(), model.angle, model_description.radius,
+						pos, radius,
+						collide_pos );
+			}
+			else
+			{
+				const float min_distance= radius + model_description.radius;
+				const m_Vec2 vec_to_pos= pos - model.pos.xy();
+				const float square_distance= vec_to_pos.SquareLength();
+				if( square_distance < min_distance * min_distance )
+				{
+					collided= true;
+					collide_pos= model.pos.xy() + vec_to_pos * min_distance / std::sqrt( square_distance );
+				}
+			}
 
-			if( square_distance <= min_distance * min_distance )
+			if( collided )
 			{
 				// Pull up or down player.
 				if( model_z_max - z_bottom <= GameConstants::z_pull_distance &&
 					model_z_max + height <= GameConstants::walls_height )
 				{
-					new_z+= GameConstants::z_pull_speed * tick_delta.ToSeconds();
-					new_z= std::min( new_z, model_z_max );
-					if( new_z >= model_z_max )
-						out_on_floor= true;
+					if( new_z < model_z_max )
+					{
+						new_z+= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+						new_z= std::min( new_z, model_z_max );
+						if( new_z >= model_z_max )
+							out_on_floor= true;
+					}
 				}
 				else if( z_top - model_z_min <= GameConstants::z_pull_distance &&
 					model_z_min - height >= 0.0f )
 				{
-					new_z-= GameConstants::z_pull_speed * tick_delta.ToSeconds();
-					new_z= std::max( new_z, model_z_min - height );
+					if( new_z > model_z_min - height )
+					{
+						new_z-= GameConstants::z_pull_speed * tick_delta.ToSeconds();
+						new_z= std::max( new_z, model_z_min - height );
+					}
 				}
 				// Push sideways.
 				else
 				{
-					pos= model.pos.xy() + vec_to_pos * ( min_distance / std::sqrt( square_distance ) );
+					const m_Vec2 normal= collide_pos - pos;
+					const float normal_square_length= normal.SquareLength();
+					if( normal_square_length > 0.0f )
+						out_movement_restriction.AddRestriction( normal / normal_square_length );
 
-					const m_Vec2 normal= vec_to_pos / std::sqrt( square_distance );
-					out_movement_restriction.AddRestriction( normal );
+					pos.x= collide_pos.x;
+					pos.y= collide_pos.y;
 				}
 			}
 		}
@@ -1532,20 +1560,40 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		for( MonstersContainer::value_type& monster_value : monsters_ )
 		{
 			MonsterBase& monster= *monster_value.second;
-
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
-			const float collide_distance= monster_radius + model_radius;
 
-			const m_Vec2 vec_to_monster= monster.Position().xy() - model.pos.xy();
-			if( vec_to_monster.SquareLength() >= collide_distance * collide_distance )
-				continue;
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			bool collided= false;
+			m_Vec2 new_pos;
+			if( collide_with_square )
+			{
+				collided=
+					CollideCircleWithSquare(
+						model.pos.xy(), model.angle, model_radius,
+						monster.Position().xy(), monster_radius,
+						new_pos );
+			}
+			else
+			{
+				const float collide_distance= monster_radius + model_radius;
+				const m_Vec2 vec_to_monster= monster.Position().xy() - model.pos.xy();
+				if( vec_to_monster.SquareLength() < collide_distance * collide_distance )
+				{
+					collided= true;
+					new_pos= vec_to_monster / vec_to_monster.Length() * collide_distance;
+				}
+			}
+			if( collided )
+			{
+				m_Vec2 normal= new_pos - monster.Position().xy();
+				normal.Normalize();
 
-			const m_Vec2 normal= vec_to_monster / vec_to_monster.Length();
-			if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
-				monster.Hit(
-					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
-					*this,
-					monster_value.first, current_time );
+				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
+					monster.Hit(
+						GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+						*this,
+						monster_value.first, current_time );
+			}
 		}
 	}
 
@@ -1599,6 +1647,13 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				first_monster_k= 0.0f;
 			else
 				first_monster_k= 0.5f;
+
+			const bool  first_blocked=  first_monster.GetMovementRestriction().MovementIsBlocked( -collide_vec );
+			const bool second_blocked= second_monster.GetMovementRestriction().MovementIsBlocked(  collide_vec );
+			if(  first_blocked && !second_blocked )
+				first_monster_k= 0.0f;
+			if( !first_blocked &&  second_blocked )
+				first_monster_k= 1.0f;
 
 			const m_Vec2  first_monster_pos=  first_monster.Position().xy() - collide_vec * move_delta * first_monster_k;
 			const m_Vec2 second_monster_pos= second_monster.Position().xy() + collide_vec * move_delta * ( 1.0f - first_monster_k );
@@ -2790,7 +2845,8 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 {
 	float max_dz= 0.0f;
 
-	const float c_max_floor_level= 1.2f;
+	const float c_max_floor_level= GameConstants::walls_height - GameConstants::player_height - 0.05f;
+	const float c_min_ceiling_level= GameConstants::player_height + 0.05f;
 
 	const auto func=
 	[&]( const MapData::IndexElement& index_element ) -> bool
@@ -2812,18 +2868,29 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 			if( model_radius <= 0.0f )
 				goto end;
 
-			const float square_distance= ( pos - map_model.pos ).SquareLength();
-			const float collision_distance= model_radius + radius;
-			if( square_distance > collision_distance * collision_distance )
-				goto end;
-
-			// Hit here
 			const Model& model= map_data_->models[ map_model.model_id ];
-
-			if( model.z_max >= c_max_floor_level )
+			if( model.z_max >= c_max_floor_level || // There is no space abowe.
+				model.z_min >= c_min_ceiling_level ) // Enought space below.
 				goto end;
 
-			max_dz= std::max( max_dz, model.z_max );
+			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
+			if( collide_with_square )
+			{
+				m_Vec2 collide_pos;
+				if( CollideCircleWithSquare(
+						map_model.pos, map_model.angle, model_radius,
+						pos, radius, collide_pos ) )
+					max_dz= std::max( max_dz, model.z_max );
+			}
+			else
+			{
+				const float square_distance= ( pos - map_model.pos ).SquareLength();
+				const float collision_distance= model_radius + radius;
+				if( square_distance > collision_distance * collision_distance )
+					goto end;
+
+				max_dz= std::max( max_dz, model.z_max );
+			}
 		}
 
 		end:
