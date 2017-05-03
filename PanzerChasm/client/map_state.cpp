@@ -123,6 +123,37 @@ const MapState::DirectedLightSourcesContainer& MapState::GetDirectedLightSources
 	return directed_light_sources_;
 }
 
+void MapState::GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const
+{
+	if( fullscreen_blend_effects_.empty() )
+	{
+		out_color= m_Vec3( 0.0f, 0.0f, 0.0f );
+		out_alpha= 0.0f;
+		return;
+	}
+
+	out_color= m_Vec3( 0.0f, 0.0f, 0.0f );
+	float alpha_sum= 0.0f;
+
+	for( const FullscreenBlendEffect& effect : fullscreen_blend_effects_ )
+	{
+		const float alpha= std::max( 0.0f, 0.75f - ( last_tick_time_ - effect.birth_time ).ToSeconds() * 2.0f );
+		alpha_sum+= alpha;
+		const float weight= alpha;
+
+		for( unsigned int j= 0u; j < 3; j++ )
+			out_color.ToArr()[j]+= float( game_resources_->palette[ effect.color_index * 3u + j ] ) * weight / 255.0f;
+	}
+
+	if( alpha_sum > 0.0f )
+	{
+		out_color/= alpha_sum;
+		out_alpha= alpha_sum / float(fullscreen_blend_effects_.size() );
+	}
+	else
+		out_alpha= 0.0f;
+}
+
 float MapState::GetSpritesFrame() const
 {
 	return ( last_tick_time_ - map_start_time_ ).ToSeconds() * GameConstants::sprites_animations_frames_per_second;
@@ -373,6 +404,22 @@ void MapState::Tick( const Time current_time )
 		DirectedLightSource& light_source= light_value.second;
 
 		light_source.direction= static_models_[ light_value.first ].angle;
+	}
+
+	for( unsigned int i= 0u; i < fullscreen_blend_effects_.size(); )
+	{
+		FullscreenBlendEffect& effect= fullscreen_blend_effects_[i];
+
+		// Kill old effects.
+		if( ( current_time - effect.birth_time ).ToSeconds() > 2.0f )
+		{
+			if( i + 1u != fullscreen_blend_effects_.size() )
+				effect= fullscreen_blend_effects_.back();
+			fullscreen_blend_effects_.pop_back();
+			continue;
+		}
+		else
+			i++;
 	}
 }
 
@@ -676,6 +723,13 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 		}
 		break;
 	};
+}
+
+void MapState::ProcessMessage( const Messages::FullscreenBlendEffect& message )
+{
+	fullscreen_blend_effects_.emplace_back();
+	fullscreen_blend_effects_.back().birth_time= last_tick_time_;
+	fullscreen_blend_effects_.back().color_index= message.color_index;
 }
 
 void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )

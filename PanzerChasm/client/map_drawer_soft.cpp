@@ -488,6 +488,41 @@ void MapDrawerSoft::Draw(
 	DrawEffectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 	DrawBMPObjectsSprites( map_state, cam_mat, camera_position, view_clip_planes );
 
+	// Fullscreen blend.
+	m_Vec3 blend_color;
+	float blend_alpha;
+	map_state.GetFullscreenBlend( blend_color, blend_alpha );
+	if( blend_alpha > 0.001f )
+	{
+		unsigned char blend_color_i[3];
+		unsigned int blend_alpha_i, one_minus_blend_alpha_i;
+		for( unsigned int j= 0u; j < 3u; j++ )
+		{
+			int c= static_cast<int>( std::round( 255.0f * blend_color.ToArr()[j] ) );
+			if( c < 0 ) c= 0;
+			if( c > 255 ) c= 255;
+			blend_color_i[j]= c;
+		}
+
+		blend_alpha_i= std::max( 0u, std::min( 65536u, static_cast<unsigned int>( std::round( blend_alpha * 65536.0f ) ) ) );
+		one_minus_blend_alpha_i= 65536u - blend_alpha_i;
+
+		uint32_t* const dst_pixels= rendering_context_.window_surface_data;
+		const unsigned int pixel_count= rendering_context_.row_pixels * rendering_context_.viewport_size.Height();
+
+		for( unsigned int i= 0u; i < pixel_count; i++ )
+		{
+			const uint32_t pixel_value= dst_pixels[i];
+			unsigned char color[4];
+			for( unsigned int j= 0u; j < 3u; j++ )
+				color[j]= (
+					reinterpret_cast<const unsigned char*>(&pixel_value)[j] * one_minus_blend_alpha_i +
+					blend_color_i[j] * blend_alpha_i ) >> 16u;
+
+			std::memcpy( &dst_pixels[i], color, sizeof(uint32_t) );
+		}
+	}
+
 	if( settings_.GetOrSetBool( "r_debug_draw_depth_hierarchy", false ) )
 		rasterizer_.DebugDrawDepthHierarchy( static_cast<unsigned int>(map_state.GetSpritesFrame()) / 16u );
 	if( settings_.GetOrSetBool( "r_debug_draw_occlusion_buffer", false ) )

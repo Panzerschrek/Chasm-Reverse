@@ -1855,6 +1855,8 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 
 	for( const Messages::ParticleEffectBirth& message : particles_effects_messages_ )
 		messages_sender.SendUnreliableMessage( message );
+	for( const Messages::FullscreenBlendEffect& message : fullscreen_blend_messages_ )
+		messages_sender.SendUnreliableMessage( message );
 	for( const Messages::MonsterPartBirth& message : monsters_parts_birth_messages_ )
 		messages_sender.SendUnreliableMessage( message );
 
@@ -1896,6 +1898,7 @@ void Map::ClearUpdateEvents()
 	rotating_light_sources_birth_messages_.clear();
 	rotating_light_sources_death_messages_.clear();
 	particles_effects_messages_.clear();
+	fullscreen_blend_messages_.clear();
 	monsters_parts_birth_messages_.clear();
 	map_events_sounds_messages_.clear();
 	monster_linked_sounds_messages_.clear();
@@ -3029,6 +3032,8 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 		if( description.blow_effect == 4 )
 		{
 			// Mega destroyer flash - TODO
+			fullscreen_blend_messages_.emplace_back();
+			fullscreen_blend_messages_.back().color_index= 23u; // White flash.
 		}
 	}
 

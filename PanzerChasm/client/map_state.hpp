@@ -171,6 +171,9 @@ public:
 	const LightSourcesContainer& GetLightSources() const;
 	const DirectedLightSourcesContainer& GetDirectedLightSources() const;
 
+	// Out color in rgba format.
+	void GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const;
+
 	float GetSpritesFrame() const;
 
 	void Tick( Time current_time );
@@ -181,6 +184,7 @@ public:
 	void ProcessMessage( const Messages::StaticModelState& message );
 	void ProcessMessage( const Messages::SpriteEffectBirth& message );
 	void ProcessMessage( const Messages::ParticleEffectBirth& message );
+	void ProcessMessage( const Messages::FullscreenBlendEffect& message );
 	void ProcessMessage( const Messages::MonsterPartBirth& message );
 	void ProcessMessage( const Messages::MonsterBirth& message );
 	void ProcessMessage( const Messages::MonsterDeath& message );
@@ -194,6 +198,13 @@ public:
 	void ProcessMessage( const Messages::RotatingLightSourceBirth& message );
 	void ProcessMessage( const Messages::RotatingLightSourceDeath& message );
 	void ProcessMessage( const Messages::DynamicItemDeath& message );
+
+private:
+	struct FullscreenBlendEffect
+	{
+		Time birth_time= Time::FromSeconds(0);
+		unsigned char color_index;
+	};
 
 private:
 	void SpawnLightFlash( const m_Vec2& pos );
@@ -219,6 +230,8 @@ private:
 	LightFlashes light_flashes_;
 	LightSourcesContainer light_sources_;
 	DirectedLightSourcesContainer directed_light_sources_;
+
+	std::vector<FullscreenBlendEffect> fullscreen_blend_effects_;
 };
 
 } // namespace PanzerChasm
