@@ -1212,27 +1212,31 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		const float c_walls_effect_offset= 1.0f / 32.0f;
 		if( hit_result.object_type == HitResult::ObjectType::StaticWall )
 		{
-			GenParticleEffectForRocketHit(
-				hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset,
-				rocket.rocket_type_id );
+			const m_Vec3 effect_pos= hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset;
+			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
+			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::DynamicWall )
 		{
-			GenParticleEffectForRocketHit(
-				hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset,
-				rocket.rocket_type_id );
+			const m_Vec3 effect_pos= hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset;
+			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
+			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::Floor )
 		{
-			GenParticleEffectForRocketHit(
-				hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset ),
-				rocket.rocket_type_id );
+			const m_Vec3 effect_pos= hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset );
+			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
+			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 		}
 		else if( hit_result.object_type == HitResult::ObjectType::Model )
+		{
 			GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
+			PlayMapEventSound( hit_result.pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
+		}
 		else if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
 			AddParticleEffect( hit_result.pos, ParticleEffect::Blood );
+			PlayMapEventSound( hit_result.pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 
 			// Hack for rockets and grenades. Make effect together with blood.
 			if( rocket_description.blow_effect == 2 && !has_infinite_speed )
@@ -3030,8 +3034,6 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 
 	if( message != nullptr )
 		PositionToMessagePosition( pos, message->xyz );
-
-	PlayMapEventSound( pos, Sound::SoundId::FirstRocketHit + rocket_type_id );
 }
 
 } // PanzerChasm
