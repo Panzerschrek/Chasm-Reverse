@@ -19,4 +19,19 @@ SharedDrawers::SharedDrawers( IDrawersFactory& drawers_factory )
 SharedDrawers::~SharedDrawers()
 {}
 
+void SharedDrawers::VidClear()
+{
+	menu= nullptr;
+	text= nullptr;
+}
+
+void SharedDrawers::VidRestart( IDrawersFactory& drawers_factory )
+{
+	PC_ASSERT( menu == nullptr );
+	PC_ASSERT( text == nullptr );
+
+	menu= drawers_factory.CreateMenuDrawer();
+	text= drawers_factory.CreateTextDrawer();
+}
+
 } // namespace PanzerChasm

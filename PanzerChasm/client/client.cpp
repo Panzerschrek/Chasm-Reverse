@@ -65,6 +65,39 @@ Client::Client(
 Client::~Client()
 {}
 
+void Client::VidClear()
+{
+	map_drawer_= nullptr;
+	minimap_drawer_= nullptr;
+	hud_drawer_= nullptr;
+
+	// Kill cutscene, because it doesn`t supports vid_restart.
+	if( cutscene_player_ != nullptr )
+	{
+		cutscene_player_= nullptr;
+		// Set map in sound engine too, because sound engine have null map in cutscene.
+		if( sound_engine_ != nullptr )
+			sound_engine_->SetMap( current_map_data_ );
+	}
+}
+
+void Client::VidRestart( IDrawersFactory& drawers_factory )
+{
+	PC_ASSERT( map_drawer_ == nullptr );
+	PC_ASSERT( minimap_drawer_ == nullptr );
+	PC_ASSERT( hud_drawer_ == nullptr );
+
+	map_drawer_= drawers_factory.CreateMapDrawer();
+	minimap_drawer_= drawers_factory.CreateMinimapDrawer();
+	hud_drawer_= drawers_factory.CreateHUDDrawer( shared_drawers_ );
+
+	if( current_map_data_ != nullptr )
+	{
+		map_drawer_->SetMap( current_map_data_ );
+		minimap_drawer_->SetMap( current_map_data_ );
+	}
+}
+
 void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 {
 	PC_ASSERT( current_map_data_ != nullptr );

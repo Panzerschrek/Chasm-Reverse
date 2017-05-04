@@ -26,6 +26,11 @@ public:
 
 	~Client();
 
+	// You should call VidClear before VidRestart.
+	// You should no call methods of this class between VidClear and VidRestart.
+	void VidClear();
+	void VidRestart( IDrawersFactory& drawers_factory );
+
 	void Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment );
 	void Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos );
 

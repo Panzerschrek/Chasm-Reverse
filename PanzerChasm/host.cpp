@@ -79,6 +79,7 @@ Host::Host( const int argc, const char* const* const argv )
 		commands->emplace( "runserver", std::bind( &Host::RunServerCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "save", std::bind( &Host::SaveCommand, this, std::placeholders::_1 ) );
 		commands->emplace( "load", std::bind( &Host::LoadCommand, this, std::placeholders::_1 ) );
+		commands->emplace( "vid_restart", std::bind( &Host::VidRestart, this ) );
 
 		host_commands_= std::move( commands );
 		commands_processor_.RegisterCommands( host_commands_ );
@@ -115,56 +116,7 @@ Host::Host( const int argc, const char* const* const argv )
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
 
-	Log::Info( "Create system window" );
-	system_window_.reset( new SystemWindow( settings_ ) );
-	system_window_->SetTitle( base_window_title_ );
-
-	rSetShadersDir( "shaders" );
-	{
-		const auto shaders_log_callback=
-		[]( const char* const log_data )
-		{
-			Log::Warning( log_data );
-		};
-
-		rSetShaderLoadingLogCallback( shaders_log_callback );
-		r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
-	}
-	r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
-
-	if( system_window_->IsOpenGLRenderer() )
-	{
-		drawers_factory_=
-			std::make_shared<DrawersFactoryGL>(
-				settings_,
-				game_resources_,
-				system_window_->GetRenderingContextGL() );
-	}
-	else
-	{
-		// TODO - generate transformed palette in other place
-		RenderingContextSoft rendering_context= system_window_->GetRenderingContextSoft();
-		rendering_context.palette_transformed= std::make_shared<PaletteTransformed>();
-
-		const Palette& in_palette= game_resources_->palette;
-		for( unsigned int i= 0u; i < 256u; i++ )
-		{
-			unsigned char components[4];
-			components[ rendering_context.color_indeces_rgba[0] ]= in_palette[ i * 3u + 0u ];
-			components[ rendering_context.color_indeces_rgba[1] ]= in_palette[ i * 3u + 1u ];
-			components[ rendering_context.color_indeces_rgba[2] ]= in_palette[ i * 3u + 2u ];
-			components[ rendering_context.color_indeces_rgba[3] ]= i == 255u ? 0u : 255u;
-			std::memcpy( &(*rendering_context.palette_transformed)[i], &components, 4u );
-		}
-
-		drawers_factory_=
-			std::make_shared<DrawersFactorySoft>(
-				settings_,
-				game_resources_,
-				rendering_context );
-	}
-
-	shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );
+	VidRestart();
 
 	Log::Info( "Initialize console" );
 	console_.reset( new Console( commands_processor_, shared_drawers_ ) );
@@ -512,6 +464,84 @@ void Host::LoadCommand( const CommandsArguments& args )
 	}
 
 	DoLoad( args.front().c_str() );
+}
+
+void Host::VidRestart()
+{
+	// Clear old resources.
+	if( shared_drawers_ != nullptr )
+		shared_drawers_->VidClear();
+
+	if( client_ != nullptr )
+		client_->VidClear();
+
+	// Kill old window.
+	if( system_window_ != nullptr )
+	{
+		Log::Info( "Destroy system window" );
+		system_window_= nullptr;
+	}
+
+	// Create new window and related drawers.
+
+	Log::Info( "Create system window" );
+	system_window_.reset( new SystemWindow( settings_ ) );
+	system_window_->SetTitle( base_window_title_ );
+
+	if( system_window_->IsOpenGLRenderer() )
+	{
+		rSetShadersDir( "shaders" );
+		{
+			const auto shaders_log_callback=
+			[]( const char* const log_data )
+			{
+				Log::Warning( log_data );
+			};
+
+			rSetShaderLoadingLogCallback( shaders_log_callback );
+			r_GLSLProgram::SetProgramBuildLogOutCallback( shaders_log_callback );
+		}
+		r_Framebuffer::SetScreenFramebufferSize( system_window_->GetViewportSize().Width(), system_window_->GetViewportSize().Height() );
+
+		drawers_factory_=
+			std::make_shared<DrawersFactoryGL>(
+				settings_,
+				game_resources_,
+				system_window_->GetRenderingContextGL() );
+	}
+	else
+	{
+		// TODO - generate transformed palette in other place
+		RenderingContextSoft rendering_context= system_window_->GetRenderingContextSoft();
+		rendering_context.palette_transformed= std::make_shared<PaletteTransformed>();
+
+		const Palette& in_palette= game_resources_->palette;
+		for( unsigned int i= 0u; i < 256u; i++ )
+		{
+			unsigned char components[4];
+			components[ rendering_context.color_indeces_rgba[0] ]= in_palette[ i * 3u + 0u ];
+			components[ rendering_context.color_indeces_rgba[1] ]= in_palette[ i * 3u + 1u ];
+			components[ rendering_context.color_indeces_rgba[2] ]= in_palette[ i * 3u + 2u ];
+			components[ rendering_context.color_indeces_rgba[3] ]= i == 255u ? 0u : 255u;
+			std::memcpy( &(*rendering_context.palette_transformed)[i], &components, 4u );
+		}
+
+		drawers_factory_=
+			std::make_shared<DrawersFactorySoft>(
+				settings_,
+				game_resources_,
+				rendering_context );
+	}
+
+	// If shared drawers already exist, do not create new, but reuse old structure.
+	// It needs, because many subsystems( menu, client ) already have shared_ptr to it.
+	if( shared_drawers_ == nullptr )
+		shared_drawers_= std::make_shared<SharedDrawers>( *drawers_factory_ );
+	else
+		shared_drawers_->VidRestart( *drawers_factory_ );
+
+	if( client_ != nullptr )
+		client_->VidRestart( *drawers_factory_ );
 }
 
 void Host::DoRunLevel( const unsigned int map_number, const DifficultyType difficulty )

@@ -62,6 +62,8 @@ private:
 	void SaveCommand( const CommandsArguments& args );
 	void LoadCommand( const CommandsArguments& args );
 
+	void VidRestart();
+
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
 	void DoSave( const char* save_file_name );
 	void DoLoad( const char* save_file_name );
@@ -98,7 +100,7 @@ private:
 	Sound::SoundEnginePtr sound_engine_;
 
 	IDrawersFactoryPtr drawers_factory_;
-	SharedDrawersPtr shared_drawers_;
+	std::shared_ptr<SharedDrawers> shared_drawers_;
 	std::unique_ptr<Console> console_;
 	std::unique_ptr<Menu> menu_;
 
