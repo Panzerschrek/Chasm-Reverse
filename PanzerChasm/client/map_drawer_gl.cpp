@@ -517,18 +517,6 @@ void MapDrawerGL::Draw(
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
 	DrawBMPObjectsSprites( map_state, view_matrix, camera_position );
 	DrawEffectsSprites( map_state, view_matrix, camera_position );
-
-	m_Vec3 blend_color;
-	float blend_alpha;
-	map_state.GetFullscreenBlend( blend_color, blend_alpha );
-	if( blend_alpha > 0.001f )
-	{
-		r_OGLStateManager::UpdateState( g_fullscreen_blend_state );
-		fullscreen_blend_shader_.Bind();
-		fullscreen_blend_shader_.Uniform( "blend_color", blend_color.x, blend_color.y, blend_color.z, blend_alpha );
-		glDrawArrays( GL_TRIANGLES, 0, 6 );
-	}
-
 }
 
 void MapDrawerGL::DrawWeapon(
@@ -603,6 +591,21 @@ void MapDrawerGL::DrawWeapon(
 	draw_model_polygons(true);
 
 	glDepthRange( 0.0f, 1.0f );
+}
+
+void MapDrawerGL::DoFullscreenPostprocess( const MapState& map_state )
+{
+	m_Vec3 blend_color;
+	float blend_alpha;
+	map_state.GetFullscreenBlend( blend_color, blend_alpha );
+	if( blend_alpha > 0.001f )
+	{
+		r_OGLStateManager::UpdateState( g_fullscreen_blend_state );
+		fullscreen_blend_shader_.Bind();
+		fullscreen_blend_shader_.Uniform( "blend_color", blend_color.x, blend_color.y, blend_color.z, blend_alpha );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
 }
 
 void MapDrawerGL::DrawMapRelatedModels(
