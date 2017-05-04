@@ -37,6 +37,7 @@ public:
 		const m_Vec3& camera_position,
 		float x_angle, float z_angle )= 0;
 
+	virtual void DoFullscreenPostprocess( const MapState& map_state )= 0;
 
 	struct MapRelatedModel
 	{

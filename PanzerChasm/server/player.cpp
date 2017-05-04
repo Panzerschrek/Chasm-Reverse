@@ -315,6 +315,15 @@ void Player::Hit(
 
 		speed_+= m_Vec3( speed_delta, 0.0f );
 	}
+
+	// Add blood falshes.
+	if( health_damage > 0 )
+	{
+		// Flash intensity depends on dagage.
+		fullscreen_blend_messages_.emplace_back();
+		fullscreen_blend_messages_.back().color_index= 63u;
+		fullscreen_blend_messages_.back().intensity= std::min( 255u, static_cast<unsigned int>(health_damage + 5) * 5u );
+	}
 }
 
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
@@ -399,6 +408,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		ammo_[ weapon_index ]= new_ammo_count;
 
 		GenItemPickupMessage( item_id );
+		AddItemPickupFlash();
 		return true;
 	}
 	else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
@@ -421,6 +431,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		ammo_[ weapon_index ]= new_ammo_count;
 
 		GenItemPickupMessage( item_id );
+		AddItemPickupFlash();
 		return true;
 	}
 	else if( a_code == ACode::Item_Life )
@@ -428,6 +439,8 @@ bool Player::TryPickupItem( const unsigned int item_id )
 		if( health_ < GameConstants::player_nominal_health )
 		{
 			health_= std::min( health_ + 20, GameConstants::player_nominal_health );
+			GenItemPickupMessage( item_id );
+			AddItemPickupFlash();
 			return true;
 		}
 		return false;
@@ -439,6 +452,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 			health_= std::min( health_ + 100, GameConstants::player_max_health );
 
 			GenItemPickupMessage( item_id );
+			AddItemPickupFlash();
 			return true;
 		}
 		return false;
@@ -450,6 +464,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 			armor_= std::min( armor_ + 200, GameConstants::player_max_armor );
 
 			GenItemPickupMessage( item_id );
+			AddItemPickupFlash();
 			return true;
 		}
 		return false;
@@ -461,6 +476,7 @@ bool Player::TryPickupItem( const unsigned int item_id )
 			armor_= std::min( armor_ + 100, GameConstants::player_max_armor );
 
 			GenItemPickupMessage( item_id );
+			AddItemPickupFlash();
 			return true;
 		}
 		return false;
@@ -485,6 +501,7 @@ bool Player::TryPickupBackpack( const Backpack& backpack )
 	if( armor_ > GameConstants::player_max_armor ) armor_= GameConstants::player_max_armor;
 
 	// TODO - return if really something new picked.
+	AddItemPickupFlash();
 	return true;
 }
 
@@ -533,12 +550,15 @@ bool Player::BuildSpawnMessage( Messages::PlayerSpawn& out_spawn_message, const 
 	return true;
 }
 
-void Player::SendItemPickupMessages( MessagesSender& messages_sender )
+void Player::SendInternalMessages( MessagesSender& messages_sender )
 {
 	for( const auto& message : pickup_messages_ )
 		messages_sender.SendUnreliableMessage( message );
+	for( const auto& message : fullscreen_blend_messages_ )
+		messages_sender.SendUnreliableMessage( message );
 
 	pickup_messages_.clear();
+	fullscreen_blend_messages_.clear();
 }
 
 void Player::OnMapChange()
@@ -738,6 +758,14 @@ void Player::GenItemPickupMessage( const unsigned char item_id )
 {
 	pickup_messages_.emplace_back();
 	pickup_messages_.back().item_id= item_id;
+}
+
+void Player::AddItemPickupFlash()
+{
+	// Add green flash.
+	fullscreen_blend_messages_.emplace_back();
+	fullscreen_blend_messages_.back().color_index= 15u * 16u + 8u;
+	fullscreen_blend_messages_.back().intensity= 48u;
 }
 
 } // namespace PanzerChasm

@@ -94,6 +94,8 @@ public:
 	// final_color= ( light * color ) >> 16
 	void SetLight( fixed16_t light );
 
+	void DrawFullscreenBlend( const unsigned char* color_components, unsigned char alpha );
+
 	void DrawAffineColoredTriangle( const RasterizerVertex* trianlge_vertices, uint32_t color );
 	void DrawColoredConvexPolygon( const RasterizerVertex* polygon_vertices, unsigned int vertex_count, bool is_anticlockwise, uint32_t color );
 

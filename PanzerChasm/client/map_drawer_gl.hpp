@@ -42,6 +42,8 @@ public:
 		const m_Vec3& camera_position,
 		float x_angle, float z_angle ) override;
 
+	virtual void DoFullscreenPostprocess( const MapState& map_state ) override;
+
 	virtual void DrawMapRelatedModels(
 		const MapRelatedModel* models, unsigned int model_count,
 		const m_Mat4& view_rotation_and_projection_matrix,
@@ -249,6 +251,8 @@ private:
 	r_GLSLProgram sky_shader_;
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;
+
+	r_GLSLProgram fullscreen_blend_shader_;
 
 	MapLight map_light_;
 

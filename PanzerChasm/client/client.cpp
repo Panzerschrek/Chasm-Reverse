@@ -343,6 +343,8 @@ void Client::Draw()
 				camera_controller_.GetViewAngleZ() );
 		}
 
+		map_drawer_->DoFullscreenPostprocess( *map_state_ );
+
 		if( minimap_mode_ && map_state_ != nullptr && minimap_state_ != nullptr )
 		{
 			minimap_drawer_->Draw(

@@ -195,7 +195,7 @@ void Server::Loop( bool paused )
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
 		messages_sender.SendUnreliableMessage( weapon_msg );
-		connected_player->player->SendItemPickupMessages( messages_sender );
+		connected_player->player->SendInternalMessages( messages_sender );
 		messages_sender.Flush();
 	}
 

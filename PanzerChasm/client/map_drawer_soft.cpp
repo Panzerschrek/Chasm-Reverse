@@ -616,6 +616,29 @@ void MapDrawerSoft::DrawWeapon(
 	} // for model triangles
 }
 
+void MapDrawerSoft::DoFullscreenPostprocess( const MapState& map_state )
+{
+	// Fullscreen blend.
+	m_Vec3 blend_color;
+	float blend_alpha;
+	map_state.GetFullscreenBlend( blend_color, blend_alpha );
+	if( blend_alpha > 0.001f )
+	{
+		unsigned char blend_color_i[3];
+		unsigned char blend_alpha_i;
+		for( unsigned int j= 0u; j < 3u; j++ )
+		{
+			int c= static_cast<int>( std::round( 255.0f * blend_color.ToArr()[j] ) );
+			if( c < 0 ) c= 0;
+			if( c > 255 ) c= 255;
+			blend_color_i[ rendering_context_.color_indeces_rgba[j] ]= c;
+		}
+
+		blend_alpha_i= std::max( 0, std::min( 255, static_cast<int>( std::round( blend_alpha * 255.0f ) ) ) );
+		rasterizer_.DrawFullscreenBlend( blend_color_i, blend_alpha_i );
+	}
+}
+
 void MapDrawerSoft::DrawMapRelatedModels(
 	const MapRelatedModel* const models, const unsigned int model_count,
 	const m_Mat4& view_rotation_and_projection_matrix,
