@@ -138,7 +138,8 @@ void MapState::GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const
 	// Calculate color, proportional to alpha.
 	for( const FullscreenBlendEffect& effect : fullscreen_blend_effects_ )
 	{
-		const float alpha= std::max( 0.0f, effect.intensity * ( 1.0f - ( last_tick_time_ - effect.birth_time ).ToSeconds() ) );
+		const float effect_age_s= ( last_tick_time_ - effect.birth_time ).ToSeconds();
+		const float alpha= std::max( 0.0f, effect.intensity * std::exp( -2.5f * effect_age_s ) );
 		alpha_sum+= alpha;
 		const float weight= alpha;
 
@@ -412,7 +413,7 @@ void MapState::Tick( const Time current_time )
 		FullscreenBlendEffect& effect= fullscreen_blend_effects_[i];
 
 		// Kill old effects.
-		if( ( current_time - effect.birth_time ).ToSeconds() > 2.0f )
+		if( ( current_time - effect.birth_time ).ToSeconds() > 4.0f )
 		{
 			if( i + 1u != fullscreen_blend_effects_.size() )
 				effect= fullscreen_blend_effects_.back();

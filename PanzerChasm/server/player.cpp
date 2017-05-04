@@ -322,7 +322,7 @@ void Player::Hit(
 		// Flash intensity depends on dagage.
 		fullscreen_blend_messages_.emplace_back();
 		fullscreen_blend_messages_.back().color_index= 63u;
-		fullscreen_blend_messages_.back().intensity= std::min( 255u, static_cast<unsigned int>(health_damage + 5) * 4u );
+		fullscreen_blend_messages_.back().intensity= std::min( 255u, static_cast<unsigned int>(health_damage + 5) * 5u );
 	}
 }
 
@@ -764,7 +764,7 @@ void Player::AddItemPickupFlash()
 	// Add green flash.
 	fullscreen_blend_messages_.emplace_back();
 	fullscreen_blend_messages_.back().color_index= 15u * 16u + 8u;
-	fullscreen_blend_messages_.back().intensity= 64u;
+	fullscreen_blend_messages_.back().intensity= 48u;
 }
 
 } // namespace PanzerChasm
