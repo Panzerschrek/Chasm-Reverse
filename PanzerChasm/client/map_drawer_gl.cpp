@@ -55,6 +55,14 @@ const r_OGLState g_shadows_gl_state(
 	r_OGLState::default_cull_face_mode,
 	false );
 
+const r_OGLState g_fullscreen_blend_state(
+	true, false, false, false,
+	g_gl_state_blend_func,
+	r_OGLState::default_clear_color,
+	r_OGLState::default_clear_depth,
+	r_OGLState::default_cull_face_mode,
+	false );
+
 } // namespace
 
 struct FloorVertex
@@ -373,6 +381,11 @@ MapDrawerGL::MapDrawerGL(
 		rLoadShader( "sky_v.glsl", rendering_context.glsl_version ) );
 	sky_shader_.SetAttribLocation( "pos", 0u );
 	sky_shader_.Create();
+
+	fullscreen_blend_shader_.ShaderSource(
+		rLoadShader( "fullscreen_blend_f.glsl", rendering_context.glsl_version ),
+		rLoadShader( "fullscreen_blend_v.glsl", rendering_context.glsl_version ) );
+	fullscreen_blend_shader_.Create();
 }
 
 MapDrawerGL::~MapDrawerGL()
@@ -504,6 +517,18 @@ void MapDrawerGL::Draw(
 	r_OGLStateManager::UpdateState( g_sprites_gl_state );
 	DrawBMPObjectsSprites( map_state, view_matrix, camera_position );
 	DrawEffectsSprites( map_state, view_matrix, camera_position );
+
+	m_Vec3 blend_color;
+	float blend_alpha;
+	map_state.GetFullscreenBlend( blend_color, blend_alpha );
+	if( blend_alpha > 0.001f )
+	{
+		r_OGLStateManager::UpdateState( g_fullscreen_blend_state );
+		fullscreen_blend_shader_.Bind();
+		fullscreen_blend_shader_.Uniform( "blend_color", blend_color.x, blend_color.y, blend_color.z, blend_alpha );
+		glDrawArrays( GL_TRIANGLES, 0, 6 );
+	}
+
 }
 
 void MapDrawerGL::DrawWeapon(

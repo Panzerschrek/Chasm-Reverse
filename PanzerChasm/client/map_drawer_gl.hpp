@@ -250,6 +250,8 @@ private:
 	r_Texture sky_texture_;
 	r_PolygonBuffer sky_geometry_data_;
 
+	r_GLSLProgram fullscreen_blend_shader_;
+
 	MapLight map_light_;
 
 	// Reuse vector (do not create new vector each frame).
