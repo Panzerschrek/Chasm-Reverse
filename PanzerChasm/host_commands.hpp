@@ -38,6 +38,8 @@ public:
 	virtual bool SaveAvailable() const = 0;
 	virtual void SaveGame( unsigned int slot_number )= 0;
 	virtual void LoadGame( unsigned int slot_number )= 0;
+
+	virtual void VidRestart()= 0;
 };
 
 } // namespace PanzerChasm

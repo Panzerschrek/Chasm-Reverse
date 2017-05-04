@@ -50,6 +50,8 @@ public: // HostCommands
 	virtual void SaveGame( unsigned int slot_number ) override;
 	virtual void LoadGame( unsigned int slot_number ) override;
 
+	virtual void VidRestart() override;
+
 private:
 	class ConnectionsListenerProxy;
 
@@ -62,7 +64,7 @@ private:
 	void SaveCommand( const CommandsArguments& args );
 	void LoadCommand( const CommandsArguments& args );
 
-	void VidRestart();
+	void DoVidRestart();
 
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
 	void DoSave( const char* save_file_name );

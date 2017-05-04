@@ -37,6 +37,7 @@ static const char g_yes[]= "yes";
 static const char g_no[]= "no";
 static const char g_on[]= "On";
 static const char g_off[]= "Off";
+static const char g_apply_now[]= "Apply Now";
 
 // Menu base
 
@@ -1085,18 +1086,19 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, Shadows, NumRows
+			Renderer, DynamicLighting, Shadows, ApplyNow, NumRows
 		};
 	};
 	struct RowSoftware
 	{
 		enum : int
 		{
-			Renderer, PixelSize, Shadows, NumRows
+			Renderer, PixelSize, Shadows, ApplyNow, NumRows
 		};
 	};
 
 private:
+	HostCommands& host_commands_;
 	Settings& settings_;
 	int current_renderer_= 0;
 	int current_row_= 0;
@@ -1105,6 +1107,7 @@ private:
 
 GraphicsMenu::GraphicsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
+	, host_commands_(host_commands)
 	, settings_(host_commands.GetSettings())
 {
 	current_renderer_=
@@ -1166,6 +1169,16 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Left );
 	};
 
+	const auto draw_apply_now_row=
+	[&]( const int row )
+	{
+		text_draw.Print(
+			( param_descr_x + param_x ) / 2, y + row * y_step,
+			g_apply_now, scale,
+			current_row_ == row ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Center );
+	};
+
 	if( current_renderer_ == Renderer::Software )
 	{
 		char pixel_size[16];
@@ -1184,6 +1197,7 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Left );
 
 		draw_shadows_row();
+		draw_apply_now_row( RowSoftware::ApplyNow );
 	}
 	else if( current_renderer_ == Renderer::OpenGL )
 	{
@@ -1200,6 +1214,7 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Left );
 
 		draw_shadows_row();
+		draw_apply_now_row( RowOpenGL::ApplyNow );
 	}
 }
 
@@ -1238,6 +1253,11 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 				settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
 				PlayMenuSound( Sound::SoundId::MenuScroll );
 			}
+			if( current_row_ == RowSoftware::ApplyNow && key == KeyCode::Enter )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				host_commands_.VidRestart();
+			}
 		}
 		else if( current_renderer_ == Renderer::OpenGL )
 		{
@@ -1248,6 +1268,11 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 					SettingsKeys::opengl_dynamic_lighting,
 					! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
 				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
+			if( current_row_ == RowOpenGL::ApplyNow && key == KeyCode::Enter )
+			{
+				PlayMenuSound( Sound::SoundId::MenuChange );
+				host_commands_.VidRestart();
 			}
 		}
 
@@ -1281,7 +1306,7 @@ private:
 	{
 		enum : int
 		{
-			Fullscreen= 0, Display, FullscreenResolution, Frequency, WindowWidth, WindowHeight, NumRows
+			Fullscreen= 0, Display, FullscreenResolution, Frequency, WindowWidth, WindowHeight, ApplyNow, NumRows
 		};
 	};
 
@@ -1289,6 +1314,7 @@ private:
 	void UpdateSettings();
 
 private:
+	HostCommands& host_commands_;
 	Settings& settings_;
 	SystemWindow::DispaysVideoModes video_modes_;
 	int current_row_= 0;
@@ -1304,6 +1330,7 @@ private:
 
 VideoMenu::VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
+	, host_commands_(host_commands)
 	, settings_(host_commands.GetSettings())
 {
 	const SystemWindow* system_window= host_commands.GetSystemWindow();
@@ -1457,6 +1484,12 @@ void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		size_str, scale,
 		current_row_ == Row::WindowHeight ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		( param_descr_x + param_x ) / 2, y + Row::ApplyNow * y_step,
+		g_apply_now, scale,
+		current_row_ == Row::ApplyNow ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Center );
 }
 
 MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
@@ -1474,6 +1507,12 @@ MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
 			current_row_= ( current_row_ + 1 ) % Row::NumRows;
+		}
+
+		if( key == KeyCode::Enter && current_row_ == Row::ApplyNow )
+		{
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			host_commands_.VidRestart();
 		}
 
 		// Boolean parameters.

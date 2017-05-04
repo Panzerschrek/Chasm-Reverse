@@ -394,6 +394,11 @@ void Host::LoadGame( const unsigned int slot_number )
 	DoLoad( file_name );
 }
 
+void Host::VidRestart()
+{
+	DoVidRestart();
+}
+
 void Host::NewGameCommand( const CommandsArguments& args )
 {
 	DifficultyType difficulty= Difficulty::Normal;
@@ -466,7 +471,7 @@ void Host::LoadCommand( const CommandsArguments& args )
 	DoLoad( args.front().c_str() );
 }
 
-void Host::VidRestart()
+void Host::DoVidRestart()
 {
 	// Clear old resources.
 	if( shared_drawers_ != nullptr )
