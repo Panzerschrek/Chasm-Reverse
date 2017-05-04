@@ -696,10 +696,11 @@ bool Player::Move( const Time time_delta )
 	const float deceleration_speed_delta= time_delta_s * c_deceleration;
 
 	// Accelerate
+	m_Vec2 acceleration( 0.0f, 0.0f );
 	if( state_ == State::Alive )
 	{
-		speed_.x+= std::cos( movement_direction_ ) * speed_delta;
-		speed_.y+= std::sin( movement_direction_ ) * speed_delta;
+		acceleration.x= std::cos( movement_direction_ ) * speed_delta;
+		acceleration.y= std::sin( movement_direction_ ) * speed_delta;
 	}
 
 	// Decelerate
@@ -713,12 +714,46 @@ bool Player::Move( const Time time_delta )
 	else
 		speed_.x= speed_.y= 0.0f;
 
-	// Clamp speed
-	const float new_speed_square_length= speed_.xy().SquareLength();
-	// TODO - allow bigger speed, for case of mega-destroyer recoil.
-	if( new_speed_square_length > GameConstants::player_max_speed * GameConstants::player_max_speed )
+	const m_Vec2 current_speed_xy= speed_.xy();
+	const float acceleration_projection_to_current_speed= acceleration * current_speed_xy;
+	if( acceleration_projection_to_current_speed > 0.0f )
 	{
-		const float k= GameConstants::player_max_speed / std::sqrt( new_speed_square_length );
+		const float max_square_speed= GameConstants::player_max_speed * GameConstants::player_max_speed;
+
+		const float current_speed_square_length= current_speed_xy.SquareLength();
+		const m_Vec2 acceleration_projection= current_speed_xy * ( acceleration_projection_to_current_speed / current_speed_square_length );
+		const m_Vec2 acceleration_orthogonal= acceleration - acceleration_projection;
+
+		// If speed greater, then maximal speed by player, just add only orthogonal to current speed aceleration part.
+		if( current_speed_square_length >= max_square_speed )
+		{
+			speed_.x+= acceleration_orthogonal.x;
+			speed_.y+= acceleration_orthogonal.y;
+		}
+		else
+		{
+			// Extend current speed as much, as can and add orthogonal ecceleration component.
+			m_Vec2 speed_plus_acceleration_projection= current_speed_xy + acceleration_projection;
+			const float speed_plus_acceleration_projection_squar_length= speed_plus_acceleration_projection.SquareLength();
+			if( speed_plus_acceleration_projection_squar_length > max_square_speed )
+				speed_plus_acceleration_projection*=
+					GameConstants::player_max_speed / std::sqrt( speed_plus_acceleration_projection_squar_length );
+
+			speed_.x= speed_plus_acceleration_projection.x + acceleration_orthogonal.x;
+			speed_.y= speed_plus_acceleration_projection.y + acceleration_orthogonal.y;
+		}
+	}
+	else
+	{
+		speed_.x+= acceleration.x;
+		speed_.y+= acceleration.y;
+	}
+
+	// If speed is veery hight - clamp it.
+	const float new_speed_square_length= speed_.xy().SquareLength();
+	if( new_speed_square_length > GameConstants::player_max_absolute_speed * GameConstants::player_max_absolute_speed )
+	{
+		const float k= GameConstants::player_max_absolute_speed / std::sqrt( new_speed_square_length );
 		speed_.x*= k;
 		speed_.y*= k;
 	}

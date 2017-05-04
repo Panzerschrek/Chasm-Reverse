@@ -40,7 +40,8 @@ constexpr float z_pull_speed= 2.5f;
 constexpr float death_ticks_per_second= 3.0f;
 constexpr int mortal_walls_damage= 100000;
 
-const float player_max_speed= 5.0f;
+const float player_max_speed= 5.0f; // Max speed, which player can reach himself.
+const float player_max_absolute_speed= 15.0f; // Maximum speed of player.
 
 constexpr float walls_height= 2.0f;
 
