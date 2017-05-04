@@ -183,9 +183,7 @@ Map::Map(
 		if( description.ac == 0u )
 			continue;
 
-		// HACK for keys. Use nonzero radius.
-		const float radius= std::max( description.radius, GameConstants::player_interact_radius);
-		model.pos.z= model.baze_z= GetFloorLevel( model.pos.xy(), radius );
+		model.pos.z= model.baze_z= GetFloorLevel( model.pos.xy(), description.radius );
 	}
 
 	// Spawn monsters
