@@ -203,6 +203,7 @@ private:
 	struct FullscreenBlendEffect
 	{
 		Time birth_time= Time::FromSeconds(0);
+		float intensity;
 		unsigned char color_index;
 	};
 

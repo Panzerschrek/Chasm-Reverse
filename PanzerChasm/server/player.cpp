@@ -320,12 +320,9 @@ void Player::Hit(
 	if( health_damage > 0 )
 	{
 		// Flash intensity depends on dagage.
-		unsigned int flash_count= std::min( 3u, static_cast<unsigned int>(health_damage + 20) / 20u );
-		for( unsigned int i= 0u; i < flash_count; i++ )
-		{
-			fullscreen_blend_messages_.emplace_back();
-			fullscreen_blend_messages_.back().color_index= 63u;
-		}
+		fullscreen_blend_messages_.emplace_back();
+		fullscreen_blend_messages_.back().color_index= 63u;
+		fullscreen_blend_messages_.back().intensity= std::min( 255u, static_cast<unsigned int>(health_damage + 5) * 4u );
 	}
 }
 
@@ -767,6 +764,7 @@ void Player::AddItemPickupFlash()
 	// Add green flash.
 	fullscreen_blend_messages_.emplace_back();
 	fullscreen_blend_messages_.back().color_index= 15u * 16u + 8u;
+	fullscreen_blend_messages_.back().intensity= 64u;
 }
 
 } // namespace PanzerChasm

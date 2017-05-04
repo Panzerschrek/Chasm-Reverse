@@ -138,7 +138,7 @@ void MapState::GetFullscreenBlend( m_Vec3& out_color, float& out_alpha ) const
 	// Calculate color, proportional to alpha.
 	for( const FullscreenBlendEffect& effect : fullscreen_blend_effects_ )
 	{
-		const float alpha= std::max( 0.0f, 0.25f * ( 1.0f - ( last_tick_time_ - effect.birth_time ).ToSeconds() ) );
+		const float alpha= std::max( 0.0f, effect.intensity * ( 1.0f - ( last_tick_time_ - effect.birth_time ).ToSeconds() ) );
 		alpha_sum+= alpha;
 		const float weight= alpha;
 
@@ -729,8 +729,10 @@ void MapState::ProcessMessage( const Messages::ParticleEffectBirth& message )
 void MapState::ProcessMessage( const Messages::FullscreenBlendEffect& message )
 {
 	fullscreen_blend_effects_.emplace_back();
-	fullscreen_blend_effects_.back().birth_time= last_tick_time_;
-	fullscreen_blend_effects_.back().color_index= message.color_index;
+	FullscreenBlendEffect& effect= fullscreen_blend_effects_.back();
+	effect.birth_time= last_tick_time_;
+	effect.color_index= message.color_index;
+	effect.intensity= static_cast<float>( message.intensity ) / 255.0f;
 }
 
 void MapState::ProcessMessage( const Messages::MonsterPartBirth& message )

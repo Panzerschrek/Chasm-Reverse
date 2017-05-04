@@ -167,6 +167,7 @@ struct FullscreenBlendEffect : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(FullscreenBlendEffect)
 
 	unsigned char color_index;
+	unsigned char intensity;
 };
 
 struct MonsterPartBirth : public MessageBase

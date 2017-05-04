@@ -3032,12 +3032,9 @@ void Map::GenParticleEffectForRocketHit( const m_Vec3& pos, const unsigned int r
 		if( description.blow_effect == 4 )
 		{
 			// Mega destroyer flash.
-			// Generate several messages for more powerful flash.
-			for( unsigned int i= 0u; i < 4u; i++ )
-			{
-				fullscreen_blend_messages_.emplace_back();
-				fullscreen_blend_messages_.back().color_index= 23u; // White flash.
-			}
+			fullscreen_blend_messages_.emplace_back();
+			fullscreen_blend_messages_.back().color_index= 23u; // white flash.
+			fullscreen_blend_messages_.back().intensity= 255u;
 		}
 	}
 
