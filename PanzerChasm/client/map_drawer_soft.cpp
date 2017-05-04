@@ -625,7 +625,7 @@ void MapDrawerSoft::DoFullscreenPostprocess( const MapState& map_state )
 	if( blend_alpha > 0.001f )
 	{
 		unsigned char blend_color_i[3];
-		unsigned int blend_alpha_i, one_minus_blend_alpha_i;
+		unsigned char blend_alpha_i;
 		for( unsigned int j= 0u; j < 3u; j++ )
 		{
 			int c= static_cast<int>( std::round( 255.0f * blend_color.ToArr()[j] ) );
@@ -634,23 +634,8 @@ void MapDrawerSoft::DoFullscreenPostprocess( const MapState& map_state )
 			blend_color_i[ rendering_context_.color_indeces_rgba[j] ]= c;
 		}
 
-		blend_alpha_i= std::max( 0u, std::min( 65536u, static_cast<unsigned int>( std::round( blend_alpha * 65536.0f ) ) ) );
-		one_minus_blend_alpha_i= 65536u - blend_alpha_i;
-
-		uint32_t* const dst_pixels= rendering_context_.window_surface_data;
-		const unsigned int pixel_count= rendering_context_.row_pixels * rendering_context_.viewport_size.Height();
-
-		for( unsigned int i= 0u; i < pixel_count; i++ )
-		{
-			const uint32_t pixel_value= dst_pixels[i];
-			unsigned char color[4];
-			for( unsigned int j= 0u; j < 3u; j++ )
-				color[j]= (
-					reinterpret_cast<const unsigned char*>(&pixel_value)[j] * one_minus_blend_alpha_i +
-					blend_color_i[j] * blend_alpha_i ) >> 16u;
-
-			std::memcpy( &dst_pixels[i], color, sizeof(uint32_t) );
-		}
+		blend_alpha_i= std::max( 0, std::min( 255, static_cast<int>( std::round( blend_alpha * 255.0f ) ) ) );
+		rasterizer_.DrawFullscreenBlend( blend_color_i, blend_alpha_i );
 	}
 }
 

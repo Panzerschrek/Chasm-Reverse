@@ -1,6 +1,10 @@
 #include <algorithm>
 #include <cstring>
 
+#ifdef PC_MMX_INSTRUCTIONS
+#include <mmintrin.h>
+#endif
+
 #include "rasterizer.hpp"
 
 namespace PanzerChasm
@@ -866,6 +870,55 @@ void Rasterizer::SetTexture(
 void Rasterizer::SetLight( const fixed16_t light )
 {
 	light_= light;
+}
+
+void Rasterizer::DrawFullscreenBlend(
+	const unsigned char* color_components, const unsigned char alpha )
+{
+	const unsigned int pixel_count= static_cast<unsigned int>( viewport_size_y_ * row_size_ );
+
+	unsigned char color_components4[4]= { 0u };
+	std::memcpy( color_components4, color_components, 3u );
+
+#ifdef PC_MMX_INSTRUCTIONS
+	__m64 mm_zero= _mm_setzero_si64();
+	__m64 mm_blend_color= _mm_cvtsi32_si64( *reinterpret_cast<int*>( color_components4 ) );
+	__m64 mm_blend_color_depacked= _mm_unpacklo_pi8( mm_blend_color, mm_zero );
+	__m64 mm_alpha= _mm_set1_pi16( alpha );
+	__m64 mm_premultiplied_blend_color= _mm_mullo_pi16( mm_blend_color_depacked, mm_alpha );
+	__m64 mm_one_minus_alpha= _mm_set1_pi16( 256u - alpha );
+
+	// TODO - maybe unroll?
+	for( unsigned int i= 0u; i < pixel_count; i++ )
+	{
+		__m64 dst_color= _mm_cvtsi32_si64( color_buffer_[i] );
+		__m64 dst_color_depacked= _mm_unpacklo_pi8( dst_color, mm_zero );
+		__m64 dst_color_scaled= _mm_mullo_pi16( dst_color_depacked, mm_one_minus_alpha );
+		__m64 dst_color_scaled_plus_blend_color= _mm_add_pi16( dst_color_scaled, mm_premultiplied_blend_color );
+		__m64 result_color_shifted= _mm_srli_pi16( dst_color_scaled_plus_blend_color, 8 );
+		__m64 result_color_8bit= _mm_packs_pu16( result_color_shifted, mm_zero );
+		color_buffer_[i]= _m_to_int( result_color_8bit );
+	}
+
+	_mm_empty();
+#else
+	unsigned int premultiplied_blend_color[4];
+	for( unsigned int j= 0u; j < 4u; j++ )
+		premultiplied_blend_color[j]= color_components4[j] * alpha;
+	const unsigned int one_minus_alpha= 256u - alpha;
+
+	// TODO - maybe unroll?
+	for( unsigned int i= 0u; i < pixel_count; i++ )
+	{
+		const uint32_t pixel_value= color_buffer_[i];
+		unsigned char color[4];
+		for( unsigned int j= 0u; j < 3u; j++ )
+			color[j]= (
+				reinterpret_cast<const unsigned char*>(&pixel_value)[j] * one_minus_alpha +
+				premultiplied_blend_color[j] ) >> 8u;
+		std::memcpy( &color_buffer_[i], color, sizeof(uint32_t) );
+	}
+#endif
 }
 
 void Rasterizer::DrawAffineColoredTriangle( const RasterizerVertex* const vertices, const uint32_t color )
