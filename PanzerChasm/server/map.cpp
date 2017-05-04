@@ -1239,7 +1239,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			PlayMapEventSound( hit_result.pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 
 			// Hack for rockets and grenades. Make effect together with blood.
-			if( rocket_description.blow_effect == 2 && !has_infinite_speed )
+			if( ( rocket_description.blow_effect == 2 || rocket_description.blow_effect == 4 )
+				&& !has_infinite_speed )
 				GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
 		}
 
