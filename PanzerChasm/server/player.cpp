@@ -501,6 +501,7 @@ bool Player::TryPickupBackpack( const Backpack& backpack )
 	if( armor_ > GameConstants::player_max_armor ) armor_= GameConstants::player_max_armor;
 
 	// TODO - return if really something new picked.
+	AddItemPickupFlash();
 	return true;
 }
 
