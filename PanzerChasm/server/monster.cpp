@@ -115,7 +115,7 @@ Monster::Monster(
 {
 	PC_ASSERT( random_generator_ != nullptr );
 
-	current_animation_= GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
+	current_animation_= GetIdleAnimation();
 
 	health_= game_resources_->monsters_description[ monster_id_ ].life;
 }
@@ -176,7 +176,7 @@ void Monster::Tick(
 		}
 		else if( animation_frame_unwrapped >= frame_count )
 		{
-			const int idle_animation = GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
+			const int idle_animation = GetIdleAnimation();
 			// Try play boring animation, sometimes. Doubled borng animations is disabled.
 			if( random_generator_->RandBool( 8u ) )
 			{
@@ -221,6 +221,14 @@ void Monster::Tick(
 				}
 				else
 					SelectTarget( map );
+
+				if( !target_is_alive )
+				{
+					// If no target - go to Idle state.
+					state_= State::Idle;
+					current_animation_= GetIdleAnimation();
+				}
+
 				current_animation_start_time_+= animation_duration;
 			}
 
@@ -258,8 +266,17 @@ void Monster::Tick(
 			}
 			if( state_ == State::MoveToTarget )
 			{
-				SelectTarget( map );
-				current_animation_= GetAnimation( AnimationId::Run );
+				if( target_is_alive )
+				{
+					SelectTarget( map );
+					current_animation_= GetAnimation( AnimationId::Run );
+				}
+				else
+				{
+					// If no target - go to Idle state.
+					state_= State::Idle;
+					current_animation_= GetIdleAnimation();
+				}
 			}
 			current_animation_start_time_+= animation_duration;
 		}
@@ -287,9 +304,18 @@ void Monster::Tick(
 	case State::RemoteAttack:
 		if( animation_frame_unwrapped >= frame_count )
 		{
-			state_= State::MoveToTarget;
-			SelectTarget( map );
-			current_animation_= GetAnimation( AnimationId::Run );
+			if( target_is_alive )
+			{
+				state_= State::MoveToTarget;
+				SelectTarget( map );
+				current_animation_= GetAnimation( AnimationId::Run );
+			}
+			else
+			{
+				// If no target - go to Idle state.
+				state_= State::Idle;
+				current_animation_= GetIdleAnimation();
+			}
 			current_animation_start_time_+= animation_duration;
 		}
 		else
@@ -555,6 +581,11 @@ bool Monster::CanSee( const Map& map, const m_Vec3& pos ) const
 	return map.CanSee( pos_ + g_see_point_delta, pos + g_see_point_delta );
 }
 
+unsigned int Monster::GetIdleAnimation() const
+{
+	return GetAnyAnimation( { AnimationId::Idle0, AnimationId::Idle1, AnimationId::Run } );
+}
+
 void Monster::DoShoot( const m_Vec3& target_pos, Map& map, const EntityId monster_id, const Time current_time )
 {
 	const GameResources::MonsterDescription& description= game_resources_->monsters_description[ monster_id_ ];
@@ -653,6 +684,17 @@ void Monster::RotateToTarget( float time_delta_s )
 
 bool Monster::SelectTarget( const Map& map )
 {
+	// Clear current target, if needed.
+	{
+		const MonsterBasePtr target= target_.monster.lock();
+		if( target == nullptr || target->Health() <= 0 )
+		{
+			target_.monster_id= 0u;
+			target_.monster= MonsterBaseWeakPtr();
+			target_.have_position= false;
+		}
+	}
+
 	const float c_half_view_angle= Constants::half_pi * 0.75f;
 	const float c_half_view_angle_cos= std::cos( c_half_view_angle );
 	const m_Vec2 view_dir( std::cos(angle_), std::sin(angle_) );

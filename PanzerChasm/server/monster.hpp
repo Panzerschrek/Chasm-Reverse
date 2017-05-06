@@ -68,6 +68,7 @@ private:
 
 	bool CanSee( const Map& map, const m_Vec3& pos ) const;
 
+	unsigned int GetIdleAnimation() const;
 	void DoShoot( const m_Vec3& target_pos, Map& map, EntityId monster_id, Time current_time );
 	void FallDown( float time_delta_s );
 	void MoveToTarget( float time_delta_s );
