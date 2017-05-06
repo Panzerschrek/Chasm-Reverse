@@ -1086,7 +1086,7 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, Shadows, ApplyNow, NumRows
+			Renderer, DynamicLighting, Shadows, MSAA, ApplyNow, NumRows
 		};
 	};
 	struct RowSoftware
@@ -1213,6 +1213,25 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			current_row_ == RowOpenGL::DynamicLighting ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 			ITextDrawer::Alignment::Left );
 
+		char msaa_str[32];
+		const unsigned int msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+		if( msaa_level == 0u )
+			std::strcpy( msaa_str, g_off );
+		else
+			std::snprintf( msaa_str, sizeof(msaa_str), "%ux", 1u << msaa_level );
+
+		text_draw.Print(
+			param_descr_x, y + RowOpenGL::MSAA * y_step,
+			"msaa", scale,
+			current_row_ == RowOpenGL::MSAA ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowOpenGL::MSAA * y_step,
+			msaa_str,
+			scale,
+			current_row_ == RowOpenGL::MSAA ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+
 		draw_shadows_row();
 		draw_apply_now_row( RowOpenGL::ApplyNow );
 	}
@@ -1268,6 +1287,21 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 					SettingsKeys::opengl_dynamic_lighting,
 					! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
 				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
+			if( current_row_ == RowOpenGL::MSAA && ( key == KeyCode::Left || key == KeyCode::Right ) )
+			{
+				unsigned int msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+				if( key == KeyCode::Left  && msaa_level > 0 )
+				{
+					msaa_level--;
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
+				if( key == KeyCode::Right && msaa_level < 4 )
+				{
+					msaa_level++;
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
+				settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
 			}
 			if( current_row_ == RowOpenGL::ApplyNow && key == KeyCode::Enter )
 			{

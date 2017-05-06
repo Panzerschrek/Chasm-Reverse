@@ -258,16 +258,26 @@ windowed:
 	use_gl_context_for_software_renderer_= !is_opengl && settings_.GetOrSetBool( "r_software_use_gl_screen_update", true );
 	if( is_opengl )
 	{
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
 
 		#ifdef DEBUG
 		SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
 		#endif
 
-		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+		SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+
+		// 0 - no msaa, 1 - msaa2x, 2 - msaa4x, 3 - msaa8x, 4 - msaa16x
+		const unsigned int msaa_level= std::max( 0, std::min( 4, settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 ) ) );
+		settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
+		if( msaa_level > 0 )
+		{
+			const unsigned int msaa_samples= 1u << msaa_level;
+			SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
+			SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, msaa_samples );
+		}
 	}
 	else
 	{
