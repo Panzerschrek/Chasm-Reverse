@@ -700,6 +700,11 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 	return can_see;
 }
 
+const Map::MonstersContainer& Map::GetMonsters() const
+{
+	return monsters_;
+}
+
 const Map::PlayersContainer& Map::GetPlayers() const
 {
 	return players_;
@@ -1204,7 +1209,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		const bool process_explosion= !has_infinite_speed;
 		if( hit_result.object_type != HitResult::ObjectType::None && process_explosion )
-			DoExplosionDamage( hit_result.pos, rocket_description.explosion_radius, rocket_description.power, current_time );
+			DoExplosionDamage( hit_result.pos, rocket_description.explosion_radius, rocket_description.power, rocket.owner_id, current_time );
 
 		// Gen hit effect
 		const float c_walls_effect_offset= 1.0f / 32.0f;
@@ -1310,7 +1315,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				const MonsterBasePtr& monster= it->second;
 				PC_ASSERT( monster != nullptr );
 				monster->Hit(
-					rocket_description.power, rocket.normalized_direction.xy(),
+					rocket_description.power, rocket.normalized_direction.xy(), rocket.owner_id,
 					*this,
 					hit_result.object_index ,current_time );
 			}
@@ -1378,7 +1383,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				need_kill= true;
 
-				DoExplosionDamage( mine.pos, GameConstants::mines_explosion_radius, GameConstants::mines_damage, current_time );
+				DoExplosionDamage( mine.pos, GameConstants::mines_explosion_radius, GameConstants::mines_damage, 0u, current_time );
 
 				particles_effects_messages_.emplace_back();
 				Messages::ParticleEffectBirth& message= particles_effects_messages_.back();
@@ -1482,7 +1487,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				if( !( monster.Position().z > float(cell.z_top) / 64u ||
 					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
 					monster.Hit(
-						int( cell.damage * death_ticks ), m_Vec2( 0.0f, 0.0f ),
+						int( cell.damage * death_ticks ), m_Vec2( 0.0f, 0.0f ), 0u,
 						*this,
 						monster_value.first, current_time );
 			}
@@ -1545,7 +1550,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
 			if( monster.GetMovementRestriction().MovementIsBlocked( wall_normal ) )
 				monster.Hit(
-					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ), 0,
 					*this,
 					monster_value.first, current_time );
 		}
@@ -1593,7 +1598,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
 					monster.Hit(
-						GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ),
+						GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ), 0,
 						*this,
 						monster_value.first, current_time );
 			}
@@ -2368,6 +2373,7 @@ void Map::DoExplosionDamage(
 	const m_Vec3& explosion_center,
 	const float explosion_radius,
 	const int base_damage,
+	const EntityId explosion_owner_monster_id,
 	const Time current_time )
 {
 	const auto distance_to_damage=
@@ -2398,7 +2404,7 @@ void Map::DoExplosionDamage(
 		const int damage= distance_to_damage(distance);
 		if( damage > 0 )
 			monster.Hit(
-				damage, ( monster.Position().xy() - explosion_center.xy() ),
+				damage, ( monster.Position().xy() - explosion_center.xy() ), explosion_owner_monster_id,
 				*this,
 				monster_value.first, current_time );
 	}

@@ -22,6 +22,7 @@ class Map final
 public:
 	typedef std::function<void()> MapEndCallback;
 
+	typedef std::unordered_map< EntityId, MonsterBasePtr > MonstersContainer;
 	typedef std::unordered_map< EntityId, PlayerPtr > PlayersContainer;
 
 	Map(
@@ -84,6 +85,7 @@ public:
 
 	bool CanSee( const m_Vec3& from, const m_Vec3& to ) const;
 
+	const MonstersContainer& GetMonsters() const;
 	const PlayersContainer& GetPlayers() const;
 
 	void ProcessPlayerPosition( Time current_time, EntityId player_monster_id, MessagesSender& messages_sender );
@@ -227,8 +229,6 @@ private:
 
 	typedef std::vector<SpriteEffect> SpriteEffects;
 
-	typedef std::unordered_map< EntityId, MonsterBasePtr > MonstersContainer;
-
 	struct RotatingLightEffect
 	{
 		Time start_time= Time::FromSeconds(0);
@@ -283,7 +283,9 @@ private:
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
 	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
-	void DoExplosionDamage( const m_Vec3& explosion_center, float explosion_radius, int base_damage, Time current_time );
+	void DoExplosionDamage(
+		const m_Vec3& explosion_center, float explosion_radius,
+		int base_damage, EntityId explosion_owner_monster_id, Time current_time );
 
 	void MoveMapObjects( Time current_time );
 

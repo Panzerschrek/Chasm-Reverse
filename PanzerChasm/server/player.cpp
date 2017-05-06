@@ -259,10 +259,12 @@ void Player::Tick(
 void Player::Hit(
 	const int damage,
 	const m_Vec2& hit_direction,
+	const EntityId opponent_id,
 	Map& map,
 	const EntityId monster_id,
 	const Time current_time )
 {
+	PC_UNUSED( opponent_id );
 	PC_UNUSED( current_time );
 
 	if( state_ != State::Alive )

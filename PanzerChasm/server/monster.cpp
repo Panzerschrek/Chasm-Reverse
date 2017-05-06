@@ -145,8 +145,11 @@ void Monster::Tick(
 	// Update target position if target moves.
 	const MonsterBasePtr target= target_.monster.lock();
 	float distance_for_melee_attack= Constants::max_float;
+	bool target_is_alive= false;
 	if( target != nullptr )
 	{
+		target_is_alive= target->Health() > 0;
+
 		if( CanSee( map, target->Position() ) )
 		{
 			target_.position= target->Position();
@@ -192,7 +195,7 @@ void Monster::Tick(
 	case State::MoveToTarget:
 	{
 		// Try melee attack.
-		if( animation_frame_unwrapped >= frame_count && target != nullptr &&
+		if( animation_frame_unwrapped >= frame_count && target_is_alive &&
 			distance_for_melee_attack <= description.attack_radius )
 		{
 			const int animation= SelectMeleeAttackAnimation();
@@ -208,7 +211,7 @@ void Monster::Tick(
 		{
 			if( animation_frame_unwrapped >= frame_count )
 			{
-				if( description.rock >= 0 && target != nullptr &&
+				if( description.rock >= 0 && target_is_alive &&
 					have_right_hand_ && // Monster hold weapon in right hand
 					CanSee( map, target->Position() ) )
 				{
@@ -243,7 +246,7 @@ void Monster::Tick(
 			state_= State::MoveToTarget;
 
 			// Try do new melee attack just after previous melee attack.
-			if( target != nullptr && distance_for_melee_attack <= description.attack_radius )
+			if( target_is_alive && distance_for_melee_attack <= description.attack_radius )
 			{
 				const int animation= SelectMeleeAttackAnimation();
 				if( animation >= 0 )
@@ -266,11 +269,11 @@ void Monster::Tick(
 
 			if( animation_frame_unwrapped >= frame_count / 2u &&
 				!attack_was_done_ &&
-				target != nullptr &&
+				target_is_alive &&
 				distance_for_melee_attack <= description.attack_radius  )
 			{
 				target->Hit(
-					description.kick, ( target->Position().xy() - pos_.xy() ),
+					description.kick, ( target->Position().xy() - pos_.xy() ), monster_id,
 					map,
 					target_.monster_id, current_time );
 
@@ -332,6 +335,7 @@ void Monster::Tick(
 void Monster::Hit(
 	const int damage,
 	const m_Vec2& hit_direction,
+	const EntityId opponent_id,
 	Map& map,
 	const EntityId monster_id,
 	const Time current_time)
@@ -340,6 +344,21 @@ void Monster::Hit(
 
 	if( state_ != State::DeathAnimation && state_ != State::Dead )
 	{
+		// If monster hited by other monster - set this monster as target.
+		if( opponent_id != monster_id )
+		{
+			const Map::MonstersContainer& map_monsters= map.GetMonsters();
+			const auto it= map_monsters.find( opponent_id );
+			if( it != map_monsters.end() )
+			{
+				PC_ASSERT( it->second );
+				target_.monster_id= it->first;
+				target_.monster= it->second;
+				target_.position= it->second->Position();
+				target_.have_position= true;
+			}
+		}
+
 		health_-= damage;
 
 		if( health_ > 0 )
@@ -646,6 +665,9 @@ bool Monster::SelectTarget( const Map& map )
 	{
 		PC_ASSERT( player_value.second != nullptr );
 		const Player& player= *player_value.second;
+
+		if( player.Health() <= 0 )
+			continue;
 
 		const m_Vec2 dir_to_player= player.Position().xy() - Position().xy();
 		const float distance_to_player= dir_to_player.Length();
