@@ -34,13 +34,9 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Miganije pri vklücenii istocnikov sveta, poroždajemyh komandoj "source"
   proçedur.
 * Plavnyje animaçii, po krajnej mere casti objektov.
-* Graficeskij effekt pri vystrele iz "Mega-destroyer".
-* Otsecenije objektov po piramide vidimosti.
 * Çvetokorrekçija. Kak postobrabotka, a ne pri zagruzke palitry.
-* Sglaživanije.
 * Dorabotki tenej. Otbrasyvanije neskoljkih tenej objektami.
-* Risovanije modelej igrokov raznym çvetom.
-* Perazapusk graficeskoj podsistemy pri izmenenii nastrojek vo vkladke "video".
+
 
 [SOFTWARE RENDERER]
 * Dobavlenije v BSP-derevo dinamiceskih sten.
