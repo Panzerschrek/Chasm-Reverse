@@ -83,7 +83,7 @@ protected:
 		LeftHandLost= 12u,
 		HeadLost= 13u, // Head lost without death, possibly
 		Death0= 14u, // Reverse death animation, possibly
-		Death1= 15u,
+		Win= 15u,
 		Death2= 16u,
 		Death3= 17u,
 	};

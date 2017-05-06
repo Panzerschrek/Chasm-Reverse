@@ -253,8 +253,20 @@ void Monster::Tick(
 		{			
 			state_= State::MoveToTarget;
 
+			// Try play win animation.
+			if( animation_frame_unwrapped >= frame_count &&
+				target != nullptr && target->Health() <= 0 )
+			{
+				const int animation= GetAnimation( AnimationId::Win );
+				if( animation >= 0 )
+				{
+					state_= State::Idle;
+					current_animation_= animation;
+				}
+			}
 			// Try do new melee attack just after previous melee attack.
-			if( target_is_alive && distance_for_melee_attack <= description.attack_radius )
+			if( state_== State::MoveToTarget &&
+				target_is_alive && distance_for_melee_attack <= description.attack_radius )
 			{
 				const int animation= SelectMeleeAttackAnimation();
 				if( animation >= 0 )
@@ -304,18 +316,32 @@ void Monster::Tick(
 	case State::RemoteAttack:
 		if( animation_frame_unwrapped >= frame_count )
 		{
-			if( target_is_alive )
+			// Try play win animation.
+			if( target != nullptr && target->Health() <= 0 )
 			{
-				state_= State::MoveToTarget;
-				SelectTarget( map );
-				current_animation_= GetAnimation( AnimationId::Run );
+				const int animation= GetAnimation( AnimationId::Win );
+				if( animation >= 0 )
+				{
+					state_= State::Idle;
+					current_animation_= animation;
+				}
 			}
-			else
+			if( state_ == State::RemoteAttack )
 			{
-				// If no target - go to Idle state.
-				state_= State::Idle;
-				current_animation_= GetIdleAnimation();
+				if( target_is_alive )
+				{
+					state_= State::MoveToTarget;
+					SelectTarget( map );
+					current_animation_= GetAnimation( AnimationId::Run );
+				}
+				else
+				{
+					// If no target - go to Idle state.
+					state_= State::Idle;
+					current_animation_= GetIdleAnimation();
+				}
 			}
+
 			current_animation_start_time_+= animation_duration;
 		}
 		else
@@ -460,7 +486,7 @@ void Monster::Hit(
 			const bool is_boss= IsBoss();
 			const int c_fragmentation_health_limit= -20;
 
-			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death1, AnimationId::Death0 } );
+			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death0 } );
 			if( animation < 0 || is_boss || health_ <= c_fragmentation_health_limit )
 			{
 				// Fragment monster body.
