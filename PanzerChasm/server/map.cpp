@@ -993,6 +993,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				ActivateProcedureSwitches( procedure, false, current_time );
 				DoProcedureImmediateCommands( procedure, current_time );
+				EmitProcedureSound( procedure );
 				procedure_state.movement_state= ProcedureState::MovementState::Movement;
 				procedure_state.movement_stage= 0.0f;
 				procedure_state.last_state_change_time= current_time;
@@ -1033,6 +1034,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			break;
 
 		case ProcedureState::MovementState::ReverseMovement:
+			// Emit reverse movement sound if we really start move and not blocked by player.
+			if( procedure_state.movement_stage <= 0.01f && new_stage > 0.01f )
+				EmitProcedureSound( procedure );
+
 			if( new_stage >= 1.0f )
 			{
 				procedure_state.movement_state= ProcedureState::MovementState::None;
@@ -2020,7 +2025,7 @@ void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time
 
 void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const bool inverse_animation, const Time current_time )
 {
-	for( const MapData::Procedure::SwitchPos& siwtch_pos : procedure.linked_switches )
+	for( const MapData::Procedure::Pos& siwtch_pos : procedure.linked_switches )
 	{
 		if( siwtch_pos.x >= MapData::c_map_size || siwtch_pos.y >= MapData::c_map_size )
 			continue;
@@ -2251,6 +2256,80 @@ void Map::DeactivateProcedureLightSources( const MapData::Procedure& procedure )
 			light_sources_death_messages_.emplace_back();
 			light_sources_death_messages_.back().light_source_id= id;
 		}
+	}
+}
+
+void Map::EmitProcedureSound( const MapData::Procedure& procedure )
+{
+	if( procedure.sfx_id == 0u )
+		return;
+
+	if( !procedure.sfx_pos.empty() )
+	{
+		// Add single sound at average sfx_pos.
+		// TODO - maybe emit multiple sounds?
+		m_Vec2 avg_pos( 0.0f, 0.0f );
+		for( const MapData::Procedure::Pos& pos : procedure.sfx_pos )
+		{
+			avg_pos.x+= float(pos.x);
+			avg_pos.y+= float(pos.y);
+		}
+		const float count= procedure.sfx_pos.size();
+		avg_pos= m_Vec2( avg_pos.x / count + 0.5f, avg_pos.y / count + 0.5f );
+
+		PlayMapEventSound( m_Vec3( avg_pos, GameConstants::walls_height * 0.5f ), procedure.sfx_id );
+	}
+	else
+	{
+		// Add single sound at position of related walls.
+		// TODO - maybe emit multiple sounds?
+		m_Vec3 avg_pos( 0.0f, 0.0f, 0.0f );
+		unsigned int pos_count= 0u;
+		for( const MapData::Procedure::ActionCommand& command : procedure.action_commands )
+		{
+			using Command= MapData::Procedure::ActionCommandId;
+			switch(command.id)
+			{
+			case Command::Move:
+			case Command::XMove:
+			case Command::YMove:
+			case Command::Rotate:
+			case Command::Up:
+			{
+				const unsigned int x= static_cast<unsigned int>(command.args[0]);
+				const unsigned int y= static_cast<unsigned int>(command.args[1]);
+				if( x < MapData::c_map_size && y < MapData::c_map_size )
+				{
+					const MapData::IndexElement& index_element= map_data_->map_index[ x + y * MapData::c_map_size ];
+					if( index_element.type == MapData::IndexElement::DynamicWall )
+					{
+						const DynamicWall& wall= dynamic_walls_[ index_element.index ];
+						avg_pos+= m_Vec3( ( wall.vert_pos[0] + wall.vert_pos[1] ) * 0.5f, GameConstants::walls_height * 0.5f );
+						pos_count++;
+					}
+					else if( index_element.type == MapData::IndexElement::StaticModel )
+					{
+						avg_pos+= static_models_[ index_element.index ].pos;
+						pos_count++;
+					}
+				}
+			}
+				break;
+
+			case Command::Lock: case Command::Unlock:
+			case Command::PlayAnimation: case Command::StopAnimation:
+			case Command::Light: case Command::Change:
+			case Command::Death: case Command::Explode:
+			case Command::Quake: case Command::Ambient:
+			case Command::Wind: case Command::Source:
+			case Command::Waitout: case Command::Nonstop:
+			case Command::NumCommands: case Command::Unknown:
+				break;
+			};
+		}
+
+		if( pos_count > 0u )
+			PlayMapEventSound( avg_pos / float(pos_count), procedure.sfx_id );
 	}
 }
 

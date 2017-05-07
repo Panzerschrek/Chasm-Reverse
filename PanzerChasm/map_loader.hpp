@@ -152,7 +152,7 @@ public:
 
 	struct Procedure
 	{
-		struct SwitchPos
+		struct Pos
 		{
 			unsigned char x, y;
 		};
@@ -170,8 +170,8 @@ public:
 		unsigned int first_message_number= 0u;
 		unsigned int lock_message_number= 0u;
 		unsigned int sfx_id= 0u;
-		unsigned char sfx_pos[2];
-		std::vector<SwitchPos> linked_switches;
+		std::vector<Pos> linked_switches;
+		std::vector<Pos> sfx_pos;
 
 		bool red_key_required= false;
 		bool green_key_required= false;

@@ -278,6 +278,7 @@ private:
 	void DoProcedureImmediateCommands( const MapData::Procedure& procedure, Time current_time );
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
 	void DeactivateProcedureLightSources( const MapData::Procedure& procedure );
+	void EmitProcedureSound( const MapData::Procedure& procedure );
 	void ReturnProcedure( unsigned int procedure_number, Time current_time );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );

@@ -749,8 +749,6 @@ void MapLoader::LoadProcedure(
 		map_data.procedures.resize( procedure_number + 1u );
 	MapData::Procedure& procedure= map_data.procedures[ procedure_number ];
 
-	procedure.sfx_pos[0]= procedure.sfx_pos[1]= 255;
-
 	bool has_action= false;
 
 	while( !stream.eof() )
@@ -803,8 +801,9 @@ void MapLoader::LoadProcedure(
 		{
 			int x, y;
 			line_stream >> x; line_stream >> y;
-			procedure.sfx_pos[0]= x;
-			procedure.sfx_pos[1]= y;
+			procedure.sfx_pos.emplace_back();
+			procedure.sfx_pos.back().x= x;
+			procedure.sfx_pos.back().y= y;
 		}
 		else if( StringEquals( thing, "LinkSwitchAt" ) )
 		{
