@@ -721,8 +721,8 @@ void Monster::RotateToTarget( float time_delta_s )
 
 bool Monster::SelectTarget( const Map& map )
 {
-	// Clear current target, if needed.
 	{
+		// Clear current target, if needed.
 		const MonsterBasePtr target= target_.monster.lock();
 		if( target == nullptr || target->Health() <= 0 )
 		{
@@ -730,6 +730,10 @@ bool Monster::SelectTarget( const Map& map )
 			target_.monster= MonsterBaseWeakPtr();
 			target_.have_position= false;
 		}
+
+		// Already have target - do not select.
+		if( target != nullptr && target->Health() > 0 && target_.have_position )
+			return true;
 	}
 
 	const float c_half_view_angle= Constants::half_pi * 0.75f;
