@@ -84,7 +84,7 @@ void Player::Tick(
 	}
 	if( state_ == State::DeathAnimation )
 	{
-		current_animation_= GetAnimation( AnimationId::Death0 );
+		current_animation_= GetAnimation( AnimationId::Respawn ); // For player "respawn" animation is death animation.
 
 		const float animation_time_delta_s= ( current_time - last_state_change_time_ ).ToSeconds();
 		const unsigned int frame=

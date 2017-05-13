@@ -486,7 +486,18 @@ void Monster::Hit(
 			const bool is_boss= IsBoss();
 			const int c_fragmentation_health_limit= -20;
 
-			const int animation= GetAnyAnimation( { AnimationId::Death2, AnimationId::Death3, AnimationId::Death0 } );
+			// Select animation.
+			// Select random death animation, if there are 2 possible death animations.
+			int animation, death_animations[2];
+			death_animations[0]= GetAnimation( AnimationId::Death0 );
+			death_animations[1]= GetAnimation( AnimationId::Death1 );
+			if( death_animations[0] >= 0 && death_animations[1] >= 0 )
+				animation= random_generator_->RandBool() ? death_animations[0] : death_animations[1];
+			else if( death_animations[0] >= 0 )
+				animation= death_animations[0];
+			else
+				animation= death_animations[1];
+
 			if( animation < 0 || is_boss || health_ <= c_fragmentation_health_limit )
 			{
 				// Fragment monster body.
