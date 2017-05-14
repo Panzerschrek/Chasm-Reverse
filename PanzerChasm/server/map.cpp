@@ -991,7 +991,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		case ProcedureState::MovementState::StartWait:
 			if( time_since_last_state_change.ToSeconds() >= procedure.start_delay_s )
 			{
-				ActivateProcedureSwitches( procedure, false, current_time );
+				ActivateProcedureSwitches( procedure, true, current_time );
 				DoProcedureImmediateCommands( procedure, current_time );
 				EmitProcedureSound( procedure );
 				procedure_state.movement_state= ProcedureState::MovementState::Movement;
@@ -1024,7 +1024,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				procedure.back_wait_s > 0.0f &&
 				wait_time.ToSeconds() >= procedure.back_wait_s )
 			{
-				ActivateProcedureSwitches( procedure, true, current_time );
+				ActivateProcedureSwitches( procedure, false, current_time );
 				DeactivateProcedureLightSources( procedure );
 				procedure_state.movement_state= ProcedureState::MovementState::ReverseMovement;
 				procedure_state.movement_stage= 0.0f;
@@ -2023,7 +2023,7 @@ void Map::ProcedureProcessShoot( const unsigned int procedure_number, const Time
 	ActivateProcedure( procedure_number, current_time );
 }
 
-void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const bool inverse_animation, const Time current_time )
+void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const bool activate, const Time current_time )
 {
 	for( const MapData::Procedure::Pos& siwtch_pos : procedure.linked_switches )
 	{
@@ -2036,11 +2036,24 @@ void Map::ActivateProcedureSwitches( const MapData::Procedure& procedure, const 
 			PC_ASSERT( index_element.index < static_models_.size() );
 			StaticModel& model= static_models_[ index_element.index ];
 
+			if( activate == model.switch_activated ) // Nothing to do - switch is activated.
+				continue;
+
+			model.switch_activated= activate;
+
+			// Emit switch sound.
+			if( model.model_id < map_data_->models_description.size() )
+			{
+				PlayMapEventSound(
+					m_Vec3( model.pos.xy(), GameConstants::walls_height * 0.5f ),
+					map_data_->models_description[ model.model_id ].break_sfx_number );
+			}
+
 			if( model.animation_state == StaticModel::AnimationState::SingleFrame )
 			{
 				model.animation_start_time= current_time;
 
-				if( inverse_animation )
+				if( !activate )
 				{
 					model.animation_state= StaticModel::AnimationState::SingleReverseAnimation;
 					if( model.model_id < map_data_->models.size() )

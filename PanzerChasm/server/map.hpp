@@ -167,6 +167,7 @@ private:
 
 		bool picked= false; // For keys.
 		bool mortal= false;
+		bool switch_activated= false;
 		std::unique_ptr<RotatingLightEffect> linked_rotating_light;
 	};
 
@@ -274,7 +275,7 @@ private:
 	void TryActivateProcedure( unsigned int procedure_number, Time current_time, Player& player, MessagesSender& messages_sender );
 	void ProcedureProcessDestroy( unsigned int procedure_number, Time current_time );
 	void ProcedureProcessShoot( unsigned int procedure_number, Time current_time );
-	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool inverse_animation, Time current_time );
+	void ActivateProcedureSwitches( const MapData::Procedure& procedure, bool activate, Time current_time );
 	void DoProcedureImmediateCommands( const MapData::Procedure& procedure, Time current_time );
 	void DoProcedureDeactivationCommands( const MapData::Procedure& procedure );
 	void DeactivateProcedureLightSources( const MapData::Procedure& procedure );

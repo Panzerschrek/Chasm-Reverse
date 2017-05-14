@@ -130,7 +130,7 @@ public:
 		int break_limit;
 
 		unsigned int ambient_sfx_number;
-		unsigned int break_sfx_number;
+		unsigned int break_sfx_number; // Also SFX for switches.
 	};
 
 	struct IndexElement

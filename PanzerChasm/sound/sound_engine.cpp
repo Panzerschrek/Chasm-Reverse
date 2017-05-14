@@ -226,7 +226,8 @@ void SoundEngine::PlayWorldSound(
 	const unsigned int sound_number,
 	const m_Vec3& position )
 {
-	if( sound_number >= sounds_.size() )
+	if( sound_number >=
+		GameResources::c_max_global_sounds + MapData::c_max_map_sounds + MapData::c_max_map_ambients )
 		return;
 
 	Source* const source= GetFreeSource();

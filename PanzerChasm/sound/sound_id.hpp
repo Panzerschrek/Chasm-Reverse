@@ -26,6 +26,7 @@ struct SoundId
 		Message= 61u,
 		Health= 62u,
 		GetKey= 63u,
+		Switch= 67u,
 		BreakGlass0= 68u,
 		BreakGlass1= 69u,
 		BreakGlass2= 70u,

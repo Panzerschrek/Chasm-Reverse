@@ -52,6 +52,7 @@ void Map::Save( SaveStream& save_stream ) const
 		save_stream.WriteUInt32( model.current_animation_frame );
 		save_stream.WriteBool( model.picked );
 		save_stream.WriteBool( model.mortal );
+		save_stream.WriteBool( model.switch_activated );
 
 		// Save optional rotating light
 		save_stream.WriteBool( model.linked_rotating_light != nullptr );
@@ -248,6 +249,7 @@ Map::Map(
 		load_stream.ReadUInt32( model.current_animation_frame );
 		load_stream.ReadBool( model.picked );
 		load_stream.ReadBool( model.mortal );
+		load_stream.ReadBool( model.switch_activated );
 
 		// Load optional rotating light
 		bool is_rotating_light;
