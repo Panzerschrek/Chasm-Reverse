@@ -1442,6 +1442,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 					dst,
 					GetFloorLevel( dst, GameConstants::player_radius ) ),
 				teleport.angle );
+
+			// Emit random teleport sound at destination point.
+			PlayMapEventSound(
+				m_Vec3( dst, GameConstants::walls_height * 0.5f ),
+				Sound::SoundId::Teleport0 + random_generator_->Rand() % 3u );
+
 			break;
 		}
 
