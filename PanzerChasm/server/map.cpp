@@ -913,8 +913,10 @@ void Map::ProcessPlayerPosition(
 				}
 				if( a_code == ACode::Item_Life || a_code == ACode::Item_BigLife )
 					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::Health );
+				else if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::Health );
 				else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
-					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::FirstWeaponPickup + 1u );
+					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::FirstWeaponPickup + static_cast<unsigned int>(a_code) / 10u - static_cast<unsigned int>(ACode::Weapon_First) );
 				else
 					PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
 
