@@ -2,6 +2,7 @@
 
 #include <framebuffer.hpp>
 #include <glsl_program.hpp>
+#include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
 #include "drawers_factory_gl.hpp"
@@ -493,8 +494,11 @@ void Host::DoVidRestart()
 	system_window_.reset( new SystemWindow( settings_ ) );
 	system_window_->SetTitle( base_window_title_ );
 
+
 	if( system_window_->IsOpenGLRenderer() )
 	{
+		r_OGLStateManager::ResetState();
+
 		rSetShadersDir( "shaders" );
 		{
 			const auto shaders_log_callback=
