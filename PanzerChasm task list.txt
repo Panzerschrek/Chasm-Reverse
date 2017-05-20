@@ -4,20 +4,23 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [IGROVAJA LOGIKA]
+* Issledovanije raboty vyklücatelej. Vyjasnenije raboty vyklücatelej,
+  izmenäjuscih aktivnuju gruppu poligonov. Issledovanije poroždenija
+  vyklücatelämi zvukov.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
-  Vyjasnenije znacenija parametra "bobj".
+  Vyjasnenije znacenija parametra "bobj". Pocinka neprohodimosti jolok na urovne
+  1 dopolnenija.
 * Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
   "checkback".
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
-* Dorabotka povedenija monstrov. Draki drug s drugom, reakçija na zvuk.
+* Dorabotka povedenija monstrov. Reakçija na zvuk.
 * Dorabotka bossov.
 * Kalibrovka castoty animaçij oružija, monstrov, objektov urovnä, podbirajemyh
   predmetov, raket.
 * Kalibrovka konstanty masštaba skorosti perezarädki oružija.
 * Kalibrovka skorosti proçedur. Vyjasnenije nalicija ili otsutstvija skorosti ot
   priväzannyh k proçedure dvižuscihsä sten i procih objektov.
-* Issledovanije togo, kak nanositsä uron ot pulj i raket v originaljnoj igre.
 * Dorabotka ošmötkov. Otbrasyvanije monstrami ošmötkov raznyh vidov. Raznyj
   nabor ošmötkov dlä raznyh monstrov.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
@@ -28,6 +31,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [GRAFIKA]
+* Naloženije na steny svetokart iz *.map fajla, vmesto ispoljzovanija svetokarty
+  pola.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej. Naloženije
   tenej na dinamiceskije steny.
 * Pylevoj šlejf ot ošmötkov, podnätije pyli upavšimi telami monstrov.
@@ -46,8 +51,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [ZVUK]
-* Issledovatj, kak izlucajetsä zvuk ot proçedur, v slucaje otsutstvija parametra
-  "posxy" a takže, kogda takih parametrov neskoljko.
+* Issledovatj, kak izlucajetsä zvuk ot proçedur pri nalicii neskoljkih
+  parametrov sfxposxy a takže pri nalicii neskoljkih sväzannyh objektov karty.
 * Optimizaçija zagruzki zvukov. V slucaje, kogda v tabliçe zvukov igry ili
   urovnä imejutsä dublikaty, gruzitj zvuk toljko odin raz i ispoljzovatj jego
   kak razdeläjemyj.
