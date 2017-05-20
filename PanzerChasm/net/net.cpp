@@ -324,6 +324,10 @@ public:
 		, client_ip_address_(client_ip_address)
 	{
 #ifdef _WIN32
+		// Send to client protocol version, wia tcp.
+		uint32_t protocol_version= Messages::c_protocol_version;
+		::send( tcp_socket_, (char*) &protocol_version, sizeof(protocol_version), 0 ); // TODO - check errors.
+
 		// Send to client input udp address, wia tcp.
 		::send( tcp_socket_, (char*) &udp_port, sizeof(udp_port), 0 ); // TODO - check errors.
 
@@ -346,6 +350,10 @@ public:
 			return;
 		}
 #else
+		// Send to client protocol version, wia tcp.
+		uint32_t protocol_version= Messages::c_protocol_version;
+		::send( tcp_socket_, (char*) &protocol_version, sizeof(protocol_version), 0 ); // TODO - check errors.
+
 		// Send to client input udp address, wia tcp.
 		::send( tcp_socket_, (char*) &udp_port, sizeof(udp_port), 0 ); // TODO - check errors.
 
@@ -688,6 +696,17 @@ IConnectionPtr Net::ConnectToServer(
 		return nullptr;
 	}
 
+	// Recive protocol version.
+	uint32_t protocol_version;
+	::recv( tcp_socket, (char*) &protocol_version, sizeof(protocol_version), 0 ); // TODO - check errors.
+	if( protocol_version != Messages::c_protocol_version )
+	{
+		Log::Warning( FUNC_NAME, "Can not connect to server - protocol version mismatch." );
+		::closesocket( tcp_socket );
+		::closesocket( udp_socket );
+		return nullptr;
+	}
+
 	// Recive from server it input udp address.
 	uint16_t server_udp_port;
 	::recv( tcp_socket, (char*) &server_udp_port, sizeof(server_udp_port), 0 ); // TODO - check errors.
@@ -757,6 +776,17 @@ IConnectionPtr Net::ConnectToServer(
 		Log::Warning( FUNC_NAME, " can not connect to server. Error code: ", errno );
 		::close( tcp_socket );
 		::close( udp_socket );
+		return nullptr;
+	}
+
+	// Recive protocol version.
+	uint32_t protocol_version;
+	::recv( tcp_socket, (char*) &protocol_version, sizeof(protocol_version), 0 ); // TODO - check errors.
+	if( protocol_version != Messages::c_protocol_version )
+	{
+		Log::Warning( FUNC_NAME, "Can not connect to server - protocol version mismatch." );
+		::closesocket( tcp_socket );
+		::closesocket( udp_socket );
 		return nullptr;
 	}
 

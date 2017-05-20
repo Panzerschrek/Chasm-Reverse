@@ -24,6 +24,8 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
+constexpr unsigned int c_protocol_version= 100u; // Increment each time, when protocol changed.
+
 typedef short CoordType;
 typedef unsigned short AngleType;
 
