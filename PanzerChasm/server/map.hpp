@@ -316,6 +316,7 @@ private:
 	static void PrepareBackpackBirthMessage( const Backpack& backpack, EntityId backpack_id, Messages::DynamicItemBirth& message );
 	static void PrepareLightSourceBirthMessage( const LightSource& light_source, EntityId light_source_id, Messages::LightSourceBirth& message );
 
+	int GetRocketDamage( int initial_damage );
 	void EmitModelDestructionEffects( unsigned int model_number );
 	void GenParticleEffectForRocketHit( const m_Vec3& pos, unsigned int rocket_type_id );
 

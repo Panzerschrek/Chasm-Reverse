@@ -1214,7 +1214,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 		const bool process_explosion= !has_infinite_speed;
 		if( hit_result.object_type != HitResult::ObjectType::None && process_explosion )
-			DoExplosionDamage( hit_result.pos, rocket_description.explosion_radius, rocket_description.power, rocket.owner_id, current_time );
+			DoExplosionDamage(
+				hit_result.pos, rocket_description.explosion_radius,
+				GetRocketDamage( rocket_description.power ),
+				rocket.owner_id, current_time );
 
 		// Gen hit effect
 		const float c_walls_effect_offset= 1.0f / 32.0f;
@@ -1320,7 +1323,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				const MonsterBasePtr& monster= it->second;
 				PC_ASSERT( monster != nullptr );
 				monster->Hit(
-					rocket_description.power, rocket.normalized_direction.xy(), rocket.owner_id,
+					GetRocketDamage(rocket_description.power),
+					rocket.normalized_direction.xy(), rocket.owner_id,
 					*this,
 					hit_result.object_index ,current_time );
 			}
@@ -1388,6 +1392,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				need_kill= true;
 
+				// TODO - maybe add some random damage variations, like with rockets and bullets?
 				DoExplosionDamage( mine.pos, GameConstants::mines_explosion_radius, GameConstants::mines_damage, 0u, current_time );
 
 				particles_effects_messages_.emplace_back();
@@ -3070,6 +3075,15 @@ void Map::PrepareLightSourceBirthMessage( const LightSource& light_source, const
 	message.radius= CoordToMessageCoord( light_source.radius );
 	message.brightness= static_cast<unsigned char>( light_source.brightness );
 	message.turn_on_time_ms= light_source.turn_on_time_ms;
+}
+
+int Map::GetRocketDamage( const int initial_damage )
+{
+	PC_ASSERT( initial_damage >= 0 );
+
+	// Returns initial_damage +- 25%
+	return
+		initial_damage - ( initial_damage / 4 )+ int(random_generator_->Rand()) % ( 1 + initial_damage / 2 );
 }
 
 void Map::EmitModelDestructionEffects( const unsigned int model_number )
