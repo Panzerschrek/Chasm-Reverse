@@ -260,6 +260,7 @@ void Monster::Tick(
 				const int animation= GetAnimation( AnimationId::Win );
 				if( animation >= 0 )
 				{
+					map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Win );
 					state_= State::Idle;
 					current_animation_= animation;
 				}
@@ -322,6 +323,7 @@ void Monster::Tick(
 				const int animation= GetAnimation( AnimationId::Win );
 				if( animation >= 0 )
 				{
+					map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Win );
 					state_= State::Idle;
 					current_animation_= animation;
 				}

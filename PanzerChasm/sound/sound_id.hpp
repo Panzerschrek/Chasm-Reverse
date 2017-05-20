@@ -44,6 +44,7 @@ struct MonsterSoundId
 		Alarmed= 0u,
 		RemoteAttack= 1u,
 		MeleeAttack= 2u,
+		Win= 3u,
 		Pain= 4u,
 		Death= 6u,
 	};
