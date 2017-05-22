@@ -785,8 +785,8 @@ IConnectionPtr Net::ConnectToServer(
 	if( protocol_version != Messages::c_protocol_version )
 	{
 		Log::Warning( FUNC_NAME, "Can not connect to server - protocol version mismatch." );
-		::closesocket( tcp_socket );
-		::closesocket( udp_socket );
+		::close( tcp_socket );
+		::close( udp_socket );
 		return nullptr;
 	}
 
