@@ -31,7 +31,7 @@ public:
 	virtual void Hit(
 		int damage,
 		const m_Vec2& hit_direction,
-		EntityId opponent_id,
+		EntityId opponent_id, // Zero from damage from environment
 		Map& map,
 		EntityId monster_id,
 		Time current_time ) override;

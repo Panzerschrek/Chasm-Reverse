@@ -413,7 +413,20 @@ void Monster::Hit(
 			}
 		}
 
-		health_-= damage;
+		const bool is_final_boss= IsFinalBoss();
+		const bool is_boss= IsBoss();
+		const bool is_environment_damage= opponent_id == 0u;
+
+		if( is_final_boss )
+		{} // Final boss is immortal.
+		else if( is_boss )
+		{
+			// Bosses can receive damage only from environment.
+			if( is_environment_damage )
+				health_-= damage;
+		}
+		else
+			health_-= damage;
 
 		if( health_ > 0 )
 		{
@@ -485,7 +498,6 @@ void Monster::Hit(
 		}
 		else
 		{
-			const bool is_boss= IsBoss();
 			const int c_fragmentation_health_limit= -20;
 
 			// Select animation.
@@ -613,6 +625,11 @@ bool Monster::IsBoss() const
 			return true;
 
 	return false;
+}
+
+bool Monster::IsFinalBoss() const
+{
+	return monster_id_ == 20u;
 }
 
 bool Monster::CanSee( const Map& map, const m_Vec3& pos ) const

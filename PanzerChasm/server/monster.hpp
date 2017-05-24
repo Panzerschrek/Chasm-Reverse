@@ -65,6 +65,7 @@ private:
 
 private:
 	bool IsBoss() const;
+	bool IsFinalBoss() const;
 
 	bool CanSee( const Map& map, const m_Vec3& pos ) const;
 
