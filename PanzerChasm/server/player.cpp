@@ -165,7 +165,7 @@ void Player::Tick(
 			( ammo_[ current_weapon_index_ ] > 0u || current_weapon_index_ == 0 ) )
 		{
 			if( current_weapon_index_ == GameConstants::mine_weapon_number )
-				map.PlantMine( pos_, current_time );
+				map.PlantMine( monster_id, pos_, current_time );
 			else
 			{
 				const GameResources::WeaponDescription& description= game_resources_->weapons_description[ current_weapon_index_ ];

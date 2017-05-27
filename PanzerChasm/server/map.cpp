@@ -346,7 +346,10 @@ void Map::Shoot(
 	}
 }
 
-void Map::PlantMine( const m_Vec3& pos, const Time current_time )
+void Map::PlantMine(
+	const EntityId owner_monster_id,
+	const m_Vec3& pos,
+	const Time current_time )
 {
 	mines_.emplace_back();
 	Mine& mine= mines_.back();
@@ -354,6 +357,7 @@ void Map::PlantMine( const m_Vec3& pos, const Time current_time )
 	mine.pos.z= GetFloorLevel( pos.xy(), 0.2f/* TODO - select correct radius*/ );
 	mine.planting_time= current_time;
 	mine.id= next_rocket_id_;
+	mine.owner_id= owner_monster_id;
 	next_rocket_id_++;
 
 	dynamic_items_birth_messages_.emplace_back();
@@ -1394,7 +1398,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				need_kill= true;
 
 				// TODO - maybe add some random damage variations, like with rockets and bullets?
-				DoExplosionDamage( mine.pos, GameConstants::mines_explosion_radius, GameConstants::mines_damage, 0u, current_time );
+				DoExplosionDamage(
+					mine.pos, GameConstants::mines_explosion_radius,
+					GameConstants::mines_damage,
+					mine.owner_id, current_time );
 
 				particles_effects_messages_.emplace_back();
 				Messages::ParticleEffectBirth& message= particles_effects_messages_.back();

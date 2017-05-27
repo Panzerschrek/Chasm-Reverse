@@ -59,7 +59,7 @@ public:
 		const m_Vec3& normalized_direction,
 		Time current_time );
 
-	void PlantMine( const m_Vec3& pos, Time current_time );
+	void PlantMine( EntityId owner_monster_id, const m_Vec3& pos, Time current_time );
 	void SpawnBackpack( BackpackPtr backpack );
 
 	void SpawnMonsterBodyPart(
@@ -217,6 +217,7 @@ private:
 		Time planting_time= Time::FromSeconds(0);
 		m_Vec3 pos;
 		EntityId id;
+		EntityId owner_id;
 		bool turned_on= false;
 	};
 

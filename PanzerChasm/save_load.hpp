@@ -11,7 +11,7 @@ public:
 	typedef unsigned int HashType;
 
 	static const char c_expected_id[8];
-	static constexpr unsigned int c_expected_version= 0x103u; // Change each time, when format changed.
+	static constexpr unsigned int c_expected_version= 0x104u; // Change each time, when format changed.
 
 public:
 	static HashType CalculateHash( const unsigned char* data, unsigned int data_size );

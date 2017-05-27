@@ -99,6 +99,7 @@ void Map::Save( SaveStream& save_stream ) const
 		save_stream.WriteTime( mine.planting_time );
 		save_stream.WriteVec3( mine.pos );
 		save_stream.WriteUInt16( mine.id );
+		save_stream.WriteUInt16( mine.owner_id );
 		save_stream.WriteBool( mine.turned_on );
 	}
 
@@ -305,6 +306,7 @@ Map::Map(
 		load_stream.ReadTime( mine.planting_time );
 		load_stream.ReadVec3( mine.pos );
 		load_stream.ReadUInt16( mine.id );
+		load_stream.ReadUInt16( mine.owner_id );
 		load_stream.ReadBool( mine.turned_on );
 	}
 
