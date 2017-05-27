@@ -31,6 +31,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [GRAFIKA]
+* Svetovyje vspuški pri popadanii v monstrov.
 * Naloženije na steny svetokart iz *.map fajla, vmesto ispoljzovanija svetokarty
   pola.
 * Dorabotki dinamiceskogo osvescenija. Gašenije razbityh fonarej. Naloženije

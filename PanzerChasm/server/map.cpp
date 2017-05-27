@@ -566,9 +566,8 @@ m_Vec3 Map::CollideWithMap(
 		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
 			continue;
 
-		// Do not collide with wall, if we are behind it. But collide, if wall is twosided.
-		if( tex.gso[2] &&
-			mVec2Cross( pos - wall.vert_pos[0], wall.vert_pos[1] - wall.vert_pos[0] ) > 0.0f )
+		// Do not collide with wall, if we are behind it.
+		if( mVec2Cross( pos - wall.vert_pos[0], wall.vert_pos[1] - wall.vert_pos[0] ) > 0.0f )
 			continue;
 
 		m_Vec2 new_pos;
