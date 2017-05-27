@@ -222,7 +222,7 @@ void Monster::Tick(
 				else
 					SelectTarget( map );
 
-				if( !target_is_alive )
+				if( target != nullptr && !target_is_alive )
 				{
 					// If no target - go to Idle state.
 					state_= State::Idle;
@@ -279,7 +279,7 @@ void Monster::Tick(
 			}
 			if( state_ == State::MoveToTarget )
 			{
-				if( target_is_alive )
+				if( target_is_alive || target == nullptr )
 				{
 					SelectTarget( map );
 					current_animation_= GetAnimation( AnimationId::Run );
@@ -330,7 +330,7 @@ void Monster::Tick(
 			}
 			if( state_ == State::RemoteAttack )
 			{
-				if( target_is_alive )
+				if( target_is_alive || target == nullptr )
 				{
 					state_= State::MoveToTarget;
 					SelectTarget( map );
@@ -577,6 +577,32 @@ void Monster::Hit(
 	}
 }
 
+void Monster::TryWarn(
+	const m_Vec3& pos,
+	Map& map,
+	const EntityId monster_id,
+	const Time current_time )
+{
+	if( state_ != State::Idle )
+		return;
+
+	if( ( pos.xy() - pos_.xy() ).SquareLength() < 10.0f )
+		return;
+
+	if( !map.CanSee(
+			m_Vec3( pos_.xy(), GameConstants::walls_height * 0.5f ),
+			m_Vec3( pos .xy(), GameConstants::walls_height * 0.5f ) ) )
+		return;
+
+	map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Alarmed );
+	state_= State::MoveToTarget;
+	current_animation_= GetAnimation( AnimationId::Run );
+	current_animation_start_time_ = current_time;
+
+	target_.have_position= true;
+	target_.position= pos;
+}
+
 void Monster::ClampSpeed( const m_Vec3& clamp_surface_normal )
 {
 	if( vertical_speed_ > 0.0f &&
@@ -743,7 +769,7 @@ bool Monster::SelectTarget( const Map& map )
 	{
 		// Clear current target, if needed.
 		const MonsterBasePtr target= target_.monster.lock();
-		if( target == nullptr || target->Health() <= 0 )
+		if( target != nullptr && target->Health() <= 0 )
 		{
 			target_.monster_id= 0u;
 			target_.monster= MonsterBaseWeakPtr();

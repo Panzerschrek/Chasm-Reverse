@@ -1217,6 +1217,41 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			rocket.previous_position= new_pos;
 		}
 
+		// Calculate shifted hit pos.
+		m_Vec3 hit_pos_normal_shifted;
+		const float c_walls_effect_offset= 1.0f / 32.0f;
+		switch(hit_result.object_type)
+		{
+		case HitResult::ObjectType::None:
+			break;
+		case HitResult::ObjectType::StaticWall:
+			hit_pos_normal_shifted=
+				hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset;
+			break;
+		case HitResult::ObjectType::DynamicWall:
+			hit_pos_normal_shifted=
+				hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset;
+			break;
+		case HitResult::ObjectType::Model:
+		{
+			const m_Vec2 dir= hit_result.pos.xy() - static_models_[ hit_result.object_index ].pos.xy();
+			hit_pos_normal_shifted=
+				hit_result.pos + m_Vec3( dir, 0.0f ) * ( c_walls_effect_offset / dir.Length() );
+			break;
+		}
+		case HitResult::ObjectType::Monster:
+			hit_pos_normal_shifted= hit_result.pos;
+			break;
+		case HitResult::ObjectType::Floor:
+			hit_pos_normal_shifted=
+				hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset );
+			break;
+		};
+
+		// Warn monsters.
+		if( hit_result.object_type != HitResult::ObjectType::None )
+			TryWarnMonsters( hit_pos_normal_shifted, current_time );
+
 		const bool process_explosion= !has_infinite_speed;
 		if( hit_result.object_type != HitResult::ObjectType::None && process_explosion )
 			DoExplosionDamage(
@@ -1224,32 +1259,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				GetRocketDamage( rocket_description.power ),
 				rocket.owner_id, current_time );
 
-		// Gen hit effect
-		const float c_walls_effect_offset= 1.0f / 32.0f;
-		if( hit_result.object_type == HitResult::ObjectType::StaticWall )
-		{
-			const m_Vec3 effect_pos= hit_result.pos + GetNormalForWall( map_data_->static_walls[ hit_result.object_index ] ) * c_walls_effect_offset;
-			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
-			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
-		}
-		else if( hit_result.object_type == HitResult::ObjectType::DynamicWall )
-		{
-			const m_Vec3 effect_pos= hit_result.pos + GetNormalForWall( dynamic_walls_[ hit_result.object_index ] ) * c_walls_effect_offset;
-			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
-			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
-		}
-		else if( hit_result.object_type == HitResult::ObjectType::Floor )
-		{
-			const m_Vec3 effect_pos= hit_result.pos + m_Vec3( 0.0f, 0.0f, ( hit_result.object_index == 0 ? 1.0f : -1.0f ) * c_walls_effect_offset );
-			GenParticleEffectForRocketHit( effect_pos, rocket.rocket_type_id );
-			PlayMapEventSound( effect_pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
-		}
-		else if( hit_result.object_type == HitResult::ObjectType::Model )
-		{
-			GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
-			PlayMapEventSound( hit_result.pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
-		}
-		else if( hit_result.object_type == HitResult::ObjectType::Monster )
+		// Gen hit effect.
+		if( hit_result.object_type == HitResult::ObjectType::Monster )
 		{
 			AddParticleEffect( hit_result.pos, ParticleEffect::Blood );
 			PlayMapEventSound( hit_result.pos, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
@@ -1258,6 +1269,11 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( ( rocket_description.blow_effect == 2 || rocket_description.blow_effect == 4 )
 				&& !has_infinite_speed )
 				GenParticleEffectForRocketHit( hit_result.pos, rocket.rocket_type_id );
+		}
+		else if( hit_result.object_type != HitResult::ObjectType::None )
+		{
+			GenParticleEffectForRocketHit( hit_pos_normal_shifted, rocket.rocket_type_id );
+			PlayMapEventSound( hit_pos_normal_shifted, Sound::SoundId::FirstRocketHit + rocket.rocket_type_id );
 		}
 
 		// Try break breakable models.
@@ -2559,6 +2575,16 @@ void Map::DoExplosionDamage(
 						ProcedureProcessDestroy( link.proc_id, current_time );
 				} );
 		}
+	}
+}
+
+void Map::TryWarnMonsters( const m_Vec3& pos, const Time current_time )
+{
+	for( const MonstersContainer::value_type& monster_value : monsters_ )
+	{
+		const MonsterBasePtr& monster= monster_value.second;
+		PC_ASSERT( monster != nullptr );
+		monster->TryWarn( pos, *this, monster_value.first, current_time );
 	}
 }
 

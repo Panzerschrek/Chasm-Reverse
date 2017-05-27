@@ -328,6 +328,18 @@ void Player::Hit(
 	}
 }
 
+void Player::TryWarn(
+	const m_Vec3& pos,
+	Map& map,
+	const EntityId monster_id,
+	const Time current_time )
+{
+	PC_UNUSED( pos );
+	PC_UNUSED( map );
+	PC_UNUSED( monster_id );
+	PC_UNUSED( current_time );
+}
+
 void Player::ClampSpeed( const m_Vec3& clamp_surface_normal )
 {
 	const float projection= clamp_surface_normal * speed_;

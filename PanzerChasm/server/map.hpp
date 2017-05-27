@@ -290,6 +290,7 @@ private:
 		const m_Vec3& explosion_center, float explosion_radius,
 		int base_damage, EntityId explosion_owner_monster_id, Time current_time );
 
+	void TryWarnMonsters( const m_Vec3& pos, Time current_time );
 	void MoveMapObjects( Time current_time );
 
 	template<class Func>

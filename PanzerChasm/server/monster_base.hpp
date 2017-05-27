@@ -59,6 +59,12 @@ public:
 		EntityId monster_id,
 		Time current_time )= 0;
 
+	virtual void TryWarn(
+		const m_Vec3& pos,
+		Map& map,
+		EntityId monster_id,
+		Time current_time )= 0;
+
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal )= 0;
 	virtual void SetOnFloor( bool on_floor )= 0;
 	virtual void Teleport( const m_Vec3& pos, float angle )= 0;

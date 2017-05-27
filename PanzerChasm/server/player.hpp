@@ -36,6 +36,12 @@ public:
 		EntityId monster_id,
 		Time current_time ) override;
 
+	virtual void TryWarn(
+		const m_Vec3& pos,
+		Map& map,
+		EntityId monster_id,
+		Time current_time ) override;
+
 	virtual void ClampSpeed( const m_Vec3& clamp_surface_normal ) override;
 	virtual void SetOnFloor( bool on_floor ) override;
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
