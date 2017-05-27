@@ -481,7 +481,7 @@ RenderingContextGL SystemWindow::GetRenderingContextGL()
 RenderingContextSoft SystemWindow::GetRenderingContextSoft()
 {
 	PC_ASSERT( ! IsOpenGLRenderer() );
-	PC_ASSERT( surface_ != nullptr );
+	PC_ASSERT( surface_ != nullptr || use_gl_context_for_software_renderer_ );
 
 	RenderingContextSoft result;
 
