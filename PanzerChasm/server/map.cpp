@@ -1544,8 +1544,13 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		if( is_player && static_cast<const Player&>(monster).IsNoclip() )
 			continue;
 
-		const float height= GameConstants::player_height; // TODO - select height
-		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
+		const EntityId mosnter_id= monster.MonsterId();
+
+		const float height=
+			is_player
+				? GameConstants::player_height
+				: std::max( GameConstants::player_height, game_resources_->monsters_models[ mosnter_id ].z_max );
+		const float radius= is_player ? GameConstants::player_radius : game_resources_->monsters_description[ mosnter_id ].w_radius;
 
 		MovementRestriction movement_restriction;
 		bool on_floor= false;
