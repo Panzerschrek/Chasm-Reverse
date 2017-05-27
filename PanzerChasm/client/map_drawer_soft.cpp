@@ -733,16 +733,16 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 
 		const CelTextureHeader& header= *reinterpret_cast<const CelTextureHeader*>( file_content.data() );
 		if( header.size[0] % ( g_max_wall_texture_width / 16u ) != 0u ||
-			header.size[1] != g_wall_texture_height )
+			header.size[1] < g_wall_texture_height )
 		{
 			Log::Warning( "Invalid wall texture size: ", header.size[0], "x", header.size[1] );
 			continue;
 		}
 
 		out_texture.size[0]= header.size[0];
-		out_texture.size[1]= header.size[1];
+		out_texture.size[1]= g_wall_texture_height;
 
-		const unsigned int pixel_count= header.size[0] * header.size[1];
+		const unsigned int pixel_count= header.size[0] * g_wall_texture_height;
 		const unsigned int storage_size= pixel_count + pixel_count / 4u + pixel_count / 16u + pixel_count / 64u;
 		const unsigned char* const src= file_content.data() + sizeof(CelTextureHeader);
 
@@ -766,7 +766,7 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 		out_texture.full_alpha_row[1]= g_wall_texture_height;
 
 		bool is_only_alpha= false;
-		for( unsigned int y= 0u; y < header.size[1]; y++ )
+		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
 		{
 			bool is_full_alpha= true;
 			for( unsigned int x= 0u; x < header.size[0]; x++ )
@@ -781,7 +781,7 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 				out_texture.full_alpha_row[0]= y;
 				break;
 			}
-			if( is_full_alpha && y + 1u == header.size[1] )
+			if( is_full_alpha && y + 1u == g_wall_texture_height )
 				is_only_alpha= true;
 		}
 		if( is_only_alpha )
@@ -792,11 +792,11 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 			continue;
 		}
 
-		for( unsigned int y= 0u; y < header.size[1]; y++ )
+		for( unsigned int y= 0u; y < g_wall_texture_height; y++ )
 		{
 			bool is_full_alpha= true;
 			for( unsigned int x= 0u; x < header.size[0]; x++ )
-				if( src[ x + ( header.size[1] - 1u - y ) * header.size[0] ] != 255u )
+				if( src[ x + ( g_wall_texture_height - 1u - y ) * header.size[0] ] != 255u )
 				{
 					is_full_alpha= false;
 					break;
@@ -804,10 +804,10 @@ void MapDrawerSoft::LoadWallsTextures( const MapData& map_data )
 
 			if( !is_full_alpha )
 			{
-				out_texture.full_alpha_row[1]= header.size[1] - y;
+				out_texture.full_alpha_row[1]= g_wall_texture_height - y;
 				break;
 			}
-			if( is_full_alpha && y + 1u == header.size[1] )
+			if( is_full_alpha && y + 1u == g_wall_texture_height )
 				out_texture.full_alpha_row[1]= 0u;
 		}
 

@@ -872,7 +872,7 @@ void MapDrawerGL::LoadWallsTextures( const MapData& map_data )
 		std::memcpy( &src_height, texture_file.data() + 0x4u, sizeof(unsigned short) );
 
 		if( g_max_wall_texture_width / src_width * src_width != g_max_wall_texture_width ||
-			src_height != g_wall_texture_height )
+			src_height < g_wall_texture_height )
 		{
 			Log::Warning( "Invalid wall texture size: ", src_width, "x", src_height );
 			continue;
