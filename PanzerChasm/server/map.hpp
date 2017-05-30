@@ -132,6 +132,7 @@ private:
 		Transformation transformation;
 
 		m_Vec2 vert_pos[2];
+		m_Vec2 vert_move_speed[2]; // For mortal walls damage calculation.
 		float z;
 		unsigned char texture_id;
 		bool mortal= false;
@@ -145,6 +146,7 @@ private:
 		float transformation_angle_delta;
 
 		m_Vec3 pos;
+		m_Vec2 move_speed;
 		float baze_z;
 		float angle;
 

@@ -1575,9 +1575,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 	}
 
 	// Process mortal walls for monsters.
+	const float c_min_mortal_angle_cos= 0.2f;
 	for( const DynamicWall& wall : dynamic_walls_ )
 	{
 		if( !wall.mortal )
+			continue;
+		if( wall.vert_pos[0] == wall.vert_pos[1] )
 			continue;
 
 		for( MonstersContainer::value_type& monster_value : monsters_ )
@@ -1594,7 +1597,29 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				continue;
 
 			const m_Vec2 wall_normal= GetNormalForWall( wall ).xy();
-			if( monster.GetMovementRestriction().MovementIsBlocked( wall_normal ) )
+
+			m_Vec2 push_dir= out_pos - monster.Position().xy();
+			const float push_dir_square_length= push_dir.SquareLength();
+			if( push_dir_square_length <= 0.0f )
+				continue;
+			push_dir/= std::sqrt( push_dir_square_length );
+
+			const m_Vec2 wall_vec= wall.vert_pos[1] - wall.vert_pos[0];
+
+			const float relative_pos_wall_projected= ( (out_pos - wall.vert_pos[0] ) * wall_vec ) / wall_vec.SquareLength();
+			const m_Vec2 wall_speed_at_projection_point=
+				wall.vert_move_speed[1] *          relative_pos_wall_projected +
+				wall.vert_move_speed[0] * ( 1.0f - relative_pos_wall_projected );
+
+			const float speed_square_length= wall_speed_at_projection_point.SquareLength();
+			if( speed_square_length <= 0.0f )
+				continue;
+
+			const m_Vec2 speed_dir= wall_speed_at_projection_point / std::sqrt( speed_square_length );
+			if( speed_dir * wall_normal < c_min_mortal_angle_cos ) // Wall can hit only if speed have same direction with normal.
+				continue;
+
+			if( monster.GetMovementRestriction().MovementIsBlocked( push_dir ) )
 				monster.Hit(
 					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ), 0,
 					*this,
@@ -1610,6 +1635,11 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		const float model_radius= map_data_->models_description[ model.model_id ].radius;
 		if( model_radius <= 0.0f )
 			continue;
+
+		const float speed_square_length= model.move_speed.SquareLength();
+		if( speed_square_length <= 0.0f )
+			continue;
+		const m_Vec2 speed_dir= model.move_speed / std::sqrt( speed_square_length );
 
 		for( MonstersContainer::value_type& monster_value : monsters_ )
 		{
@@ -1641,6 +1671,9 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				m_Vec2 normal= new_pos - monster.Position().xy();
 				normal.Normalize();
+
+				if( normal * speed_dir < c_min_mortal_angle_cos )
+					continue;
 
 				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
 					monster.Hit(
@@ -2600,6 +2633,7 @@ void Map::MoveMapObjects( const Time current_time )
 	for( DynamicWall& wall : dynamic_walls_ )
 	{
 		wall.transformation.Clear();
+		wall.vert_move_speed[0]= wall.vert_move_speed[1]= m_Vec2( 0.0f, 0.0f );
 		wall.mortal= false;
 	}
 
@@ -2607,6 +2641,7 @@ void Map::MoveMapObjects( const Time current_time )
 	{
 		model.transformation.Clear();
 		model.transformation_angle_delta= 0.0f;
+		model.move_speed= m_Vec2( 0.0f, 0.0f );
 		model.mortal= false;
 	}
 
@@ -2622,14 +2657,22 @@ void Map::MoveMapObjects( const Time current_time )
 		const ProcedureState& procedure_state= procedures_[p];
 
 		float absolute_action_stage;
+		float move_dir_sign= 0.0f;
 		if( procedure_state.movement_state == ProcedureState::MovementState::Movement )
+		{
 			absolute_action_stage= procedure_state.movement_stage;
+			move_dir_sign= +1.0f;
+		}
 		else if( procedure_state.movement_state == ProcedureState::MovementState::BackWait )
 			absolute_action_stage= 1.0f;
 		else if( procedure_state.movement_state == ProcedureState::MovementState::ReverseMovement )
+		{
 			absolute_action_stage= 1.0f - procedure_state.movement_stage;
+			move_dir_sign= -1.0f;
+		}
 		else
 			absolute_action_stage= 0.0f;
+
 
 		const bool mortal=
 			procedure.mortal &&
@@ -2657,31 +2700,43 @@ void Map::MoveMapObjects( const Time current_time )
 				const float y_fraction= 0.5f;//std::abs(dy) / total_way_length;
 
 				m_Vec2 d_pos( 0.0f, 0.0f );
+				m_Vec2 move_dir;
 				if( command.id == Action::XMove )
 				{
 					if( absolute_action_stage <= x_fraction )
+					{
 						d_pos.x+= dx * absolute_action_stage / x_fraction;
+						move_dir= m_Vec2( dx, 0.0f );
+					}
 					else
 					{
 						d_pos.x+= dx;
 						d_pos.y+= dy * ( absolute_action_stage - x_fraction ) / y_fraction;
+						move_dir= m_Vec2( dy, 0.0f );
 					}
 				}
 				else if( command.id == Action::YMove )
 				{
 					if( absolute_action_stage <= y_fraction )
+					{
 						d_pos.y+= dy * absolute_action_stage / y_fraction;
+						move_dir= m_Vec2( dy, 0.0f );
+					}
 					else
 					{
 						d_pos.x+= dx * ( absolute_action_stage - y_fraction ) / x_fraction;
 						d_pos.y+= dy;
+						move_dir= m_Vec2( dx, 0.0f );
 					}
 				}
 				else//if( command.id == Action::Move )
 				{
 					d_pos.x+= dx * absolute_action_stage;
 					d_pos.y+= dy * absolute_action_stage;
+					move_dir= m_Vec2( dx, dy );
 				}
+
+				move_dir*= move_dir_sign;
 
 				m_Mat3 mat;
 				mat.Translate( d_pos );
@@ -2694,6 +2749,8 @@ void Map::MoveMapObjects( const Time current_time )
 					PC_ASSERT( index_element.index < map_data_->dynamic_walls.size() );
 					DynamicWall& wall= dynamic_walls_[ index_element.index ];
 					wall.transformation.mat= wall.transformation.mat * mat;
+					wall.vert_move_speed[0]+= move_dir;
+					wall.vert_move_speed[1]+= move_dir;
 					if( mortal ) wall.mortal= true;
 				}
 				else if( index_element.type == MapData::IndexElement::StaticModel )
@@ -2701,6 +2758,7 @@ void Map::MoveMapObjects( const Time current_time )
 					PC_ASSERT( index_element.index < static_models_.size() );
 					StaticModel& model= static_models_[ index_element.index ];
 					model.transformation.mat= model.transformation.mat * mat;
+					model.move_speed+= move_dir;
 					if( mortal ) model.mortal= true;
 				}
 			}
@@ -2734,6 +2792,16 @@ void Map::MoveMapObjects( const Time current_time )
 					DynamicWall& wall= dynamic_walls_[ index_element.index ];
 					wall.transformation.mat= wall.transformation.mat * mat;
 					if( mortal ) wall.mortal= true;
+
+					// Calculate speed for wall vertices. This needs for mortal walls.
+					// TODO - check this calculation.
+					const float radial_speed_value= angle * Constants::two_pi;
+					for( unsigned int i= 0u; i < 2u; i++ )
+					{
+						const m_Vec2 vec_from_rotation_center= center - wall.vert_pos[i];
+						const m_Vec2 speed_vec( vec_from_rotation_center.y, -vec_from_rotation_center.x );
+						wall.vert_move_speed[i]+= speed_vec * radial_speed_value * move_dir_sign;
+					}
 				}
 				else if( index_element.type == MapData::IndexElement::StaticModel )
 				{

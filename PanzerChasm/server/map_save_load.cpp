@@ -17,6 +17,8 @@ void Map::Save( SaveStream& save_stream ) const
 	{
 		save_stream.WriteVec2( wall.vert_pos[0] );
 		save_stream.WriteVec2( wall.vert_pos[1] );
+		save_stream.WriteVec2( wall.vert_move_speed[0] );
+		save_stream.WriteVec2( wall.vert_move_speed[1] );
 		save_stream.WriteFloat( wall.z );
 		save_stream.WriteUInt8( wall.texture_id );
 		save_stream.WriteBool( wall.mortal );
@@ -42,6 +44,7 @@ void Map::Save( SaveStream& save_stream ) const
 	{
 		// TODO - add save-load methods for vectors
 		save_stream.WriteVec3( model.pos );
+		save_stream.WriteVec2( model.move_speed );
 		save_stream.WriteFloat( model.baze_z );
 		save_stream.WriteFloat( model.angle );
 		save_stream.WriteUInt8( model.model_id );
@@ -206,6 +209,8 @@ Map::Map(
 	{
 		load_stream.ReadVec2( wall.vert_pos[0] );
 		load_stream.ReadVec2( wall.vert_pos[1] );
+		load_stream.ReadVec2( wall.vert_move_speed[0] );
+		load_stream.ReadVec2( wall.vert_move_speed[1] );
 		load_stream.ReadFloat( wall.z );
 		load_stream.ReadUInt8( wall.texture_id );
 		load_stream.ReadBool( wall.mortal );
@@ -238,6 +243,7 @@ Map::Map(
 	for( StaticModel& model : static_models_ )
 	{
 		load_stream.ReadVec3( model.pos );
+		load_stream.ReadVec2( model.move_speed );
 		load_stream.ReadFloat( model.baze_z );
 		load_stream.ReadFloat( model.angle );
 		load_stream.ReadUInt8( model.model_id );
