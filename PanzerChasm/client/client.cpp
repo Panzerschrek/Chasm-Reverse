@@ -96,6 +96,8 @@ void Client::VidRestart( IDrawersFactory& drawers_factory )
 		map_drawer_->SetMap( current_map_data_ );
 		minimap_drawer_->SetMap( current_map_data_ );
 	}
+
+	camera_controller_.SetAspect( shared_drawers_->menu->GetViewportSize().GetWidthToHeightRatio() );
 }
 
 void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )

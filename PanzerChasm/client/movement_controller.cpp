@@ -28,6 +28,11 @@ MovementController::MovementController(
 MovementController::~MovementController()
 {}
 
+void MovementController::SetAspect( const float aspect )
+{
+	aspect_= aspect;
+}
+
 void MovementController::Tick( const KeyboardState& keyboard_state )
 {
 	FetchSettingsParams();

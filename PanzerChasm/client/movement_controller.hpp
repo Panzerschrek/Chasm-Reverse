@@ -22,6 +22,8 @@ public:
 
 	~MovementController();
 
+	void SetAspect( float aspect );
+
 	void Tick( const KeyboardState& keyboard_state );
 	void SetSpeed( float speed );
 	void SetAngles( float z_angle, float x_angle );
