@@ -10,8 +10,6 @@ namespace PanzerChasm
 {
 
 static const char g_old_style_perspective[]= "cl_old_style_perspective";
-static const char g_fov[]= "cl_fov";
-
 static const float g_z_near= 1.0f / 12.0f; // Must be greater, then z_near in software rasterizer.
 
 MovementController::MovementController(
@@ -295,9 +293,9 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 
 void MovementController::FetchSettingsParams()
 {
-	fov_= settings_.GetOrSetFloat( g_fov, 90.0f );
+	fov_= settings_.GetOrSetFloat( SettingsKeys::fov, 90.0f );
 	fov_= std::max( 10.0f, std::min( fov_, 150.0f ) );
-	settings_.SetSetting( g_fov, fov_ );
+	settings_.SetSetting( SettingsKeys::fov, fov_ );
 
 	is_old_style_perspective_= settings_.GetOrSetBool( g_old_style_perspective, false );
 }

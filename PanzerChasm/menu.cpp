@@ -1733,7 +1733,7 @@ private:
 	{
 		enum : int
 		{
-			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, Brightness, FXVolume, CDVolume, MouseSEnsitivity, NumRows
+			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, Brightness, FXVolume, CDVolume, MouseSensitivity, FOV, NumRows
 		};
 	};
 	int current_row_= 0;
@@ -1747,7 +1747,11 @@ private:
 	int brightness_;
 	int fx_volume_;
 	int cd_volume_;
+	int fov_;
 	int mouse_sensetivity_;
+
+	const float c_min_fov=  75.0f;
+	const float c_max_fov= 100.0f;
 
 	ControlsMenu controls_menu_;
 	VideoMenu video_menu_;
@@ -1769,6 +1773,11 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	brightness_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::brightness, 0.5f ) ) );
 	fx_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::fx_volume, 0.5f ) ) );
 	cd_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::cd_volume, 0.5f ) ) );
+	{
+		const float settings_fov= std::max( c_min_fov, std::min( c_max_fov, settings_.GetOrSetFloat( SettingsKeys::fov, 90.0f ) ) );
+		const float relative_fov_value= ( settings_fov - c_min_fov ) / ( c_max_fov - c_min_fov );
+		fov_ = static_cast<int>( std::round( float(c_max_slider_value) * relative_fov_value ) );
+	}
 	mouse_sensetivity_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f ) ) );
 }
 
@@ -1915,17 +1924,33 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::Alignment::Left );
 
 	text_draw.Print(
-		param_descr_x, y + Row::MouseSEnsitivity * y_step,
+		param_descr_x, y + Row::MouseSensitivity * y_step,
 		"Mouse Sensetivity", scale,
-		current_row_ == Row::MouseSEnsitivity ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		current_row_ == Row::MouseSensitivity ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Right );
 	text_draw.Print(
-		param_x, y + Row::MouseSEnsitivity * y_step,
+		param_x, y + Row::MouseSensitivity * y_step,
 		slider_back_text, scale,
 		ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Left );
 	text_draw.Print(
-		slider_pos( mouse_sensetivity_ ), y + Row::MouseSEnsitivity * y_step,
+		slider_pos( mouse_sensetivity_ ), y + Row::MouseSensitivity * y_step,
+		slder_text, scale,
+		ITextDrawer::FontColor::Golden,
+		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::FOV * y_step,
+		"Field Of View", scale,
+		current_row_ == Row::FOV ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::FOV * y_step,
+		slider_back_text, scale,
+		ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Left );
+	text_draw.Print(
+		slider_pos( fov_ ), y + Row::FOV * y_step,
 		slder_text, scale,
 		ITextDrawer::FontColor::Golden,
 		ITextDrawer::Alignment::Left );
@@ -2031,12 +2056,21 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 					PlayMenuSound( Sound::SoundId::MenuScroll );
 				}
 				break;
-			case Row::MouseSEnsitivity:
+			case Row::MouseSensitivity:
 				new_value= std::max( 0, std::min( mouse_sensetivity_ + shift, c_max_slider_value ) );
 				if( new_value != mouse_sensetivity_ )
 				{
 					mouse_sensetivity_= new_value;
 					settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+				}
+				break;
+			case Row::FOV:
+				new_value= std::max( 0, std::min( fov_ + shift, c_max_slider_value ) );
+				if( new_value != fov_ )
+				{
+					fov_= new_value;
+					settings_.SetSetting( SettingsKeys::fov, c_min_fov + float(fov_) / float(c_max_slider_value) * (c_max_fov - c_min_fov) );
 					PlayMenuSound( Sound::SoundId::MenuScroll );
 				}
 				break;

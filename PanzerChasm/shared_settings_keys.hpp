@@ -16,6 +16,7 @@ const char player_name[]= "cl_name";
 const char fx_volume[]= "s_volume";
 const char cd_volume[]= "cd_volume";
 const char mouse_sensetivity[]= "cl_mouse_speed";
+const char fov[]= "cl_fov";
 
 const char key_forward[]= "in_key_forward";
 const char key_backward[]= "in_key_backward";
