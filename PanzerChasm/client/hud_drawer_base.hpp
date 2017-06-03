@@ -21,6 +21,8 @@ public: // IHudDrawer
 
 	virtual void DrawCurrentMessage( Time current_time ) override;
 
+	virtual void DrawSmallHud() override;
+
 protected:
 	// Shared constants.
 	static constexpr unsigned int c_hud_line_height= 32u;

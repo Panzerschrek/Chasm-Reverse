@@ -222,6 +222,11 @@ void Client::ProcessEvents( const SystemEvents& events )
 
 			if( event.event.key.key_code == KeyCode::Tab )
 				minimap_mode_= !minimap_mode_;
+
+			if( event.event.key.key_code == KeyCode::Minus )
+				small_hud_mode_= false;
+			if( event.event.key.key_code == KeyCode::Equals )
+				small_hud_mode_= true;
 		}
 	} // for events
 }
@@ -390,7 +395,10 @@ void Client::Draw()
 		if( settings_.GetOrSetBool( SettingsKeys::crosshair, true ) )
 			hud_drawer_->DrawCrosshair();
 		hud_drawer_->DrawCurrentMessage( current_tick_time_ );
-		hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
+		if( small_hud_mode_ )
+			hud_drawer_->DrawSmallHud();
+		else
+			hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
 	}
 }
 

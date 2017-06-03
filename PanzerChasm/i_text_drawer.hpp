@@ -12,6 +12,7 @@ public:
 		DarkYellow,
 		Golden,
 		YellowGreen,
+		Green,
 	};
 
 	enum class Alignment

@@ -79,6 +79,27 @@ void HudDrawerBase::DrawCurrentMessage( const Time current_time )
 	}
 }
 
+void HudDrawerBase::DrawSmallHud()
+{
+	char text[16];
+	char ammo[8];
+
+	if( current_weapon_number_ != 0u )
+		std::snprintf( ammo, sizeof(ammo), "%3d", int(player_state_.ammo[ current_weapon_number_ ]) );
+	else
+		std::strcpy( ammo, " " );
+
+	std::snprintf( text, sizeof(text), "%3d/%s/%3d", int(player_state_.health), ammo, int(player_state_.armor) );
+
+	const int x_offset = 7, y_offset= 5;
+	const int y= int( shared_drawers_->menu->GetViewportSize().Height() ) - scale_ * int(shared_drawers_->text->GetLineHeight());
+	shared_drawers_->text->Print(
+		0 + x_offset * int(scale_), y - y_offset * int(scale_),
+		text,
+		scale_,
+		ITextDrawer::FontColor::Green );
+}
+
 void HudDrawerBase::CreateCrosshairTexture(
 	unsigned int* out_size,
 	std::vector<unsigned char>& out_data )

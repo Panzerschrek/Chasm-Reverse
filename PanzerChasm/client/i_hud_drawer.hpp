@@ -18,6 +18,7 @@ public:
 	virtual void DrawCrosshair()= 0;
 	virtual void DrawCurrentMessage( Time current_time )= 0;
 	virtual void DrawHud( bool draw_second_hud, const char* map_name )= 0;
+	virtual void DrawSmallHud()= 0;
 };
 
 } // namespace PanzerChasm
