@@ -14,7 +14,6 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Podderžka svojstva "checkgo" proçedur. Vozmožno, dorabotka realizaçii svojstva
   "checkback".
 * Rakety s razmerom - vozmožnostj v polöte zadetj stenu krajem rakety.
-* Dorabotka povedenija monstrov. Reakçija na zvuk.
 * Dorabotka bossov.
 * Kalibrovka castoty animaçij oružija, monstrov, objektov urovnä, podbirajemyh
   predmetov, raket.
@@ -22,7 +21,8 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Kalibrovka skorosti proçedur. Vyjasnenije nalicija ili otsutstvija skorosti ot
   priväzannyh k proçedure dvižuscihsä sten i procih objektov.
 * Dorabotka ošmötkov. Otbrasyvanije monstrami ošmötkov raznyh vidov. Raznyj
-  nabor ošmötkov dlä raznyh monstrov.
+  nabor ošmötkov dlä raznyh monstrov. Obrabotka stolknovenij ošmötkov so stenami
+  i modelämi.
 * Issledovanije raboty nevidimosti i jejo realizaçija.
 * Issledovanije raboty scita i jego realizaçija.
 * Issledovanije vlijanija urovnej složnosti na uron.
