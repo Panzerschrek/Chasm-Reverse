@@ -144,7 +144,7 @@ private:
 
 	unsigned int current_weapon_index_= 0u;
 	unsigned int requested_weapon_index_= 0u;
-	float weapon_switch_stage_= 0.5f; // 0 - retracted, 1 - fully deployed. Start semi-deployed.
+	float weapon_switch_stage_= 0.0f; // 0 - retracted, 1 - fully deployed. Start semi-deployed.
 
 	unsigned int current_weapon_animation_= 0u;
 	unsigned int current_weapon_animation_frame_= 0u;
