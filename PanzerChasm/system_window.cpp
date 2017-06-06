@@ -304,7 +304,6 @@ windowed:
 		Log::Info( "OpenGL configuration: " );
 		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
 		Log::Info( "Renderer: ", glGetString( GL_RENDERER ) );
-		Log::Info( "Vendor: ", glGetString( GL_VENDOR ) );
 		Log::Info( "Version: ", glGetString( GL_VERSION ) );
 		Log::Info("");
 
