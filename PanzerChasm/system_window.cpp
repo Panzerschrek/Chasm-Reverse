@@ -101,8 +101,8 @@ static void APIENTRY GLDebugMessageCallback(
 	GLenum source, GLenum type,
 	GLuint id,
 	GLenum severity,
-	GLsizei length, const GLchar *message,
-	void *userParam )
+	GLsizei length, const GLchar* message,
+	const void* userParam )
 {
 	(void)source;
 	(void)type;
@@ -350,8 +350,10 @@ windowed:
 		GetGLFunctions( SDL_GL_GetProcAddress );
 
 		#ifdef DEBUG
+		// Do reinterpret_cast, because on different platforms arguments of GLDEBUGPROC have
+		// different const qualifier. Just ignore this cualifiers - we always have 'const'.
 		if( glDebugMessageCallback != nullptr )
-			glDebugMessageCallback( &GLDebugMessageCallback, NULL );
+			glDebugMessageCallback( reinterpret_cast<GLDEBUGPROC>(&GLDebugMessageCallback), NULL );
 		#endif
 	}
 	else if( use_gl_context_for_software_renderer_ )
