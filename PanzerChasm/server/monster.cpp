@@ -816,6 +816,10 @@ bool Monster::SelectTarget( const Map& map )
 			const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
 			if( angle_cos < c_half_view_angle_cos )
 				continue;
+
+			// Monsters in Idle state didn`t see invisible players.
+			if( player.IsInvisible() )
+				continue;
 		}
 
 		if( CanSee( map, player.Position() ) )
