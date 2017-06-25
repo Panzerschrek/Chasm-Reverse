@@ -905,7 +905,7 @@ void Map::ProcessPlayerPosition(
 		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
 		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
 		{
-			item.picked_up= player.TryPickupItem( item.item_id );
+			item.picked_up= player.TryPickupItem( item.item_id, current_time );
 			if( item.picked_up )
 			{
 				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );

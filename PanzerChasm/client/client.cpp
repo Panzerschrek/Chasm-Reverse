@@ -380,7 +380,8 @@ void Client::Draw()
 				weapon_shift_matrix * projection_matrix,
 				pos,
 				camera_controller_.GetViewAngleX(),
-				camera_controller_.GetViewAngleZ() );
+				camera_controller_.GetViewAngleZ(),
+				player_state_.is_invisible );
 		}
 
 		map_drawer_->DoFullscreenPostprocess( *map_state_ );

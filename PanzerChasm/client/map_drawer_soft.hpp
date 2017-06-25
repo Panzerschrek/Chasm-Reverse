@@ -33,7 +33,8 @@ public:
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
 		const m_Vec3& camera_position,
-		float x_angle, float z_angle ) override;
+		float x_angle, float z_angle,
+		bool invisible ) override;
 
 	virtual void DoFullscreenPostprocess( const MapState& map_state ) override;
 

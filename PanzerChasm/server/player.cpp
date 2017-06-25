@@ -58,6 +58,13 @@ void Player::Tick(
 {
 	teleported_= false;
 
+	// Process invisibility
+	if( has_invisibility_ )
+	{
+		if( ( current_time - invisibility_take_time_ ).ToSeconds() > GameConstants::invisibility_time_s )
+			has_invisibility_= false;
+	}
+
 	// Process animations.
 	if( state_ == State::Alive )
 	{
@@ -397,7 +404,7 @@ void Player::ResetActivatedProcedure()
 	last_activated_procedure_activation_time_= Time::FromSeconds(0);
 }
 
-bool Player::TryPickupItem( const unsigned int item_id )
+bool Player::TryPickupItem( const unsigned int item_id, const Time current_time )
 {
 	if( item_id >=  game_resources_->items_description.size() )
 		return false;
@@ -446,6 +453,17 @@ bool Player::TryPickupItem( const unsigned int item_id )
 
 		GenItemPickupMessage( item_id );
 		AddItemPickupFlash();
+		return true;
+	}
+	else if( a_code == ACode::Item_Invisibility )
+	{
+		if( has_invisibility_ )
+			invisibility_take_time_+= Time::FromSeconds( GameConstants::invisibility_time_s );
+		else
+		{
+			has_invisibility_= true;
+			invisibility_take_time_= current_time;
+		}
 		return true;
 	}
 	else if( a_code == ACode::Item_Life )
@@ -542,6 +560,8 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
 		if( have_weapon_[i] )
 			out_state_message.weapons_mask|= 1 << i;
+
+	out_state_message.is_invisible= has_invisibility_;
 }
 
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const

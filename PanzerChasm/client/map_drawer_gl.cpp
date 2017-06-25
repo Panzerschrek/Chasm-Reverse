@@ -523,7 +523,8 @@ void MapDrawerGL::DrawWeapon(
 	const WeaponState& weapon_state,
 	const m_Mat4& projection_matrix,
 	const m_Vec3& camera_position,
-	const float x_angle, const float z_angle  )
+	const float x_angle, const float z_angle,
+	const bool invisible )
 {
 	weapons_geometry_data_.Bind();
 	models_shader_.Bind();
@@ -584,11 +585,11 @@ void MapDrawerGL::DrawWeapon(
 
 	glDepthRange( 0.0f, 1.0f / 8.0f );
 
-	r_OGLStateManager::UpdateState( g_models_gl_state );
-	draw_model_polygons(false);
+	r_OGLStateManager::UpdateState( invisible ? g_transparent_models_gl_state : g_models_gl_state );
+	draw_model_polygons( false );
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
-	draw_model_polygons(true);
+	draw_model_polygons( true );
 
 	glDepthRange( 0.0f, 1.0f );
 }

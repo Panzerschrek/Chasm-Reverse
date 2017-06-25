@@ -24,7 +24,7 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
-constexpr unsigned int c_protocol_version= 100u; // Increment each time, when protocol changed.
+constexpr unsigned int c_protocol_version= 101u; // Increment each time, when protocol changed.
 
 typedef short CoordType;
 typedef unsigned short AngleType;
@@ -102,6 +102,7 @@ struct PlayerState : public MessageBase
 	unsigned char health;
 	unsigned char armor;
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
+	bool is_invisible;
 	WeaponsMaskType weapons_mask;
 };
 

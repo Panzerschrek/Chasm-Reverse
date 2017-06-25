@@ -498,7 +498,8 @@ void MapDrawerSoft::DrawWeapon(
 	const WeaponState& weapon_state,
 	const m_Mat4& projection_matrix,
 	const m_Vec3& camera_position,
-	const float x_angle, const float z_angle )
+	const float x_angle, const float z_angle,
+	bool invisible )
 {
 	PC_UNUSED( x_angle );
 	PC_UNUSED( z_angle );
@@ -539,18 +540,36 @@ void MapDrawerSoft::DrawWeapon(
 	}
 
 	Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
-	draw_func=
-		&Rasterizer::DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::No,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-			Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
-	alpha_draw_func=
-		&Rasterizer::DrawTexturedTriangleSpanCorrected<
-			Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
-			Rasterizer::AlphaTest::Yes,
-			Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
-			Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+	if( invisible )
+	{
+		draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes, Rasterizer::DepthHack::Yes>;
+		alpha_draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes, Rasterizer::DepthHack::Yes>;
+	}
+	else
+	{
+		draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::No,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+		alpha_draw_func=
+			&Rasterizer::DrawTexturedTriangleSpanCorrected<
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::AlphaTest::Yes,
+				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+				Rasterizer::Lighting::Yes, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+	}
 
 	for( unsigned int t= 0u; t < model.regular_triangles_indeces.size(); t+= 3u )
 	{
