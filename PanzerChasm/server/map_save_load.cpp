@@ -512,6 +512,9 @@ void Player::Save( SaveStream& save_stream )
 	save_stream.WriteUInt32( current_weapon_animation_ );
 	save_stream.WriteUInt32( current_weapon_animation_frame_ );
 	save_stream.WriteTime( weapon_animation_state_change_time_ );
+	save_stream.WriteTime( invisibility_take_time_ );
+	save_stream.WriteBool( has_invisibility_ );
+	save_stream.WriteBool( inviible_in_this_moment_ );
 	save_stream.WriteTime( last_pain_sound_time_ );
 	save_stream.WriteTime( last_step_sound_time_ );
 }
@@ -554,6 +557,9 @@ Player::Player( const GameResourcesConstPtr& game_resources, LoadStream& load_st
 	load_stream.ReadUInt32( current_weapon_animation_ );
 	load_stream.ReadUInt32( current_weapon_animation_frame_ );
 	load_stream.ReadTime( weapon_animation_state_change_time_ );
+	load_stream.ReadTime( invisibility_take_time_ );
+	load_stream.ReadBool( has_invisibility_ );
+	load_stream.ReadBool( inviible_in_this_moment_ );
 	load_stream.ReadTime( last_pain_sound_time_ );
 	load_stream.ReadTime( last_step_sound_time_ );
 }
