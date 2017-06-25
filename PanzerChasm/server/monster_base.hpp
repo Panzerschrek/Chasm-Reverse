@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../fwd.hpp"
+#include "../messages.hpp"
 #include "../time.hpp"
 #include "fwd.hpp"
 #include "movement_restriction.hpp"
@@ -71,6 +72,8 @@ public:
 	virtual bool IsFullyDead() const= 0;
 	virtual unsigned char GetColor() const= 0;
 	virtual bool IsInvisible() const= 0;
+
+	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const= 0;
 
 protected:
 	// TODO - check this. Some numbers may be incorrect.

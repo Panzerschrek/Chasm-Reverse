@@ -58,6 +58,8 @@ public:
 	virtual unsigned char GetColor() const override;
 	virtual bool IsInvisible() const override;
 
+	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const override;
+
 private:
 	enum class State
 	{

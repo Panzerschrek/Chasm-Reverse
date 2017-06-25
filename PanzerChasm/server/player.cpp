@@ -61,9 +61,22 @@ void Player::Tick(
 	// Process invisibility
 	if( has_invisibility_ )
 	{
-		if( ( current_time - invisibility_take_time_ ).ToSeconds() > GameConstants::invisibility_time_s )
+		const float invisiblity_time_s= ( current_time - invisibility_take_time_ ).ToSeconds();
+		if( invisiblity_time_s > GameConstants::invisibility_time_s )
+		{
 			has_invisibility_= false;
+			inviible_in_this_moment_= false;
+		}
+		else if( invisiblity_time_s >= GameConstants::invisibility_flashing_start_time_s )
+		{
+			inviible_in_this_moment_=
+				( static_cast<int>( 2.0f * ( invisiblity_time_s - GameConstants::invisibility_flashing_start_time_s ) ) & 1 ) != 0;
+		}
+		else
+			inviible_in_this_moment_= true;
 	}
+	else
+		inviible_in_this_moment_= false;
 
 	// Process animations.
 	if( state_ == State::Alive )
@@ -384,6 +397,19 @@ bool Player::IsInvisible() const
 	return state_ != State::Dead && has_invisibility_;
 }
 
+void Player::BuildStateMessage( Messages::MonsterState& out_message ) const
+{
+	PositionToMessagePosition( pos_, out_message.xyz );
+	out_message.angle= AngleToMessageAngle( angle_ );
+	out_message.monster_type= 0u;
+	out_message.body_parts_mask= GetBodyPartsMask();
+	out_message.animation= CurrentAnimation();
+	out_message.animation_frame= CurrentAnimationFrame();
+	out_message.is_fully_dead= IsFullyDead();
+	out_message.is_invisible= inviible_in_this_moment_;
+	out_message.color= GetColor();
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;
@@ -566,7 +592,7 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 		if( have_weapon_[i] )
 			out_state_message.weapons_mask|= 1 << i;
 
-	out_state_message.is_invisible= has_invisibility_;
+	out_state_message.is_invisible= inviible_in_this_moment_;
 }
 
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const

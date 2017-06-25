@@ -314,7 +314,6 @@ private:
 	EntityId GetNextMonsterId();
 	EntityId GetLightSourceId( unsigned int parent_procedure_number, unsigned int light_source_coomand_number ) const;
 
-	static void PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message );
 	static void PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message );
 	static void PrepareMineBirthMessage( const Mine& mine, Messages::DynamicItemBirth& message );
 	static void PrepareBackpackBirthMessage( const Backpack& backpack, EntityId backpack_id, Messages::DynamicItemBirth& message );

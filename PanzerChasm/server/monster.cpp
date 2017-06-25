@@ -642,6 +642,19 @@ bool Monster::IsInvisible() const
 	return false;
 }
 
+void Monster::BuildStateMessage( Messages::MonsterState& out_message ) const
+{
+	PositionToMessagePosition( pos_, out_message.xyz );
+	out_message.angle= AngleToMessageAngle( angle_ );
+	out_message.monster_type= monster_id_;
+	out_message.body_parts_mask= GetBodyPartsMask();
+	out_message.animation= CurrentAnimation();
+	out_message.animation_frame= CurrentAnimationFrame();
+	out_message.is_fully_dead= IsFullyDead();
+	out_message.is_invisible= IsInvisible();
+	out_message.color= 0;
+}
+
 bool Monster::IsBoss() const
 {
 	// Bosses have hardcoded id.
