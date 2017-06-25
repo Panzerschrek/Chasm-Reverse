@@ -637,6 +637,11 @@ unsigned char Monster::GetColor() const
 	return 0u;
 }
 
+bool Monster::IsInvisible() const
+{
+	return false;
+}
+
 bool Monster::IsBoss() const
 {
 	// Bosses have hardcoded id.

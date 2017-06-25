@@ -3141,6 +3141,7 @@ EntityId Map::GetLightSourceId(
 
 void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message )
 {
+	// TODO - maybe fill this fields in monster classes?
 	PositionToMessagePosition( monster.Position(), message.xyz );
 	message.angle= AngleToMessageAngle( monster.Angle() );
 	message.monster_type= monster.MonsterId();
@@ -3148,6 +3149,7 @@ void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::Mons
 	message.animation= monster.CurrentAnimation();
 	message.animation_frame= monster.CurrentAnimationFrame();
 	message.is_fully_dead= monster.IsFullyDead();
+	message.is_invisible= monster.IsInvisible();
 	message.color= monster.GetColor();
 }
 

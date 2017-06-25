@@ -70,6 +70,7 @@ public:
 	virtual void Teleport( const m_Vec3& pos, float angle )= 0;
 	virtual bool IsFullyDead() const= 0;
 	virtual unsigned char GetColor() const= 0;
+	virtual bool IsInvisible() const= 0;
 
 protected:
 	// TODO - check this. Some numbers may be incorrect.

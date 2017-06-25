@@ -160,6 +160,7 @@ private:
 		const m_Vec3& camera_position,
 		unsigned char visible_groups_mask,
 		bool transparent,
+		bool force_transparent_nontransparent_polygons= false, // TODO - maybe make transparency-type enum?
 		bool fullbright= false,
 		unsigned int submodel_id= ~0u,  /* Submodel of model to draw. ~0 means base model. */
 		unsigned char color= 0u /* For players only. */ );

@@ -269,7 +269,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				static_model.pos, rotate_mat,
 				cam_mat, camera_position,
-				255u, transparent );
+				255u,
+				transparent, false );
 		}
 
 		for( const MapState::Item& item : map_state.GetItems() )
@@ -287,7 +288,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				item.pos, rotate_mat,
 				cam_mat, camera_position,
-				255u, transparent );
+				255u,
+				transparent, false );
 		}
 
 		for( const MapState::DynamicItemsContainer::value_type& dynamic_item_value : map_state.GetDynamicItems() )
@@ -305,7 +307,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				item.pos, rotate_mat,
 				cam_mat, camera_position,
-				255u, transparent,
+				255u,
+				transparent, false,
 				item.fullbright );
 		}
 
@@ -325,7 +328,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				rocket.pos, rotate_max_x * rotate_mat_z,
 				cam_mat, camera_position,
-				255u, transparent,
+				255u,
+				transparent, false,
 				game_resources_->rockets_description[ rocket.rocket_id ].fullbright );
 		}
 
@@ -369,7 +373,8 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				monster.pos, rotate_mat,
 				cam_mat, camera_position,
-				monster.body_parts_mask, transparent,
+				monster.body_parts_mask,
+				transparent, monster.is_invisible,
 				false, ~0u, monster.color );
 		}
 
@@ -392,7 +397,9 @@ void MapDrawerSoft::Draw(
 				view_clip_planes,
 				part.pos, rotate_mat,
 				cam_mat, camera_position,
-				255u, transparent, false,
+				255u,
+				transparent, false,
+				false,
 				part.body_part_id );
 		}
 	}
@@ -1340,6 +1347,7 @@ void MapDrawerSoft::DrawModel(
 	const m_Vec3& camera_position,
 	const unsigned char visible_groups_mask,
 	const bool transparent,
+	const bool force_transparent_nontransparent_polygons,
 	const bool fullbright,
 	const unsigned int submodel_id,
 	const unsigned char color )
@@ -1459,7 +1467,7 @@ void MapDrawerSoft::DrawModel(
 
 	Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
 
-	if( transparent )
+	if( transparent || force_transparent_nontransparent_polygons )
 	{
 		draw_func=
 			&Rasterizer::DrawTexturedTriangleSpanCorrected<

@@ -135,7 +135,8 @@ private:
 		const m_Mat4& view_matrix,
 		const ViewClipPlanes& view_clip_planes,
 		EntityId player_mosnter_id,
-		bool transparent );
+		bool transparent,
+		bool skip_invisible_monsters );
 
 	void DrawMonstersBodyParts(
 		const MapState& map_state,

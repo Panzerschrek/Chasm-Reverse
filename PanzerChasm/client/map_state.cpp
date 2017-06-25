@@ -442,6 +442,7 @@ void MapState::ProcessMessage( const Messages::MonsterState& message )
 	monster.monster_id= message.monster_type;
 	monster.body_parts_mask= message.body_parts_mask;
 	monster.is_fully_dead= message.is_fully_dead;
+	monster.is_invisible= message.is_invisible;
 	monster.color= message.color;
 
 	monster.animation= 0u;

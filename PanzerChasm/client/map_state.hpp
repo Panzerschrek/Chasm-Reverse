@@ -92,6 +92,7 @@ public:
 		unsigned int animation;
 		unsigned int animation_frame;
 		bool is_fully_dead;
+		bool is_invisible;
 		unsigned char color;
 	};
 

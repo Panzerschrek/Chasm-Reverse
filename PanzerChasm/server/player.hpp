@@ -47,6 +47,7 @@ public:
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
 	virtual bool IsFullyDead() const override;
 	virtual unsigned char GetColor() const override;
+	virtual bool IsInvisible() const override;
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );
 

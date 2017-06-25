@@ -379,6 +379,11 @@ unsigned char Player::GetColor() const
 	return color_;
 }
 
+bool Player::IsInvisible() const
+{
+	return state_ != State::Dead && has_invisibility_;
+}
+
 void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 {
 	random_generator_= random_generator;

@@ -59,6 +59,7 @@ struct MonsterState : public MessageBase
 	unsigned short animation;
 	unsigned short animation_frame;
 	bool is_fully_dead : 1;
+	bool is_invisible : 1;
 	unsigned char color : 4; // For players only.
 };
 
