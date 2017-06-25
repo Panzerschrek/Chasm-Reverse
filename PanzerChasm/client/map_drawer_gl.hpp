@@ -40,7 +40,8 @@ public:
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
 		const m_Vec3& camera_position,
-		float x_angle, float z_angle ) override;
+		float x_angle, float z_angle,
+		bool invisible ) override;
 
 	virtual void DoFullscreenPostprocess( const MapState& map_state ) override;
 
@@ -134,7 +135,8 @@ private:
 		const m_Mat4& view_matrix,
 		const ViewClipPlanes& view_clip_planes,
 		EntityId player_mosnter_id,
-		bool transparent );
+		bool transparent,
+		bool skip_invisible_monsters );
 
 	void DrawMonstersBodyParts(
 		const MapState& map_state,

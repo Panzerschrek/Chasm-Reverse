@@ -637,6 +637,24 @@ unsigned char Monster::GetColor() const
 	return 0u;
 }
 
+bool Monster::IsInvisible() const
+{
+	return false;
+}
+
+void Monster::BuildStateMessage( Messages::MonsterState& out_message ) const
+{
+	PositionToMessagePosition( pos_, out_message.xyz );
+	out_message.angle= AngleToMessageAngle( angle_ );
+	out_message.monster_type= monster_id_;
+	out_message.body_parts_mask= GetBodyPartsMask();
+	out_message.animation= CurrentAnimation();
+	out_message.animation_frame= CurrentAnimationFrame();
+	out_message.is_fully_dead= IsFullyDead();
+	out_message.is_invisible= IsInvisible();
+	out_message.color= 0;
+}
+
 bool Monster::IsBoss() const
 {
 	// Bosses have hardcoded id.
@@ -810,6 +828,10 @@ bool Monster::SelectTarget( const Map& map )
 			// Monsters in Idle state have no back eyes.
 			const float angle_cos= ( dir_to_player * view_dir ) / distance_to_player;
 			if( angle_cos < c_half_view_angle_cos )
+				continue;
+
+			// Monsters in Idle state didn`t see invisible players.
+			if( player.IsInvisible() )
 				continue;
 		}
 

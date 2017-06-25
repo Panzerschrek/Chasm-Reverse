@@ -23,7 +23,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 * Dorabotka ošmötkov. Otbrasyvanije monstrami ošmötkov raznyh vidov. Raznyj
   nabor ošmötkov dlä raznyh monstrov. Obrabotka stolknovenij ošmötkov so stenami
   i modelämi.
-* Issledovanije raboty nevidimosti i jejo realizaçija.
+* Sohranenije nevidimosti ubitogo igroka v upavšem s nego rükzake.
 * Issledovanije raboty scita i jego realizaçija.
 * Issledovanije vlijanija urovnej složnosti na uron.
 * Ulucšenije otryvanija castej tela monstram. Issledovanije togo, kak eto

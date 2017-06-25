@@ -212,7 +212,7 @@ Map::Map(
 			monsters_birth_messages_.emplace_back();
 			Messages::MonsterBirth& message= monsters_birth_messages_.back();
 
-			PrepareMonsterStateMessage( *monster, message.initial_state );
+			monster->BuildStateMessage( message.initial_state );
 			message.initial_state.monster_id= monster_id;
 			message.monster_id= monster_id;
 		}
@@ -289,7 +289,7 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 	monsters_birth_messages_.emplace_back();
 	Messages::MonsterBirth& message= monsters_birth_messages_.back();
 
-	PrepareMonsterStateMessage( *monster_value.second, message.initial_state );
+	monster_value.second->BuildStateMessage( message.initial_state );
 	message.initial_state.monster_id= monster_value.first;
 	message.monster_id= monster_value.first;
 
@@ -905,7 +905,7 @@ void Map::ProcessPlayerPosition(
 		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
 		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
 		{
-			item.picked_up= player.TryPickupItem( item.item_id );
+			item.picked_up= player.TryPickupItem( item.item_id, current_time );
 			if( item.picked_up )
 			{
 				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
@@ -1794,7 +1794,7 @@ void Map::SendMessagesForNewlyConnectedPlayer( MessagesSender& messages_sender )
 	{
 		Messages::MonsterBirth message;
 
-		PrepareMonsterStateMessage( *monster_entry.second, message.initial_state );
+		monster_entry.second->BuildStateMessage( message.initial_state );
 		message.initial_state.monster_id= monster_entry.first;
 		message.monster_id= monster_entry.first;
 
@@ -1905,7 +1905,7 @@ void Map::SendUpdateMessages( MessagesSender& messages_sender ) const
 	{
 		Messages::MonsterState monster_message;
 
-		PrepareMonsterStateMessage( *monster_value.second, monster_message );
+		monster_value.second->BuildStateMessage( monster_message );
 		monster_message.monster_id= monster_value.first;
 
 		messages_sender.SendUnreliableMessage( monster_message );
@@ -3137,18 +3137,6 @@ EntityId Map::GetLightSourceId(
 	PC_ASSERT( parent_procedure_number < 256u );
 	PC_ASSERT( light_source_coomand_number < 256u );
 	return parent_procedure_number * 256u + light_source_coomand_number;
-}
-
-void Map::PrepareMonsterStateMessage( const MonsterBase& monster, Messages::MonsterState& message )
-{
-	PositionToMessagePosition( monster.Position(), message.xyz );
-	message.angle= AngleToMessageAngle( monster.Angle() );
-	message.monster_type= monster.MonsterId();
-	message.body_parts_mask= monster.GetBodyPartsMask();
-	message.animation= monster.CurrentAnimation();
-	message.animation_frame= monster.CurrentAnimationFrame();
-	message.is_fully_dead= monster.IsFullyDead();
-	message.color= monster.GetColor();
 }
 
 void Map::PrepareRocketStateMessage( const Rocket& rocket, Messages::RocketState& message )

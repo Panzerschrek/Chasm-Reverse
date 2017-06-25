@@ -35,7 +35,8 @@ public:
 		const WeaponState& weapon_state,
 		const m_Mat4& projection_matrix,
 		const m_Vec3& camera_position,
-		float x_angle, float z_angle )= 0;
+		float x_angle, float z_angle,
+		bool invisibile )= 0;
 
 	virtual void DoFullscreenPostprocess( const MapState& map_state )= 0;
 

@@ -47,13 +47,16 @@ public:
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
 	virtual bool IsFullyDead() const override;
 	virtual unsigned char GetColor() const override;
+	virtual bool IsInvisible() const override;
+
+	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const override;
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );
 
 	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
 	void ResetActivatedProcedure();
 
-	bool TryPickupItem( unsigned int item_id );
+	bool TryPickupItem( unsigned int item_id, Time current_time );
 	bool TryPickupBackpack( const Backpack& backpack );
 
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
@@ -149,6 +152,10 @@ private:
 	unsigned int current_weapon_animation_= 0u;
 	unsigned int current_weapon_animation_frame_= 0u;
 	Time weapon_animation_state_change_time_= Time::FromSeconds(0);
+
+	Time invisibility_take_time_= Time::FromSeconds(0);
+	bool has_invisibility_= false;
+	bool inviible_in_this_moment_= false;
 
 	Time last_pain_sound_time_= Time::FromSeconds(0);
 	Time last_step_sound_time_= Time::FromSeconds(0);

@@ -486,7 +486,7 @@ void MapDrawerGL::Draw(
 	DrawModels( map_state, view_matrix, view_clip_planes, false );
 	DrawItems( map_state, view_matrix, view_clip_planes, false );
 	DrawDynamicItems( map_state, view_matrix, view_clip_planes, false );
-	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, false );
+	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, false, true );
 	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, false );
 	DrawRockets( map_state, view_matrix, view_clip_planes, false );
 	DrawGibs( map_state, view_matrix, view_clip_planes, false );
@@ -509,7 +509,8 @@ void MapDrawerGL::Draw(
 	DrawModels( map_state, view_matrix, view_clip_planes, true );
 	DrawItems( map_state, view_matrix, view_clip_planes, true );
 	DrawDynamicItems( map_state, view_matrix, view_clip_planes, true );
-	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, true );
+	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, true, false );
+	DrawMonsters( map_state, view_matrix, view_clip_planes, player_monster_id, false, false );
 	DrawMonstersBodyParts( map_state, view_matrix, view_clip_planes, true );
 	DrawRockets( map_state, view_matrix, view_clip_planes, true );
 	DrawGibs( map_state, view_matrix, view_clip_planes, true );
@@ -523,7 +524,8 @@ void MapDrawerGL::DrawWeapon(
 	const WeaponState& weapon_state,
 	const m_Mat4& projection_matrix,
 	const m_Vec3& camera_position,
-	const float x_angle, const float z_angle  )
+	const float x_angle, const float z_angle,
+	const bool invisible )
 {
 	weapons_geometry_data_.Bind();
 	models_shader_.Bind();
@@ -584,11 +586,11 @@ void MapDrawerGL::DrawWeapon(
 
 	glDepthRange( 0.0f, 1.0f / 8.0f );
 
-	r_OGLStateManager::UpdateState( g_models_gl_state );
-	draw_model_polygons(false);
+	r_OGLStateManager::UpdateState( invisible ? g_transparent_models_gl_state : g_models_gl_state );
+	draw_model_polygons( false );
 
 	r_OGLStateManager::UpdateState( g_transparent_models_gl_state );
-	draw_model_polygons(true);
+	draw_model_polygons( true );
 
 	glDepthRange( 0.0f, 1.0f );
 }
@@ -1674,7 +1676,8 @@ void MapDrawerGL::DrawMonsters(
 	const m_Mat4& view_matrix,
 	const ViewClipPlanes& view_clip_planes,
 	const EntityId player_monster_id,
-	const bool transparent )
+	const bool transparent,
+	const bool skip_invisible_monsters )
 {
 	monsters_shader_.Bind();
 	monsters_geometry_data_.Bind();
@@ -1694,6 +1697,9 @@ void MapDrawerGL::DrawMonsters(
 
 		if( monster.monster_id >= monsters_models_.size() || // Unknown monster
 			monster.body_parts_mask == 0u ) // Monster is invisible.
+			continue;
+
+		if( skip_invisible_monsters && monster.is_invisible )
 			continue;
 
 		const MonsterModel& monster_model= monsters_models_[ monster.monster_id ];

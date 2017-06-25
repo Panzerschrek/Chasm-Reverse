@@ -56,6 +56,9 @@ public:
 	virtual void Teleport( const m_Vec3& pos, float angle ) override;
 	virtual bool IsFullyDead() const override;
 	virtual unsigned char GetColor() const override;
+	virtual bool IsInvisible() const override;
+
+	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const override;
 
 private:
 	enum class State
