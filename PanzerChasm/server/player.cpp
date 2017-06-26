@@ -738,16 +738,6 @@ unsigned int Player::CurrentWeaponIndex() const
 	return current_weapon_index_;
 }
 
-unsigned int Player::CurrentAnimation() const
-{
-	return current_weapon_animation_;
-}
-
-unsigned int Player::CurrentAnimationFrame() const
-{
-	return current_weapon_animation_frame_;
-}
-
 bool Player::Move( const Time time_delta )
 {
 	const float time_delta_s= time_delta.ToSeconds();

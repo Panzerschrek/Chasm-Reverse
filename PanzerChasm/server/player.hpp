@@ -88,9 +88,6 @@ public:
 
 	unsigned int CurrentWeaponIndex() const;
 
-	unsigned int CurrentAnimation() const;
-	unsigned int CurrentAnimationFrame() const;
-
 private:
 	// Returns true, if jumped.
 	bool Move( Time time_delta );
