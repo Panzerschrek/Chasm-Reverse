@@ -630,6 +630,9 @@ void Player::OnMapChange()
 {
 	have_red_key_= have_green_key_= have_blue_key_= false;
 	last_activated_procedure_= ~0u;
+
+	has_invisibility_= false;
+	inviible_in_this_moment_= false;
 }
 
 void Player::UpdateMovement( const Messages::PlayerMove& move_message )
