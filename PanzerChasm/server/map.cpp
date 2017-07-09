@@ -567,6 +567,11 @@ m_Vec3 Map::CollideWithMap(
 		if( tex.gso[0] )
 			continue;
 
+		// PROCESS.05:
+		// ;  up            [ x,y] [ H]   [s:num]     ,if H>=80 then walktrough
+		if( wall.z >= 80.0f / 64.0f )
+			continue;
+
 		if( z_top < wall.z || z_bottom > wall.z + GameConstants::walls_height )
 			continue;
 
