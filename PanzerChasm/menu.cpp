@@ -1733,7 +1733,7 @@ private:
 	{
 		enum : int
 		{
-			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, Brightness, FXVolume, CDVolume, MouseSensitivity, FOV, NumRows
+			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, OldStylePerspective, Brightness, FXVolume, CDVolume, MouseSensitivity, FOV, NumRows
 		};
 	};
 	int current_row_= 0;
@@ -1742,6 +1742,7 @@ private:
 	bool crosshair_;
 	bool reverse_mouse_;
 	bool weapon_reset_;
+	bool old_style_perspecive_;
 
 	const int c_max_slider_value= 15;
 	int brightness_;
@@ -1769,6 +1770,7 @@ OptionsMenu::OptionsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_e
 	crosshair_= settings_.GetOrSetBool( SettingsKeys::crosshair, true );
 	reverse_mouse_= settings_.GetOrSetBool( SettingsKeys::reverse_mouse, false );
 	weapon_reset_= settings_.GetOrSetBool( SettingsKeys::weapon_reset, false );
+	old_style_perspecive_= settings_.GetBool( SettingsKeys::old_style_perspective, false );
 
 	brightness_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::brightness, 0.5f ) ) );
 	fx_volume_= static_cast<int>( std::round( float(c_max_slider_value) * settings_.GetOrSetFloat( SettingsKeys::fx_volume, 0.5f ) ) );
@@ -1860,6 +1862,16 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		param_x, y + Row::WeaponReset * y_step,
 		weapon_reset_ ? g_on : g_off, scale,
 		current_row_ == Row::WeaponReset ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::OldStylePerspective * y_step,
+		"Fake perspective", scale,
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::OldStylePerspective * y_step,
+		old_style_perspecive_ ? g_on : g_off, scale,
+		current_row_ == Row::OldStylePerspective ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
 	char slider_back_text[ 1u + 7u + 1u + 1u ];
@@ -2014,6 +2026,11 @@ MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
 			case Row::WeaponReset:
 				weapon_reset_= !weapon_reset_;
 				settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				break;
+			case Row::OldStylePerspective:
+				old_style_perspecive_= !old_style_perspecive_;
+				settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
 				PlayMenuSound( Sound::SoundId::MenuSelect );
 				break;
 			default:

@@ -9,7 +9,6 @@
 namespace PanzerChasm
 {
 
-static const char g_old_style_perspective[]= "cl_old_style_perspective";
 static const float g_z_near= 1.0f / 12.0f; // Must be greater, then z_near in software rasterizer.
 
 MovementController::MovementController(
@@ -302,7 +301,7 @@ void MovementController::FetchSettingsParams()
 	fov_= std::max( 10.0f, std::min( fov_, 150.0f ) );
 	settings_.SetSetting( SettingsKeys::fov, fov_ );
 
-	is_old_style_perspective_= settings_.GetOrSetBool( g_old_style_perspective, false );
+	is_old_style_perspective_= settings_.GetOrSetBool( SettingsKeys::old_style_perspective, false );
 }
 
 } // namespace ChasmReverse
