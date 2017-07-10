@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstring>
+#include <cctype>
 
 #include "log.hpp"
 #include "settings.hpp"

@@ -2,6 +2,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <array>
 
 // Forward declarations, basic typedefs here.
 

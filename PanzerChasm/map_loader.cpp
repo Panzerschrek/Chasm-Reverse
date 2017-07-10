@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cctype>
 
 #include "assert.hpp"
 #include "log.hpp"

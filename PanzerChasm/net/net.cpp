@@ -1,8 +1,16 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#endif // #ifdef _MSC_VER
+
 #include <cstring>
+#include <cctype>
 #include <vector>
 
 #ifdef _WIN32
 #include <winsock2.h>
+#undef min
+#undef max
 #else
 
 #include <unistd.h>
@@ -26,6 +34,8 @@ typedef int SOCKET;
 #include "net.hpp"
 
 #define FUNC_NAME  __FUNCTION__
+
+
 
 namespace PanzerChasm
 {
