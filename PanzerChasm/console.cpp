@@ -1,4 +1,9 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif // #ifdef _MSC_VER
+
 #include <cstring>
+#include <algorithm>
 
 #include "assert.hpp"
 #include "i_menu_drawer.hpp"

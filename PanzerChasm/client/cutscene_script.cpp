@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cctype>
 
 #include "../math_utils.hpp"
 

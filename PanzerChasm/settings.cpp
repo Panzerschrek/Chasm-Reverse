@@ -1,4 +1,9 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif // #ifdef _MSC_VER
+
 #include <cstring>
+#include <cctype>
 
 #include "../Common/files.hpp"
 using namespace ChasmReverse;
