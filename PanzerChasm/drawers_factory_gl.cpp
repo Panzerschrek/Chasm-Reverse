@@ -40,6 +40,7 @@ IHudDrawerPtr DrawersFactoryGL::CreateHUDDrawer( const SharedDrawersPtr& shared_
 	return
 		IHudDrawerPtr(
 			new HudDrawerGL(
+				settings_,
 				game_resources_,
 				rendering_context_,
 				shared_drawers ) );

@@ -14,6 +14,7 @@ class HudDrawerGL final : public HudDrawerBase
 {
 public:
 	HudDrawerGL(
+		Settings& settings,
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContextGL& rendering_context,
 		const SharedDrawersPtr& shared_drawers );
@@ -34,6 +35,7 @@ private:
 
 private:
 	const Size2 viewport_size_;
+	const bool filter_textures_;
 
 	r_GLSLProgram hud_shader_;
 	r_PolygonBuffer quad_buffer_;

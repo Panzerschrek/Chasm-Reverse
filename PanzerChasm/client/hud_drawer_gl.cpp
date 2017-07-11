@@ -8,7 +8,9 @@
 #include "../images.hpp"
 #include "../i_menu_drawer.hpp"
 #include "../i_text_drawer.hpp"
+#include "../settings.hpp"
 #include "../shared_drawers.hpp"
+#include "../shared_settings_keys.hpp"
 
 #include "hud_drawer_gl.hpp"
 
@@ -28,11 +30,13 @@ static const r_OGLState g_hud_gl_state(
 	g_gl_state_blend_func );
 
 HudDrawerGL::HudDrawerGL(
+	Settings& settings,
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContextGL& rendering_context,
 	const SharedDrawersPtr& shared_drawers )
 	: HudDrawerBase( game_resources, shared_drawers )
 	, viewport_size_( rendering_context.viewport_size )
+	, filter_textures_( settings.GetOrSetBool( SettingsKeys::opengl_hud_textures_filtering, false ) )
 {
 	// Textures
 	{
@@ -328,7 +332,13 @@ void HudDrawerGL::LoadTexture(
 			cel.size[0], cel.size[1],
 			texture_data_rgba.data() );
 
-	out_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	if( filter_textures_ )
+	{
+		out_texture.SetFiltration( r_Texture::Filtration::Linear, r_Texture::Filtration::Linear );
+		out_texture.SetWrapMode( r_Texture::WrapMode::Clamp );
+	}
+	else
+		out_texture.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 }
 
 } // namespace PanzerChasm

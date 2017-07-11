@@ -1086,7 +1086,7 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, Shadows, TexturesFiltering, MenuTexturesFiltering, MSAA, ApplyNow, NumRows
+			Renderer, DynamicLighting, Shadows, TexturesFiltering, MenuTexturesFiltering, HudTexturesFiltering, MSAA, ApplyNow, NumRows
 		};
 	};
 	struct RowSoftware
@@ -1245,6 +1245,18 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Left );
 
 		text_draw.Print(
+			param_descr_x, y + RowOpenGL::HudTexturesFiltering * y_step,
+			"HUD textures filtering", scale,
+			current_row_ == RowOpenGL::HudTexturesFiltering ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowOpenGL::HudTexturesFiltering * y_step,
+			settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) ? g_on : g_off,
+			scale,
+			current_row_ == RowOpenGL::HudTexturesFiltering ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+
+		text_draw.Print(
 			param_descr_x, y + RowOpenGL::MSAA * y_step,
 			"msaa", scale,
 			current_row_ == RowOpenGL::MSAA ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
@@ -1304,30 +1316,39 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 		}
 		else if( current_renderer_ == Renderer::OpenGL )
 		{
-			if( current_row_ == RowOpenGL::DynamicLighting &&
-				( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+			// Boolean params
+			if( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter )
 			{
-				settings_.SetSetting(
-					SettingsKeys::opengl_dynamic_lighting,
-					! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
-				PlayMenuSound( Sound::SoundId::MenuChange );
+				if( current_row_ == RowOpenGL::DynamicLighting )
+				{
+					settings_.SetSetting(
+						SettingsKeys::opengl_dynamic_lighting,
+						! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
+				else if( current_row_ == RowOpenGL::TexturesFiltering )
+				{
+					settings_.SetSetting(
+						SettingsKeys::opengl_textures_filtering,
+						! settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
+				else if( current_row_ == RowOpenGL::MenuTexturesFiltering )
+				{
+					settings_.SetSetting(
+						SettingsKeys::opengl_menu_textures_filtering,
+						! settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
+				else if( current_row_ == RowOpenGL::HudTexturesFiltering )
+				{
+					settings_.SetSetting(
+						SettingsKeys::opengl_hud_textures_filtering,
+						! settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				}
 			}
-			if( current_row_ == RowOpenGL::TexturesFiltering &&
-				( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
-			{
-				settings_.SetSetting(
-					SettingsKeys::opengl_textures_filtering,
-					! settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
-				PlayMenuSound( Sound::SoundId::MenuChange );
-			}
-			if( current_row_ == RowOpenGL::MenuTexturesFiltering &&
-				( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
-			{
-				settings_.SetSetting(
-					SettingsKeys::opengl_menu_textures_filtering,
-					! settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
-				PlayMenuSound( Sound::SoundId::MenuChange );
-			}
+
 			if( current_row_ == RowOpenGL::MSAA && ( key == KeyCode::Left || key == KeyCode::Right ) )
 			{
 				unsigned int msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
