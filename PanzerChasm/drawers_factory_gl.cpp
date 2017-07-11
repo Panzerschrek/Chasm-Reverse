@@ -30,7 +30,7 @@ ITextDrawerPtr DrawersFactoryGL::CreateTextDrawer()
 
 IMenuDrawerPtr DrawersFactoryGL::CreateMenuDrawer()
 {
-	return IMenuDrawerPtr( new MenuDrawerGL( rendering_context_, *game_resources_ ) );
+	return IMenuDrawerPtr( new MenuDrawerGL( settings_, rendering_context_, *game_resources_ ) );
 }
 
 IHudDrawerPtr DrawersFactoryGL::CreateHUDDrawer( const SharedDrawersPtr& shared_drawers )

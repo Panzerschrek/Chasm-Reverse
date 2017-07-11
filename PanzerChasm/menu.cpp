@@ -1086,7 +1086,7 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, Shadows, TexturesFiltering, MSAA, ApplyNow, NumRows
+			Renderer, DynamicLighting, Shadows, TexturesFiltering, MenuTexturesFiltering, MSAA, ApplyNow, NumRows
 		};
 	};
 	struct RowSoftware
@@ -1124,12 +1124,12 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
-	const unsigned int size[2]= { 220u, text_draw.GetLineHeight() * std::max( int(RowOpenGL::NumRows), int(RowSoftware::NumRows) ) };
+	const unsigned int size[2]= { 270u, text_draw.GetLineHeight() * std::max( int(RowOpenGL::NumRows), int(RowSoftware::NumRows) ) };
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
-	const int param_descr_x= x + scale * 140;
-	const int param_x= x + scale * 150;
+	const int param_descr_x= x + scale * 175;
+	const int param_x= x + scale * 185;
 	const int y_step= int(text_draw.GetLineHeight()) * scale;
 
 	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
@@ -1233,6 +1233,18 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Left );
 
 		text_draw.Print(
+			param_descr_x, y + RowOpenGL::MenuTexturesFiltering * y_step,
+			"Menu textures filtering", scale,
+			current_row_ == RowOpenGL::MenuTexturesFiltering ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowOpenGL::MenuTexturesFiltering * y_step,
+			settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) ? g_on : g_off,
+			scale,
+			current_row_ == RowOpenGL::MenuTexturesFiltering ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+
+		text_draw.Print(
 			param_descr_x, y + RowOpenGL::MSAA * y_step,
 			"msaa", scale,
 			current_row_ == RowOpenGL::MSAA ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
@@ -1306,6 +1318,14 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 				settings_.SetSetting(
 					SettingsKeys::opengl_textures_filtering,
 					! settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
+				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
+			if( current_row_ == RowOpenGL::MenuTexturesFiltering &&
+				( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+			{
+				settings_.SetSetting(
+					SettingsKeys::opengl_menu_textures_filtering,
+					! settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
 				PlayMenuSound( Sound::SoundId::MenuChange );
 			}
 			if( current_row_ == RowOpenGL::MSAA && ( key == KeyCode::Left || key == KeyCode::Right ) )

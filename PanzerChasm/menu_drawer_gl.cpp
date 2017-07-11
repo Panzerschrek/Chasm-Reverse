@@ -6,6 +6,8 @@
 #include "game_constants.hpp"
 #include "game_resources.hpp"
 #include "menu_drawers_common.hpp"
+#include "settings.hpp"
+#include "shared_settings_keys.hpp"
 #include "vfs.hpp"
 
 #include "menu_drawer_gl.hpp"
@@ -22,16 +24,19 @@ static const r_OGLState g_gl_state(
 
 
 MenuDrawerGL::MenuDrawerGL(
+	Settings& settings,
 	const RenderingContextGL& rendering_context,
 	const GameResources& game_resources )
 	: viewport_size_(rendering_context.viewport_size)
 	, menu_scale_( CalculateMenuScale( rendering_context.viewport_size ) )
 	, console_scale_( CalculateConsoleScale( rendering_context.viewport_size ) )
 {
+	const bool filter_textures= settings.GetOrSetBool( SettingsKeys::opengl_menu_textures_filtering, false );
+
 	std::vector<unsigned char> textures_data_rgba;
 
 	const auto load_texture=
-	[&]( const char* const file_name, r_Texture& out_texture )
+	[&]( const char* const file_name, r_Texture& out_texture, const bool tileable= false )
 	{
 		const Vfs::FileContent texture_file= game_resources.vfs->ReadFile( file_name );
 		const CelTextureHeader* const cel_header=
@@ -53,14 +58,23 @@ MenuDrawerGL::MenuDrawerGL(
 				cel_header->size[1],
 				textures_data_rgba.data() );
 
-		out_texture.SetFiltration(
-			r_Texture::Filtration::Nearest,
-			r_Texture::Filtration::Nearest );
+		if( filter_textures )
+		{
+			out_texture.SetFiltration(
+				r_Texture::Filtration::Linear,
+				r_Texture::Filtration::Linear );
+			if( !tileable )
+				out_texture.SetWrapMode( r_Texture::WrapMode::Clamp );
+		}
+		else
+			out_texture.SetFiltration(
+				r_Texture::Filtration::Nearest,
+				r_Texture::Filtration::Nearest );
 	};
 
-	load_texture( MenuParams::tile_picture, tiles_texture_ );
+	load_texture( MenuParams::tile_picture, tiles_texture_, true );
 	load_texture( MenuParams::loading_picture, loading_texture_ );
-	load_texture( MenuParams::background_picture, game_background_texture_ );
+	load_texture( MenuParams::background_picture, game_background_texture_, true );
 	load_texture( MenuParams::pause_picture, pause_texture_ );
 
 	{ // Menu pictures
@@ -118,9 +132,17 @@ MenuDrawerGL::MenuDrawerGL(
 					height_with_border * MenuParams::menu_pictures_shifts_count,
 					picture_data_rgba.data() );
 
-			menu_pictures_[i].SetFiltration(
-				r_Texture::Filtration::Nearest,
-				r_Texture::Filtration::Nearest );
+			if( filter_textures )
+			{
+				menu_pictures_[i].SetFiltration(
+					r_Texture::Filtration::Linear,
+					r_Texture::Filtration::Linear );
+				menu_pictures_[i].SetWrapMode( r_Texture::WrapMode::Clamp );
+			}
+			else
+				menu_pictures_[i].SetFiltration(
+					r_Texture::Filtration::Nearest,
+					r_Texture::Filtration::Nearest );
 		}
 	}
 
@@ -218,9 +240,17 @@ MenuDrawerGL::MenuDrawerGL(
 				console_size.Width(), console_size.Height(),
 				texture_data_rgba.data() );
 
-		console_background_texture_.SetFiltration(
-			r_Texture::Filtration::Nearest,
-			r_Texture::Filtration::Nearest );
+		if( filter_textures )
+		{
+			console_background_texture_.SetFiltration(
+				r_Texture::Filtration::Linear,
+				r_Texture::Filtration::Linear );
+			console_background_texture_.SetWrapMode( r_Texture::WrapMode::Clamp );
+		}
+		else
+			console_background_texture_.SetFiltration(
+				r_Texture::Filtration::Nearest,
+				r_Texture::Filtration::Nearest );
 	}
 	{ // Briefbar
 		const Size2 viewport_size_scaled(
@@ -239,9 +269,17 @@ MenuDrawerGL::MenuDrawerGL(
 				texture_size.Width(), texture_size.Height(),
 				texture_data_rgba.data() );
 
-		briefbar_texture_.SetFiltration(
-			r_Texture::Filtration::Nearest,
-			r_Texture::Filtration::Nearest );
+		if( filter_textures )
+		{
+			briefbar_texture_.SetFiltration(
+				r_Texture::Filtration::Linear,
+				r_Texture::Filtration::Linear );
+			briefbar_texture_.SetWrapMode( r_Texture::WrapMode::Clamp );
+		}
+		else
+			briefbar_texture_.SetFiltration(
+				r_Texture::Filtration::Nearest,
+				r_Texture::Filtration::Nearest );
 	}
 	{ // Player torso
 		const Vfs::FileContent ptors= game_resources.vfs->ReadFile( MenuParams::player_torso_picture );
@@ -273,9 +311,18 @@ MenuDrawerGL::MenuDrawerGL(
 					r_Texture::PixelFormat::RGBA8,
 					cel_header->size[0], cel_header->size[1],
 					data_rgba.data() );
-			player_torso_textures_[i].SetFiltration(
-				r_Texture::Filtration::Nearest,
-				r_Texture::Filtration::Nearest );
+
+			if( filter_textures )
+			{
+				player_torso_textures_[i].SetFiltration(
+					r_Texture::Filtration::Linear,
+					r_Texture::Filtration::Linear );
+				player_torso_textures_[i].SetWrapMode( r_Texture::WrapMode::Clamp );
+			}
+			else
+				player_torso_textures_[i].SetFiltration(
+					r_Texture::Filtration::Nearest,
+					r_Texture::Filtration::Nearest );
 		}
 	}
 
