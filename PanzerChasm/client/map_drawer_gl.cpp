@@ -198,6 +198,7 @@ MapDrawerGL::MapDrawerGL(
 	: settings_(settings)
 	, game_resources_(game_resources)
 	, rendering_context_(rendering_context)
+	, filter_textures_( settings.GetOrSetBool( SettingsKeys::opengl_textures_filtering, false ) )
 	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, true ) )
 	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
 {
@@ -722,8 +723,16 @@ void MapDrawerGL::LoadSprites( const std::vector<ObjSprite>& sprites, std::vecto
 			sprite.size[0], sprite.size[1], sprite.frame_count,
 			0, GL_RGBA, GL_UNSIGNED_BYTE, data_rgba.data() );
 
-		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+		if( filter_textures_ )
+		{
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+		}
+		else
+		{
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+		}
 		glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 	}
 }
@@ -798,7 +807,12 @@ const r_Texture& MapDrawerGL::GetPlayerTexture( const unsigned char color )
 			r_Texture::PixelFormat::RGBA8,
 			model.texture_size[0], model.texture_size[1],
 			data_rgba.data() );
-	texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+
+	if( filter_textures_ )
+		texture.SetFiltration( r_Texture::Filtration::LinearMipmapLinear, r_Texture::Filtration::Linear );
+	else
+		texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+
 	texture.BuildMips();
 
 	return texture;
@@ -839,8 +853,17 @@ void MapDrawerGL::LoadFloorsTextures( const MapData& map_data )
 
 	} // for textures
 
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	if( filter_textures_ )
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	}
+	else
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	}
+
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 }
 
@@ -915,8 +938,17 @@ void MapDrawerGL::LoadWallsTextures( const MapData& map_data )
 
 	} // for wall textures
 
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	if( filter_textures_ )
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	}
+	else
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	}
+
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 }
 
@@ -1231,8 +1263,16 @@ void MapDrawerGL::LoadModels(
 		c_texture_size[0u], c_texture_size[1u], textures_placement.layer_count,
 		0, GL_RGBA, GL_UNSIGNED_BYTE, textures_data_rgba.data() );
 
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	if( filter_textures_ )
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	}
+	else
+	{
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
+	}
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LOD, 1 );
 	glGenerateMipmap( GL_TEXTURE_2D_ARRAY );
 
@@ -1281,7 +1321,11 @@ void MapDrawerGL::LoadMonstersModels()
 				r_Texture::PixelFormat::RGBA8,
 				in_model.texture_size[0], in_model.texture_size[1],
 				texture_data_rgba.data() );
-		out_model.texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+
+		if( filter_textures_ )
+			out_model.texture.SetFiltration( r_Texture::Filtration::LinearMipmapLinear, r_Texture::Filtration::Linear );
+		else
+			out_model.texture.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
 		out_model.texture.BuildMips();
 
 		const auto prepare_geometry=

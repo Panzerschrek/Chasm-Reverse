@@ -188,6 +188,7 @@ private:
 	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextGL rendering_context_;
+	const bool filter_textures_;
 
 	MapDataConstPtr current_map_data_;
 
