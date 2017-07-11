@@ -1,3 +1,4 @@
+#include <cctype>
 #include <cstring>
 
 // Include OS-dependend stuff for "mkdir".
