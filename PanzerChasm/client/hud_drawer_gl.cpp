@@ -326,6 +326,9 @@ void HudDrawerGL::LoadTexture(
 	std::vector<unsigned char> texture_data_rgba( 4u * pixel_count );
 	ConvertToRGBA( pixel_count, texture_data, game_resources_->palette, texture_data_rgba.data(), alpha_color_index );
 
+	if( filter_textures_ )
+		FillAlphaTexelsColorRGBA( cel.size[0], cel.size[1], texture_data_rgba.data() );
+
 	out_texture=
 		r_Texture(
 			r_Texture::PixelFormat::RGBA8,
