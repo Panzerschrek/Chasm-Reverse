@@ -282,4 +282,134 @@ void CreateBriefbarTextureRGBA(
 	}
 }
 
+void FillAlphaTexelsColorRGBA(
+	const unsigned int width, const unsigned int height,
+	unsigned char* const data )
+{
+	const unsigned int c_alpha_edge= 128u;
+
+	// Main image area. Take neighbors texels colors without checks.
+	for( unsigned int y= 1u; y < height - 1u; y++ )
+	for( unsigned int x= 1u; x < width  - 1u; x++ )
+	{
+		unsigned char* const texel= data + ( x + y * width ) * 4u;
+		if( texel[3] >= c_alpha_edge ) // Not alpha
+			continue;
+
+		unsigned int nonalpha_neighbors= 0u;
+		unsigned int avg_color[3]= { 0u, 0u, 0u };
+		{
+			const unsigned char* const neighbor_texel= data + ( x + 1u + y * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		{
+			const unsigned char* const neighbor_texel= data + ( x - 1u + y * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		{
+			const unsigned char* const neighbor_texel= data + ( x + ( y + 1u ) * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		{
+			const unsigned char* const neighbor_texel= data + ( x + ( y - 1u ) * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+
+		if( nonalpha_neighbors > 0u )
+		{
+			for( unsigned int c= 0u; c < 3u; c++ )
+				texel[c]= static_cast<unsigned char>( avg_color[c] / nonalpha_neighbors );
+		}
+	}
+
+	const auto checked_fill_color=
+	[&]( const unsigned int x, const unsigned int y )
+	{
+		unsigned char* const texel= data + ( x + y * width ) * 4u;
+		if( texel[3] >= c_alpha_edge ) // Not alpha
+			return;
+
+		unsigned int nonalpha_neighbors= 0u;
+		unsigned int avg_color[3]= { 0u, 0u, 0u };
+		if( x + 1u < width )
+		{
+			const unsigned char* const neighbor_texel= data + ( x + 1u + y * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		if( x > 0u )
+		{
+			const unsigned char* const neighbor_texel= data + ( x - 1u + y * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		if( y + 1u < height )
+		{
+			const unsigned char* const neighbor_texel= data + ( x + ( y + 1u ) * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+		if( y > 0u )
+		{
+			const unsigned char* const neighbor_texel= data + ( x + ( y - 1u ) * width ) * 4u;
+			if( neighbor_texel[3] >= c_alpha_edge )
+			{
+				for( unsigned int c= 0u; c < 3u; c++ )
+					avg_color[c]+= neighbor_texel[c];
+				nonalpha_neighbors++;
+			}
+		}
+
+		if( nonalpha_neighbors > 0u )
+		{
+			for( unsigned int c= 0u; c < 3u; c++ )
+				texel[c]= static_cast<unsigned char>( avg_color[c] / nonalpha_neighbors );
+		}
+	};
+
+	// Fill borders with checks.
+	for( unsigned int x= 0u; x < width; x++ )
+	{
+		checked_fill_color( x, 0 );
+		checked_fill_color( x, height - 1u );
+	}
+	for( unsigned int y= 1u; y < height - 1u; y++ )
+	{
+		checked_fill_color( 0, y );
+		checked_fill_color( width - 1u, y );
+	}
+}
+
 } // namespace PanzerChasm

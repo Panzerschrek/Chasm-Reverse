@@ -68,4 +68,8 @@ void CreateBriefbarTextureRGBA(
 	std::vector<unsigned char>& out_data_rgba,
 	Size2& out_size );
 
+void FillAlphaTexelsColorRGBA(
+	unsigned int width, unsigned int height,
+	unsigned char* in_data );
+
 } // namespace PanzerChasm

@@ -929,6 +929,11 @@ void MapDrawerGL::LoadWallsTextures( const MapData& map_data )
 					src_width * 4u );
 		}
 
+		// Fill alpha-texels with color of neighbor texels.
+		// This needs only if textures filtering is enabled, for prevention of ugly dark outlines around nonalpha texels.
+		if( filter_textures_ )
+			FillAlphaTexelsColorRGBA( g_max_wall_texture_width, g_wall_texture_height, texture_data );
+
 		glTexSubImage3D(
 			GL_TEXTURE_2D_ARRAY, 0,
 			0, 0, t,
@@ -942,6 +947,7 @@ void MapDrawerGL::LoadWallsTextures( const MapData& map_data )
 	{
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 	}
 	else
 	{
