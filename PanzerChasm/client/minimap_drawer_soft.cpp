@@ -33,6 +33,7 @@ void MinimapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 
 void MinimapDrawerSoft::Draw(
 	const MapState& map_state, const MinimapState& minimap_state,
+	const bool force_all_visible,
 	const m_Vec2& camera_position, const float view_angle )
 {
 	if( current_map_data_ == nullptr )
@@ -82,7 +83,7 @@ void MinimapDrawerSoft::Draw(
 	line_color_= palette[ MinimapParams::walls_color ];
 	for( unsigned int w= 0u; w < current_map_data_->static_walls.size(); w++ )
 	{
-		if( !static_walls_visibility[w] )
+		if( !force_all_visible && !static_walls_visibility[w] )
 			continue;
 
 		const MapData::Wall& wall= current_map_data_->static_walls[w];

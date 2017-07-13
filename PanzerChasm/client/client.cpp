@@ -31,6 +31,7 @@ struct Client::LoadedMinimapState
 
 Client::Client(
 	Settings& settings,
+	CommandsProcessor& commands_processor,
 	const GameResourcesConstPtr& game_resources,
 	const MapLoaderPtr& map_loader,
 	IDrawersFactory& drawers_factory,
@@ -58,6 +59,11 @@ Client::Client(
 	PC_ASSERT( map_drawer_ != nullptr );
 	PC_ASSERT( minimap_drawer_ != nullptr );
 	PC_ASSERT( hud_drawer_ != nullptr );
+
+	CommandsMapPtr commands= std::make_shared<CommandsMap>();
+	commands->emplace( "fullmap", std::bind( &Client::FullMap, this ) );
+	commands_= std::move( commands );
+	commands_processor.RegisterCommands(commands_);
 
 	std::memset( &player_state_, 0, sizeof(player_state_) );
 }
@@ -390,6 +396,7 @@ void Client::Draw()
 		{
 			minimap_drawer_->Draw(
 				*map_state_, *minimap_state_,
+				full_map_,
 				player_position_.xy(), camera_controller_.GetViewAngleZ() );
 		}
 
@@ -607,6 +614,20 @@ void Client::TrySwitchWeaponOnOutOfAmmo()
 	}
 
 	requested_weapon_index_= 0u;
+}
+
+void Client::FullMap()
+{
+	if( full_map_ )
+	{
+		full_map_= false;
+		Log::Info( "FULL MAP IS OFF" );
+	}
+	else
+	{
+		full_map_= true;
+		Log::Info( "FULL MAP IS ON" );
+	}
 }
 
 } // namespace PanzerChasm

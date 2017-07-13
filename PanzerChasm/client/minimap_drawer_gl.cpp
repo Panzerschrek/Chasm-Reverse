@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <ogl_state_manager.hpp>
 #include <shaders_loading.hpp>
 
@@ -146,14 +148,14 @@ void MinimapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 
 void MinimapDrawerGL::Draw(
 	const MapState& map_state, const MinimapState& minimap_state,
+	const bool force_all_visible,
 	const m_Vec2& camera_position, const float view_angle )
 {
 	if( current_map_data_ == nullptr )
 		return;
 
 	UpdateDynamicWalls( map_state );
-	UpdateWallsVisibility( minimap_state );
-
+	UpdateWallsVisibility( minimap_state, force_all_visible );
 
 	const float scale= static_cast<float>( CalculateMinimapScale( rendering_context_.viewport_size ) );
 
@@ -273,7 +275,7 @@ void MinimapDrawerGL::UpdateDynamicWalls( const MapState& map_state )
 		first_dynamic_walls_vertex_ * sizeof(WallLineVertex) );
 }
 
-void MinimapDrawerGL::UpdateWallsVisibility( const MinimapState& minimap_state )
+void MinimapDrawerGL::UpdateWallsVisibility( const MinimapState& minimap_state, const bool force_all_visible )
 {
 	const MinimapState::WallsVisibility& static_walls_visibility = minimap_state.GetStaticWallsVisibility ();
 	const MinimapState::WallsVisibility& dynamic_walls_visibility= minimap_state.GetDynamicWallsVisibility();
@@ -281,10 +283,17 @@ void MinimapDrawerGL::UpdateWallsVisibility( const MinimapState& minimap_state )
 	PC_ASSERT( static_walls_visibility .size() == current_map_data_->static_walls .size() );
 	PC_ASSERT( dynamic_walls_visibility.size() == current_map_data_->dynamic_walls.size() );
 
-	for( unsigned int w= 0u; w < static_walls_visibility .size(); w++ )
-		visibility_texture_data_[ first_static_walls_vertex_  / 2u + w ]= static_walls_visibility [w] ? 255u : 0u;
-	for( unsigned int w= 0u; w < dynamic_walls_visibility.size(); w++ )
-		visibility_texture_data_[ first_dynamic_walls_vertex_ / 2u + w ]= dynamic_walls_visibility[w] ? 255u : 0u;
+	if( force_all_visible )
+	{
+		std::memset( visibility_texture_data_.data(), 255u, visibility_texture_data_.size() );
+	}
+	else
+	{
+		for( unsigned int w= 0u; w < static_walls_visibility .size(); w++ )
+			visibility_texture_data_[ first_static_walls_vertex_  / 2u + w ]= static_walls_visibility [w] ? 255u : 0u;
+		for( unsigned int w= 0u; w < dynamic_walls_visibility.size(); w++ )
+			visibility_texture_data_[ first_dynamic_walls_vertex_ / 2u + w ]= dynamic_walls_visibility[w] ? 255u : 0u;
+	}
 
 	// Set arrow and framing visible.
 	for( unsigned int i= 0u; i < g_arrow_lines; i++ )

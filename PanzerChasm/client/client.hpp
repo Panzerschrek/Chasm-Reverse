@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../commands_processor.hpp"
 #include "../connection_info.hpp"
 #include "../loopback_buffer.hpp"
 #include "../rendering_context.hpp"
@@ -17,6 +18,7 @@ class Client final
 public:
 	Client(
 		Settings& settings,
+		CommandsProcessor& commands_processor,
 		const GameResourcesConstPtr& game_resources,
 		const MapLoaderPtr& map_loader,
 		IDrawersFactory& drawers_factory,
@@ -78,12 +80,16 @@ private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
 
+	void FullMap();
+
 private:
 	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
 	const MapLoaderPtr map_loader_;
 	const Sound::SoundEnginePtr sound_engine_;
 	const DrawLoadingCallback draw_loading_callback_;
+
+	CommandsMapConstPtr commands_;
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 
@@ -101,6 +107,7 @@ private:
 	MovementController camera_controller_;
 	bool minimap_mode_= false;
 	bool small_hud_mode_= false;
+	bool full_map_= false;
 
 	SharedDrawersPtr shared_drawers_;
 	IMapDrawerPtr map_drawer_;

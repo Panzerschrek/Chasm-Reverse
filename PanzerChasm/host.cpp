@@ -669,6 +669,7 @@ void Host::EnsureClient()
 	client_.reset(
 		new Client(
 			settings_,
+			commands_processor_,
 			game_resources_,
 			map_loader_,
 			*drawers_factory_,
