@@ -70,6 +70,6 @@ void CreateBriefbarTextureRGBA(
 
 void FillAlphaTexelsColorRGBA(
 	unsigned int width, unsigned int height,
-	unsigned char* in_data );
+	unsigned char* data );
 
 } // namespace PanzerChasm

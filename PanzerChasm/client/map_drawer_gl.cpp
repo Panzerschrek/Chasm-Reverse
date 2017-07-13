@@ -717,6 +717,14 @@ void MapDrawerGL::LoadSprites( const std::vector<ObjSprite>& sprites, std::vecto
 			dst[3]= color_index == 255u ? 0u : 255u;
 		}
 
+		if( filter_textures_ )
+		{
+			for( unsigned int j= 0u; j < sprite.frame_count; j++ )
+				FillAlphaTexelsColorRGBA(
+					sprite.size[0], sprite.size[1],
+					data_rgba.data() + 4u * sprite.size[0] * sprite.size[1] * j );
+		}
+
 		glBindTexture( GL_TEXTURE_2D_ARRAY, out_textures[i] );
 		glTexImage3D(
 			GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8,
@@ -727,6 +735,8 @@ void MapDrawerGL::LoadSprites( const std::vector<ObjSprite>& sprites, std::vecto
 		{
 			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 		}
 		else
 		{
