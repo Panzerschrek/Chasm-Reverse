@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 #ifdef PC_MMX_INSTRUCTIONS
@@ -467,10 +468,10 @@ unsigned int Rasterizer::UpdateOcclusionHierarchyCell_r( const unsigned int cell
 			if( ( cell_value & bit_mask ) != 0u )
 				continue;
 
-				cell_value|=
-					UpdateOcclusionHierarchyCell_r< level == 0u ? 0u : level - 1u >(
-						cell_x * 4u + subcell_x,
-						cell_y * 4u + subcell_y ) << bit_number;
+			cell_value|=
+				UpdateOcclusionHierarchyCell_r< level == 0u ? 0u : level - 1u >(
+					cell_x * 4u + subcell_x,
+					cell_y * 4u + subcell_y ) << bit_number;
 		}
 	}
 
