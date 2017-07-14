@@ -451,7 +451,10 @@ void MapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 				cel_header.size[0], cel_header.size[1],
 				sky_texture_data_rgba.data() );
 
-		sky_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+		if( filter_textures_ )
+			sky_texture_.SetFiltration( r_Texture::Filtration::LinearMipmapLinear, r_Texture::Filtration::Linear );
+		else
+			sky_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
 		sky_texture_.BuildMips();
 	}
 
