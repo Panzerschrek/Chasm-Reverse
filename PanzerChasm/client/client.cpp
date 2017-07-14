@@ -347,6 +347,8 @@ void Client::Draw()
 	{
 		PC_ASSERT( current_map_data_ != nullptr );
 
+		camera_controller_.UpdateParams();
+
 		m_Vec3 pos= player_position_;
 		const float z_shift= camera_controller_.GetEyeZShift();
 

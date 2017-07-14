@@ -21,7 +21,7 @@ MovementController::MovementController(
 	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
 {
-	FetchSettingsParams();
+	UpdateParams();
 }
 
 MovementController::~MovementController()
@@ -32,10 +32,19 @@ void MovementController::SetAspect( const float aspect )
 	aspect_= aspect;
 }
 
+void MovementController::UpdateParams()
+{
+	fov_= settings_.GetOrSetFloat( SettingsKeys::fov, 90.0f );
+	fov_= std::max( 10.0f, std::min( fov_, 150.0f ) );
+	settings_.SetSetting( SettingsKeys::fov, fov_ );
+
+	is_old_style_perspective_= settings_.GetOrSetBool( SettingsKeys::old_style_perspective, false );
+
+	ClipCameraAngles();
+}
+
 void MovementController::Tick( const KeyboardState& keyboard_state )
 {
-	FetchSettingsParams();
-
 	const Time new_tick= Time::CurrentTime();
 
 	const float dt_s= ( new_tick - prev_calc_tick_ ).ToSeconds();
@@ -61,15 +70,7 @@ void MovementController::Tick( const KeyboardState& keyboard_state )
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
-	const float max_ange_x=
-		is_old_style_perspective_
-			? ( Constants::half_pi * 0.65f )
-			: Constants::half_pi;
-
-	if( angle_.z > Constants::two_pi ) angle_.z-= Constants::two_pi;
-	else if( angle_.z < 0.0f ) angle_.z+= Constants::two_pi;
-	if( angle_.x > max_ange_x ) angle_.x= max_ange_x;
-	else if( angle_.x < -max_ange_x ) angle_.x= -max_ange_x;
+	ClipCameraAngles();
 
 	jump_pressed_= key_pressed( SettingsKeys::key_jump );
 }
@@ -295,13 +296,17 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 	prev_controller_delta_z_= delta_z;
 }
 
-void MovementController::FetchSettingsParams()
+void MovementController::ClipCameraAngles()
 {
-	fov_= settings_.GetOrSetFloat( SettingsKeys::fov, 90.0f );
-	fov_= std::max( 10.0f, std::min( fov_, 150.0f ) );
-	settings_.SetSetting( SettingsKeys::fov, fov_ );
+	const float max_ange_x=
+		is_old_style_perspective_
+			? ( Constants::half_pi * 0.65f )
+			: Constants::half_pi;
 
-	is_old_style_perspective_= settings_.GetOrSetBool( SettingsKeys::old_style_perspective, false );
+	if( angle_.z > Constants::two_pi ) angle_.z-= Constants::two_pi;
+	else if( angle_.z < 0.0f ) angle_.z+= Constants::two_pi;
+	if( angle_.x > max_ange_x ) angle_.x= max_ange_x;
+	else if( angle_.x < -max_ange_x ) angle_.x= -max_ange_x;
 }
 
 } // namespace ChasmReverse
