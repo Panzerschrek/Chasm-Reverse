@@ -38,7 +38,15 @@ void main()
 	// Now, texture_coordinates is in rangle 0-1 for cone or sphere
 
 	const vec2 scale= vec2( 5.0, 3.0 );
-	vec2 tc= scale * vec2( tc_x, tc_y );
 
+#if 0
+	vec2 tc= scale * vec2( tc_x, tc_y );
 	color= texture( tex, tc );
+#else
+	// Hack for mipmapping.
+	// Make separate texture fetch on seam.
+	vec2 tc0= scale * vec2( tc_x, tc_y );
+	vec2 tc1= scale * vec2( tc_x + step( tc_x, 0.0 ), tc_y );
+	color= mix( texture( tex, tc1 ), texture( tex, tc0 ), min( ( 0.5 - abs(tc_x) ) * 8.0, 1.0 ) );
+#endif
 }

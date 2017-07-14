@@ -451,7 +451,8 @@ void MapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 				cel_header.size[0], cel_header.size[1],
 				sky_texture_data_rgba.data() );
 
-		sky_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+		sky_texture_.SetFiltration( r_Texture::Filtration::NearestMipmapLinear, r_Texture::Filtration::Nearest );
+		sky_texture_.BuildMips();
 	}
 
 	active_lightmap_= &map_light_.GetFloorLightmap();
