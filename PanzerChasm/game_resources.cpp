@@ -357,7 +357,7 @@ static void LoadGibsDescription(
 		s++; // :
 		while( *s != '=' ) s++;
 		s++; // =
-		while( std::isspace( *s ) && s != '\0' ) s++;
+		while( std::isspace( *s ) && *s != '\0' ) s++;
 
 		if( *s == '\0' )
 			continue;
@@ -415,7 +415,7 @@ static void LoadSoundsDescriptionFromFileData(
 		s++; // :
 		while( *s != '=' ) s++;
 		s++; // =
-		while( std::isspace( *s ) && s != '\0' ) s++;
+		while( std::isspace( *s ) && *s != '\0' ) s++;
 
 		if( *s == '\0' )
 			continue;
