@@ -170,7 +170,7 @@ SystemWindow::SystemWindow( Settings& settings )
 
 	GetVideoModes();
 
-	const bool is_opengl= ! settings.GetOrSetBool( SettingsKeys::software_rendering, false );
+	const bool is_opengl= ! settings.GetOrSetBool( SettingsKeys::software_rendering, true );
 
 	int width= 0, height= 0, scale= 1;
 	unsigned int frequency= 0u, display= 0u;

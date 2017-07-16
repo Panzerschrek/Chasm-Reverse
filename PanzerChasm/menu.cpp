@@ -1111,7 +1111,7 @@ GraphicsMenu::GraphicsMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound
 	, settings_(host_commands.GetSettings())
 {
 	current_renderer_=
-		settings_.GetOrSetBool( SettingsKeys::software_rendering, false ) ? Renderer::Software : Renderer::OpenGL;
+		settings_.GetOrSetBool( SettingsKeys::software_rendering, true ) ? Renderer::Software : Renderer::OpenGL;
 
 	current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
 }
@@ -1148,7 +1148,7 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + RowOpenGL::Renderer * y_step,
-		settings_.GetOrSetBool( SettingsKeys::software_rendering, false ) ? "Software" : "OpenGL",
+		settings_.GetOrSetBool( SettingsKeys::software_rendering, true ) ? "Software" : "OpenGL",
 		scale,
 		current_row_ == RowOpenGL::Renderer ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
@@ -1208,7 +1208,7 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			ITextDrawer::Alignment::Right );
 		text_draw.Print(
 			param_x, y + RowOpenGL::DynamicLighting * y_step,
-			settings_.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, true ) ? g_on : g_off,
+			settings_.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, false ) ? g_on : g_off,
 			scale,
 			current_row_ == RowOpenGL::DynamicLighting ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 			ITextDrawer::Alignment::Left );
@@ -1323,7 +1323,7 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 				{
 					settings_.SetSetting(
 						SettingsKeys::opengl_dynamic_lighting,
-						! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, true ) );
+						! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, false ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
 				}
 				else if( current_row_ == RowOpenGL::TexturesFiltering )
