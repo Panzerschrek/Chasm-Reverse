@@ -11,6 +11,7 @@
 #include "../math_utils.hpp"
 #include "../settings.hpp"
 #include "../shared_settings_keys.hpp"
+#include  "opengl_renderer/models_textures_corrector.hpp"
 #include "map_drawers_common.hpp"
 #include "weapon_state.hpp"
 
@@ -1171,6 +1172,8 @@ void MapDrawerGL::LoadModels(
 	AnimationsBuffer& out_animations_buffer,
 	GLuint& out_textures_array ) const
 {
+	ModelsTexturesCorrector textures_corrector;
+
 	const Palette& palette= game_resources_->palette;
 
 	const unsigned int model_count= models.size();
@@ -1214,7 +1217,26 @@ void MapDrawerGL::LoadModels(
 			texture_dst[ i + 3u ]= color_index == 0u ? 0u : 255u;
 		}
 
-		// TODO - fill free texture space
+		if( filter_textures_ )
+			textures_corrector.CorrectModelTexture( model, texture_dst );
+
+		if( model_texture_height > 0u )
+		{
+			// Fill lower border
+			for( unsigned int dy= 1u; dy < std::min( textures_placement.textures_placement[m].y, 4u ); dy++ )
+			{
+				const unsigned char* const src= texture_dst;
+				unsigned char* const dst= texture_dst - 4u * dy * c_texture_size[0];
+				std::memcpy( dst, src, model.texture_size[0u] * 4u );
+			}
+			// Fill upper border
+			for( unsigned int dy= 0u; dy < 4u && textures_placement.textures_placement[m].y + model_texture_height + dy < c_texture_size[1]; dy++ )
+			{
+				const unsigned char* const src= texture_dst + 4u * c_texture_size[0] * ( model_texture_height - 1u );
+				unsigned char* const dst= texture_dst +  4u * c_texture_size[0] * ( model_texture_height + dy );
+				std::memcpy( dst, src, model.texture_size[0u] * 4u );
+			}
+		}
 
 		// Copy vertices, transform textures coordinates, set texture layer.
 		const unsigned int first_vertex_index= vertices.size();
@@ -1287,6 +1309,8 @@ void MapDrawerGL::LoadModels(
 	{
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 	}
 	else
 	{
@@ -1307,6 +1331,8 @@ void MapDrawerGL::LoadModels(
 
 void MapDrawerGL::LoadMonstersModels()
 {
+	ModelsTexturesCorrector textures_corrector;
+
 	const std::vector<Model>& in_models= game_resources_->monsters_models;
 	const Palette& palette= game_resources_->palette;
 
@@ -1335,6 +1361,9 @@ void MapDrawerGL::LoadMonstersModels()
 				out_pixel[ j ]= palette[ color_index * 3u + j ];
 			out_pixel[ 3u ]= color_index == 0u ? 0u : 255u;
 		}
+
+		if( filter_textures_ )
+			textures_corrector.CorrectModelTexture( in_model, texture_data_rgba.data() );
 
 		out_model.texture=
 			r_Texture(
@@ -1401,7 +1430,9 @@ void MapDrawerGL::LoadMonstersModels()
 
 		PC_ASSERT( in_model.submodels.size() == 3u );
 		for( unsigned int s= 0u; s < 3u; s++ )
+		{
 			prepare_geometry( in_model.submodels[s], out_model.submodels_geometry_description[s] );
+		}
 	}
 
 	// Prepare animations buffer

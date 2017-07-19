@@ -52,6 +52,7 @@ SOURCES+= \
 	client/movement_controller.cpp \
 	client/opengl_renderer/animations_buffer.cpp \
 	client/opengl_renderer/map_light.cpp \
+	client/opengl_renderer/models_textures_corrector.cpp \
 	client/software_renderer/map_bsp_tree.cpp \
 	client/software_renderer/rasterizer.cpp \
 	client/software_renderer/surfaces_cache.cpp \
@@ -131,6 +132,7 @@ HEADERS+= \
 	client/movement_controller.hpp \
 	client/opengl_renderer/animations_buffer.hpp \
 	client/opengl_renderer/map_light.hpp \
+	client/opengl_renderer/models_textures_corrector.hpp \
 	client/software_renderer/fixed.hpp \
 	client/software_renderer/map_bsp_tree.hpp \
 	client/software_renderer/map_bsp_tree.inl \
