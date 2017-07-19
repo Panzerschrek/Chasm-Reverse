@@ -87,6 +87,12 @@ bool CollideCircleWithSquare(
 	const float circle_radius,
 	m_Vec2& out_pos )
 {
+	if( square_center == circle_center )
+	{
+		out_pos= square_center;
+		return true;
+	}
+
 	const m_Vec2 vec_to_circle= circle_center - square_center;
 
 	m_Mat3 rot_mat;
