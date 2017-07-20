@@ -457,7 +457,7 @@ m_Vec3 Map::CollideWithMap(
 
 			const MapData::WallTextureDescription& tex= map_data_->walls_textures[ wall.texture_id ];
 			if( tex.gso[0] )
-				goto end;
+				return;
 
 			m_Vec2 new_pos;
 			if( CollideCircleWithLineSegment(
@@ -473,18 +473,18 @@ m_Vec3 Map::CollideWithMap(
 		{
 			const StaticModel& model= static_models_[ index_element.index ];
 			if( model.model_id >= map_data_->models_description.size() )
-				goto end;
+				return;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.radius <= 0.0f )
-				goto end;
+				return;
 
 			const Model& model_geometry= map_data_->models[ model.model_id ];
 
 			const float model_z_min= model_geometry.z_min + model.pos.z;
 			const float model_z_max= model_geometry.z_max + model.pos.z;
 			if( z_top < model_z_min || z_bottom > model_z_max )
-				goto end;
+				return;
 
 			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
 			bool collided= false;
@@ -550,7 +550,6 @@ m_Vec3 Map::CollideWithMap(
 		{
 			// TODO
 		}
-		end:;
 	};
 
 	collision_index_.ProcessElementsInRadius(
@@ -633,7 +632,7 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 
 			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
 			if( wall_texture.gso[1] )
-				goto end;
+				return false;
 
 			m_Vec3 candidate_pos;
 			if( RayIntersectWall(
@@ -652,11 +651,11 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 			const StaticModel& model= static_models_[ element.index ];
 
 			if( model.model_id >= map_data_->models_description.size() )
-				goto end;
+				return false;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.radius <= 0.0f )
-				goto end;
+				return false;
 
 			const Model& model_data= map_data_->models[ model.model_id ];
 
@@ -676,8 +675,6 @@ bool Map::CanSee( const m_Vec3& from, const m_Vec3& to ) const
 		{
 			PC_ASSERT( false );
 		}
-
-		end:
 		return false;
 	};
 
@@ -2924,7 +2921,7 @@ Map::HitResult Map::ProcessShot(
 
 			const MapData::WallTextureDescription& wall_texture= map_data_->walls_textures[ wall.texture_id ];
 			if( wall_texture.gso[1] )
-				goto end;
+				return false;
 
 			m_Vec3 candidate_pos;
 			if( RayIntersectWall(
@@ -2942,11 +2939,11 @@ Map::HitResult Map::ProcessShot(
 			const StaticModel& model= static_models_[ element.index ];
 
 			if( model.model_id >= map_data_->models_description.size() )
-				goto end;
+				return false;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
 			if( model_description.radius <= 0.0f )
-				goto end;
+				return false;
 
 			const Model& model_data= map_data_->models[ model.model_id ];
 
@@ -2966,7 +2963,6 @@ Map::HitResult Map::ProcessShot(
 			// TODO
 		}
 
-		end:
 		// TODO - return true, sometimes.
 		return false;
 	};
@@ -3083,23 +3079,23 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 		{
 			const MapData::StaticModel& map_model= map_data_->static_models[ index_element.index ];
 			if( map_model.is_dynamic )
-				goto end;
+				return false;
 
 			if( map_model.model_id >= map_data_->models_description.size() )
-				goto end;
+				return false;
 
 			const MapData::ModelDescription& model_description= map_data_->models_description[ map_model.model_id ];
 			if( model_description.ac != 0u )
-				goto end;
+				return false;
 
 			const float model_radius= model_description.radius;
 			if( model_radius <= 0.0f )
-				goto end;
+				return false;
 
 			const Model& model= map_data_->models[ map_model.model_id ];
 			if( model.z_max >= c_max_floor_level || // There is no space abowe.
 				model.z_min >= c_min_ceiling_level ) // Enought space below.
-				goto end;
+				return false;
 
 			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
 			if( collide_with_square )
@@ -3115,13 +3111,11 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 				const float square_distance= ( pos - map_model.pos ).SquareLength();
 				const float collision_distance= model_radius + radius;
 				if( square_distance > collision_distance * collision_distance )
-					goto end;
+					return false;
 
 				max_dz= std::max( max_dz, model.z_max );
 			}
 		}
-
-		end:
 		return false;
 	};
 
