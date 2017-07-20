@@ -41,7 +41,7 @@ constexpr float invisibility_flashing_start_time_s= 30.0f;
 
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;
-constexpr int mortal_walls_damage= 100000;
+constexpr float mortal_walls_damage_per_second= 750.0f;
 
 const float player_max_speed= 5.0f; // Max speed, which player can reach himself.
 const float player_max_absolute_speed= 15.0f; // Maximum speed of player.

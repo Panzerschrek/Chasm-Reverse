@@ -1623,7 +1623,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 			if( monster.GetMovementRestriction().MovementIsBlocked( push_dir ) )
 				monster.Hit(
-					GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ), 0,
+					static_cast<int>(GameConstants::mortal_walls_damage_per_second * last_tick_delta_s),
+					m_Vec2( 0.0f, 0.0f ), 0,
 					*this,
 					monster_value.first, current_time );
 		}
@@ -1679,7 +1680,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
 					monster.Hit(
-						GameConstants::mortal_walls_damage, m_Vec2( 0.0f, 0.0f ), 0,
+						static_cast<int>(GameConstants::mortal_walls_damage_per_second * last_tick_delta_s),
+						m_Vec2( 0.0f, 0.0f ), 0,
 						*this,
 						monster_value.first, current_time );
 			}
