@@ -810,7 +810,7 @@ void Rasterizer::DrawTexturedTriangleSpanCorrectedPart()
 	else\
 		ApplyBlending<blending>( destination, ApplyLight<lighting>(tex_value) );
 #else
-	#define DO_LIGHTING(tex_value, destination) destination= ApplyLight<lighting>(tex_value);
+	#define DO_LIGHTING(tex_value, destination) ApplyBlending<blending>( destination, ApplyLight<lighting>(tex_value) );
 #endif
 
 	const fixed16_t y_start_f= std::max( triangle_part_vertices_[0].y, triangle_part_vertices_[2].y );
