@@ -286,14 +286,14 @@ void Host::ConnectToServer(
 	InetAddress address;
 	if( !InetAddress::Parse( server_address , address ) )
 	{
-		Log::Info( "Invalid address" );
+		Log::User( "Invalid address." );
 		return;
 	}
 
 	if( address.port == 0 )
 		address.port= Net::c_default_server_tcp_port;
 
-	Log::Info( "Connecting to ", address.ToString() );
+	Log::User( "Connecting to ", address.ToString(), "." );
 
 	EnsureClient();
 	EnsureNet();
@@ -303,7 +303,7 @@ void Host::ConnectToServer(
 	auto connection= net_->ConnectToServer( address, client_tcp_port, client_udp_port );
 	if( connection == nullptr )
 	{
-		Log::Info( "Connection failed" );
+		Log::User( "Connection failed." );
 		return;
 	}
 
@@ -338,7 +338,7 @@ void Host::StartServer(
 
 	if( listener == nullptr )
 	{
-		Log::Info( "Can not start server: network error" );
+		Log::User( "Can not start server: network error." );
 		return;
 	}
 
@@ -599,7 +599,9 @@ void Host::DoSave( const char* const save_file_name )
 	client_->Save( buffer, save_comment );
 
 	if( SaveData( save_file_name, save_comment, buffer ) )
-		Log::Info( "Game saved" );
+		Log::User( "Game saved." );
+	else
+		Log::User( "Game save failed." );
 }
 
 void Host::DoLoad( const char* const save_file_name )
@@ -611,7 +613,7 @@ void Host::DoLoad( const char* const save_file_name )
 
 	if( !LoadData( save_file_name, save_buffer ) )
 	{
-		Log::Info( "Loading failed" );
+		Log::User( "Loading failed." );
 		return;
 	}
 
@@ -625,7 +627,7 @@ void Host::DoLoad( const char* const save_file_name )
 		local_server_->Load( save_buffer, save_buffer_pos );
 	if( !map_changed )
 	{
-		Log::Info( "Loading failed" );
+		Log::User( "Loading failed." );
 		return;
 	}
 
@@ -643,7 +645,7 @@ void Host::DoLoad( const char* const save_file_name )
 
 	is_single_player_= true;
 
-	Log::Info( "Game loaded" );
+	Log::User( "Game loaded." );
 }
 
 void Host::DrawLoadingFrame( const float progress, const char* const caption )

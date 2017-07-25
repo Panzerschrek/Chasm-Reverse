@@ -13,10 +13,21 @@ namespace PanzerChasm
 class Log
 {
 public:
+	enum class LogLevel
+	{
+		User,
+		Info,
+		Warning,
+		FatalError,
+	};
+
 	// Log-out function.
-	typedef std::function<void(std::string)> LogCallback;
+	typedef std::function<void(std::string, LogLevel)> LogCallback;
 
 	static void SetLogCallback( LogCallback callback );
+
+	template<class...Args>
+	static void User(const Args&... args );
 
 	template<class...Args>
 	static void Info(const Args&... args );
@@ -35,7 +46,7 @@ private:
 	static void Print( std::ostringstream& stream, const Arg0& arg0, const Args&... args );
 
 	template<class... Args>
-	static void PrinLine( const Args&... args );
+	static void PrinLine( LogLevel log_level, const Args&... args );
 
 	static void ShowFatalMessageBox( const std::string& error_message );
 
@@ -44,16 +55,22 @@ private:
 	static std::ofstream log_file_;
 };
 
+template<class...Args>
+void Log::User(const Args&... args )
+{
+	PrinLine( LogLevel::User, args... );
+}
+
 template<class... Args>
 void Log::Info(const Args&... args )
 {
-	PrinLine( args... );
+	PrinLine( LogLevel::Info, args... );
 }
 
 template<class... Args>
 void Log::Warning( const Args&... args )
 {
-	PrinLine( args... );
+	PrinLine( LogLevel::Warning, args... );
 }
 
 template<class... Args>
@@ -78,7 +95,7 @@ void Log::Print( std::ostringstream& stream, const Arg0& arg0, const Args&... ar
 }
 
 template<class... Args>
-void Log::PrinLine( const Args&... args )
+void Log::PrinLine( const LogLevel log_level, const Args&... args )
 {
 	std::ostringstream stream;
 	Print( stream, args... );
@@ -88,7 +105,7 @@ void Log::PrinLine( const Args&... args )
 	log_file_ << str << std::endl;
 
 	if( log_callback_ != nullptr )
-		log_callback_( std::move(str) );
+		log_callback_( std::move(str), log_level );
 }
 
 } // namespace PanzerChasm

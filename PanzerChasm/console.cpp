@@ -12,6 +12,9 @@
 namespace PanzerChasm
 {
 
+static const float g_user_message_show_time_s= 5.0f;
+static const size_t g_max_user_messages= 4u;
+
 Console::Console( CommandsProcessor& commands_processor, const SharedDrawersPtr& shared_drawers )
 	: commands_processor_(commands_processor)
 	, shared_drawers_(shared_drawers)
@@ -21,7 +24,7 @@ Console::Console( CommandsProcessor& commands_processor, const SharedDrawersPtr&
 
 	input_line_[0]= '\0';
 
-	Log::SetLogCallback( std::bind( &Console::LogCallback, this, std::placeholders::_1 ) );
+	Log::SetLogCallback( std::bind( &Console::LogCallback, this, std::placeholders::_1, std::placeholders::_2 ) );
 }
 
 Console::~Console()
@@ -141,8 +144,12 @@ void Console::Draw()
 	position_+= current_speed_ * time_delta_s;
 	position_= std::min( 1.0f, std::max( 0.0f, position_ ) );
 
+	RemoveOldUserMessages( current_time );
 	if( position_ <= 0.0f )
+	{
+		DrawUserMessages();
 		return;
+	}
 
 	shared_drawers_->menu->DrawConsoleBackground( position_ );
 
@@ -192,7 +199,35 @@ void Console::Draw()
 	}
 }
 
-void Console::LogCallback( std::string str )
+void Console::RemoveOldUserMessages( const Time current_time )
+{
+	while( user_messages_.size() > g_max_user_messages )
+		user_messages_.pop_front();
+
+	while( ! user_messages_.empty() &&
+		( current_time - user_messages_.front().time ).ToSeconds() > g_user_message_show_time_s )
+		user_messages_.pop_front();
+}
+
+void Console::DrawUserMessages()
+{
+	const int letter_height= int( shared_drawers_->text->GetLineHeight() );
+	const int scale= int( shared_drawers_->menu->GetConsoleScale() );
+
+	int y= 0;
+	const int c_offset= 5;
+	for( const UserMessage& message : user_messages_ )
+	{
+		shared_drawers_->text->Print(
+			scale * c_offset, y,
+			message.text.c_str(), scale,
+			ITextDrawer::FontColor::YellowGreen, ITextDrawer::Alignment::Left );
+
+		y+= letter_height * scale;
+	}
+}
+
+void Console::LogCallback( std::string str, const Log::LogLevel log_level )
 {
 	lines_.emplace_back( std::move(str) );
 
@@ -200,6 +235,13 @@ void Console::LogCallback( std::string str )
 		lines_.pop_front();
 
 	lines_position_= 0u;
+
+	if( log_level == Log::LogLevel::User )
+	{
+		user_messages_.emplace_back();
+		user_messages_.back().text= lines_.back();
+		user_messages_.back().time= Time::CurrentTime();
+	}
 }
 
 void Console::WriteHistory()

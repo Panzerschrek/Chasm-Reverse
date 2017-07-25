@@ -3,6 +3,7 @@
 #include <string>
 
 #include "commands_processor.hpp"
+#include "log.hpp"
 #include "system_event.hpp"
 #include "time.hpp"
 
@@ -22,7 +23,17 @@ public:
 	void Draw();
 
 private:
-	void LogCallback( std::string str );
+	struct UserMessage
+	{
+		std::string text;
+		Time time= Time::FromSeconds(0);
+	};
+
+private:
+	void RemoveOldUserMessages( Time current_time );
+	void DrawUserMessages();
+
+	void LogCallback( std::string str, Log::LogLevel log_level );
 
 	void WriteHistory();
 	void CopyLineFromHistory();
@@ -50,6 +61,8 @@ private:
 
 	char input_line_[ c_max_input_line_length + 1u ];
 	unsigned int input_cursor_pos_= 0u;
+
+	std::list<UserMessage> user_messages_;
 };
 
 } // namespace PanzerChasm
