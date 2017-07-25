@@ -22,6 +22,8 @@
 namespace PanzerChasm
 {
 
+static const char g_small_hud_mode[]= "cl_small_hud_mode";
+
 struct Client::LoadedMinimapState
 {
 	unsigned int map_number;
@@ -230,9 +232,9 @@ void Client::ProcessEvents( const SystemEvents& events )
 				minimap_mode_= !minimap_mode_;
 
 			if( event.event.key.key_code == KeyCode::Minus )
-				small_hud_mode_= false;
+				settings_.SetSetting( g_small_hud_mode, false );
 			if( event.event.key.key_code == KeyCode::Equals )
-				small_hud_mode_= true;
+				settings_.SetSetting( g_small_hud_mode, true );
 		}
 	} // for events
 }
@@ -405,7 +407,7 @@ void Client::Draw()
 		if( settings_.GetOrSetBool( SettingsKeys::crosshair, true ) )
 			hud_drawer_->DrawCrosshair();
 		hud_drawer_->DrawCurrentMessage( current_tick_time_ );
-		if( small_hud_mode_ )
+		if( settings_.GetOrSetBool( g_small_hud_mode, false ) )
 			hud_drawer_->DrawSmallHud();
 		else
 			hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );

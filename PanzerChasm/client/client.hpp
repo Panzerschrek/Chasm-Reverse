@@ -106,7 +106,6 @@ private:
 	unsigned int requested_weapon_index_= 0u;
 	MovementController camera_controller_;
 	bool minimap_mode_= false;
-	bool small_hud_mode_= false;
 	bool full_map_= false;
 
 	SharedDrawersPtr shared_drawers_;
