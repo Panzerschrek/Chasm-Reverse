@@ -149,7 +149,8 @@ void MinimapDrawerGL::SetMap( const MapDataConstPtr& map_data )
 void MinimapDrawerGL::Draw(
 	const MapState& map_state, const MinimapState& minimap_state,
 	const bool force_all_visible,
-	const m_Vec2& camera_position, const float view_angle )
+	const m_Vec2& camera_position,
+	const float world_scale, const float view_angle )
 {
 	if( current_map_data_ == nullptr )
 		return;
@@ -176,7 +177,7 @@ void MinimapDrawerGL::Draw(
 
 	const float c_base_scale= -1.0f / 12.0f;
 	const float aspect= float(rendering_context_.viewport_size.Height()) / float(rendering_context_.viewport_size.Width());
-	scale_matrix.Scale( m_Vec3( aspect * c_base_scale, c_base_scale, 1.0f ) );
+	scale_matrix.Scale( world_scale * m_Vec3( aspect * c_base_scale, c_base_scale, 1.0f ) );
 
 	const float map_viewport_scale= float(map_viewport_height) / float(rendering_context_.viewport_size.Height());
 	viewport_scale_matrix.Scale( m_Vec3( map_viewport_scale, map_viewport_scale, 1.0f ) );

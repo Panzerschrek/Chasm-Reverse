@@ -259,7 +259,9 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		pause_start_time_= Time::FromSeconds(0);
 	}
 
+	const Time prev_tick_time= current_tick_time_;
 	current_tick_time_= current_real_time - accumulated_pauses_time_;
+	const float tick_dt_s= ( current_tick_time_ - prev_tick_time ).ToSeconds();
 
 	if( connection_info_ != nullptr )
 	{
@@ -283,6 +285,15 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		}
 		else
 			return;
+	}
+
+	{ // Scale minimap.
+		const float log2_delta= 2.0f * tick_dt_s;
+		if( input_state.keyboard[ static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::SquareBrackretLeft ) ] )
+			minimap_scale_log2_-= log2_delta;
+		if( input_state.keyboard[ static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::SquareBrackretRight ) ] )
+			minimap_scale_log2_+= log2_delta;
+		minimap_scale_log2_= std::max( -2.0f, std::min( minimap_scale_log2_, 1.0f ) );
 	}
 
 	shoot_pressed_= input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
@@ -401,7 +412,9 @@ void Client::Draw()
 			minimap_drawer_->Draw(
 				*map_state_, *minimap_state_,
 				full_map_,
-				player_position_.xy(), camera_controller_.GetViewAngleZ() );
+				player_position_.xy(),
+				std::exp2( minimap_scale_log2_ ),
+				camera_controller_.GetViewAngleZ() );
 		}
 
 		if( settings_.GetOrSetBool( SettingsKeys::crosshair, true ) )

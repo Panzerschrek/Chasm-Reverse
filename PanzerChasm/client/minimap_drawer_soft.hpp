@@ -21,7 +21,8 @@ public:
 	virtual void Draw(
 		const MapState& map_state, const MinimapState& minimap_state,
 		bool force_all_visible,
-		const m_Vec2& camera_position, float view_angle ) override;
+		const m_Vec2& camera_position,
+		float scale, float view_angle ) override;
 
 	void DrawLine(
 		fixed16_t x0, fixed16_t y0,

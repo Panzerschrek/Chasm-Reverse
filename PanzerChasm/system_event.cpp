@@ -144,19 +144,6 @@ bool KeyCanBeUsedForControl( const SystemEvent::KeyEvent::KeyCode key_code )
 	case KeyCode::Y:
 	case KeyCode::Z:
 
-	case KeyCode::K0:
-	case KeyCode::K1:
-	case KeyCode::K2:
-	case KeyCode::K3:
-	case KeyCode::K4:
-	case KeyCode::K5:
-	case KeyCode::K6:
-	case KeyCode::K7:
-	case KeyCode::K8:
-	case KeyCode::K9:
-
-	case KeyCode::SquareBrackretLeft:
-	case KeyCode::SquareBrackretRight:
 	case KeyCode::Semicolon:
 	case KeyCode::Apostrophe:
 	case KeyCode::BackSlash:
@@ -169,6 +156,17 @@ bool KeyCanBeUsedForControl( const SystemEvent::KeyEvent::KeyCode key_code )
 	case KeyCode::Escape: // menu navigation key
 	case KeyCode::Backspace:
 	case KeyCode::Tab: // minimap
+
+	case KeyCode::K0: // Numbers keys used for weapon select
+	case KeyCode::K1:
+	case KeyCode::K2:
+	case KeyCode::K3:
+	case KeyCode::K4:
+	case KeyCode::K5:
+	case KeyCode::K6:
+	case KeyCode::K7:
+	case KeyCode::K8:
+	case KeyCode::K9:
 
 	case KeyCode::Minus: // +- used for hud scaling
 	case KeyCode::Equals:

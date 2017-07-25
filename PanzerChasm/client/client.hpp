@@ -107,6 +107,7 @@ private:
 	MovementController camera_controller_;
 	bool minimap_mode_= false;
 	bool full_map_= false;
+	float minimap_scale_log2_= 0.0f;
 
 	SharedDrawersPtr shared_drawers_;
 	IMapDrawerPtr map_drawer_;

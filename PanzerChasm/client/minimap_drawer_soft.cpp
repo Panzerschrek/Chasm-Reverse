@@ -34,7 +34,8 @@ void MinimapDrawerSoft::SetMap( const MapDataConstPtr& map_data )
 void MinimapDrawerSoft::Draw(
 	const MapState& map_state, const MinimapState& minimap_state,
 	const bool force_all_visible,
-	const m_Vec2& camera_position, const float view_angle )
+	const m_Vec2& camera_position,
+	const float world_scale, const float view_angle )
 {
 	if( current_map_data_ == nullptr )
 		return;
@@ -66,7 +67,7 @@ void MinimapDrawerSoft::Draw(
 	m_Mat4 shift_mat, scale_mat, screen_scale_mat, screen_shift_mat, final_mat;
 	shift_mat.Translate( -m_Vec3( camera_position, 0.0f ) );
 	const float c_base_scale= -1.0f / 12.0f;
-	scale_mat.Scale( c_base_scale );
+	scale_mat.Scale( world_scale * c_base_scale );
 	const float aspect= float(map_viewport_height) / float(map_viewport_width);
 	screen_scale_mat.Scale( m_Vec3( transform_x * aspect, -transform_y, 0.0f ) );
 	screen_shift_mat.Translate( m_Vec3( ransform_add_x, ransform_add_y, 0.0f ) );
