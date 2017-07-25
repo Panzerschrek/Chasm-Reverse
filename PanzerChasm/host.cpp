@@ -155,6 +155,7 @@ bool Host::Loop()
 		system_window_->GetInputState( input_state );
 	}
 
+	// Special host key events.
 	for( const SystemEvent& event : events_ )
 	{
 		if( event.type == SystemEvent::Type::Quit )
@@ -169,7 +170,6 @@ bool Host::Loop()
 				is_single_player_ )
 				paused_= !paused_;
 		}
-
 	}
 
 	const bool input_goes_to_console= console_ != nullptr && console_->IsActive();
@@ -187,6 +187,9 @@ bool Host::Loop()
 		menu_ != nullptr && !input_goes_to_console &&
 		!( client_ != nullptr && client_->PlayingCutscene() ) /* We must no disable menu, when cutscene played. */ )
 		menu_->ProcessEvents( events_ );
+
+	if( menu_ != nullptr && !input_goes_to_menu && !input_goes_to_console )
+		menu_->ProcessEventsWhileNonactive( events_ );
 
 	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu && !really_paused )
 		client_->ProcessEvents( events_ );

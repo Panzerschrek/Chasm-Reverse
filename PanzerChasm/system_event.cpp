@@ -80,11 +80,121 @@ const char* GetKeyName( const SystemEvent::KeyEvent::KeyCode key_code )
 	case KeyCode::Period: return ".";
 	case KeyCode::Slash: return "/";
 
+	case KeyCode::F1: return "F1";
+	case KeyCode::F2: return "F2";
+	case KeyCode::F3: return "F3";
+	case KeyCode::F4: return "F4";
+	case KeyCode::F5: return "F5";
+	case KeyCode::F6: return "F6";
+	case KeyCode::F7: return "F7";
+	case KeyCode::F8: return "F8";
+	case KeyCode::F9: return "F9";
+	case KeyCode::F10: return "F10";
+	case KeyCode::F11: return "F11";
+	case KeyCode::F12: return "F12";
+
 	case KeyCode::Pause: return "Pause";
 	};
 
 	PC_ASSERT(false);
 	return "";
+}
+
+bool KeyCanBeUsedForControl( const SystemEvent::KeyEvent::KeyCode key_code )
+{
+	using KeyCode= SystemEvent::KeyEvent::KeyCode;
+	switch( key_code )
+	{
+	case KeyCode::Enter:
+	case KeyCode::Space:
+
+	case KeyCode::PageUp:
+	case KeyCode::PageDown:
+
+	case KeyCode::Up:
+	case KeyCode::Down:
+	case KeyCode::Left:
+	case KeyCode::Right:
+	case KeyCode::BackQuote:
+
+	case KeyCode::A:
+	case KeyCode::B:
+	case KeyCode::C:
+	case KeyCode::D:
+	case KeyCode::E:
+	case KeyCode::F:
+	case KeyCode::G:
+	case KeyCode::H:
+	case KeyCode::I:
+	case KeyCode::J:
+	case KeyCode::K:
+	case KeyCode::L:
+	case KeyCode::M:
+	case KeyCode::N:
+	case KeyCode::O:
+	case KeyCode::P:
+	case KeyCode::Q:
+	case KeyCode::R:
+	case KeyCode::S:
+	case KeyCode::T:
+	case KeyCode::U:
+	case KeyCode::V:
+	case KeyCode::W:
+	case KeyCode::X:
+	case KeyCode::Y:
+	case KeyCode::Z:
+
+	case KeyCode::K0:
+	case KeyCode::K1:
+	case KeyCode::K2:
+	case KeyCode::K3:
+	case KeyCode::K4:
+	case KeyCode::K5:
+	case KeyCode::K6:
+	case KeyCode::K7:
+	case KeyCode::K8:
+	case KeyCode::K9:
+
+	case KeyCode::SquareBrackretLeft:
+	case KeyCode::SquareBrackretRight:
+	case KeyCode::Semicolon:
+	case KeyCode::Apostrophe:
+	case KeyCode::BackSlash:
+	case KeyCode::Comma:
+	case KeyCode::Period:
+	case KeyCode::Slash:
+
+		return true;
+
+	case KeyCode::Escape: // menu navigation key
+	case KeyCode::Backspace:
+	case KeyCode::Tab: // minimap
+
+	case KeyCode::Minus: // +- used for hud scaling
+	case KeyCode::Equals:
+
+	case KeyCode::F1: // Functional keys used for quick commands
+	case KeyCode::F2:
+	case KeyCode::F3:
+	case KeyCode::F4:
+	case KeyCode::F5:
+	case KeyCode::F6:
+	case KeyCode::F7:
+	case KeyCode::F8:
+	case KeyCode::F9:
+	case KeyCode::F10:
+	case KeyCode::F11:
+	case KeyCode::F12:
+
+	case KeyCode::Pause: // Pause key used for pause (C.O.)
+
+	case KeyCode::Unknown:
+	case KeyCode::KeyCount:
+
+		return false;
+	};
+
+	return false;
 }
 
 } // namespace PanzerChasm

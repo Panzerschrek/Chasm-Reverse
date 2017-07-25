@@ -48,6 +48,8 @@ struct SystemEvent
 			Semicolon, Apostrophe, BackSlash,
 			Comma, Period, Slash,
 
+			F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+
 			Pause,
 			// Put it last here.
 			KeyCount
@@ -122,5 +124,6 @@ struct InputState
 };
 
 const char* GetKeyName( SystemEvent::KeyEvent::KeyCode key_code );
+bool KeyCanBeUsedForControl( SystemEvent::KeyEvent::KeyCode key_code );
 
 } // namespace PanzerChasm

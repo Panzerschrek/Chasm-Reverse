@@ -1035,7 +1035,7 @@ MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
 		{
 			if( key == KeyCode::Escape )
 				in_set_mode_= false;
-			else
+			else if( KeyCanBeUsedForControl( key ) )
 			{
 				settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(key) );
 				PlayMenuSound( Sound::SoundId::MenuSelect );
@@ -2241,6 +2241,12 @@ public:
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
+	MenuBase* OpenSaveMenu();
+	MenuBase* OpenLoadMenu();
+	MenuBase* OpenOptionsMenu();
+	MenuBase* OpenNetworkMenu();
+	MenuBase* OpenQuitMenu();
+
 private:
 	 HostCommands& host_commands_;
 	std::unique_ptr<MenuBase> submenus_[6];
@@ -2334,13 +2340,21 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 	return this;
 }
 
+MenuBase* MainMenu::OpenSaveMenu(){ return submenus_[2].get(); }
+MenuBase* MainMenu::OpenLoadMenu(){ return submenus_[3].get(); }
+MenuBase* MainMenu::OpenOptionsMenu(){ return submenus_[4].get(); }
+MenuBase* MainMenu::OpenNetworkMenu(){ return submenus_[1].get(); }
+MenuBase* MainMenu::OpenQuitMenu(){ return submenus_[5].get(); }
+
+
 // Menu
 
 Menu::Menu(
 	HostCommands& host_commands,
 	const SharedDrawersPtr& shared_drawers,
 	const Sound::SoundEnginePtr& sound_engine )
-	: shared_drawers_(shared_drawers)
+	: host_commands_(host_commands)
+	, shared_drawers_(shared_drawers)
 	, root_menu_( new MainMenu( sound_engine, host_commands ) )
 {
 	PC_ASSERT( shared_drawers_ != nullptr );
@@ -2410,6 +2424,70 @@ void Menu::ProcessEvents( const SystemEvents& events )
 				current_menu_= new_menu;
 			}
 		}
+	}
+}
+
+void Menu::ProcessEventsWhileNonactive( const SystemEvents& events )
+{
+	if( IsActive() )
+		return;
+
+	PC_ASSERT( current_menu_ == nullptr );
+
+	for( const SystemEvent& event : events )
+	{
+		if( event.type != SystemEvent::Type::Key )
+			continue;
+		if( !event.event.key.pressed )
+			continue;
+
+		MenuBase* const previous_menu= current_menu_;
+
+		switch( event.event.key.key_code )
+		{
+		case KeyCode::F2:
+			current_menu_= root_menu_->OpenSaveMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
+		case KeyCode::F3:
+			current_menu_= root_menu_->OpenLoadMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
+		case KeyCode::F4:
+			current_menu_= root_menu_->OpenOptionsMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
+		case KeyCode::F5:
+			current_menu_= root_menu_->OpenNetworkMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
+		case KeyCode::F6:
+			host_commands_.SaveGame(0u);
+			break;
+
+		case KeyCode::F9:
+			host_commands_.LoadGame(0u);
+			break;
+
+		case KeyCode::F10:
+			current_menu_= root_menu_->OpenQuitMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
+		case KeyCode::F12:
+			// TODO - take screenshot
+			break;
+
+		default:
+			break;
+		};
+
+		if( current_menu_ != nullptr && current_menu_ != previous_menu )
+			current_menu_->OnActivated();
 	}
 }
 

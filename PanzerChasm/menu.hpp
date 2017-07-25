@@ -10,6 +10,7 @@ namespace PanzerChasm
 {
 
 class MenuBase;
+class MainMenu;
 
 // Main game munu class.
 class Menu final
@@ -25,12 +26,14 @@ public:
 	void Deactivate();
 
 	void ProcessEvents( const SystemEvents& events );
+	void ProcessEventsWhileNonactive( const SystemEvents& events );
 	void Draw();
 
 private:
+	HostCommands& host_commands_;
 	const SharedDrawersPtr shared_drawers_;
 
-	std::unique_ptr<MenuBase> root_menu_;
+	std::unique_ptr<MainMenu> root_menu_;
 	MenuBase* current_menu_= nullptr;
 };
 

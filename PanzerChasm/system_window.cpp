@@ -58,7 +58,8 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 			return KeyCode( int(KeyCode::K1) + (scan_code - SDL_SCANCODE_1) );
 		if( scan_code == SDL_SCANCODE_0 )
 			return KeyCode::K0;
-
+		if( scan_code >= SDL_SCANCODE_F1 && scan_code <= SDL_SCANCODE_F12 )
+			return KeyCode( int(KeyCode::F1) + (scan_code - SDL_SCANCODE_F1) );
 	};
 
 	return KeyCode::Unknown;
