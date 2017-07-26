@@ -170,6 +170,8 @@ bool KeyCanBeUsedForControl( const SystemEvent::KeyEvent::KeyCode key_code )
 
 	case KeyCode::Minus: // +- used for hud scaling
 	case KeyCode::Equals:
+	case KeyCode::SquareBrackretLeft: // [ and ] used for map scaling
+	case KeyCode::SquareBrackretRight:
 
 	case KeyCode::F1: // Functional keys used for quick commands
 	case KeyCode::F2:
