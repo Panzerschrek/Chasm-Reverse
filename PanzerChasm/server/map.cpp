@@ -512,6 +512,10 @@ m_Vec3 Map::CollideWithMap(
 			if( model_description.radius <= 0.0f )
 				return;
 
+			const ACode a_code= static_cast<ACode>( model_description.ac );
+			if( a_code >= ACode::RedKey && a_code <= ACode::BlueKey )
+				return; // Skip keys
+
 			const Model& model_geometry= map_data_->models[ model.model_id ];
 
 			const float model_z_min= model_geometry.z_min + model.pos.z;
