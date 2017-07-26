@@ -539,7 +539,7 @@ m_Vec3 Map::CollideWithMap(
 				const float min_distance= radius + model_description.radius;
 				const m_Vec2 vec_to_pos= pos - model.pos.xy();
 				const float square_distance= vec_to_pos.SquareLength();
-				if( square_distance < min_distance * min_distance )
+				if( square_distance > 0.0f && square_distance < min_distance * min_distance )
 				{
 					collided= true;
 					collide_pos= model.pos.xy() + vec_to_pos * min_distance / std::sqrt( square_distance );
