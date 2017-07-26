@@ -447,9 +447,34 @@ m_Vec3 Map::CollideWithMap(
 	const float z_top= z_bottom + height;
 	float new_z= in_pos.z;
 
+	// Store list of objects, collisions with which alread processed.
+	constexpr unsigned int c_max_collisions= 32u;
+	MapData::IndexElement processed_collisions[ c_max_collisions ];
+	unsigned int processed_collisions_count= 0u;
+	const auto collision_processed=
+	[&]( const MapData::IndexElement& index_element )
+	{
+		if( processed_collisions_count == c_max_collisions )
+			return true;
+		for( unsigned int i= 0u; i < processed_collisions_count; i++ )
+			if( std::memcmp( &processed_collisions[i], &index_element, sizeof(MapData::IndexElement) ) == 0 )
+				return true;
+		return false;
+	};
+	const auto process_collision=
+	[&]( const MapData::IndexElement& index_element )
+	{
+		PC_ASSERT( processed_collisions_count < c_max_collisions );
+		processed_collisions[ processed_collisions_count ]= index_element;
+		processed_collisions_count++;
+	};
+
 	const auto elements_process_func=
 	[&]( const MapData::IndexElement& index_element )
 	{
+		if( collision_processed(index_element) )
+			return;
+
 		if( index_element.type == MapData::IndexElement::StaticWall )
 		{
 			PC_ASSERT( index_element.index < map_data_->static_walls.size() );
@@ -465,6 +490,7 @@ m_Vec3 Map::CollideWithMap(
 					pos, radius,
 					new_pos ) )
 			{
+				process_collision( index_element );
 				pos= new_pos;
 				out_movement_restriction.AddRestriction( GetNormalForWall( wall ).xy() );
 			}
@@ -512,6 +538,7 @@ m_Vec3 Map::CollideWithMap(
 
 			if( collided )
 			{
+				process_collision( index_element );
 				// Pull up or down player.
 				if( model_z_max - z_bottom <= GameConstants::z_pull_distance &&
 					model_z_max + height <= GameConstants::walls_height )
