@@ -35,6 +35,13 @@ static m_Vec3 GetNormalForWall( const Wall& wall )
 	return n / n.xy().Length();
 }
 
+static bool CollideWithSquare( const MapData::ModelDescription& model_description )
+{
+	// CYKABLAT!
+	// It seems, that original game uses cicrcles collision, if lower radius bit is 0, and square, if this bit is 1.
+	return ( int(model_description.radius * 256.0f) & 1 ) == 1;
+}
+
 Map::Rocket::Rocket(
 	const EntityId in_rocket_id,
 	const EntityId in_owner_id,
@@ -512,11 +519,10 @@ m_Vec3 Map::CollideWithMap(
 			if( z_top < model_z_min || z_bottom > model_z_max )
 				return;
 
-			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
 			bool collided= false;
 
 			m_Vec2 collide_pos;
-			if( collide_with_square )
+			if( CollideWithSquare( model_description ) )
 			{
 				collided=
 					CollideCircleWithSquare(
@@ -1662,7 +1668,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		if( !model.mortal || model.model_id >= map_data_->models_description.size() )
 			continue;
 
-		const float model_radius= map_data_->models_description[ model.model_id ].radius;
+		const MapData::ModelDescription& model_description= map_data_->models_description[ model.model_id ];
+		const float model_radius= model_description.radius;
 		if( model_radius <= 0.0f )
 			continue;
 
@@ -1676,10 +1683,9 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			MonsterBase& monster= *monster_value.second;
 			const float monster_radius= game_resources_->monsters_description[ monster.MonsterId() ].w_radius;
 
-			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
 			bool collided= false;
 			m_Vec2 new_pos;
-			if( collide_with_square )
+			if( CollideWithSquare( model_description ) )
 			{
 				collided=
 					CollideCircleWithSquare(
@@ -3126,8 +3132,7 @@ float Map::GetFloorLevel( const m_Vec2& pos, const float radius ) const
 				model.z_min >= c_min_ceiling_level ) // Enought space below.
 				return false;
 
-			const bool collide_with_square= true; // TODO - maybe collide with circle, sometimes?
-			if( collide_with_square )
+			if( CollideWithSquare( model_description ) )
 			{
 				m_Vec2 collide_pos;
 				if( CollideCircleWithSquare(

@@ -96,7 +96,7 @@ bool CollideCircleWithSquare(
 	const m_Vec2 vec_to_circle= circle_center - square_center;
 
 	m_Mat3 rot_mat;
-	rot_mat.RotateZ( -angle );
+	rot_mat.RotateZ( -angle * 0.0f ); // Disable square rotation. It seems, that original game does not rotate models or collisions.
 
 	const m_Vec2 vec_to_circle_transformed= vec_to_circle * rot_mat;
 	m_Vec2 out_vec_transformed;
