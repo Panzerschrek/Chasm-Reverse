@@ -26,11 +26,19 @@ namespace
 constexpr float g_walls_coords_scale= 256.0f;
 
 const GLenum g_gl_state_blend_func[2]= { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA };
-const r_OGLState g_walls_gl_state(
+
+// Draw static walls with back-faces culling.
+// Draw dynamic walls without back-faces culling.
+const r_OGLState g_static_walls_gl_state(
+	false, true, true, false,
+	g_gl_state_blend_func );
+const r_OGLState g_dynamic_walls_gl_state(
 	false, false, true, false,
 	g_gl_state_blend_func );
 
-const r_OGLState g_floors_gl_state= g_walls_gl_state;
+const r_OGLState g_floors_gl_state(
+	false, false, true, false,
+	g_gl_state_blend_func );
 
 const r_OGLState g_models_gl_state(
 	false, true, true, false,
@@ -482,7 +490,6 @@ void MapDrawerGL::Draw(
 
 	glClear( GL_DEPTH_BUFFER_BIT );
 
-	r_OGLStateManager::UpdateState( g_walls_gl_state );
 	DrawWalls( view_matrix );
 
 	r_OGLStateManager::UpdateState( g_floors_gl_state );
@@ -1083,12 +1090,27 @@ void MapDrawerGL::LoadWalls( const MapData& map_data )
 		const unsigned int first_index= walls_indeces.size();
 		walls_indeces.resize( walls_indeces.size() + 6u );
 		unsigned short* const ind= walls_indeces.data() + first_index;
-		ind[0]= first_vertex_index + 0u;
+		ind[0]= first_vertex_index + 3u;
 		ind[1]= first_vertex_index + 1u;
-		ind[2]= first_vertex_index + 3u;
-		ind[3]= first_vertex_index + 0u;
+		ind[2]= first_vertex_index + 0u;
+		ind[3]= first_vertex_index + 2u;
 		ind[4]= first_vertex_index + 3u;
-		ind[5]= first_vertex_index + 2u;
+		ind[5]= first_vertex_index + 0u;
+
+		// Duplicate transparent walls for pervent of back face culling.
+		// TODO - maybe duplicate wertices and set reverse normal?
+		if( wall.texture_id >= MapData::c_first_transparent_texture_id )
+		{
+			const unsigned int first_reverse_index= walls_indeces.size();
+			walls_indeces.resize( walls_indeces.size() + 6u );
+			unsigned short* const ind= walls_indeces.data() + first_reverse_index;
+			ind[0]= first_vertex_index + 0u;
+			ind[1]= first_vertex_index + 1u;
+			ind[2]= first_vertex_index + 3u;
+			ind[3]= first_vertex_index + 0u;
+			ind[4]= first_vertex_index + 3u;
+			ind[5]= first_vertex_index + 2u;
+		}
 	} // for walls
 
 	const auto setup_attribs=
@@ -1554,8 +1576,11 @@ void MapDrawerGL::DrawWalls( const m_Mat4& view_matrix )
 	scale_mat.Scale( 1.0f / 256.0f );
 	walls_shader_.Uniform( "view_matrix", scale_mat * view_matrix );
 
+	r_OGLStateManager::UpdateState( g_static_walls_gl_state );
 	walls_geometry_.Bind();
 	walls_geometry_.Draw();
+
+	r_OGLStateManager::UpdateState( g_dynamic_walls_gl_state );
 	dynamic_walls_geometry_.Bind();
 	dynamic_walls_geometry_.Draw();
 }
