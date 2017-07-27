@@ -1489,7 +1489,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		// Process teleports for monster
 		MonsterBase& monster= *monster_value.second;
 
-		const float c_teleport_radius= 0.4f;
+		const float c_teleport_radius= 0.5f;
 
 		for( const MapData::Teleport& teleport : map_data_->teleports )
 		{
