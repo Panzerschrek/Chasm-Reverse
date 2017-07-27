@@ -176,7 +176,8 @@ bool Host::Loop()
 	const bool input_goes_to_menu= !input_goes_to_console && menu_ != nullptr && menu_->IsActive();
 
 	const bool really_paused= paused_ || ( is_single_player_ && menu_ != nullptr && menu_->IsActive() );
-	const bool needs_pause_server= client_ != nullptr && client_->PlayingCutscene();
+	const bool playing_cutscene= client_ != nullptr && client_->PlayingCutscene();
+	const bool needs_pause_server= playing_cutscene;
 
 	system_window_->CaptureMouse( !input_goes_to_console && !input_goes_to_menu );
 
@@ -185,10 +186,10 @@ bool Host::Loop()
 
 	if(
 		menu_ != nullptr && !input_goes_to_console &&
-		!( client_ != nullptr && client_->PlayingCutscene() ) /* We must no disable menu, when cutscene played. */ )
+		!playing_cutscene /* We must disable menu, when cutscene played. */ )
 		menu_->ProcessEvents( events_ );
 
-	if( menu_ != nullptr && !input_goes_to_menu && !input_goes_to_console )
+	if( menu_ != nullptr && !input_goes_to_menu && !input_goes_to_console && !playing_cutscene )
 		menu_->ProcessEventsWhileNonactive( events_ );
 
 	if( client_ != nullptr && !input_goes_to_console && !input_goes_to_menu && !really_paused )
