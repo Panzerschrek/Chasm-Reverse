@@ -491,6 +491,11 @@ m_Vec3 Map::CollideWithMap(
 			if( tex.gso[0] )
 				return;
 
+			// Do not collide with wall, if we are behind it. But collide, if wall is transparent.
+			if( wall.texture_id < MapData::c_first_transparent_texture_id &&
+				mVec2Cross( pos - wall.vert_pos[0], wall.vert_pos[1] - wall.vert_pos[0] ) > 0.0f )
+				return;
+
 			m_Vec2 new_pos;
 			if( CollideCircleWithLineSegment(
 					wall.vert_pos[0], wall.vert_pos[1],
