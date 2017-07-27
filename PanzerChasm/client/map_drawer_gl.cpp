@@ -1155,22 +1155,19 @@ void MapDrawerGL::LoadWalls( const MapData& map_data )
 	// Reserve place for dynamic walls geometry
 	dynamc_walls_vertices_.resize( map_data.dynamic_walls.size() * 4u );
 
-	// Try reuse indeces from regular walls
-	if( walls_indeces.size() < map_data.dynamic_walls.size() * 6u )
+	// Prepare indeces for dynamic walls.
+	walls_indeces.clear();
+	walls_indeces.resize( map_data.dynamic_walls.size() * 6u );
+	for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
 	{
-		walls_indeces.resize( map_data.dynamic_walls.size() * 6u );
-
-		for( unsigned int w= 0u; w < map_data.dynamic_walls.size(); w++ )
-		{
-			unsigned short* const ind= walls_indeces.data() + w * 6u;
-			const unsigned int first_vertex_index= w * 4u;
-			ind[0]= first_vertex_index + 0u;
-			ind[1]= first_vertex_index + 1u;
-			ind[2]= first_vertex_index + 3u;
-			ind[3]= first_vertex_index + 0u;
-			ind[4]= first_vertex_index + 3u;
-			ind[5]= first_vertex_index + 2u;
-		}
+		unsigned short* const ind= walls_indeces.data() + w * 6u;
+		const unsigned int first_vertex_index= w * 4u;
+		ind[0]= first_vertex_index + 0u;
+		ind[1]= first_vertex_index + 1u;
+		ind[2]= first_vertex_index + 3u;
+		ind[3]= first_vertex_index + 0u;
+		ind[4]= first_vertex_index + 3u;
+		ind[5]= first_vertex_index + 2u;
 	}
 
 	dynamic_walls_geometry_.VertexData(
