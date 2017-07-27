@@ -2044,7 +2044,9 @@ void Map::TryActivateProcedure(
 	Player& player,
 	MessagesSender& messages_sender )
 {
-	PC_ASSERT( procedure_number < procedures_.size() );
+	// Hack for bad PROCEDURE.XX files, specially for map06
+	if( procedure_number >= procedures_.size() )
+		return;
 
 	const MapData::Procedure& procedure= map_data_->procedures[ procedure_number ];
 	ProcedureState& procedure_state= procedures_[ procedure_number ];
