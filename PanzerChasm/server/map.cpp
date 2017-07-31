@@ -944,7 +944,22 @@ void Map::ProcessPlayerPosition(
 	//Process items
 	for( Item& item : items_ )
 	{
-		if( item.picked_up || !item.enabled )
+		if( !item.enabled )
+			continue;
+
+		if( item.picked_up && game_rules_ == GameRules::Deathmatch )
+		{
+			const float time_since_picked_up_s= ( current_time - item.pick_up_time ).ToSeconds();
+			const float respawn_time_s= 60.0f; // TODO - select correct respawn time for each item.
+			if( time_since_picked_up_s >= respawn_time_s )
+			{
+				// Respawn item.
+				// TODO - add light flash effect.
+				item.picked_up= false;
+			}
+		}
+
+		if( item.picked_up )
 			continue;
 
 		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
@@ -953,6 +968,8 @@ void Map::ProcessPlayerPosition(
 			item.picked_up= player.TryPickupItem( item.item_id, current_time );
 			if( item.picked_up )
 			{
+				item.pick_up_time= current_time;
+
 				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
 				if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
 				{

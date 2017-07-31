@@ -181,6 +181,7 @@ private:
 		unsigned char item_id;
 		bool picked_up;
 		bool enabled; // Enabled for current difficulty.
+		Time pick_up_time= Time::FromSeconds(0); // used only for net game. Dont write this to save.
 	};
 
 	typedef std::vector<Item> Items;
