@@ -68,6 +68,7 @@ Client::Client(
 	commands_processor.RegisterCommands(commands_);
 
 	std::memset( &player_state_, 0, sizeof(player_state_) );
+	std::memset( &server_state_, 0, sizeof(server_state_) );
 
 	player_name_= settings_.GetOrSetString( SettingsKeys::player_name, "unnamed" );
 }
@@ -440,13 +441,26 @@ void Client::Draw()
 			hud_drawer_->DrawSmallHud();
 		else
 		{
-			// TODO - use this
-			//IHudDrawer::NetgameScores netgame_scores;
+			if( server_state_.game_rules != GameRules::SinglePlayer )
+			{
+				IHudDrawer::NetgameScores netgame_scores;
+				netgame_scores.score_count= server_state_.player_count;
+				netgame_scores.active_score_number= player_state_.index;
+				for( unsigned int i= 0u; i < netgame_scores.score_count; i++ )
+					netgame_scores.scores[i]= server_state_.frags[i];
 
-			hud_drawer_->DrawHud(
-				minimap_mode_,
-				current_map_data_->map_name,
-				nullptr );
+				hud_drawer_->DrawHud(
+					minimap_mode_,
+					current_map_data_->map_name,
+					&netgame_scores );
+			}
+			else
+			{
+				hud_drawer_->DrawHud(
+					minimap_mode_,
+					current_map_data_->map_name,
+					nullptr );
+			}
 		}
 	}
 }
@@ -455,6 +469,11 @@ void Client::operator()( const Messages::MessageBase& message )
 {
 	PC_ASSERT(false);
 	Log::Warning( "Unknown message for server: ", int(message.message_id) );
+}
+
+void Client::operator()( const Messages::ServerState& message )
+{
+	server_state_= message;
 }
 
 void Client::operator()( const Messages::PlayerSpawn& message )

@@ -116,6 +116,10 @@ void Server::Loop( bool paused )
 		spawn_message.player_monster_id= connected_player.player_monster_id;
 		connected_player.connection_info.messages_sender.SendReliableMessage( spawn_message );
 
+		Messages::ServerState server_state_message;
+		BuildServerStateMessage( server_state_message );
+		connected_player.connection_info.messages_sender.SendReliableMessage( server_state_message );
+
 		connected_player.connection_info.messages_sender.Flush();
 	}
 
@@ -175,6 +179,9 @@ void Server::Loop( bool paused )
 	}
 
 	// Send messages
+	Messages::ServerState server_state_message;
+	BuildServerStateMessage( server_state_message );
+
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
@@ -187,6 +194,7 @@ void Server::Loop( bool paused )
 		Messages::PlayerSpawn spawn_msg;
 		connected_player->player->BuildPositionMessage( position_msg );
 		connected_player->player->BuildStateMessage( state_msg );
+		state_msg.index= &connected_player - players_.data();
 		connected_player->player->BuildWeaponMessage( weapon_msg );
 
 		if( connected_player->player->BuildSpawnMessage( spawn_msg ) )
@@ -198,6 +206,7 @@ void Server::Loop( bool paused )
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
 		messages_sender.SendUnreliableMessage( weapon_msg );
+		messages_sender.SendUnreliableMessage( server_state_message );
 		connected_player->player->SendInternalMessages( messages_sender );
 		messages_sender.Flush();
 	}
@@ -519,6 +528,19 @@ void Server::UpdateTimes()
 	}
 
 	last_tick_= current_time;
+}
+
+void Server::BuildServerStateMessage( Messages::ServerState& message )
+{
+	PC_ASSERT( players_.size() <= GameConstants::max_players );
+
+	message.map_time_s= 0; // TODO - calculate time.
+	message.game_rules= game_rules_;
+	message.player_count= players_.size();
+	for( unsigned int i= 0u; i < players_.size(); i++ )
+	{
+		message.frags[i]= 0; // TODO count frags.
+	}
 }
 
 void Server::GiveAmmo()

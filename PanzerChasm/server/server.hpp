@@ -63,6 +63,7 @@ private:
 
 private:
 	void UpdateTimes();
+	void BuildServerStateMessage( Messages::ServerState& message );
 
 	void GiveAmmo();
 	void GiveArmor();
