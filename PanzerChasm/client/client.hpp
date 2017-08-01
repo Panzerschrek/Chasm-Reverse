@@ -54,6 +54,7 @@ public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::DummyNetMessage& ) {}
 	void operator()( const Messages::ServerState& message );
+	void operator()( const Messages::DynamicTextMessage& message );
 
 	// Handler for messages, that can be simply transfered to "MapState".
 	template<

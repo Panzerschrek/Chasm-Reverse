@@ -86,12 +86,14 @@ Map::Map(
 	const MapDataConstPtr& map_data,
 	const GameResourcesConstPtr& game_resources,
 	const Time map_start_time,
-	MapEndCallback map_end_callback )
+	MapEndCallback map_end_callback,
+	TextMessageCallback text_message_callback )
 	: difficulty_(difficulty)
 	, game_rules_(game_rules)
 	, map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
+	, text_message_callback_(std::move(text_message_callback) )
 	, random_generator_( std::make_shared<LongRand>() )
 	, collision_index_( map_data )
 {
@@ -441,6 +443,12 @@ void Map::AddParticleEffect( const m_Vec3& pos, const ParticleEffect particle_ef
 
 	PositionToMessagePosition( pos, message.xyz );
 	message.effect_id= static_cast<unsigned char>( particle_effect );
+}
+
+void Map::AddTextMessage( const char* const text )
+{
+	if( text_message_callback_ != nullptr )
+		text_message_callback_( text );
 }
 
 m_Vec3 Map::CollideWithMap(

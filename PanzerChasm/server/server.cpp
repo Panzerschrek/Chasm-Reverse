@@ -30,6 +30,7 @@ Server::Server(
 	, connections_listener_(connections_listener)
 	, draw_loading_callback_(draw_loading_callback)
 	, map_end_callback_( [this]{ map_end_triggered_= true; } )
+	, text_message_callback_( std::bind( &Server::AddTextMessage, this, std::placeholders::_1 ) )
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
 {
@@ -203,6 +204,9 @@ void Server::Loop( bool paused )
 			messages_sender.SendUnreliableMessage( spawn_msg );
 		}
 
+		for( const Messages::DynamicTextMessage& message : text_massages_ )
+			messages_sender.SendReliableMessage( message ); // TODO - maybe unreliable?
+
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
 		messages_sender.SendUnreliableMessage( weapon_msg );
@@ -213,6 +217,8 @@ void Server::Loop( bool paused )
 
 	if( map_ != nullptr )
 		map_->ClearUpdateEvents();
+
+	text_massages_.clear();
 
 	// Change map, if needed at end of this loop
 	if( map_end_triggered_ )
@@ -275,7 +281,8 @@ bool Server::ChangeMap(
 			map_data,
 			game_resources_,
 			server_accumulated_time_,
-			map_end_callback_ ) );
+			map_end_callback_,
+			text_message_callback_ ) );
 
 	map_end_triggered_= false;
 	join_first_client_with_existing_player_= false;
@@ -383,7 +390,8 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 			map_data,
 			load_stream,
 			game_resources_,
-			map_end_callback_ ) );
+			map_end_callback_,
+			text_message_callback_ ) );
 
 	map_end_triggered_= false;
 	join_first_client_with_existing_player_= true;
@@ -432,6 +440,7 @@ void Server::operator()( const Messages::PlayerMove& message )
 			const unsigned int frags= current_player_->player->GetFrags();
 			map_->DespawnPlayer( current_player_->player_monster_id );
 			current_player_->player= std::make_shared<Player>( game_resources_, server_accumulated_time_ );
+			current_player_->player->SetName( current_player_->name );
 
 			if( game_rules_ == GameRules::SinglePlayer )
 			{
@@ -464,8 +473,9 @@ void Server::operator()( const Messages::PlayerName& message )
 	PC_ASSERT( current_player_ != nullptr );
 
 	if( !current_player_->name.empty() && current_player_->name != message.name )
-		Log::User( "Player \"", current_player_->name, "\" changed his name to \"", message.name, "\"" );
+		AddTextMessage( ( "Player \"" + current_player_->name + "\" changed his name to \"" + message.name + "\"" ).c_str() );
 	current_player_->name= message.name;
+	current_player_->player->SetName( current_player_->name );
 }
 
 void Server::UpdateTimes()
@@ -546,6 +556,12 @@ void Server::BuildServerStateMessage( Messages::ServerState& message )
 	{
 		message.frags[i]= players_[i]->player->GetFrags();
 	}
+}
+
+void Server::AddTextMessage( const char* const text )
+{
+	text_massages_.emplace_back();
+	std::snprintf( text_massages_.back().text, sizeof(text_massages_.back().text), "%s", text );
 }
 
 void Server::GiveAmmo()

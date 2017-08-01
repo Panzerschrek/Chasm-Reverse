@@ -476,6 +476,12 @@ void Client::operator()( const Messages::ServerState& message )
 	server_state_= message;
 }
 
+void Client::operator()( const Messages::DynamicTextMessage& message )
+{
+	// TODO - check if message text is not null-terminated
+	Log::User( message.text );
+}
+
 void Client::operator()( const Messages::PlayerSpawn& message )
 {
 	MessagePositionToPosition( message.xyz, player_position_ );

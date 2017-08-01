@@ -24,7 +24,7 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
-constexpr unsigned int c_protocol_version= 103u; // Increment each time, when protocol changed.
+constexpr unsigned int c_protocol_version= 104u; // Increment each time, when protocol changed.
 
 typedef short CoordType;
 typedef unsigned short AngleType;
@@ -329,6 +329,13 @@ struct TextMessage : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(TextMessage)
 
 	unsigned short text_message_number;
+};
+
+struct DynamicTextMessage : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicTextMessage)
+
+	char text[128];
 };
 
 struct PlayerMove : public MessageBase

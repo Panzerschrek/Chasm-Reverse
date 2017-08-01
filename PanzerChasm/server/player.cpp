@@ -320,8 +320,12 @@ void Player::Hit(
 			{
 				Player& opponent= *opponent_it->second;
 				opponent.frags_++;
+
+				map.AddTextMessage( ( "\"" + opponent.name_ + "\" killed \"" + name_ + "\"" ).c_str() );
 			}
 		}
+		else
+			map.AddTextMessage( ( "\"" + name_ + "\" committed roskomnadzor").c_str() );
 	}
 	else if( ( current_time - last_pain_sound_time_ ).ToSeconds() >= 0.5f )
 	{
@@ -760,6 +764,11 @@ void Player::SetFrags( const unsigned int frags )
 unsigned int Player::GetFrags() const
 {
 	return frags_;
+}
+
+void Player::SetName( std::string name )
+{
+	name_= std::move(name);
 }
 
 bool Player::Move( const Time time_delta )

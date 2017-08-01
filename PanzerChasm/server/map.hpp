@@ -21,6 +21,7 @@ class Map final
 {
 public:
 	typedef std::function<void()> MapEndCallback;
+	typedef std::function<void(const char*)> TextMessageCallback;
 
 	typedef std::unordered_map< EntityId, MonsterBasePtr > MonstersContainer;
 	typedef std::unordered_map< EntityId, PlayerPtr > PlayersContainer;
@@ -31,7 +32,8 @@ public:
 		const MapDataConstPtr& map_data,
 		const GameResourcesConstPtr& game_resources,
 		Time map_start_time,
-		MapEndCallback map_end_callback );
+		MapEndCallback map_end_callback,
+		TextMessageCallback text_message_callback );
 
 	// Construct from save
 	Map(
@@ -40,7 +42,8 @@ public:
 		const MapDataConstPtr& map_data,
 		LoadStream& load_stream,
 		const GameResourcesConstPtr& game_resources,
-		MapEndCallback map_end_callback );
+		MapEndCallback map_end_callback,
+		TextMessageCallback text_message_callback );
 
 	~Map();
 
@@ -75,8 +78,8 @@ public:
 		unsigned int monster_sound_id );
 
 	void PlayMapEventSound( const m_Vec3& pos, unsigned int sound_id );
-
 	void AddParticleEffect( const m_Vec3& pos, ParticleEffect particle_effect );
+	void AddTextMessage( const char* text );
 
 	m_Vec3 CollideWithMap(
 		const m_Vec3 in_pos, float height, float radius,
@@ -330,6 +333,7 @@ private:
 	const MapDataConstPtr map_data_;
 	const GameResourcesConstPtr game_resources_;
 	const MapEndCallback map_end_callback_;
+	const TextMessageCallback text_message_callback_;
 
 	const LongRandPtr random_generator_;
 

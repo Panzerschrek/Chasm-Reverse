@@ -38,6 +38,7 @@ MESSAGE_FUNC(MapChange)
 MESSAGE_FUNC(MonsterBirth)
 MESSAGE_FUNC(MonsterDeath)
 MESSAGE_FUNC(TextMessage)
+MESSAGE_FUNC(DynamicTextMessage)
 
 // Unrealiable client to server
 MESSAGE_FUNC(PlayerMove)
