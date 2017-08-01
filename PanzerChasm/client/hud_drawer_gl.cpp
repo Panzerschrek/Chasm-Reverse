@@ -38,8 +38,7 @@ HudDrawerGL::HudDrawerGL(
 	, viewport_size_( rendering_context.viewport_size )
 	, filter_textures_( settings.GetOrSetBool( SettingsKeys::opengl_hud_textures_filtering, false ) )
 {
-	// Textures
-	{
+	{ // Crosshair texture
 		unsigned int size[2];
 		std::vector<unsigned char> data, data_rgba;
 		CreateCrosshairTexture( size, data );
@@ -50,9 +49,26 @@ HudDrawerGL::HudDrawerGL(
 		crosshair_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
 	}
 
+	{ // Netgame score background texture.
+		std::vector<unsigned char> data_rgba;
+		Size2 size;
+		CreateNetgameScoreBackgroundTextureRGBA( game_resources_->palette, data_rgba, size );
+		netgame_score_background_texture_=
+			r_Texture( r_Texture::PixelFormat::RGBA8, size.Width(), size.Height(), data_rgba.data() );
+
+		if( filter_textures_ )
+		{
+			netgame_score_background_texture_.SetFiltration( r_Texture::Filtration::Linear, r_Texture::Filtration::Linear );
+			netgame_score_background_texture_.SetWrapMode( r_Texture::WrapMode::Clamp );
+		}
+		else
+			netgame_score_background_texture_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+	}
+
 	LoadTexture( c_weapon_icons_image_file_name, 180u, weapon_icons_texture_ );
 	LoadTexture( c_hud_numbers_image_file_name, 0u, hud_numbers_texture_ );
 	LoadTexture( c_hud_background_image_file_name, 0u, hud_background_texture_ );
+	LoadTexture( c_netgame_score_numbers_image_file_name, 0u, netgame_scrore_numbers_texture_ );
 
 	{ // Vertex buffer
 		unsigned short  indeces[ g_max_hud_quads * 6u ];
@@ -152,7 +168,10 @@ void HudDrawerGL::DrawCrosshair()
 	glDrawElements( GL_TRIANGLES, index_count, GL_UNSIGNED_SHORT, nullptr );
 }
 
-void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_name )
+void HudDrawerGL::DrawHud(
+	const bool draw_second_hud,
+	const char* const map_name,
+	const NetgameScores* const netgame_scores )
 {
 	Vertex vertices[ g_max_hud_quads * 4u ];
 	Vertex* v= vertices;
@@ -185,8 +204,106 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 		v[3].tex_coord[1]= tc_y;
 		v+= 4u;
 	}
+	if( netgame_scores != nullptr )
+	{
+		v[0].xy[0]= hud_x;
+		v[0].xy[1]= c_hud_line_height * scale_;
+		v[0].tex_coord[0]= 0;
+		v[0].tex_coord[1]= c_net_hud_line_height;
 
+		v[1].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
+		v[1].xy[1]= c_hud_line_height * scale_;
+		v[1].tex_coord[0]= hud_background_texture_.Width();
+		v[1].tex_coord[1]= c_net_hud_line_height;
+
+		v[2].xy[0]= hud_x + hud_background_texture_.Width() * scale_;
+		v[2].xy[1]= ( c_hud_line_height + c_net_hud_line_height ) * scale_;
+		v[2].tex_coord[0]= hud_background_texture_.Width();
+		v[2].tex_coord[1]= 0;
+
+		v[3].xy[0]= hud_x;
+		v[3].xy[1]= ( c_hud_line_height + c_net_hud_line_height ) * scale_;
+		v[3].tex_coord[0]= 0;
+		v[3].tex_coord[1]= 0;
+		v+= 4u;
+	}
 	const unsigned int hud_bg_quad_count= ( v - vertices ) / 4u - first_hud_bg_quad;
+
+	const unsigned int c_first_netgame_score_background_quad= ( v - vertices ) / 4u;
+	if( netgame_scores != nullptr )
+	{
+		const int step= hud_background_texture_.Width() / GameConstants::max_players;
+		const int shift= ( step - netgame_score_background_texture_.Width() ) / 2;
+		const int height= scale_ * netgame_score_background_texture_.Height();
+		const int width= netgame_score_background_texture_.Width() * scale_;
+		const int y= ( c_hud_line_height + 2 ) * scale_;
+		for( unsigned int i= 0u; i < netgame_scores->score_count; i++ )
+		{
+			const int x= hud_x + ( i * step + shift ) * scale_;
+			v[0].xy[0]= x;
+			v[0].xy[1]= y;
+			v[0].tex_coord[0]= 0;
+			v[0].tex_coord[1]= netgame_score_background_texture_.Height();
+
+			v[1].xy[0]= x + width;
+			v[1].xy[1]= y;
+			v[1].tex_coord[0]= netgame_score_background_texture_.Width();
+			v[1].tex_coord[1]= netgame_score_background_texture_.Height();
+
+			v[2].xy[0]= x + width;
+			v[2].xy[1]= y + height;
+			v[2].tex_coord[0]= netgame_score_background_texture_.Width();
+			v[2].tex_coord[1]= 0;
+
+			v[3].xy[0]= x;
+			v[3].xy[1]= y + height;
+			v[3].tex_coord[0]= 0;
+			v[3].tex_coord[1]= 0;
+			v+= 4u;
+		}
+	}
+
+	const unsigned int fisrst_netgame_score_number_quad= ( v - vertices ) / 4u;
+	for( unsigned int i= 0u; netgame_scores != nullptr && i < netgame_scores->score_count; i++ )
+	{
+		char digits[8];
+		std::snprintf( digits, sizeof(digits), "%u", netgame_scores->scores[i] );
+		const unsigned int digit_count= std::strlen(digits);
+
+		const int digit_height= netgame_scrore_numbers_texture_.Height();
+		const int y= ( c_hud_line_height + c_netgame_score_number_y_offset ) * scale_;
+		const int step= hud_background_texture_.Width() / GameConstants::max_players;
+		const int x_end= hud_x + ( step * i + c_netgame_score_number_x_offset ) * scale_;
+		const int tc_x_offset= i == netgame_scores->active_score_number ? c_netgame_score_digit_width * 10 : 0;
+
+		for( unsigned int d= 0u; d < digit_count; d++ )
+		{
+			const unsigned int tc_x= tc_x_offset + ( digits[d] - '0' ) * c_netgame_score_digit_width;
+			const unsigned int digit_x= x_end - scale_ * c_netgame_score_digit_width_to_draw * ( digit_count - d );
+
+			v[0].xy[0]= digit_x;
+			v[0].xy[1]= y;
+			v[0].tex_coord[0]= tc_x;
+			v[0].tex_coord[1]= digit_height;
+
+			v[1].xy[0]= digit_x + c_netgame_score_digit_width_to_draw * scale_;
+			v[1].xy[1]= y;
+			v[1].tex_coord[0]= tc_x + c_netgame_score_digit_width_to_draw;
+			v[1].tex_coord[1]= digit_height;
+
+			v[2].xy[0]= digit_x + c_netgame_score_digit_width_to_draw * scale_;
+			v[2].xy[1]= y + digit_height * scale_;
+			v[2].tex_coord[0]= tc_x + c_netgame_score_digit_width_to_draw;
+			v[2].tex_coord[1]= 0;
+
+			v[3].xy[0]= digit_x;
+			v[3].xy[1]= y + digit_height * scale_;
+			v[3].tex_coord[0]= tc_x;
+			v[3].tex_coord[1]= 0;
+			v+= 4u;
+		}
+	}
+	const unsigned int netgame_score_number_quad_count= ( v - vertices ) / 4u - fisrst_netgame_score_number_quad;
 
 	const unsigned int weapon_icon_first_quad= ( v - vertices ) / 4u;
 	if( !draw_second_hud ) // Weapon icon
@@ -307,6 +424,11 @@ void HudDrawerGL::DrawHud( const bool draw_second_hud, const char* const map_nam
 	draw_quads( hud_background_texture_, first_hud_bg_quad, hud_bg_quad_count );
 	draw_quads( weapon_icons_texture_, weapon_icon_first_quad, weapon_icon_quad_count );
 	draw_quads( hud_numbers_texture_, numbers_first_quad, numbers_quad_count );
+	if( netgame_scores != nullptr )
+	{
+		draw_quads( netgame_score_background_texture_, c_first_netgame_score_background_quad, netgame_scores->score_count );
+		draw_quads( netgame_scrore_numbers_texture_, fisrst_netgame_score_number_quad, netgame_score_number_quad_count );
+	}
 
 	if( draw_second_hud )
 		HudDrawerBase::DrawKeysAndStat( hud_x, map_name );

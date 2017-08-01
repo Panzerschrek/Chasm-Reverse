@@ -83,6 +83,8 @@ const int player_colors_shifts[ player_colors_count ]=
 	- 8 * 16
 };
 
+const unsigned int max_players= 8u;
+
 } // namespace GameConstants
 
 } // namespace PanzerChasm

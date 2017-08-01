@@ -19,9 +19,20 @@ HudDrawerSoft::HudDrawerSoft(
 	LoadImage( c_weapon_icons_image_file_name, weapon_icons_image_ );
 	LoadImage( c_hud_numbers_image_file_name, hud_numbers_image_ );
 	LoadImage( c_hud_background_image_file_name, hud_background_image_ );
+	LoadImage( c_netgame_score_numbers_image_file_name, netgame_scrore_numbers_image_ );
+
+	{ // Netgame score background texture
+		Size2 size;
+		CreateNetgameScoreBackgroundTexture( netgame_score_background_image_.data, size );
+		netgame_score_background_image_.size[0]= size.Width ();
+		netgame_score_background_image_.size[1]= size.Height();
+	}
 
 	// Mark transparent pixels for numbers.
 	for( unsigned char& color_index : hud_numbers_image_.data )
+		if( color_index == 0u ) color_index= 255u;
+
+	for( unsigned char& color_index : netgame_scrore_numbers_image_.data )
 		if( color_index == 0u ) color_index= 255u;
 }
 
@@ -58,7 +69,10 @@ void HudDrawerSoft::DrawCrosshair()
 	}
 }
 
-void HudDrawerSoft::DrawHud( const bool draw_second_hud, const char* const map_name )
+void HudDrawerSoft::DrawHud(
+	const bool draw_second_hud,
+	const char* const map_name,
+	const NetgameScores* const netgame_scores )
 {
 	const PaletteTransformed& palette= *rendering_context_.palette_transformed;
 	uint32_t* const dst_pixels= rendering_context_.window_surface_data;
@@ -100,6 +114,51 @@ void HudDrawerSoft::DrawHud( const bool draw_second_hud, const char* const map_n
 		hud_x, viewport_size.Height() - c_hud_line_height * scale_,
 		hud_background_image_.data.data() + hud_bg_y_offset * hud_background_image_.size[0], hud_background_image_.size[0],
 		hud_background_image_.size[0], c_hud_line_height );
+
+	if( netgame_scores != nullptr )
+	{
+		draw_image(
+			hud_x, viewport_size.Height() - ( c_hud_line_height + c_net_hud_line_height ) * scale_,
+			hud_background_image_.data.data() + 0 * hud_background_image_.size[0], hud_background_image_.size[0],
+			hud_background_image_.size[0], c_net_hud_line_height );
+	}
+
+	if( netgame_scores != nullptr )
+	{
+		const int step= hud_background_image_.size[0] / GameConstants::max_players;
+		const int shift= ( step - netgame_score_background_image_.size[0] ) / 2;
+		const int y=  viewport_size.Height() - ( c_hud_line_height + netgame_score_background_image_.size[1] + 2 ) * scale_;
+		for( unsigned int i= 0u; i < netgame_scores->score_count; i++ )
+		{
+			const int x= hud_x + ( i * step + shift ) * scale_;
+			draw_image(
+				x, y,
+				netgame_score_background_image_.data.data(), netgame_score_background_image_.size[0],
+				netgame_score_background_image_.size[0], netgame_score_background_image_.size[1] );
+		}
+	}
+	for( unsigned int i= 0u; netgame_scores != nullptr && i < netgame_scores->score_count; i++ )
+	{
+		char digits[8];
+		std::snprintf( digits, sizeof(digits), "%u", netgame_scores->scores[i] );
+		const unsigned int digit_count= std::strlen(digits);
+
+		const int digit_height= netgame_scrore_numbers_image_.size[1];
+		const int y= viewport_size.Height() - ( c_hud_line_height + digit_height + c_netgame_score_number_y_offset ) * scale_;
+		const int step= hud_background_image_.size[0] / GameConstants::max_players;
+		const int x_end= hud_x + ( step * i + c_netgame_score_number_x_offset ) * scale_;
+		const int tc_x_offset= i == netgame_scores->active_score_number ? c_netgame_score_digit_width * 10 : 0;
+
+		for( unsigned int d= 0u; d < digit_count; d++ )
+		{
+			const unsigned int tc_x= tc_x_offset + ( digits[d] - '0' ) * c_netgame_score_digit_width;
+			const unsigned int digit_x= x_end - scale_ * c_netgame_score_digit_width_to_draw * ( digit_count - d );
+			draw_image(
+				digit_x, y,
+				netgame_scrore_numbers_image_.data.data() + tc_x, netgame_scrore_numbers_image_.size[0],
+				c_netgame_score_digit_width_to_draw, digit_height );
+		}
+	}
 
 	if( !draw_second_hud ) // Weapon icon
 	{

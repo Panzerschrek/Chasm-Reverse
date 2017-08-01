@@ -439,7 +439,15 @@ void Client::Draw()
 		if( settings_.GetOrSetBool( g_small_hud_mode, false ) )
 			hud_drawer_->DrawSmallHud();
 		else
-			hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
+		{
+			// TODO - use this
+			//IHudDrawer::NetgameScores netgame_scores;
+
+			hud_drawer_->DrawHud(
+				minimap_mode_,
+				current_map_data_->map_name,
+				nullptr );
+		}
 	}
 }
 

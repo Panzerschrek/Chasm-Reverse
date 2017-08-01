@@ -21,7 +21,10 @@ public:
 	virtual ~HudDrawerGL() override;
 
 	virtual void DrawCrosshair() override;
-	virtual void DrawHud( bool draw_second_hud, const char* map_name ) override;
+	virtual void DrawHud(
+		bool draw_second_hud,
+		const char* map_name,
+		const NetgameScores* netgame_scores ) override;
 
 private:
 	struct Vertex
@@ -44,6 +47,8 @@ private:
 	r_Texture weapon_icons_texture_;
 	r_Texture hud_numbers_texture_;
 	r_Texture hud_background_texture_;
+	r_Texture netgame_score_background_texture_;
+	r_Texture netgame_scrore_numbers_texture_;
 };
 
 } // namespace PanzerChasm
