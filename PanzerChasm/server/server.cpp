@@ -66,6 +66,9 @@ void Server::Loop( bool paused )
 	// Accept new connections.
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
+		if( players_.size() >= GameConstants::max_players )
+			break; // Server is full. TODO - send message for this conection about this.
+
 		Log::Info( "Client \"", connection->GetConnectionInfo(), "\" connected to server" );
 
 		players_.emplace_back( new ConnectedPlayer( connection, game_resources_, server_accumulated_time_ ) );
