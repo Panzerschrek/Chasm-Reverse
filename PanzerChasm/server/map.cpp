@@ -1843,7 +1843,8 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 
 	// At end of this procedure, report about map change, if this needed.
 	// Do it here, because map can be desctructed at callback call.
-	if( map_end_triggered_ &&
+	if( game_rules_ != GameRules::Deathmatch &&
+		map_end_triggered_ &&
 		map_end_callback_ != nullptr )
 	{
 		map_end_triggered_= false;
