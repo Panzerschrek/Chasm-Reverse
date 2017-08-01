@@ -737,8 +737,12 @@ void Monster::MoveToTarget( const float time_delta_s )
 		return;
 
 	const GameResources::MonsterDescription& monster_description= game_resources_->monsters_description[ monster_id_ ];
+	// Hack for turrets.
+	// If speed is 2 or less, moster is not movable.
+	// In original game, presumably, logic is same.
+	const float speed_corrected= monster_description.speed > 2.0f ? monster_description.speed : 0.0f;
 
-	const float distance_delta= time_delta_s * float( monster_description.speed ) / 10.0f;
+	const float distance_delta= time_delta_s * speed_corrected / 10.0f;
 
 	if( distance_delta >= vec_to_target_length )
 		target_.have_position= false; // Reached
