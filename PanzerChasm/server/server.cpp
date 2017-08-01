@@ -442,6 +442,15 @@ void Server::operator()( const Messages::PlayerMove& message )
 		current_player_->player->UpdateMovement( message );
 }
 
+void Server::operator()( const Messages::PlayerName& message )
+{
+	PC_ASSERT( current_player_ != nullptr );
+
+	if( !current_player_->name.empty() && current_player_->name != message.name )
+		Log::User( "Player \"", current_player_->name, "\" changed his name to \"", message.name, "\"" );
+	current_player_->name= message.name;
+}
+
 void Server::UpdateTimes()
 {
 	const Time current_time= Time::CurrentTime();

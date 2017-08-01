@@ -42,3 +42,4 @@ MESSAGE_FUNC(TextMessage)
 MESSAGE_FUNC(PlayerMove)
 
 // Reliable client to server
+MESSAGE_FUNC(PlayerName)

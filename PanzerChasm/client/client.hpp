@@ -79,6 +79,7 @@ public: // Messages handlers
 private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
+	void TransmitPlayerName();
 
 	void FullMap();
 
@@ -92,6 +93,8 @@ private:
 	CommandsMapConstPtr commands_;
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
+
+	std::string player_name_;
 
 	// Client uses real time minus pauses accumulated time.
 	Time current_tick_time_;

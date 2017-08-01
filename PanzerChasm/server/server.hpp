@@ -36,6 +36,7 @@ public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::DummyNetMessage& ) {}
 	void operator()( const Messages::PlayerMove& message );
+	void operator()( const Messages::PlayerName& message );
 
 private:
 	struct ConnectedPlayer final
@@ -48,6 +49,7 @@ private:
 		ConnectionInfo connection_info;
 		PlayerPtr player;
 		EntityId player_monster_id;
+		std::string name;
 	};
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;
