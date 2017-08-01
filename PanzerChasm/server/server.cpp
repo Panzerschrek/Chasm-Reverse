@@ -429,6 +429,7 @@ void Server::operator()( const Messages::PlayerMove& message )
 		// Respawn when player press shoot-button.
 		if( message.shoot_pressed && map_ != nullptr )
 		{
+			const unsigned int frags= current_player_->player->GetFrags();
 			map_->DespawnPlayer( current_player_->player_monster_id );
 			current_player_->player= std::make_shared<Player>( game_resources_, server_accumulated_time_ );
 
@@ -436,11 +437,15 @@ void Server::operator()( const Messages::PlayerMove& message )
 			{
 				// Just restart map in SinglePlayer.
 				ChangeMap( current_map_data_->number, map_->GetDifficulty(), game_rules_ );
+				current_player_->player->SetFrags(0u);
 			}
 			else
 			{
 				// Respawn player without map restart in multiplayer modes.
 				current_player_->player_monster_id= map_->SpawnPlayer( current_player_->player );
+
+				// Save frags from previous player.
+				current_player_->player->SetFrags(frags);
 
 				// Send spawn message.
 				Messages::PlayerSpawn spawn_message;
@@ -539,7 +544,7 @@ void Server::BuildServerStateMessage( Messages::ServerState& message )
 	message.player_count= players_.size();
 	for( unsigned int i= 0u; i < players_.size(); i++ )
 	{
-		message.frags[i]= 0; // TODO count frags.
+		message.frags[i]= players_[i]->player->GetFrags();
 	}
 }
 

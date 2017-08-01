@@ -311,6 +311,17 @@ void Player::Hit(
 		state_= State::DeathAnimation;
 		last_state_change_time_= current_time;
 		map.PlayMonsterSound( monster_id, Sound::PlayerMonsterSoundId::Death );
+
+		if( opponent_id != monster_id ) // If it is not suicide.
+		{
+			const Map::PlayersContainer& players= map.GetPlayers();
+			const auto opponent_it= players.find( opponent_id );
+			if( opponent_it != players.end() )
+			{
+				Player& opponent= *opponent_it->second;
+				opponent.frags_++;
+			}
+		}
 	}
 	else if( ( current_time - last_pain_sound_time_ ).ToSeconds() >= 0.5f )
 	{
@@ -739,6 +750,16 @@ bool Player::HaveBlueKey() const
 unsigned int Player::CurrentWeaponIndex() const
 {
 	return current_weapon_index_;
+}
+
+void Player::SetFrags( const unsigned int frags )
+{
+	frags_= frags;
+}
+
+unsigned int Player::GetFrags() const
+{
+	return frags_;
 }
 
 bool Player::Move( const Time time_delta )
