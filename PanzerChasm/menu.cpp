@@ -3,6 +3,7 @@
 #include "assert.hpp"
 #include "i_menu_drawer.hpp"
 #include "i_text_drawer.hpp"
+#include "map_loader.hpp"
 #include "net/net.hpp"
 #include "settings.hpp"
 #include "shared_drawers.hpp"
@@ -338,7 +339,8 @@ private:
 	};
 	int current_row_= 0;
 
-	unsigned int map_number_= 1u;
+	MapLoader::MapInfo map_info_;
+
 	unsigned int difficulty_= 1u;
 	GameRules game_rules_= GameRules::Deathmatch;
 	bool dedicated_= false;
@@ -354,6 +356,8 @@ NetworkCreateServerMenu::NetworkCreateServerMenu( MenuBase* parent, const Sound:
 {
 	std::snprintf( tcp_port_, sizeof(tcp_port_), "%d", Net::c_default_server_tcp_port );
 	std::snprintf( base_udp_port_, sizeof(base_udp_port_), "%d", Net::c_default_server_udp_base_port );
+
+	map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(0u);
 }
 
 NetworkCreateServerMenu::~NetworkCreateServerMenu()
@@ -364,12 +368,12 @@ void NetworkCreateServerMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
-	const unsigned int size[2]= { 210u, text_draw.GetLineHeight() * Row::NumRows };
+	const unsigned int size[2]= { 306u, text_draw.GetLineHeight() * ( Row::NumRows + 1 ) };
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
-	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
-	const int param_descr_x= x + scale * 110;
-	const int param_x= x + scale * 120;
+	int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );
+	const int param_descr_x= x + scale * 130;
+	const int param_x= x + scale * 140;
 	const int y_step= int(text_draw.GetLineHeight()) * scale;
 
 	menu_drawer.DrawMenuBackground( x, y, size[0] * scale, size[1] * scale );
@@ -385,13 +389,21 @@ void NetworkCreateServerMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_
 		param_descr_x, y + Row::Map * y_step,
 		"map:", scale,
 		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
-	char map_name[ 64 ];
-	std::snprintf( map_name, sizeof(map_name), "map%02d", map_number_ ); // TODO - show real man name here
+
+	char map_name[25 + 3];
+	if( std::snprintf( map_name, 25, "#%02u\n%s", map_info_.number, map_info_.name.c_str() ) >= 25 )
+	{
+		// Gen "..." at the end, if map name is too long.
+		map_name[24]= map_name[25]= map_name[26]= '.';
+		map_name[27]= '\0';
+	}
+
 	text_draw.Print(
 		param_x, y + Row::Map * y_step,
 		map_name, scale,
 		current_row_ == Row::Map ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
+	y+= y_step;
 
 	text_draw.Print(
 		param_descr_x, y + Row::Difficulty * y_step,
@@ -474,11 +486,10 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 		{
 			if( current_row_ == Row::Map )
 			{
-				if( map_number_ > 1u && event.event.key.key_code == KeyCode::Left )
-					map_number_--;
-				else if( map_number_ < 99 && event.event.key.key_code == KeyCode::Right )
-					map_number_++;
-
+				if( event.event.key.key_code == KeyCode::Right )
+					map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number);
+				else if( event.event.key.key_code == KeyCode::Left )
+					map_info_= host_commands_.GetMapLoader()->GetPrevMapInfo(map_info_.number);
 			}
 			if( current_row_ == Row::Difficulty )
 			{
@@ -496,8 +507,8 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 				dedicated_= !dedicated_;
 		}
 
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Map && map_number_ < 99 )
-			map_number_++;
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Map )
+			map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number);
 
 		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Dedicated )
 			dedicated_= !dedicated_;
@@ -520,7 +531,7 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 
 			host_commands_.StartServer(
-				map_number_,
+				map_info_.number,
 				static_cast<DifficultyType>( 1u << difficulty_ ),
 				game_rules_,
 				dedicated_,

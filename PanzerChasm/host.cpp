@@ -130,14 +130,14 @@ Host::Host( const int argc, const char* const* const argv )
 	else
 		Log::Info( "Sound disabled in settings" );
 
+	map_loader_= std::make_shared<MapLoader>( vfs_ );
+
 	Log::Info( "Initialize menu" );
 	menu_.reset(
 		new Menu(
 			*this,
 			shared_drawers_,
 			sound_engine_ ) );
-
-	map_loader_= std::make_shared<MapLoader>( vfs_ );
 }
 
 Host::~Host()
@@ -267,6 +267,11 @@ Settings& Host::GetSettings()
 const SystemWindow* Host::GetSystemWindow()
 {
 	return system_window_.get();
+}
+
+MapLoaderPtr Host::GetMapLoader()
+{
+	return map_loader_;
 }
 
 void Host::Quit()

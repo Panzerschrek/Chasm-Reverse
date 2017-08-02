@@ -13,6 +13,8 @@ namespace PanzerChasm
 namespace
 {
 
+const unsigned int g_max_map_number= 30u;
+
 constexpr unsigned int g_bytes_per_floor_in_file= 86u * MapData::c_floor_texture_size;
 constexpr unsigned int g_floors_file_header_size= 64u;
 
@@ -231,7 +233,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	LoadMonstersAndLights( map_file_content, *result );
 
 	// Scan resource file
-	LoadMapName( resource_file_content, *result );
+	LoadMapName( resource_file_content, result->map_name );
 	LoadSkyTextureName( resource_file_content, *result );
 	LoadModelsDescription( resource_file_content, *result );
 	LoadWallsTexturesDescription( resource_file_content, *result );
@@ -246,6 +248,39 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	// Cache result and return it.
 	result->number= map_number;
 	last_loaded_map_= result;
+	return result;
+}
+
+MapLoader::MapInfo MapLoader::GetNextMapInfo( unsigned int map_number )
+{
+	MapInfo result;
+
+	// TODO - check if there are no maps?
+	do
+	{
+		map_number++;
+		if( map_number > g_max_map_number )
+			map_number= 1u;
+	}
+	while( !GetMapInfoImpl( map_number, result ) );
+
+	return result;
+}
+
+MapLoader::MapInfo MapLoader::GetPrevMapInfo( unsigned int map_number )
+{
+	MapInfo result;
+
+	// TODO - check if there are no maps?
+	do
+	{
+		if( map_number <= 1u )
+			map_number= g_max_map_number;
+		else
+			map_number--;
+	}
+	while( !GetMapInfoImpl( map_number, result ) );
+
 	return result;
 }
 
@@ -463,9 +498,9 @@ void MapLoader::LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData
 	}
 }
 
-void MapLoader::LoadMapName( const Vfs::FileContent& resource_file, MapData& map_data )
+void MapLoader::LoadMapName( const Vfs::FileContent& resource_file, char* const out_map_name )
 {
-	map_data.map_name[0]= '\0';
+	out_map_name[0]= '\0';
 
 	const char* s= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#name" );
 	s+= std::strlen( "#name" );
@@ -474,11 +509,11 @@ void MapLoader::LoadMapName( const Vfs::FileContent& resource_file, MapData& map
 	while( std::isspace(*s) ) s++;
 	s++;
 
-	char* dst= map_data.map_name;
+	char* dst= out_map_name;
 	while(
 		*s != '\0' &&
 		! ( *s == '\n' || *s == '\r' ) &&
-		dst < map_data.map_name + sizeof(map_data.map_name) - 1u )
+		dst < out_map_name + MapData::c_max_map_name_size - 1u )
 	{
 		*dst= *s; dst++; s++;
 	}
@@ -980,6 +1015,28 @@ void MapLoader::LoadModels( MapData& map_data )
 
 		LoadModel_o3( file_content, animation_file_content, map_data.models[m] );
 	} // for models
+}
+
+bool MapLoader::GetMapInfoImpl( const unsigned int map_number, MapInfo& out_map_info )
+{
+	char level_path[ MapData::c_max_file_path_size ];
+	char resource_file_name[ MapData::c_max_file_path_size ];
+
+	std::snprintf( level_path, sizeof(level_path), "LEVEL%02u/", map_number );
+	std::snprintf( resource_file_name, sizeof(resource_file_name), "%sRESOURCE.%02u", level_path, map_number );
+
+	const Vfs::FileContent resource_file_content= vfs_->ReadFile( resource_file_name );
+
+	if( resource_file_content.empty() )
+		return false;
+
+	char map_name[ MapData::c_max_map_name_size ];
+	LoadMapName( resource_file_content, map_name );
+
+	out_map_info.number= map_number;
+	out_map_info.name= map_name;
+
+	return true;
 }
 
 } // namespace PanzerChasm
