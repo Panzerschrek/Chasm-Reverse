@@ -82,6 +82,7 @@ private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
 	void TransmitPlayerName();
+	void CorrectPlayerName();
 
 	void FullMap();
 

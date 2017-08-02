@@ -70,7 +70,8 @@ Client::Client(
 	std::memset( &player_state_, 0, sizeof(player_state_) );
 	std::memset( &server_state_, 0, sizeof(server_state_) );
 
-	player_name_= settings_.GetOrSetString( SettingsKeys::player_name, "unnamed" );
+	CorrectPlayerName();
+	player_name_= settings_.GetString( SettingsKeys::player_name );
 }
 
 Client::~Client()
@@ -335,6 +336,7 @@ void Client::Loop( const InputState& input_state, const bool paused )
 	if( connection_info_ != nullptr )
 	{
 		{ // Send to server new player name, if it changed.
+			CorrectPlayerName();
 			const char* const cur_player_name= settings_.GetString( SettingsKeys::player_name );
 			if( player_name_ != cur_player_name )
 			{
@@ -689,6 +691,15 @@ void Client::TransmitPlayerName()
 	Messages::PlayerName message;
 	std::snprintf( message.name, sizeof(message.name), "%s", player_name_.c_str() );
 	connection_info_->messages_sender.SendReliableMessage( message );
+}
+
+void Client::CorrectPlayerName()
+{
+	// Set player name to "unnamed" if it is empty or not set.
+
+	const char* const name= settings_.GetString( SettingsKeys::player_name );
+	if( std::strlen( name ) == 0 )
+		settings_.SetSetting( SettingsKeys::player_name, "unnamed" );
 }
 
 void Client::FullMap()
