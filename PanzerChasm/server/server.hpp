@@ -36,6 +36,7 @@ public: // Messages handlers
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::DummyNetMessage& ) {}
 	void operator()( const Messages::PlayerMove& message );
+	void operator()( const Messages::PlayerName& message );
 
 private:
 	struct ConnectedPlayer final
@@ -48,6 +49,8 @@ private:
 		ConnectionInfo connection_info;
 		PlayerPtr player;
 		EntityId player_monster_id;
+		std::string name;
+		bool entered_message_printed= false;
 	};
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;
@@ -61,6 +64,9 @@ private:
 
 private:
 	void UpdateTimes();
+	void BuildServerStateMessage( Messages::ServerState& message );
+
+	void AddTextMessage( const char* text );
 
 	void GiveAmmo();
 	void GiveArmor();
@@ -76,6 +82,7 @@ private:
 	const DrawLoadingCallback draw_loading_callback_;
 
 	const Map::MapEndCallback map_end_callback_;
+	const Map::TextMessageCallback text_message_callback_;
 
 	CommandsMapConstPtr commands_;
 
@@ -95,6 +102,8 @@ private:
 
 	TickTime map_ticks_[ c_max_multiple_map_ticks ];
 	unsigned int map_tick_count_;
+
+	std::vector<Messages::DynamicTextMessage> text_massages_;
 
 	// Cheats
 	bool noclip_= false;

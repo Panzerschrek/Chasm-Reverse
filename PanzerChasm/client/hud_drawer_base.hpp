@@ -40,9 +40,15 @@ protected:
 	static constexpr unsigned int c_armor_x_offset= 315u;
 	static constexpr unsigned int c_armor_red_value= 10u;
 
+	static constexpr unsigned int c_netgame_score_digit_width= 12u;
+	static constexpr unsigned int c_netgame_score_digit_width_to_draw= 6u;
+	static constexpr unsigned int c_netgame_score_number_x_offset= 30u;
+	static constexpr unsigned int c_netgame_score_number_y_offset= 3u;
+
 	static const char c_weapon_icons_image_file_name[];
 	static const char c_hud_numbers_image_file_name[];
 	static const char c_hud_background_image_file_name[];
+	static const char c_netgame_score_numbers_image_file_name[];
 
 protected:
 	void CreateCrosshairTexture( unsigned int* out_size, std::vector<unsigned char>& out_data );

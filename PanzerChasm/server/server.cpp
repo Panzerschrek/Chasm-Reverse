@@ -30,6 +30,7 @@ Server::Server(
 	, connections_listener_(connections_listener)
 	, draw_loading_callback_(draw_loading_callback)
 	, map_end_callback_( [this]{ map_end_triggered_= true; } )
+	, text_message_callback_( std::bind( &Server::AddTextMessage, this, std::placeholders::_1 ) )
 	, last_tick_( Time::CurrentTime() )
 	, server_accumulated_time_( Time::FromSeconds(0) )
 {
@@ -66,6 +67,9 @@ void Server::Loop( bool paused )
 	// Accept new connections.
 	while( const IConnectionPtr connection= connections_listener_->GetNewConnection() )
 	{
+		if( players_.size() >= GameConstants::max_players )
+			break; // Server is full. TODO - send message for this conection about this.
+
 		Log::Info( "Client \"", connection->GetConnectionInfo(), "\" connected to server" );
 
 		players_.emplace_back( new ConnectedPlayer( connection, game_resources_, server_accumulated_time_ ) );
@@ -113,6 +117,10 @@ void Server::Loop( bool paused )
 		spawn_message.player_monster_id= connected_player.player_monster_id;
 		connected_player.connection_info.messages_sender.SendReliableMessage( spawn_message );
 
+		Messages::ServerState server_state_message;
+		BuildServerStateMessage( server_state_message );
+		connected_player.connection_info.messages_sender.SendReliableMessage( server_state_message );
+
 		connected_player.connection_info.messages_sender.Flush();
 	}
 
@@ -130,6 +138,8 @@ void Server::Loop( bool paused )
 		if( player->connection_info.connection->Disconnected() )
 		{
 			Log::Info( "Client \"" + player->connection_info.connection->GetConnectionInfo(), "\" disconnected from server" );
+			if( game_rules_ != GameRules::SinglePlayer )
+				AddTextMessage( ( "\"" + player->name + "\" left the game" ).c_str() );
 
 			if( map_ != nullptr )
 				map_->DespawnPlayer( player->player_monster_id );
@@ -172,6 +182,9 @@ void Server::Loop( bool paused )
 	}
 
 	// Send messages
+	Messages::ServerState server_state_message;
+	BuildServerStateMessage( server_state_message );
+
 	for( const ConnectedPlayerPtr& connected_player : players_ )
 	{
 		MessagesSender& messages_sender= connected_player->connection_info.messages_sender;
@@ -184,6 +197,7 @@ void Server::Loop( bool paused )
 		Messages::PlayerSpawn spawn_msg;
 		connected_player->player->BuildPositionMessage( position_msg );
 		connected_player->player->BuildStateMessage( state_msg );
+		state_msg.index= &connected_player - players_.data();
 		connected_player->player->BuildWeaponMessage( weapon_msg );
 
 		if( connected_player->player->BuildSpawnMessage( spawn_msg ) )
@@ -192,15 +206,21 @@ void Server::Loop( bool paused )
 			messages_sender.SendUnreliableMessage( spawn_msg );
 		}
 
+		for( const Messages::DynamicTextMessage& message : text_massages_ )
+			messages_sender.SendReliableMessage( message ); // TODO - maybe unreliable?
+
 		messages_sender.SendUnreliableMessage( position_msg );
 		messages_sender.SendUnreliableMessage( state_msg );
 		messages_sender.SendUnreliableMessage( weapon_msg );
+		messages_sender.SendUnreliableMessage( server_state_message );
 		connected_player->player->SendInternalMessages( messages_sender );
 		messages_sender.Flush();
 	}
 
 	if( map_ != nullptr )
 		map_->ClearUpdateEvents();
+
+	text_massages_.clear();
 
 	// Change map, if needed at end of this loop
 	if( map_end_triggered_ )
@@ -263,7 +283,8 @@ bool Server::ChangeMap(
 			map_data,
 			game_resources_,
 			server_accumulated_time_,
-			map_end_callback_ ) );
+			map_end_callback_,
+			text_message_callback_ ) );
 
 	map_end_triggered_= false;
 	join_first_client_with_existing_player_= false;
@@ -371,7 +392,8 @@ bool Server::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 			map_data,
 			load_stream,
 			game_resources_,
-			map_end_callback_ ) );
+			map_end_callback_,
+			text_message_callback_ ) );
 
 	map_end_triggered_= false;
 	join_first_client_with_existing_player_= true;
@@ -417,18 +439,24 @@ void Server::operator()( const Messages::PlayerMove& message )
 		// Respawn when player press shoot-button.
 		if( message.shoot_pressed && map_ != nullptr )
 		{
+			const unsigned int frags= current_player_->player->GetFrags();
 			map_->DespawnPlayer( current_player_->player_monster_id );
 			current_player_->player= std::make_shared<Player>( game_resources_, server_accumulated_time_ );
+			current_player_->player->SetName( current_player_->name );
 
 			if( game_rules_ == GameRules::SinglePlayer )
 			{
 				// Just restart map in SinglePlayer.
 				ChangeMap( current_map_data_->number, map_->GetDifficulty(), game_rules_ );
+				current_player_->player->SetFrags(0u);
 			}
 			else
 			{
 				// Respawn player without map restart in multiplayer modes.
 				current_player_->player_monster_id= map_->SpawnPlayer( current_player_->player );
+
+				// Save frags from previous player.
+				current_player_->player->SetFrags(frags);
 
 				// Send spawn message.
 				Messages::PlayerSpawn spawn_message;
@@ -440,6 +468,24 @@ void Server::operator()( const Messages::PlayerMove& message )
 	}
 	else
 		current_player_->player->UpdateMovement( message );
+}
+
+void Server::operator()( const Messages::PlayerName& message )
+{
+	PC_ASSERT( current_player_ != nullptr );
+
+	if( !current_player_->name.empty() && current_player_->name != message.name )
+		AddTextMessage( ( "Player \"" + current_player_->name + "\" changed his name to \"" + message.name + "\"" ).c_str() );
+	current_player_->name= message.name;
+	current_player_->player->SetName( current_player_->name );
+
+	// Print message in multiplayer modes after player name recieved.
+	if( game_rules_ != GameRules::SinglePlayer &&
+		!current_player_->entered_message_printed )
+	{
+		AddTextMessage( ( "\"" + current_player_->name + "\" entered the game" ).c_str() );
+		current_player_->entered_message_printed= true;
+	}
 }
 
 void Server::UpdateTimes()
@@ -507,6 +553,25 @@ void Server::UpdateTimes()
 	}
 
 	last_tick_= current_time;
+}
+
+void Server::BuildServerStateMessage( Messages::ServerState& message )
+{
+	PC_ASSERT( players_.size() <= GameConstants::max_players );
+
+	message.map_time_s= 0; // TODO - calculate time.
+	message.game_rules= game_rules_;
+	message.player_count= players_.size();
+	for( unsigned int i= 0u; i < players_.size(); i++ )
+	{
+		message.frags[i]= players_[i]->player->GetFrags();
+	}
+}
+
+void Server::AddTextMessage( const char* const text )
+{
+	text_massages_.emplace_back();
+	std::snprintf( text_massages_.back().text, sizeof(text_massages_.back().text), "%s", text );
 }
 
 void Server::GiveAmmo()

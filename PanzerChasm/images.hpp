@@ -68,6 +68,15 @@ void CreateBriefbarTextureRGBA(
 	std::vector<unsigned char>& out_data_rgba,
 	Size2& out_size );
 
+void CreateNetgameScoreBackgroundTexture(
+	std::vector<unsigned char>& out_data,
+	Size2& out_size );
+
+void CreateNetgameScoreBackgroundTextureRGBA(
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba,
+	Size2& out_size );
+
 void FillAlphaTexelsColorRGBA(
 	unsigned int width, unsigned int height,
 	unsigned char* data );

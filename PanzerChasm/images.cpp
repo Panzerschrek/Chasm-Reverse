@@ -282,6 +282,34 @@ void CreateBriefbarTextureRGBA(
 	}
 }
 
+void CreateNetgameScoreBackgroundTexture(
+	std::vector<unsigned char>& out_data,
+	Size2& out_size )
+{
+	const unsigned char c_color_index= 12u * 16u + 5u;
+	out_size.Width ()= 32u;
+	out_size.Height()= 7u;
+
+	out_data.resize( out_size.Width() * out_size.Height(), c_color_index );
+}
+
+void CreateNetgameScoreBackgroundTextureRGBA(
+	const Palette& palette,
+	std::vector<unsigned char>& out_data_rgba,
+	Size2& out_size )
+{
+	std::vector<unsigned char> data;
+	CreateNetgameScoreBackgroundTexture( data, out_size );
+
+	out_data_rgba.resize( data.size() * 4u );
+	for( unsigned int i= 0u; i < out_size.Width() * out_size.Height(); i++ )
+	{
+		for( unsigned int c= 0u; c < 3u; c++ )
+			out_data_rgba[ i * 4u + c ]= palette[ data[i] * 3u + c ];
+		out_data_rgba[ i * 4u + 3u ]= 255u;
+	}
+}
+
 void FillAlphaTexelsColorRGBA(
 	const unsigned int width, const unsigned int height,
 	unsigned char* const data )

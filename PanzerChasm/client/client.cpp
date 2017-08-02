@@ -68,6 +68,10 @@ Client::Client(
 	commands_processor.RegisterCommands(commands_);
 
 	std::memset( &player_state_, 0, sizeof(player_state_) );
+	std::memset( &server_state_, 0, sizeof(server_state_) );
+
+	CorrectPlayerName();
+	player_name_= settings_.GetString( SettingsKeys::player_name );
 }
 
 Client::~Client()
@@ -178,7 +182,10 @@ void Client::SetConnection( IConnectionPtr connection )
 		StopMap();
 	}
 	else
+	{
 		connection_info_.reset( new ConnectionInfo( connection ) );
+		TransmitPlayerName();
+	}
 }
 
 bool Client::Disconnected() const
@@ -328,22 +335,34 @@ void Client::Loop( const InputState& input_state, const bool paused )
 
 	if( connection_info_ != nullptr )
 	{
-		float move_direction, move_acceleration;
-		camera_controller_.GetAcceleration( input_state.keyboard, move_direction, move_acceleration );
+		{ // Send to server new player name, if it changed.
+			CorrectPlayerName();
+			const char* const cur_player_name= settings_.GetString( SettingsKeys::player_name );
+			if( player_name_ != cur_player_name )
+			{
+				player_name_= cur_player_name;
+				TransmitPlayerName();
+			}
+		}
+		{ // Send move message
+			float move_direction, move_acceleration;
+			camera_controller_.GetAcceleration( input_state.keyboard, move_direction, move_acceleration );
 
-		Messages::PlayerMove message;
-		message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
-		message.move_direction= AngleToMessageAngle( move_direction );
-		message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
-		message.jump_pressed= camera_controller_.JumpPressed();
-		message.weapon_index= requested_weapon_index_;
+			Messages::PlayerMove message;
+			message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
+			message.move_direction= AngleToMessageAngle( move_direction );
+			message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
+			message.jump_pressed= camera_controller_.JumpPressed();
+			message.weapon_index= requested_weapon_index_;
 
-		message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
-		message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
-		message.shoot_pressed= shoot_pressed_;
-		message.color= settings_.GetOrSetInt( SettingsKeys::player_color );
+			message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
+			message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
+			message.shoot_pressed= shoot_pressed_;
+			message.color= settings_.GetOrSetInt( SettingsKeys::player_color );
 
-		connection_info_->messages_sender.SendUnreliableMessage( message );
+			connection_info_->messages_sender.SendUnreliableMessage( message );
+		}
+
 		connection_info_->messages_sender.Flush();
 	}
 }
@@ -423,7 +442,28 @@ void Client::Draw()
 		if( settings_.GetOrSetBool( g_small_hud_mode, false ) )
 			hud_drawer_->DrawSmallHud();
 		else
-			hud_drawer_->DrawHud( minimap_mode_, current_map_data_->map_name );
+		{
+			if( server_state_.game_rules != GameRules::SinglePlayer )
+			{
+				IHudDrawer::NetgameScores netgame_scores;
+				netgame_scores.score_count= server_state_.player_count;
+				netgame_scores.active_score_number= player_state_.index;
+				for( unsigned int i= 0u; i < netgame_scores.score_count; i++ )
+					netgame_scores.scores[i]= server_state_.frags[i];
+
+				hud_drawer_->DrawHud(
+					minimap_mode_,
+					current_map_data_->map_name,
+					&netgame_scores );
+			}
+			else
+			{
+				hud_drawer_->DrawHud(
+					minimap_mode_,
+					current_map_data_->map_name,
+					nullptr );
+			}
+		}
 	}
 }
 
@@ -431,6 +471,17 @@ void Client::operator()( const Messages::MessageBase& message )
 {
 	PC_ASSERT(false);
 	Log::Warning( "Unknown message for server: ", int(message.message_id) );
+}
+
+void Client::operator()( const Messages::ServerState& message )
+{
+	server_state_= message;
+}
+
+void Client::operator()( const Messages::DynamicTextMessage& message )
+{
+	// TODO - check if message text is not null-terminated
+	Log::User( message.text );
 }
 
 void Client::operator()( const Messages::PlayerSpawn& message )
@@ -631,6 +682,24 @@ void Client::TrySwitchWeaponOnOutOfAmmo()
 	}
 
 	requested_weapon_index_= 0u;
+}
+
+void Client::TransmitPlayerName()
+{
+	PC_ASSERT( connection_info_ != nullptr );
+
+	Messages::PlayerName message;
+	std::snprintf( message.name, sizeof(message.name), "%s", player_name_.c_str() );
+	connection_info_->messages_sender.SendReliableMessage( message );
+}
+
+void Client::CorrectPlayerName()
+{
+	// Set player name to "unnamed" if it is empty or not set.
+
+	const char* const name= settings_.GetString( SettingsKeys::player_name );
+	if( std::strlen( name ) == 0 )
+		settings_.SetSetting( SettingsKeys::player_name, "unnamed" );
 }
 
 void Client::FullMap()

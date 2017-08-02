@@ -88,6 +88,11 @@ public:
 
 	unsigned int CurrentWeaponIndex() const;
 
+	void SetFrags( unsigned int frags );
+	unsigned int GetFrags() const;
+
+	void SetName( std::string name );
+
 private:
 	// Returns true, if jumped.
 	bool Move( Time time_delta );
@@ -159,6 +164,9 @@ private:
 
 	unsigned int last_activated_procedure_= ~0u; // Inv zero is dummy.
 	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
+
+	unsigned int frags_= 0u; // Multiplayer only, do not save
+	std::string name_; // Multiplayer only, do not save
 
 	std::vector<Messages::PlayerItemPickup> pickup_messages_;
 	std::vector<Messages::FullscreenBlendEffect> fullscreen_blend_messages_;

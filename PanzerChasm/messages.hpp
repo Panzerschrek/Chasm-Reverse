@@ -24,7 +24,7 @@ enum class MessageId : unsigned char
 namespace Messages
 {
 
-constexpr unsigned int c_protocol_version= 101u; // Increment each time, when protocol changed.
+constexpr unsigned int c_protocol_version= 104u; // Increment each time, when protocol changed.
 
 typedef short CoordType;
 typedef unsigned short AngleType;
@@ -45,6 +45,16 @@ struct DummyNetMessage : public MessageBase
 	DEFINE_MESSAGE_CONSTRUCTOR(DummyNetMessage)
 
 	char filler[7u];
+};
+
+struct ServerState : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(ServerState)
+
+	unsigned char frags[ GameConstants::max_players ];
+	unsigned short map_time_s;
+	unsigned char player_count;
+	GameRules game_rules;
 };
 
 struct MonsterState : public MessageBase
@@ -105,6 +115,7 @@ struct PlayerState : public MessageBase
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
 	bool is_invisible;
 	WeaponsMaskType weapons_mask;
+	unsigned char index; // in ServerState message players list.
 };
 
 struct PlayerWeapon : public MessageBase
@@ -320,6 +331,13 @@ struct TextMessage : public MessageBase
 	unsigned short text_message_number;
 };
 
+struct DynamicTextMessage : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(DynamicTextMessage)
+
+	char text[128];
+};
+
 struct PlayerMove : public MessageBase
 {
 	DEFINE_MESSAGE_CONSTRUCTOR(PlayerMove)
@@ -333,6 +351,13 @@ struct PlayerMove : public MessageBase
 	bool shoot_pressed : 1;
 	bool jump_pressed : 1;
 	unsigned char color : 4;
+};
+
+// Client to server. Transmited, when client renamed.
+struct PlayerName : public MessageBase
+{
+	DEFINE_MESSAGE_CONSTRUCTOR(PlayerName)
+	char name[64u]; // Null-terminated
 };
 
 #undef DEFINE_MESSAGE_CONSTRUCTOR

@@ -29,6 +29,7 @@ public:
 public: // HostCommands
 	virtual Settings& GetSettings() override;
 	virtual const SystemWindow* GetSystemWindow() override;
+	virtual MapLoaderPtr GetMapLoader() override;
 	virtual void Quit() override;
 	virtual void NewGame( DifficultyType difficulty ) override;
 

@@ -299,6 +299,15 @@ public:
 
 	MapDataConstPtr LoadMap( unsigned int map_number );
 
+	struct MapInfo
+	{
+		unsigned int number;
+		std::string name;
+	};
+
+	MapInfo GetNextMapInfo( unsigned int map_number );
+	MapInfo GetPrevMapInfo( unsigned int map_number );
+
 private:
 	typedef std::array< bool, MapData::c_map_size * MapData::c_map_size > DynamicWallsMask;
 
@@ -311,7 +320,7 @@ private:
 	void LoadAmbientSoundsMap( const Vfs::FileContent& map_file, MapData& map_data );
 	void LoadMonstersAndLights( const Vfs::FileContent& map_file, MapData& map_data );
 
-	void LoadMapName( const Vfs::FileContent& resource_file, MapData& map_data );
+	void LoadMapName( const Vfs::FileContent& resource_file, char* out_map_name );
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data );
@@ -328,6 +337,9 @@ private:
 	void MarkDynamicWalls( const MapData& map_data, DynamicWallsMask& out_dynamic_walls );
 
 	void LoadModels( MapData& map_data );
+
+	// Returns false, if failed to load map.
+	bool GetMapInfoImpl( unsigned int map_number, MapInfo& out_map_info );
 
 private:
 	const VfsPtr vfs_;

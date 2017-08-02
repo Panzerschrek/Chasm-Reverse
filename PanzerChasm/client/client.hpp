@@ -53,6 +53,8 @@ public: // Messages handlers
 	// Default handler for non-client messages.
 	void operator()( const Messages::MessageBase& message );
 	void operator()( const Messages::DummyNetMessage& ) {}
+	void operator()( const Messages::ServerState& message );
+	void operator()( const Messages::DynamicTextMessage& message );
 
 	// Handler for messages, that can be simply transfered to "MapState".
 	template<
@@ -79,6 +81,8 @@ public: // Messages handlers
 private:
 	void StopMap();
 	void TrySwitchWeaponOnOutOfAmmo();
+	void TransmitPlayerName();
+	void CorrectPlayerName();
 
 	void FullMap();
 
@@ -93,6 +97,8 @@ private:
 
 	std::unique_ptr<ConnectionInfo> connection_info_;
 
+	std::string player_name_;
+
 	// Client uses real time minus pauses accumulated time.
 	Time current_tick_time_;
 	Time accumulated_pauses_time_= Time::FromSeconds(0);
@@ -103,6 +109,7 @@ private:
 	m_Vec3 player_position_;
 	EntityId player_monster_id_= 0u;
 	Messages::PlayerState player_state_;
+	Messages::ServerState server_state_;
 	unsigned int requested_weapon_index_= 0u;
 	MovementController camera_controller_;
 	bool minimap_mode_= false;

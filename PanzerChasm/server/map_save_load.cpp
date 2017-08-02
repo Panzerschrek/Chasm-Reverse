@@ -183,12 +183,14 @@ Map::Map(
 	const MapDataConstPtr& map_data,
 	LoadStream& load_stream,
 	const GameResourcesConstPtr& game_resources,
-	MapEndCallback map_end_callback )
+	MapEndCallback map_end_callback,
+	TextMessageCallback text_message_callback )
 	: difficulty_(difficulty)
 	, game_rules_(game_rules)
 	, map_data_(map_data)
 	, game_resources_(game_resources)
 	, map_end_callback_( std::move( map_end_callback ) )
+	, text_message_callback_( std::move(text_message_callback) )
 	, random_generator_( std::make_shared<LongRand>() )
 	, collision_index_( map_data )
 {

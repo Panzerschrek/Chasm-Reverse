@@ -89,6 +89,7 @@ struct Difficulty
 
 typedef decltype(Difficulty::Easy) DifficultyType;
 
+// This enum is a part of net protocol. Change protocol version, if this changed.
 enum class GameRules
 {
 	SinglePlayer,

@@ -16,7 +16,10 @@ public:
 	virtual ~HudDrawerSoft() override;
 
 	virtual void DrawCrosshair() override;
-	virtual void DrawHud( bool draw_second_hud, const char* map_name ) override;
+	virtual void DrawHud(
+		bool draw_second_hud,
+		const char* map_name,
+		const NetgameScores* netgame_scores ) override;
 
 private:
 	struct Image
@@ -35,6 +38,8 @@ private:
 	Image weapon_icons_image_;
 	Image hud_numbers_image_;
 	Image hud_background_image_;
+	Image netgame_score_background_image_;
+	Image netgame_scrore_numbers_image_;
 };
 
 } // namespace PanzerChasm

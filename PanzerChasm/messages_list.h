@@ -5,6 +5,7 @@
 
 MESSAGE_FUNC(DummyNetMessage)
 
+MESSAGE_FUNC(ServerState)
 MESSAGE_FUNC(MonsterState)
 MESSAGE_FUNC(WallPosition)
 MESSAGE_FUNC(PlayerSpawn)
@@ -37,8 +38,10 @@ MESSAGE_FUNC(MapChange)
 MESSAGE_FUNC(MonsterBirth)
 MESSAGE_FUNC(MonsterDeath)
 MESSAGE_FUNC(TextMessage)
+MESSAGE_FUNC(DynamicTextMessage)
 
 // Unrealiable client to server
 MESSAGE_FUNC(PlayerMove)
 
 // Reliable client to server
+MESSAGE_FUNC(PlayerName)

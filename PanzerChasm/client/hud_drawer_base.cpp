@@ -13,6 +13,7 @@ namespace PanzerChasm
 const char HudDrawerBase::c_weapon_icons_image_file_name[]= "WICONS.CEL";
 const char HudDrawerBase::c_hud_numbers_image_file_name[]= "BFONT2.CEL";
 const char HudDrawerBase::c_hud_background_image_file_name[]= "STATUS2.CEL";
+const char HudDrawerBase::c_netgame_score_numbers_image_file_name[]= "LFONT2.CEL";
 
 HudDrawerBase::HudDrawerBase(
 	const GameResourcesConstPtr& game_resources,
