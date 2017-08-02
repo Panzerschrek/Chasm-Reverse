@@ -138,6 +138,8 @@ void Server::Loop( bool paused )
 		if( player->connection_info.connection->Disconnected() )
 		{
 			Log::Info( "Client \"" + player->connection_info.connection->GetConnectionInfo(), "\" disconnected from server" );
+			if( game_rules_ != GameRules::SinglePlayer )
+				AddTextMessage( ( "\"" + player->name + "\" left the game" ).c_str() );
 
 			if( map_ != nullptr )
 				map_->DespawnPlayer( player->player_monster_id );
@@ -476,6 +478,14 @@ void Server::operator()( const Messages::PlayerName& message )
 		AddTextMessage( ( "Player \"" + current_player_->name + "\" changed his name to \"" + message.name + "\"" ).c_str() );
 	current_player_->name= message.name;
 	current_player_->player->SetName( current_player_->name );
+
+	// Print message in multiplayer modes after player name recieved.
+	if( game_rules_ != GameRules::SinglePlayer &&
+		!current_player_->entered_message_printed )
+	{
+		AddTextMessage( ( "\"" + current_player_->name + "\" entered the game" ).c_str() );
+		current_player_->entered_message_printed= true;
+	}
 }
 
 void Server::UpdateTimes()

@@ -50,6 +50,7 @@ private:
 		PlayerPtr player;
 		EntityId player_monster_id;
 		std::string name;
+		bool entered_message_printed= false;
 	};
 
 	typedef std::unique_ptr<ConnectedPlayer> ConnectedPlayerPtr;
