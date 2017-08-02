@@ -1,0 +1,4 @@
+language: cpp
+compiler: gcc
+before_install: sudo apt-get install libsdl2-dev
+script: cd PanzerChasm && qmake PanzerChasm.pro && make
