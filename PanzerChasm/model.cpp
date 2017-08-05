@@ -168,7 +168,8 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
 		const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
-		const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+		const bool transparent= ( polygon.flags & Polygon_o3::Flags::Translucent ) != 0;
+		const unsigned char alpha_test_mask= ( transparent || ( (polygon.flags & Polygon_o3::Flags::AlphaTested) != 0 ) ) ? 255 : 0;
 
 		const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
 		unsigned int polygon_index_count= polygon_is_triangle ? 3u : 6u;
@@ -192,9 +193,9 @@ void LoadModel_o3( const Vfs::FileContent& model_file, const Vfs::FileContent& a
 		}
 
 		auto& dst_indeces=
-			(polygon.flags & Polygon_o3::Flags::Translucent ) == 0u
-				? out_model.regular_triangles_indeces
-				: out_model.transparent_triangles_indeces;
+			transparent
+				? out_model.transparent_triangles_indeces
+				: out_model.regular_triangles_indeces;
 
 		dst_indeces.resize( dst_indeces.size() + polygon_index_count );
 		unsigned short* ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
@@ -349,7 +350,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			const bool polygon_is_triangle= polygon.vertices_indeces[3u] >= vertex_count;
 			const bool polygon_is_twosided= ( polygon.flags & Polygon_o3::Flags::Twosided ) != 0u;
 
-			const unsigned char alpha_test_mask= (polygon.flags & Polygon_o3::Flags::AlphaTested) == 0 ? 0 : 255;
+			const bool transparent= ( polygon.flags & Polygon_o3::Flags::Translucent ) != 0;
+			const unsigned char alpha_test_mask= ( transparent || ( (polygon.flags & Polygon_o3::Flags::AlphaTested) != 0 ) ) ? 255 : 0;
 			const unsigned char groups_mask= GroupIdToGroupsMask( polygon.group_id );
 
 			const unsigned int polygon_vertex_count= polygon_is_triangle ? 3u : 4u;
@@ -372,9 +374,9 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 			}
 
 			auto& dst_indeces=
-				(polygon.flags & Polygon_o3::Flags::Translucent ) == 0u
-					? out_submodel.regular_triangles_indeces
-					: out_submodel.transparent_triangles_indeces;
+				transparent
+					? out_submodel.transparent_triangles_indeces
+					: out_submodel.regular_triangles_indeces;
 
 			dst_indeces.resize( dst_indeces.size() + polygon_index_count );
 			unsigned short* ind= dst_indeces.data() + dst_indeces.size() - polygon_index_count;
