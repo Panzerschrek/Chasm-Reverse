@@ -44,9 +44,15 @@ const r_OGLState g_models_gl_state(
 	false, true, true, false,
 	g_gl_state_blend_func );
 
+// Draw transparent models without depth-write.
+// This looks good on static light, but not so good in dynamic light.
 const r_OGLState g_transparent_models_gl_state(
 	true, true, true, false,
-	g_gl_state_blend_func );
+	g_gl_state_blend_func,
+	r_OGLState::default_clear_color,
+	r_OGLState::default_clear_depth,
+	r_OGLState::default_cull_face_mode,
+	false );
 
 const r_OGLState g_sprites_gl_state(
 	true, false, true, false,

@@ -1471,7 +1471,7 @@ void MapDrawerSoft::DrawModel(
 	{
 		draw_func=
 			&Rasterizer::DrawTexturedTriangleSpanCorrected<
-				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+				Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::No,
 				Rasterizer::AlphaTest::No,
 				Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
 				Rasterizer::Lighting::Yes, Rasterizer::Blending::Yes>;
