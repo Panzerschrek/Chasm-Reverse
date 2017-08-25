@@ -274,7 +274,7 @@ private:
 	struct DamageFiledCell
 	{
 		unsigned char damage; // 0 - means no damage
-		unsigned char z_bottom, z_top; // 64 units/m
+		signed char z_bottom, z_top; // 64 units/m
 	};
 
 private:

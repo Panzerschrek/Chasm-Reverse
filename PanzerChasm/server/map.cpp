@@ -1594,6 +1594,10 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			const DamageFiledCell& cell= death_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
 			if( cell.damage > 0u && death_ticks > 0u )
 			{
+				// It looks, like damage field with "z_bottom" == -1 does not damage players.
+				if( monster.MonsterId() == 0u && cell.z_bottom < 0 )
+					continue;
+
 				// TODO - select correct monster height
 				if( !( monster.Position().z > float(cell.z_top) / 64u ||
 					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
@@ -2582,8 +2586,8 @@ void Map::ProcessDeathZone( const MapData::Procedure::ActionCommand& command, co
 		if( activate )
 		{
 			cell.damage= damage;
-			cell.z_bottom= std::max( std::min( z_0, 255 ), 0 );
-			cell.z_top   = std::max( std::min( z_1, 255 ), 0 );
+			cell.z_bottom= std::max( std::min( z_0, 127 ), -128 );
+			cell.z_top   = std::max( std::min( z_1, 127 ), -128 );
 		}
 		else
 			cell.damage= 0u;

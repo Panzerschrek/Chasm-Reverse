@@ -172,8 +172,8 @@ void Map::Save( SaveStream& save_stream ) const
 	for( const DamageFiledCell& damage_field_cell : death_field_ )
 	{
 		save_stream.WriteUInt8( damage_field_cell.damage );
-		save_stream.WriteUInt8( damage_field_cell.z_bottom );
-		save_stream.WriteUInt8( damage_field_cell.z_top );
+		save_stream.WriteInt8( damage_field_cell.z_bottom );
+		save_stream.WriteInt8( damage_field_cell.z_top );
 	}
 }
 
@@ -405,8 +405,8 @@ Map::Map(
 	for( DamageFiledCell& damage_field_cell : death_field_ )
 	{
 		load_stream.ReadUInt8( damage_field_cell.damage );
-		load_stream.ReadUInt8( damage_field_cell.z_bottom );
-		load_stream.ReadUInt8( damage_field_cell.z_top );
+		load_stream.ReadInt8( damage_field_cell.z_bottom );
+		load_stream.ReadInt8( damage_field_cell.z_top );
 	}
 }
 
