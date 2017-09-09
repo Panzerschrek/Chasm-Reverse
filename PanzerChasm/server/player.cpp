@@ -430,24 +430,24 @@ void Player::SetRandomGenerator( const LongRandPtr& random_generator )
 	random_generator_= random_generator;
 }
 
-bool Player::TryActivateProcedure( const unsigned int proc_number, const Time current_time )
+bool Player::TryShowTextMessage( const unsigned int text_message_number, const Time current_time )
 {
-	if( proc_number == last_activated_procedure_ )
+	if( text_message_number == last_printed_text_message_number_ )
 	{
 		// Activate again only after delay.
-		if( current_time - last_activated_procedure_activation_time_ <= Time::FromSeconds(2) )
+		if( current_time - last_printed_text_message_time_ <= Time::FromSeconds(3) )
 			return false;
 	}
 
-	last_activated_procedure_= proc_number;
-	last_activated_procedure_activation_time_= current_time;
+	last_printed_text_message_number_= text_message_number;
+	last_printed_text_message_time_= current_time;
 	return true;
 }
 
-void Player::ResetActivatedProcedure()
+void Player::ResetTextMessagesFilter()
 {
-	last_activated_procedure_= 0u;
-	last_activated_procedure_activation_time_= Time::FromSeconds(0);
+	last_printed_text_message_number_= 0u;
+	last_printed_text_message_time_= Time::FromSeconds(0);
 }
 
 bool Player::TryPickupItem( const unsigned int item_id, const Time current_time )
@@ -644,7 +644,7 @@ void Player::SendInternalMessages( MessagesSender& messages_sender )
 void Player::OnMapChange()
 {
 	have_red_key_= have_green_key_= have_blue_key_= false;
-	last_activated_procedure_= ~0u;
+	last_printed_text_message_number_= ~0u;
 
 	has_invisibility_= false;
 	inviible_in_this_moment_= false;

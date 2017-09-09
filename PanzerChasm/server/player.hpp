@@ -53,8 +53,8 @@ public:
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );
 
-	bool TryActivateProcedure( unsigned int proc_number, Time current_time );
-	void ResetActivatedProcedure();
+	bool TryShowTextMessage( unsigned int text_message_number, Time current_time );
+	void ResetTextMessagesFilter();
 
 	bool TryPickupItem( unsigned int item_id, Time current_time );
 	bool TryPickupBackpack( const Backpack& backpack );
@@ -162,8 +162,8 @@ private:
 	Time last_pain_sound_time_= Time::FromSeconds(0);
 	Time last_step_sound_time_= Time::FromSeconds(0);
 
-	unsigned int last_activated_procedure_= ~0u; // Inv zero is dummy.
-	Time last_activated_procedure_activation_time_= Time::FromSeconds(0);
+	unsigned int last_printed_text_message_number_= ~0u; // Inv zero is dummy.
+	Time last_printed_text_message_time_= Time::FromSeconds(0);
 
 	unsigned int frags_= 0u; // Multiplayer only, do not save
 	std::string name_; // Multiplayer only, do not save

@@ -288,7 +288,7 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 		player->SetPosition( m_Vec3( 0.0f, 0.0f, 4.0f ) );
 
 	player->SetRandomGenerator( random_generator_ );
-	player->ResetActivatedProcedure();
+	player->ResetTextMessagesFilter();
 
 	const EntityId player_id= GetNextMonsterId();
 
@@ -2107,10 +2107,6 @@ void Map::TryActivateProcedure(
 		return;
 	}
 
-	// TODO - make activation filter better.
-	if( !player.TryActivateProcedure( procedure_number, current_time ) )
-		return;
-
 	const bool have_necessary_keys=
 		( !procedure.  red_key_required || player.HaveRedKey() ) &&
 		( !procedure.green_key_required || player.HaveGreenKey() ) &&
@@ -2126,9 +2122,12 @@ void Map::TryActivateProcedure(
 
 		if( procedure.on_message_number != 0u )
 		{
-			Messages::TextMessage text_message;
-			text_message.text_message_number= procedure.on_message_number;
-			messages_sender.SendUnreliableMessage( text_message );
+			if( player.TryShowTextMessage( procedure.on_message_number, current_time ) )
+			{
+				Messages::TextMessage text_message;
+				text_message.text_message_number= procedure.on_message_number;
+				messages_sender.SendUnreliableMessage( text_message );
+			}
 		}
 	} // if activated
 
@@ -2136,19 +2135,25 @@ void Map::TryActivateProcedure(
 	if( procedure.first_message_number != 0u &&
 		!procedure_state.first_message_printed )
 	{
-		procedure_state.first_message_printed= true;
+		if( player.TryShowTextMessage( procedure.first_message_number, current_time ) )
+		{
+			procedure_state.first_message_printed= true;
 
-		Messages::TextMessage text_message;
-		text_message.text_message_number= procedure.first_message_number;
-		messages_sender.SendUnreliableMessage( text_message );
+			Messages::TextMessage text_message;
+			text_message.text_message_number= procedure.first_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
+		}
 	}
 	if( game_rules_ != GameRules::Deathmatch &&
 		procedure.lock_message_number != 0u &&
 		( procedure_state.locked || !have_necessary_keys ) )
 	{
-		Messages::TextMessage text_message;
-		text_message.text_message_number= procedure.lock_message_number;
-		messages_sender.SendUnreliableMessage( text_message );
+		if( player.TryShowTextMessage( procedure.lock_message_number, current_time ) )
+		{
+			Messages::TextMessage text_message;
+			text_message.text_message_number= procedure.lock_message_number;
+			messages_sender.SendUnreliableMessage( text_message );
+		}
 	}
 }
 
