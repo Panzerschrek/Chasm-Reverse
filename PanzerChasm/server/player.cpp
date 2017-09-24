@@ -716,17 +716,29 @@ void Player::GiveArmor()
 
 void Player::GiveRedKey()
 {
-	have_red_key_= true;
+	if( !have_red_key_ )
+	{
+		have_red_key_= true;
+		AddItemPickupFlash();
+	}
 }
 
 void Player::GiveGreenKey()
 {
-	have_green_key_= true;
+	if( !have_green_key_ )
+	{
+		have_green_key_= true;
+		AddItemPickupFlash();
+	}
 }
 
 void Player::GiveBlueKey()
 {
-	have_blue_key_= true;
+	if( !have_blue_key_ )
+	{
+		have_blue_key_= true;
+		AddItemPickupFlash();
+	}
 }
 
 void Player::GiveAllKeys()
