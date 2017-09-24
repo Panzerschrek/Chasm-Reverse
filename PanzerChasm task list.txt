@@ -4,9 +4,12 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [IGROVAJA LOGIKA]
+* Perenos obscöta otryvajemyh castej tel monstrov i ošmötkov na server.
 * Issledovanije raboty vyklücatelej. Vyjasnenije raboty vyklücatelej,
   izmenäjuscih aktivnuju gruppu poligonov. Issledovanije poroždenija
   vyklücatelämi zvukov.
+* Bolevoj šok dlä monstrov, kogda te polucajut uron ot okruženija. Otletanije
+  ošmötkov pri polucenii urona ot okruženija.
 * Sozdanije zon träski po komande "quake" proçedury.
 * Issledovanije rascöta stolknovenij s modelämi v originaljnoj igre.
   Vyjasnenije znacenija parametra "bobj". Pocinka neprohodimosti jolok na urovne
@@ -52,6 +55,7 @@ Zadaci, v çelom, raspoloženy v porädke prioriteta.
 
 
 [ZVUK]
+* Zvuki ot ošmötkov.
 * Issledovatj, kak izlucajetsä zvuk ot proçedur pri nalicii neskoljkih
   parametrov sfxposxy a takže pri nalicii neskoljkih sväzannyh objektov karty.
 * Optimizaçija zagruzki zvukov. V slucaje, kogda v tabliçe zvukov igry ili
