@@ -1,3 +1,5 @@
+sudo: enabled
+dist: trusty
 language: cpp
 compiler: gcc
 before_install: sudo apt-get update; sudo apt-get install libsdl2-dev
