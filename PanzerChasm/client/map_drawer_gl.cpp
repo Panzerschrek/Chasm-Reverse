@@ -92,14 +92,19 @@ SIZE_ASSERT( FloorVertex, 4u );
 struct WallVertex
 {
 	unsigned short xyz[3]; // 8.8 fixed
+	unsigned short pad1;
 	short tex_coord[2]; // 8.8 fixed
 	unsigned char texture_id;
+	unsigned char pad2[3];
 	char normal[2];
+	char pad3[2];
 	unsigned char lightmap_coord[2];
-	unsigned char reserved[1];
+	unsigned char pad4[2];
+	//unsigned char reserved[1];
 };
 
-SIZE_ASSERT( WallVertex, 16u );
+//SIZE_ASSERT( WallVertex, 16u );
+SIZE_ASSERT( WallVertex, 24u );
 
 struct ModelsTexturesPlacement
 {
