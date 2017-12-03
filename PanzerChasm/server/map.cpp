@@ -2111,11 +2111,16 @@ void Map::TryActivateProcedure(
 		( !procedure.  red_key_required || player.HaveRedKey() ) &&
 		( !procedure.green_key_required || player.HaveGreenKey() ) &&
 		( !procedure. blue_key_required || player.HaveBlueKey() );
+	const bool any_key_required= procedure.red_key_required || procedure.green_key_required || procedure. blue_key_required;
+
+	// Really, unlocked, if "locked" flag is set, but procedure requires keys and we have these keys.
+	// Combination of "lock" and "AnyKey" appears only on map #6.
+	const bool really_unlocked= !procedure_state.locked || ( any_key_required && have_necessary_keys );
 
 	if(
 		// Can open if have keys, procedure not locked.
 		// All proceduras are unlocked in deathmatch.
-		( ( have_necessary_keys && !procedure_state.locked ) || game_rules_ == GameRules::Deathmatch ) &&
+		( ( have_necessary_keys && really_unlocked ) || game_rules_ == GameRules::Deathmatch ) &&
 		procedure_state.movement_state == ProcedureState::MovementState::None )
 	{
 		ActivateProcedure( procedure_number, current_time );
