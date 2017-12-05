@@ -35,6 +35,14 @@ static bool StringEquals( const char* const s0, const char* const s1, const unsi
 	return i == max_length || s0[i] == s1[i];
 }
 
+static std::string ToUpper( const std::string& s )
+{
+	std::string r= s;
+	for( char& c : r )
+		c= std::toupper(c);
+	return r;
+}
+
 static const char* ExtractFileName( const char* const file_path )
 {
 	const char* file_name_pos= file_path;
@@ -122,11 +130,20 @@ Vfs::FileContent Vfs::ReadFile( const char* const file_path ) const
 
 void Vfs::ReadFile( const char* const file_path, FileContent& out_file_content ) const
 {
+	const char* const file_name= ExtractFileName( file_path );
+	if( file_name[0] == '\0' )
+	{
+		// Do not load files with empty path.
+		out_file_content.clear();
+		return;
+	}
+
 	// Try read from real file system.
 	if( !addon_path_.empty() )
 	{
-		const std::string fs_file_path= addon_path_ + file_path;
+		const std::string fs_file_path= addon_path_ + ToUpper(file_path); // Use ToUpper, because files in addons are in upper case.
 		std::FILE* const fs_file= std::fopen( fs_file_path.c_str(), "rb" );
+
 		if( fs_file != nullptr )
 		{
 			std::fseek( fs_file, 0, SEEK_END );
@@ -140,8 +157,6 @@ void Vfs::ReadFile( const char* const file_path, FileContent& out_file_content )
 			return;
 		}
 	}
-
-	const char* const file_name= ExtractFileName( file_path );
 
 	// TODO - sort virtual_files_ and use binary search
 	for( const VirtualFile& file : virtual_files_ )
