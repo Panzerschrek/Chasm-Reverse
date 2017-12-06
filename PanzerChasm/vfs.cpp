@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cctype>
 #include <cstring>
 
@@ -141,7 +142,9 @@ void Vfs::ReadFile( const char* const file_path, FileContent& out_file_content )
 	// Try read from real file system.
 	if( !addon_path_.empty() )
 	{
-		const std::string fs_file_path= addon_path_ + ToUpper(file_path); // Use ToUpper, because files in addons are in upper case.
+		std::string fs_file_path= addon_path_ + ToUpper(file_path); // Use ToUpper, because files in addons are in upper case.
+		std::replace(fs_file_path.begin(), fs_file_path.end(), '\\', '/' ); // Change shitty DOS/Windows path separators to universal windows/unix separators.
+
 		std::FILE* const fs_file= std::fopen( fs_file_path.c_str(), "rb" );
 
 		if( fs_file != nullptr )
