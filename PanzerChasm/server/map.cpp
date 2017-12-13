@@ -65,6 +65,12 @@ bool Map::Rocket::HasInfiniteSpeed( const GameResources& game_resources ) const
 	return game_resources.rockets_description[ rocket_type_id ].model_file_name[0] == '\0';
 }
 
+bool Map::Rocket::DealsExplosionDamage( const GameResources& game_resources ) const
+{
+	return !HasInfiniteSpeed( game_resources ) &&
+			game_resources.rockets_description[ rocket_type_id ].explosion_radius > (200.0f / 256.0f);
+}
+
 template<class Func>
 void Map::ProcessElementLinks(
 	const MapData::IndexElement::Type element_type,
@@ -1323,7 +1329,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 		if( hit_result.object_type != HitResult::ObjectType::None )
 			TryWarnMonsters( hit_pos_normal_shifted, current_time );
 
-		const bool process_explosion= !has_infinite_speed;
+		const bool process_explosion= rocket.DealsExplosionDamage(*game_resources_);
 		if( hit_result.object_type != HitResult::ObjectType::None && process_explosion )
 			DoExplosionDamage(
 				hit_result.pos, rocket_description.explosion_radius,

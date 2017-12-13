@@ -201,6 +201,7 @@ private:
 			Time in_start_time );
 
 		bool HasInfiniteSpeed( const GameResources& game_resources ) const;
+		bool DealsExplosionDamage( const GameResources& game_resources ) const;
 
 		// Start parameters
 		Time start_time= Time::FromSeconds(0);
