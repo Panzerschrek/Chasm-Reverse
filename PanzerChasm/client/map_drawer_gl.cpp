@@ -619,6 +619,81 @@ void MapDrawerGL::DrawWeapon(
 	glDepthRange( 0.0f, 1.0f );
 }
 
+void MapDrawerGL::DrawActiveItemIcon(
+	const MapState& map_state,
+	const unsigned int icon_item_id,
+	const unsigned int slot_number )
+{
+	const float scale= ItemIconsParams::scale;
+	const float aspect=
+		float(rendering_context_.viewport_size.Width()) / float(rendering_context_.viewport_size.Height());
+
+	const m_Vec3 pos(
+		( aspect + ItemIconsParams::x_shift + float(slot_number) * ItemIconsParams::x_slot_shift ) * scale,
+		1.0f,
+		ItemIconsParams::y_shift * scale );
+
+	m_Mat4 view_matrix, view_rotate_matrix;
+	view_rotate_matrix.RotateX( Constants::half_pi );
+	view_matrix.Identity();
+	view_matrix[0]= 1.0f / ( aspect * scale );
+	view_matrix[5]= -1.0f / scale;
+
+	view_matrix[10]= 1.0f / 64.0f;
+	view_matrix[14]= -0.95f; // z hack
+
+	view_matrix= view_rotate_matrix * view_matrix;
+
+	items_geometry_data_.Bind();
+	models_shader_.Bind();
+
+	glActiveTexture( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D_ARRAY, items_textures_array_id_ );
+	map_light_.GetFullbrightLightmapDummy().Bind(1);
+	items_animations_.Bind( 2 );
+	models_shader_.Uniform( "tex", int(0) );
+	models_shader_.Uniform( "lightmap", int(1) );
+	models_shader_.Uniform( "animations_vertices_buffer", int(2) );
+
+	m_Mat4 model_matrix, rotation_matrix;
+	m_Mat3 lightmap_matrix;
+	CreateModelMatrices( pos, 0.0f, model_matrix, lightmap_matrix );
+	rotation_matrix.Identity();
+
+	const ModelGeometry& model_geometry= items_geometry_[ icon_item_id ];
+	const Model& model= game_resources_->items_models[ icon_item_id ];
+
+	const unsigned int frame_number=
+		static_cast<unsigned int>(map_state.GetSpritesFrame()) % model.frame_count;
+	const unsigned int first_animation_vertex=
+		model_geometry.first_animations_vertex +
+		model_geometry.animations_vertex_count * frame_number;
+
+	models_shader_.Uniform( "view_matrix", model_matrix * view_matrix );
+	models_shader_.Uniform( "lightmap_matrix", lightmap_matrix );
+	models_shader_.Uniform( "rotation_matrix", rotation_matrix );
+	models_shader_.Uniform( "first_animation_vertex_number", int(first_animation_vertex) );
+
+	for( unsigned int t= 0u; t < 2u; ++t )
+	{
+		const bool transparent= t == 1u;
+		r_OGLStateManager::UpdateState( transparent ? g_transparent_models_gl_state : g_models_gl_state );
+
+		const unsigned int index_count= transparent ? model_geometry.transparent_index_count : model_geometry.index_count;
+		if( index_count == 0u )
+			continue;
+
+		const unsigned int first_index= transparent ? model_geometry.first_transparent_index : model_geometry.first_index;
+
+		glDrawElementsBaseVertex(
+			GL_TRIANGLES,
+			index_count,
+			GL_UNSIGNED_SHORT,
+			reinterpret_cast<void*>( first_index * sizeof(unsigned short) ),
+			model_geometry.first_vertex_index );
+	}
+}
+
 void MapDrawerGL::DoFullscreenPostprocess( const MapState& map_state )
 {
 	m_Vec3 blend_color;

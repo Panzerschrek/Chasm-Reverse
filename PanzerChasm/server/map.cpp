@@ -1268,6 +1268,39 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				hit_result.object_type == HitResult::ObjectType::Floor && hit_result.object_index == 0u )
 				hit_result.object_type= HitResult::ObjectType::None; // Reflecting rockets does not hit floors.
 
+			// Try reflect rocket.
+			if( !has_infinite_speed && hit_result.object_type == HitResult::ObjectType::Monster )
+			{
+				const auto it= players_.find( hit_result.object_index );
+				if( it != players_.end() && it->second->HaveShield() )
+				{
+					rocket.owner_id= it->first;
+					rocket.start_time= current_time;
+					rocket.start_point= rocket.previous_position= hit_result.pos;
+					rocket.track_length= 0.0f;
+
+					// Use direction from player position to hit position as new rocket direction.
+					m_Vec2 reflect_dir= hit_result.pos.xy() - it->second->Position().xy();
+
+					const float dir_to_pos_len= reflect_dir.SquareLength();
+					if( dir_to_pos_len > 0.0f )
+					{
+						const float s= std::sqrt( ( 1.0f - rocket.normalized_direction.z * rocket.normalized_direction.z ) / dir_to_pos_len );
+						rocket.normalized_direction.x= reflect_dir.x * s;
+						rocket.normalized_direction.y= reflect_dir.y * s;
+					}
+					else
+					{
+						rocket.normalized_direction.x= -rocket.normalized_direction.x;
+						rocket.normalized_direction.y= -rocket.normalized_direction.y;
+					}
+
+					// TODO - maybe reflect speed too?
+
+					hit_result.object_type= HitResult::ObjectType::None;
+				}
+			}
+
 			// Emit smoke trail
 			const unsigned int sprite_effect_id=
 				game_resources_->rockets_description[ rocket.rocket_type_id ].smoke_trail_effect_id;

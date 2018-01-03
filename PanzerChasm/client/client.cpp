@@ -423,6 +423,9 @@ void Client::Draw()
 				camera_controller_.GetViewAngleX(),
 				camera_controller_.GetViewAngleZ(),
 				player_state_.is_invisible );
+
+			if( player_state_.show_shield )
+				map_drawer_->DrawActiveItemIcon( *map_state_, GameConstants::shield_item_id, 0u );
 		}
 
 		map_drawer_->DoFullscreenPostprocess( *map_state_ );

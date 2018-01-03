@@ -17,6 +17,7 @@ constexpr unsigned int mega_destroyer_weapon_number= 7u;
 
 constexpr unsigned int backpack_item_id= 0u;
 constexpr unsigned int mine_item_id= 30u;
+constexpr unsigned int shield_item_id= 21u;
 
 // TODO - calibrate mines parameters.
 constexpr float mines_activation_radius= 0.5f;
@@ -38,6 +39,9 @@ constexpr float z_pull_speed= 2.5f;
 
 constexpr float invisibility_time_s= 40.0f; // Time of full visibility.
 constexpr float invisibility_flashing_start_time_s= 30.0f;
+
+constexpr float shield_time_s= 40.0f;
+constexpr float shield_flashing_start_time_s= 30.0f;
 
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;

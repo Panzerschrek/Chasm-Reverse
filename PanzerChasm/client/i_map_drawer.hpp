@@ -38,6 +38,11 @@ public:
 		float x_angle, float z_angle,
 		bool invisibile )= 0;
 
+	virtual void DrawActiveItemIcon(
+		const MapState& map_state,
+		unsigned int icon_item_id,
+		unsigned int slot_number )= 0;
+
 	virtual void DoFullscreenPostprocess( const MapState& map_state )= 0;
 
 	struct MapRelatedModel

@@ -49,6 +49,8 @@ public:
 	virtual unsigned char GetColor() const override;
 	virtual bool IsInvisible() const override;
 
+	bool HaveShield() const;
+
 	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const override;
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );
@@ -158,6 +160,10 @@ private:
 	Time invisibility_take_time_= Time::FromSeconds(0);
 	bool has_invisibility_= false;
 	bool inviible_in_this_moment_= false;
+
+	Time shield_take_time_= Time::FromSeconds(0);
+	bool have_shield_= false;
+	bool shield_visible_in_this_moment_= false;
 
 	Time last_pain_sound_time_= Time::FromSeconds(0);
 	Time last_step_sound_time_= Time::FromSeconds(0);

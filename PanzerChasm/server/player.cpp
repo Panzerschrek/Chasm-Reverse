@@ -78,6 +78,26 @@ void Player::Tick(
 	else
 		inviible_in_this_moment_= false;
 
+	// Process shield
+	if( have_shield_ )
+	{
+		const float shield_time_s= ( current_time - shield_take_time_ ).ToSeconds();
+		if( shield_time_s > GameConstants::shield_time_s )
+		{
+			have_shield_= false;
+			shield_visible_in_this_moment_= false;
+		}
+		else if( shield_time_s >= GameConstants::shield_flashing_start_time_s )
+		{
+			shield_visible_in_this_moment_=
+				( static_cast<int>( 2.0f * ( shield_time_s - GameConstants::shield_flashing_start_time_s ) ) & 1 ) != 0;
+		}
+		else
+			shield_visible_in_this_moment_= true;
+	}
+	else
+		shield_visible_in_this_moment_= false;
+
 	// Process animations.
 	if( state_ == State::Alive )
 	{
@@ -412,6 +432,11 @@ bool Player::IsInvisible() const
 	return state_ != State::Dead && has_invisibility_;
 }
 
+bool Player::HaveShield() const
+{
+	return have_shield_;
+}
+
 void Player::BuildStateMessage( Messages::MonsterState& out_message ) const
 {
 	PositionToMessagePosition( pos_, out_message.xyz );
@@ -510,6 +535,19 @@ bool Player::TryPickupItem( const unsigned int item_id, const Time current_time 
 			has_invisibility_= true;
 			invisibility_take_time_= current_time;
 		}
+		AddItemPickupFlash();
+		return true;
+	}
+	else if( a_code == ACode::Item_Shield )
+	{
+		if( have_shield_ ) // TODO - know, can we pickup second shield or not.
+			shield_take_time_+= Time::FromSeconds( GameConstants::shield_time_s );
+		else
+		{
+			have_shield_= true;
+			shield_take_time_= current_time;
+		}
+		AddItemPickupFlash();
 		return true;
 	}
 	else if( a_code == ACode::Item_Life )
@@ -608,6 +646,7 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 			out_state_message.weapons_mask|= 1 << i;
 
 	out_state_message.is_invisible= inviible_in_this_moment_;
+	out_state_message.show_shield= shield_visible_in_this_moment_;
 }
 
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
