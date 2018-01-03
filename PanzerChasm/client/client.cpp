@@ -64,6 +64,7 @@ Client::Client(
 
 	CommandsMapPtr commands= std::make_shared<CommandsMap>();
 	commands->emplace( "fullmap", std::bind( &Client::FullMap, this ) );
+	commands->emplace( "pos", std::bind( &Client::PrintPlayerPos, this ) );
 	commands_= std::move( commands );
 	commands_processor.RegisterCommands(commands_);
 
@@ -714,6 +715,11 @@ void Client::FullMap()
 		full_map_= true;
 		Log::Info( "FULL MAP IS ON" );
 	}
+}
+
+void Client::PrintPlayerPos()
+{
+	Log::Info( "Pos: ", player_position_.x, ", ", player_position_.y, ", ", player_position_.z );
 }
 
 } // namespace PanzerChasm

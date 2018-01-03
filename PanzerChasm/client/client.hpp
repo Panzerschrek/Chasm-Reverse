@@ -85,6 +85,7 @@ private:
 	void CorrectPlayerName();
 
 	void FullMap();
+	void PrintPlayerPos();
 
 private:
 	Settings& settings_;
