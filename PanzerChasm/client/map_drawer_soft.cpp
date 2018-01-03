@@ -656,46 +656,97 @@ void MapDrawerSoft::DrawActiveItemIcon(
 		-ItemIconsParams::y_shift * scale,
 		1.0f );
 
-	m_Mat4 rotate_mat, view_mat;
+	m_Mat4 shift_mat, rotate_mat, proj_mat, view_mat;
+	shift_mat.Translate( pos );
 	rotate_mat.RotateX( Constants::half_pi );
-	view_mat.Identity();
-	view_mat[0]= 1.0f / ( aspect * scale );
-	view_mat[5]= 1.0f / scale;
+	proj_mat.Identity();
+	proj_mat[0]= 1.0f / ( aspect * scale );
+	proj_mat[5]= 1.0f / scale;
 
-	ViewClipPlanes view_clip_planes;
-	view_clip_planes[0].dist= 0.0f; // front clip plane
-	view_clip_planes[0].normal= m_Vec3( 0.0f, 0.0f, 1.0f );
-	view_clip_planes[1].dist= scale; // upper clip plane
-	view_clip_planes[1].normal= m_Vec3( 0.0f, +1.0f, 0.0f );
-	view_clip_planes[2].dist= scale; // lower clip plane
-	view_clip_planes[2].normal= m_Vec3( 0.0f, -1.0f, 0.0f );
-	view_clip_planes[3].dist= scale * aspect; // left  clip plane
-	view_clip_planes[3].normal= m_Vec3( +1.0f, 0.0f, 0.0f );
-	view_clip_planes[4].dist= scale * aspect; // right clip plane
-	view_clip_planes[4].normal= m_Vec3( -1.0f, 0.0f, 0.0f );
+	view_mat= rotate_mat * shift_mat * proj_mat;
 
-	const m_Vec3 cam_pos( 0.0f, 0.0f, 0.0f );
-	const bool force_transparent_nontransparent_polygons= false;
-	const bool fullbright= true;
+	const Model& model= game_resources_->items_models[ icon_item_id ];
+	const ModelsGroup::ModelEntry& model_entry= items_models_.models[ icon_item_id ];
+	rasterizer_.SetTexture(
+		model_entry.texture_size[0], model_entry.texture_size[1],
+		items_models_.textures_data.data() + model_entry.texture_data_offset );
 
 	const unsigned int frame_number=
 		static_cast<unsigned int>(map_state.GetSpritesFrame()) %
 		game_resources_->items_models[ icon_item_id ].frame_count;
+	const unsigned int first_animation_vertex= model.animations_vertices.size() / model.frame_count * frame_number;
 
-	for( unsigned int t= 0u; t < 2u; ++t )
+	for( unsigned int transparent= 0u; transparent < 2u; ++transparent )
 	{
-		const bool transparent= t == 1u;
+		Rasterizer::TriangleDrawFunc draw_func, alpha_draw_func;
+		if( transparent == 1u )
+		{
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::No,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No, Rasterizer::Blending::Yes, Rasterizer::DepthHack::Yes>;
+			alpha_draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No, Rasterizer::Blending::Yes, Rasterizer::DepthHack::Yes>;
+		}
+		else
+		{
+			draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+			alpha_draw_func=
+				&Rasterizer::DrawTexturedTriangleSpanCorrected<
+					Rasterizer::DepthTest::Yes, Rasterizer::DepthWrite::Yes,
+					Rasterizer::AlphaTest::Yes,
+					Rasterizer::OcclusionTest::No, Rasterizer::OcclusionWrite::No,
+					Rasterizer::Lighting::No, Rasterizer::Blending::No, Rasterizer::DepthHack::Yes>;
+		}
 
-		DrawModel(
-			items_models_, game_resources_->items_models, icon_item_id,
-			frame_number,
-			view_clip_planes,
-			pos, rotate_mat,
-			view_mat, cam_pos,
-			255u,
-			transparent, force_transparent_nontransparent_polygons,
-			fullbright );
-	}
+		const std::vector<unsigned short>& indeces=
+			transparent == 1u ? model.transparent_triangles_indeces : model.regular_triangles_indeces;
+
+		// Rasterize without any clipping, because whole model must be inside viewport.
+		for( unsigned int t= 0u; t < indeces.size(); t+= 3u )
+		{
+			RasterizerVertex verties_projected[3u];
+			for( unsigned int tv= 0u; tv < 3u; tv++ )
+			{
+				const Model::Vertex& vertex= model.vertices[ indeces[t + tv] ];
+				const Model::AnimationVertex& animation_vertex= model.animations_vertices[ first_animation_vertex + vertex.vertex_id ];
+				const m_Vec3 pos= m_Vec3( float(animation_vertex.pos[0]), float(animation_vertex.pos[1]), float(animation_vertex.pos[2]) ) / 2048.0f;
+
+				m_Vec3 vertex_projected= pos * view_mat;
+				const float w= pos.x * view_mat.value[3] + pos.y * view_mat.value[7] + pos.z * view_mat.value[11] + view_mat.value[15];
+
+				vertex_projected/= w;
+				vertex_projected.z= w;
+
+				vertex_projected.x= ( vertex_projected.x + 1.0f ) * screen_transform_x_;
+				vertex_projected.y= ( vertex_projected.y + 1.0f ) * screen_transform_y_;
+
+				RasterizerVertex& out_v= verties_projected[tv];
+				out_v.x= fixed16_t( vertex_projected.x * 65536.0f );
+				out_v.y= fixed16_t( vertex_projected.y * 65536.0f );
+				out_v.u= fixed16_t( vertex.tex_coord[0] * ( float(model.texture_size[0]) * 65536.0f ) );
+				out_v.v= fixed16_t( vertex.tex_coord[1] * ( float(model.texture_size[1]) * 65536.0f ) );
+				out_v.z= fixed16_t( w * 65536.0f );
+			}
+
+			const bool triangle_needs_alpha_test= model.vertices[ indeces[t] ].alpha_test_mask != 0u;
+			if( triangle_needs_alpha_test )
+				(rasterizer_.*alpha_draw_func)( verties_projected );
+			else
+				(rasterizer_.*draw_func)( verties_projected );
+		} // for model triangles
+	} // for transparent and nontransparent
 }
 
 void MapDrawerSoft::DoFullscreenPostprocess( const MapState& map_state )
