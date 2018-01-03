@@ -43,6 +43,11 @@ public:
 		float x_angle, float z_angle,
 		bool invisible ) override;
 
+	virtual void DrawActiveItemIcon(
+		const MapState& map_state,
+		unsigned int icon_item_id ,
+		unsigned int slot_number ) override;
+
 	virtual void DoFullscreenPostprocess( const MapState& map_state ) override;
 
 	virtual void DrawMapRelatedModels(

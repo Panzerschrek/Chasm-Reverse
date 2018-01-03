@@ -619,6 +619,14 @@ void MapDrawerGL::DrawWeapon(
 	glDepthRange( 0.0f, 1.0f );
 }
 
+void MapDrawerGL::DrawActiveItemIcon(
+	const MapState& map_state,
+	const unsigned int icon_item_id,
+	const unsigned int slot_number )
+{
+	// TODO
+}
+
 void MapDrawerGL::DoFullscreenPostprocess( const MapState& map_state )
 {
 	m_Vec3 blend_color;

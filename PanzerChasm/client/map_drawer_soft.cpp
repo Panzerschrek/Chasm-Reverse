@@ -642,6 +642,59 @@ void MapDrawerSoft::DrawWeapon(
 	} // for model triangles
 }
 
+void MapDrawerSoft::DrawActiveItemIcon(
+	const MapState& map_state,
+	unsigned int icon_item_id,
+	unsigned int slot_number )
+{
+	const float scale= 1.5f;
+	const float aspect=
+		float(rendering_context_.viewport_size.Width()) / float(rendering_context_.viewport_size.Height());
+
+	const m_Vec3 pos( ( aspect - 0.3f - float(slot_number) * 0.4f ) * scale, -0.45f * scale, 1.0f );
+
+	m_Mat4 rotate_mat, view_mat;
+	rotate_mat.RotateX( Constants::half_pi );
+	view_mat.Identity();
+	view_mat[0]= 1.0f / ( aspect * scale );
+	view_mat[5]= 1.0f / scale;
+
+	ViewClipPlanes view_clip_planes;
+	view_clip_planes[0].dist= 0.0f; // front clip plane
+	view_clip_planes[0].normal= m_Vec3( 0.0f, 0.0f, 1.0f );
+	view_clip_planes[1].dist= scale; // upper clip plane
+	view_clip_planes[1].normal= m_Vec3( 0.0f, +1.0f, 0.0f );
+	view_clip_planes[2].dist= scale; // lower clip plane
+	view_clip_planes[2].normal= m_Vec3( 0.0f, -1.0f, 0.0f );
+	view_clip_planes[3].dist= scale * aspect; // left  clip plane
+	view_clip_planes[3].normal= m_Vec3( +1.0f, 0.0f, 0.0f );
+	view_clip_planes[4].dist= scale * aspect; // right clip plane
+	view_clip_planes[4].normal= m_Vec3( -1.0f, 0.0f, 0.0f );
+
+	const m_Vec3 cam_pos( 0.0f, 0.0f, 0.0f );
+	const bool force_transparent_nontransparent_polygons= false;
+	const bool fullbright= true;
+
+	const unsigned int frame_number=
+		static_cast<unsigned int>(map_state.GetSpritesFrame()) %
+		 game_resources_->items_models[ icon_item_id ].frame_count;
+
+	for( unsigned int t= 0u; t < 2u; ++t )
+	{
+		const bool transparent= t == 1u;
+
+		DrawModel(
+			items_models_, game_resources_->items_models, icon_item_id,
+			frame_number,
+			view_clip_planes,
+			pos, rotate_mat,
+			view_mat, cam_pos,
+			255u,
+			transparent, force_transparent_nontransparent_polygons,
+			fullbright );
+	}
+}
+
 void MapDrawerSoft::DoFullscreenPostprocess( const MapState& map_state )
 {
 	// Fullscreen blend.

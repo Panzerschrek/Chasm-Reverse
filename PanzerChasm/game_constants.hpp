@@ -17,6 +17,7 @@ constexpr unsigned int mega_destroyer_weapon_number= 7u;
 
 constexpr unsigned int backpack_item_id= 0u;
 constexpr unsigned int mine_item_id= 30u;
+constexpr unsigned int shield_item_id= 21u;
 
 // TODO - calibrate mines parameters.
 constexpr float mines_activation_radius= 0.5f;
