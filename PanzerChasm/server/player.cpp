@@ -530,6 +530,7 @@ bool Player::TryPickupItem( const unsigned int item_id, const Time current_time 
 			has_invisibility_= true;
 			invisibility_take_time_= current_time;
 		}
+		AddItemPickupFlash();
 		return true;
 	}
 	else if( a_code == ACode::Item_Shield )
@@ -541,6 +542,7 @@ bool Player::TryPickupItem( const unsigned int item_id, const Time current_time 
 			have_shield_= true;
 			shield_take_time_= current_time;
 		}
+		AddItemPickupFlash();
 		return true;
 	}
 	else if( a_code == ACode::Item_Life )
