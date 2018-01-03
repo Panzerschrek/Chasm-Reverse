@@ -15,6 +15,16 @@ constexpr unsigned int g_max_wall_texture_width= 128u;
 const m_Vec3 g_weapon_shift= m_Vec3( 0.2f, 0.7f, -0.45f );
 const m_Vec3 g_weapon_change_shift= m_Vec3( 0.0f, -0.9f, 0.0f );
 
+namespace ItemIconsParams
+{
+
+constexpr float scale= 1.5f;
+constexpr float x_shift= -0.3f;
+constexpr float x_slot_shift= -0.4f;
+constexpr float y_shift= 0.45f;
+
+}
+
 void SortEffectsSprites(
 	const MapState::SpriteEffects& effects_sprites,
 	const m_Vec3& camera_position,

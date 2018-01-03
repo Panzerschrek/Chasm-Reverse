@@ -647,11 +647,14 @@ void MapDrawerSoft::DrawActiveItemIcon(
 	unsigned int icon_item_id,
 	unsigned int slot_number )
 {
-	const float scale= 1.5f;
+	const float scale= ItemIconsParams::scale;
 	const float aspect=
 		float(rendering_context_.viewport_size.Width()) / float(rendering_context_.viewport_size.Height());
 
-	const m_Vec3 pos( ( aspect - 0.3f - float(slot_number) * 0.4f ) * scale, -0.45f * scale, 1.0f );
+	const m_Vec3 pos(
+		( aspect + ItemIconsParams::x_shift + float(slot_number) * ItemIconsParams::x_slot_shift ) * scale,
+		-ItemIconsParams::y_shift * scale,
+		1.0f );
 
 	m_Mat4 rotate_mat, view_mat;
 	rotate_mat.RotateX( Constants::half_pi );
@@ -677,7 +680,7 @@ void MapDrawerSoft::DrawActiveItemIcon(
 
 	const unsigned int frame_number=
 		static_cast<unsigned int>(map_state.GetSpritesFrame()) %
-		 game_resources_->items_models[ icon_item_id ].frame_count;
+		game_resources_->items_models[ icon_item_id ].frame_count;
 
 	for( unsigned int t= 0u; t < 2u; ++t )
 	{
