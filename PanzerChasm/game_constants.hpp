@@ -39,6 +39,9 @@ constexpr float z_pull_speed= 2.5f;
 constexpr float invisibility_time_s= 40.0f; // Time of full visibility.
 constexpr float invisibility_flashing_start_time_s= 30.0f;
 
+constexpr float shield_time_s= 40.0f;
+constexpr float shield_flashing_start_time_s= 30.0f;
+
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;
 constexpr float mortal_walls_damage_per_second= 750.0f;

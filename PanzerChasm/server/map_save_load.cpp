@@ -517,6 +517,9 @@ void Player::Save( SaveStream& save_stream )
 	save_stream.WriteTime( invisibility_take_time_ );
 	save_stream.WriteBool( has_invisibility_ );
 	save_stream.WriteBool( inviible_in_this_moment_ );
+	save_stream.WriteTime( shield_take_time_ );
+	save_stream.WriteBool( have_shield_ );
+	save_stream.WriteBool( shield_visible_in_this_moment_ );
 	save_stream.WriteTime( last_pain_sound_time_ );
 	save_stream.WriteTime( last_step_sound_time_ );
 }
@@ -562,6 +565,9 @@ Player::Player( const GameResourcesConstPtr& game_resources, LoadStream& load_st
 	load_stream.ReadTime( invisibility_take_time_ );
 	load_stream.ReadBool( has_invisibility_ );
 	load_stream.ReadBool( inviible_in_this_moment_ );
+	load_stream.ReadTime( shield_take_time_ );
+	load_stream.ReadBool( have_shield_ );
+	load_stream.ReadBool( shield_visible_in_this_moment_ );
 	load_stream.ReadTime( last_pain_sound_time_ );
 	load_stream.ReadTime( last_step_sound_time_ );
 }
