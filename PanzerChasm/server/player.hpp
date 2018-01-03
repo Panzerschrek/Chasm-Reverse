@@ -49,6 +49,8 @@ public:
 	virtual unsigned char GetColor() const override;
 	virtual bool IsInvisible() const override;
 
+	bool HaveShield() const;
+
 	virtual void BuildStateMessage( Messages::MonsterState& out_message ) const override;
 
 	void SetRandomGenerator( const LongRandPtr& random_generator );

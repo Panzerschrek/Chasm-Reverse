@@ -432,6 +432,11 @@ bool Player::IsInvisible() const
 	return state_ != State::Dead && has_invisibility_;
 }
 
+bool Player::HaveShield() const
+{
+	return have_shield_;
+}
+
 void Player::BuildStateMessage( Messages::MonsterState& out_message ) const
 {
 	PositionToMessagePosition( pos_, out_message.xyz );
