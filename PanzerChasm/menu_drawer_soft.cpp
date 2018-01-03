@@ -185,7 +185,7 @@ void MenuDrawerSoft::DrawMenuBackground(
 	const auto toned_texel_fetch=
 	[&]( const int x, const int y, const unsigned char tone ) -> uint32_t
 	{
-		PC_ASSERT( x >= 0 && y < int(rendering_context_.viewport_size.Width()) );
+		PC_ASSERT( x >= 0 && x < int(rendering_context_.viewport_size.Width()) );
 		PC_ASSERT( y >= 0 && y < int(rendering_context_.viewport_size.Height()) );
 		const int tc_y= y / int(menu_scale_);
 		const int tc_y_warped= tc_y & 63;
