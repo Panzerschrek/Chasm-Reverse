@@ -963,8 +963,26 @@ void Map::ProcessPlayerPosition(
 
 		if( item.picked_up && game_rules_ == GameRules::Deathmatch )
 		{
+			float respawn_time_s= GameConstants::ammo_respawn_time_s;
+			if( item.item_id < game_resources_->items_description.size() )
+			{
+				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
+
+				if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
+					respawn_time_s= GameConstants::weapoons_respawn_time_s;
+				else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
+					respawn_time_s= GameConstants::ammo_respawn_time_s;
+				else if( a_code == ACode::Item_chojin || a_code == ACode::Item_Shield || a_code == ACode::Item_Invisibility )
+					respawn_time_s= GameConstants::powerups_respawn_time_s;
+				else if( a_code == ACode::Item_Life )
+					respawn_time_s= GameConstants::health_respawn_time_s;
+				else if( a_code == ACode::Item_BigLife )
+					respawn_time_s= GameConstants::mega_health_respawn_time_s;
+				else if( a_code == ACode::Item_Armor || a_code == ACode::Item_Helmet )
+					respawn_time_s= GameConstants::armor_respawn_time_s;
+			}
+
 			const float time_since_picked_up_s= ( current_time - item.pick_up_time ).ToSeconds();
-			const float respawn_time_s= 60.0f; // TODO - select correct respawn time for each item.
 			if( time_since_picked_up_s >= respawn_time_s )
 			{
 				// Respawn item.

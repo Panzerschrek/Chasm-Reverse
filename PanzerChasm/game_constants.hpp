@@ -43,6 +43,13 @@ constexpr float invisibility_flashing_start_time_s= 30.0f;
 constexpr float shield_time_s= 40.0f;
 constexpr float shield_flashing_start_time_s= 30.0f;
 
+constexpr float ammo_respawn_time_s= 40.0f;
+constexpr float weapoons_respawn_time_s= 40.0f;
+constexpr float armor_respawn_time_s= 60.0f;
+constexpr float health_respawn_time_s= 40.0f;
+constexpr float mega_health_respawn_time_s= 120.0f;
+constexpr float powerups_respawn_time_s= 120.0f;
+
 // Ticks in second, when monsters recieve damage from death zones.
 constexpr float death_ticks_per_second= 3.0f;
 constexpr float mortal_walls_damage_per_second= 750.0f;
