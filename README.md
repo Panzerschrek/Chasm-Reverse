@@ -12,5 +12,5 @@ For PanzerChasm on Windows you need set path to SDL2 headers/libs in PanzerChasm
 Attention: do not forget update submodules before build!
 
 ### Authors
-Copyright © 2016-2017 Artöm "Panzerscrek" Kunz.  
+Copyright © 2016-2018 Artöm "Panzerscrek" Kunz.
 License: GNU GPL v3, http://www.gnu.org/licenses/gpl-3.0-standalone.html.

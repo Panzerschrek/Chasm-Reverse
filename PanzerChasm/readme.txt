@@ -35,4 +35,4 @@ PanzerChasm.exe.
 -------------------------------------АВТОРЫ-------------------------------------
 
 Исходный код доступен по адресу https://github.com/Panzerschrek/Chasm-Reverse
-Copyright © 2016-2017 Artöm "Panzerscrek" Kunz.
+Copyright © 2016-2018 Artöm "Panzerscrek" Kunz.
