@@ -165,6 +165,10 @@ private:
 	bool have_shield_= false;
 	bool shield_visible_in_this_moment_= false;
 
+	Time chojin_take_time_= Time::FromSeconds(0);
+	bool have_chojin_= false;
+	bool chojin_visible_in_this_moment_= false;
+
 	Time last_pain_sound_time_= Time::FromSeconds(0);
 	Time last_step_sound_time_= Time::FromSeconds(0);
 

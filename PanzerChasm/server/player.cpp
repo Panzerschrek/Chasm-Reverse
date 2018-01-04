@@ -98,6 +98,26 @@ void Player::Tick(
 	else
 		shield_visible_in_this_moment_= false;
 
+	// Process chojin
+	if( have_chojin_ )
+	{
+		const float chojin_time_s= ( current_time - chojin_take_time_ ).ToSeconds();
+		if( chojin_time_s > GameConstants::chojin_time_s )
+		{
+			have_chojin_= false;
+			chojin_visible_in_this_moment_= false;
+		}
+		else if( chojin_time_s >= GameConstants::chojin_flashing_start_time_s )
+		{
+			chojin_visible_in_this_moment_=
+				( static_cast<int>( 2.0f * ( chojin_time_s - GameConstants::chojin_flashing_start_time_s ) ) & 1 ) != 0;
+		}
+		else
+			chojin_visible_in_this_moment_= true;
+	}
+	else
+		chojin_visible_in_this_moment_= false;
+
 	// Process animations.
 	if( state_ == State::Alive )
 	{
@@ -310,8 +330,6 @@ void Player::Hit(
 	if( state_ != State::Alive )
 		return;
 
-	// TODO - in original game damage is bigger or smaller, sometimes. Know, why.
-
 	// Armor absorbess all damage and gives 1/4 of absorbed damage to health.
 	int armor_damage= damage;
 	if( armor_damage > armor_ )
@@ -319,7 +337,8 @@ void Player::Hit(
 
 	int health_damage= ( damage - armor_damage ) + armor_damage / 4;
 
-	if( !god_mode_ )
+	// TODO - know exactly how choijn works.
+	if( !( god_mode_ || have_chojin_ ) )
 	{
 		armor_-= armor_damage;
 		health_-= health_damage;
@@ -550,6 +569,18 @@ bool Player::TryPickupItem( const unsigned int item_id, const Time current_time 
 		AddItemPickupFlash();
 		return true;
 	}
+	else if( a_code == ACode::Item_chojin )
+	{
+		if( have_chojin_ ) // TODO - know, can we pickup second chojin or not.
+			chojin_take_time_+= Time::FromSeconds( GameConstants::chojin_time_s );
+		else
+		{
+			have_chojin_= true;
+			chojin_take_time_= current_time;
+		}
+		AddItemPickupFlash();
+		return true;
+	}
 	else if( a_code == ACode::Item_Life )
 	{
 		if( health_ < GameConstants::player_nominal_health )
@@ -647,6 +678,7 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 
 	out_state_message.is_invisible= inviible_in_this_moment_;
 	out_state_message.show_shield= shield_visible_in_this_moment_;
+	out_state_message.show_chojin= chojin_visible_in_this_moment_;
 }
 
 void Player::BuildWeaponMessage( Messages::PlayerWeapon& out_weapon_message ) const
