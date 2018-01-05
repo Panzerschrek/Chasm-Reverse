@@ -146,6 +146,8 @@ Host::~Host()
 
 bool Host::Loop()
 {
+	const Time tick_start_time= Time::CurrentTime();
+
 	// Events processing
 	InputState input_state;
 	if( system_window_ != nullptr )
@@ -253,6 +255,14 @@ bool Host::Loop()
 
 		system_window_->EndFrame();
 	}
+
+
+	// Try sleep just a bit, if we run too fast.
+	const Time tick_end_time= Time::CurrentTime();
+	const double tick_duration_ms= ( tick_end_time - tick_start_time ).ToSeconds() * 1000.0f;
+	const float c_min_acceptable_tick_duration_ms= 5.0f;
+	if( tick_duration_ms < 0.9f * c_min_acceptable_tick_duration_ms )
+		SDL_Delay( static_cast<Uint32>( std::max( c_min_acceptable_tick_duration_ms - tick_duration_ms, 1.0 ) ) );
 
 	loops_counter_.Tick();
 
