@@ -28,6 +28,7 @@ public:
 	explicit SystemWindow( Settings& settings );
 	~SystemWindow();
 
+	bool IsMinimized() const;
 	bool IsOpenGLRenderer() const;
 	Size2 GetViewportSize() const;
 	const DispaysVideoModes& GetSupportedVideoModes() const;

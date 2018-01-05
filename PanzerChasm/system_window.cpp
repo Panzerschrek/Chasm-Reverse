@@ -453,6 +453,11 @@ SystemWindow::~SystemWindow()
 	SDL_QuitSubSystem( SDL_INIT_VIDEO );
 }
 
+bool SystemWindow::IsMinimized() const
+{
+	return ( SDL_GetWindowFlags( window_ ) & SDL_WINDOW_MINIMIZED ) != 0;
+}
+
 bool SystemWindow::IsOpenGLRenderer() const
 {
 	return gl_context_ != nullptr && !use_gl_context_for_software_renderer_;

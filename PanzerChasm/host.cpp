@@ -214,7 +214,7 @@ bool Host::Loop()
 	}
 
 	// Draw operations
-	if( system_window_ )
+	if( system_window_ && !system_window_->IsMinimized() )
 	{
 		system_window_->BeginFrame();
 
