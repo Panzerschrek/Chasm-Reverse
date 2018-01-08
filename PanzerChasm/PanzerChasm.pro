@@ -39,6 +39,7 @@ SOURCES+= \
 	client/client.cpp \
 	client/cutscene_player.cpp \
 	client/cutscene_script.cpp \
+	client/demo_recorder.cpp \
 	client/hud_drawer_base.cpp \
 	client/hud_drawer_gl.cpp \
 	client/hud_drawer_soft.cpp \
@@ -114,6 +115,7 @@ HEADERS+= \
 	client/client.hpp \
 	client/cutscene_player.hpp \
 	client/cutscene_script.hpp \
+	client/demo_recorder.hpp \
 	client/fwd.hpp \
 	client/i_hud_drawer.hpp \
 	client/i_map_drawer.hpp \
