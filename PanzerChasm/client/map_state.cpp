@@ -170,11 +170,20 @@ void MapState::Tick( const Time current_time )
 
 	for( Item& item : items_ )
 	{
-		const unsigned int animation_frame=
-			static_cast<unsigned int>( std::round( GameConstants::animations_frames_per_second * time_since_map_start_s ) );
-
 		if( item.item_id < game_resources_->items_models.size() )
-			item.animation_frame= animation_frame % game_resources_->items_models[ item.item_id ].frame_count;
+		{
+			const unsigned int frame_count= game_resources_->items_models[ item.item_id ].frame_count;
+			if( frame_count > 1u )
+			{
+				// I don't know why, but in original game first and last frames of looped animations are same.
+				// So, just skip last frame.
+				const unsigned int animation_frame=
+					static_cast<unsigned int>( GameConstants::animations_frames_per_second * time_since_map_start_s );
+				item.animation_frame= animation_frame % ( game_resources_->items_models[ item.item_id ].frame_count - 1u );
+			}
+			else
+				item.animation_frame= 0u;
+		}
 		else
 			item.animation_frame= 0;
 	}

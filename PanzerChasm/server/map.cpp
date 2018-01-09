@@ -1164,8 +1164,15 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				const Model& model_geometry= map_data_->models[ model.model_id ];
 
-				model.current_animation_frame=
-					static_cast<unsigned int>( std::round(animation_frame) ) % model_geometry.frame_count;
+				if( model_geometry.frame_count > 1u )
+				{
+					// I don't know why, but in original game first and last frames of looped animations are same.
+					// So, just skip last frame.
+					model.current_animation_frame=
+						static_cast<unsigned int>( animation_frame ) % ( model_geometry.frame_count - 1u );
+				}
+				else
+					model.current_animation_frame= 0u;
 			}
 			else
 				model.current_animation_frame= 0u;
@@ -1176,7 +1183,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			{
 				const Model& model_geometry= map_data_->models[ model.model_id ];
 
-				const unsigned int animation_frame_integer= static_cast<unsigned int>( std::round(animation_frame) );
+				const unsigned int animation_frame_integer= static_cast<unsigned int>( animation_frame );
 				if( animation_frame_integer >= model_geometry.frame_count - 1u )
 				{
 					model.animation_state= StaticModel::AnimationState::SingleFrame;
@@ -1193,7 +1200,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( model.model_id < map_data_->models.size() )
 			{
 				const int animation_frame_integer=
-					int(model.animation_start_frame) - static_cast<int>( std::round(animation_frame) );
+					int(model.animation_start_frame) - static_cast<int>( animation_frame );
 				if( animation_frame_integer <= 0 )
 				{
 					model.animation_state= StaticModel::AnimationState::SingleFrame;
