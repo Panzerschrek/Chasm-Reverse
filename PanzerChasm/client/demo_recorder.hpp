@@ -1,6 +1,7 @@
 #pragma once
-#include "messages_extractor.hpp"
 #include "../Common/files.hpp"
+#include "../messages_extractor.hpp"
+#include "../time.hpp"
 
 namespace PanzerChasm
 {
@@ -26,6 +27,7 @@ private:
 private:
 	std::FILE* const file_;
 	MessagesExtractor& messages_extractor_;
+	const Time start_time_;
 };
 
 // Inline stuff. TODO - mowe it to separate file.
@@ -43,7 +45,7 @@ public:
 	void operator()( const Message& message )
 	{
 		external_messages_handler_(message);
-		FileWrite( file_, &message, sizeof(Message) );
+		ChasmReverse::FileWrite( file_, &message, sizeof(Message) );
 	}
 
 private:
@@ -57,7 +59,7 @@ void DemoRecorder::ProcessMessages( MessagesHandler& messages_handler )
 	BeginFrame();
 
 	InternalHandler<MessagesHandler> internal_handler( file_, messages_handler );
-	messages_handler.ProcessMessages( internal_handler );
+	messages_extractor_.ProcessMessages( internal_handler );
 
 	EndFrame();
 }

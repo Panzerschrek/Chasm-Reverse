@@ -13,4 +13,6 @@ struct MapBSPTree;
 class CutscenePlayer;
 class MovementController;
 
+class DemoRecorder;
+
 } // namespace PanzerChasm

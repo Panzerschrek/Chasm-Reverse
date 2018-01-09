@@ -13,6 +13,7 @@
 #include "../sound/sound_engine.hpp"
 #include "../sound/sound_id.hpp"
 #include "cutscene_player.hpp"
+#include "demo_recorder.hpp"
 #include "i_hud_drawer.hpp"
 #include "i_map_drawer.hpp"
 #include "i_minimap_drawer.hpp"
@@ -65,6 +66,8 @@ Client::Client(
 	CommandsMapPtr commands= std::make_shared<CommandsMap>();
 	commands->emplace( "fullmap", std::bind( &Client::FullMap, this ) );
 	commands->emplace( "pos", std::bind( &Client::PrintPlayerPos, this ) );
+	commands->emplace( "demostart", std::bind( &Client::DemoStart, this, std::placeholders::_1 ) );
+	commands->emplace( "demostop", std::bind( &Client::DemoStop, this ) );
 	commands_= std::move( commands );
 	commands_processor.RegisterCommands(commands_);
 
@@ -177,6 +180,8 @@ void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
 
 void Client::SetConnection( IConnectionPtr connection )
 {
+	DemoStop();
+
 	if( connection == nullptr )
 	{
 		connection_info_= nullptr;
@@ -276,7 +281,12 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		if( connection_info_->connection->Disconnected() )
 			StopMap();
 		else
-			connection_info_->messages_extractor.ProcessMessages( *this );
+		{
+			if( demo_recorder_ != nullptr )
+				demo_recorder_->ProcessMessages( *this ); // Demo recorder works as proxy for messages.
+			else
+				connection_info_->messages_extractor.ProcessMessages( *this );
+		}
 	}
 
 	if( cutscene_player_ != nullptr )
@@ -725,6 +735,30 @@ void Client::FullMap()
 void Client::PrintPlayerPos()
 {
 	Log::Info( "Pos: ", player_position_.x, ", ", player_position_.y, ", ", player_position_.z );
+}
+
+void Client::DemoStart( const CommandsArguments& arguments )
+{
+	if( arguments.empty() )
+	{
+		Log::Info( "Expected demo name" );
+		return;
+	}
+	if( connection_info_ == nullptr )
+	{
+		Log::Info( "Not connected to server" );
+		return;
+	}
+
+	DemoStop(); // We need to stop previous demo before starting new
+
+	const std::string& demo_file_name= arguments.front();
+	demo_recorder_.reset( new DemoRecorder( demo_file_name.c_str(), connection_info_->messages_extractor ) );
+}
+
+void Client::DemoStop()
+{
+	demo_recorder_.reset();
 }
 
 } // namespace PanzerChasm

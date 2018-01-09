@@ -87,6 +87,9 @@ private:
 	void FullMap();
 	void PrintPlayerPos();
 
+	void DemoStart( const CommandsArguments& arguments );
+	void DemoStop();
+
 private:
 	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;
@@ -131,6 +134,7 @@ private:
 	IHudDrawerPtr hud_drawer_;
 
 	std::unique_ptr<CutscenePlayer> cutscene_player_;
+	std::unique_ptr<DemoRecorder> demo_recorder_;
 };
 
 } // PanzerChasm
