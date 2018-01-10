@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdio>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 namespace PanzerChasm
@@ -21,12 +22,25 @@ public:
 private:
 	struct VirtualFile
 	{
-		char name[12]; // null terminated for names with length (1-11)
 		unsigned int offset;
 		unsigned int size;
 	};
 
-	typedef std::vector<VirtualFile> VirtualFiles;
+	struct VurtualFileName
+	{
+		char text[12u]; // null terminated for names with length (1-11)
+
+		VurtualFileName( const char* in_text );
+		VurtualFileName( const char* in_text, size_t size );
+		bool operator==( const VurtualFileName& other ) const;
+	};
+
+	struct VurtualFileNameHasher
+	{
+		size_t operator()( const VurtualFileName& name ) const;
+	};
+
+	typedef std::unordered_map< VurtualFileName, VirtualFile, VurtualFileNameHasher > VirtualFiles;
 
 private:
 	std::FILE* const archive_file_;
