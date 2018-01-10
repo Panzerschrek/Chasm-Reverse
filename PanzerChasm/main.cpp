@@ -27,7 +27,7 @@ extern "C" int main( int argc, char *argv[] )
 	static const char c_exit_screen_text[]=
 R"(
                                   PanzerChasm
-                    (c) 2016-2017 Artjom "Panzerschrek" Kunz
+                    (c) 2016-2018 Artjom "Panzerschrek" Kunz
 --------------------------------------------------------------------------------
                                 CHASM - The Rift
                       (C) Megamedia Corp, Action Forms Ltd.
