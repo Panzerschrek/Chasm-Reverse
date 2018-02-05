@@ -1,6 +1,5 @@
-sudo: enabled
 dist: trusty
+addons: { apt: { packages: libsdl2-dev } }
 language: cpp
 compiler: gcc
-before_install: sudo apt-get update; sudo apt-get install libsdl2-dev
 script: cd PanzerChasm && qmake PanzerChasm.pro && make
