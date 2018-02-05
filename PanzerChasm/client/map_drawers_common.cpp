@@ -25,7 +25,7 @@ void SortEffectsSprites(
 		{
 			const m_Vec3 dir_a= camera_position - a->pos;
 			const m_Vec3 dir_b= camera_position - b->pos;
-			return dir_a.SquareLength() >= dir_b.SquareLength();
+			return dir_a.SquareLength() > dir_b.SquareLength();
 		});
 }
 
