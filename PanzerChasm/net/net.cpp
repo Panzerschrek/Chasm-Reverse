@@ -3,6 +3,9 @@
 #include <vector>
 
 #ifdef _WIN32
+#ifdef _MSC_VER
+#define NOMINMAX
+#endif // _MSC_VER
 #include <winsock2.h>
 #else
 
