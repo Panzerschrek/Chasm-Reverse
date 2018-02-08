@@ -1,0 +1,47 @@
+version: "{build}"
+
+branches:
+  except:
+    - /^travis.*$/
+
+cache:
+  - SDL2-devel-2.0.7-VC.zip
+
+install:
+  - set SDL2_PACKAGE=SDL2-devel-2.0.7-VC.zip
+  - if not exist %SDL2_PACKAGE%
+    appveyor DownloadFile https://libsdl.org/release/%SDL2_PACKAGE%
+  - 7z x -y %SDL2_PACKAGE%
+
+environment:
+  SDL2_PACKAGE: 
+  matrix:
+    - GENERATOR: "Visual Studio 14 2015"
+      CONFIGURATION: Debug
+      TOOLSET: v140_xp
+      APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2015"
+    - GENERATOR: "Visual Studio 14 2015 Win64"
+      CONFIGURATION: Release
+      TOOLSET: v140_xp
+      APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2015"
+    - GENERATOR: "Visual Studio 15 2017"
+      CONFIGURATION: Release
+      TOOLSET: v141_xp
+      APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2017"
+    - GENERATOR: "Visual Studio 15 2017 Win64"
+      CONFIGURATION: Debug
+      TOOLSET: v141_xp
+      APPVEYOR_BUILD_WORKER_IMAGE: "Visual Studio 2017"
+
+build_script:
+  - git submodule update --init --recursive
+  - md build
+  - cd build
+  - cmake -G "%GENERATOR%" -T "%TOOLSET%" -DSDL2_PATH=%APPVEYOR_BUILD_FOLDER%\SDL2-2.0.7 ..
+  - cmake --build . --config "%CONFIGURATION%" -- /verbosity:minimal
+
+notifications:
+  - provider: Email
+    on_build_success: false
+    on_build_failure: false
+    on_build_status_changed: false
