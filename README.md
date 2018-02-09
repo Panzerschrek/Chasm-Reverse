@@ -1,5 +1,5 @@
 ## Chasm-Reverse
-[![Build Status (master)](https://travis-ci.org/Panzerschrek/Chasm-Reverse.svg?branch=master)](https://travis-ci.org/Panzerschrek/Chasm-Reverse)
+[![Build Status (master)](https://travis-ci.org/Panzerschrek/Chasm-Reverse.svg?branch=master)](https://travis-ci.org/Panzerschrek/Chasm-Reverse) [![Build Status (master)](https://ci.appveyor.com/api/projects/status/github/Panzerschrek/Chasm-Reverse?branch=master&svg=true)](https://ci.appveyor.com/project/Panzerschrek/Chasm-Reverse)
 
 Repository for "PanzerChasm" and related tools.
 
