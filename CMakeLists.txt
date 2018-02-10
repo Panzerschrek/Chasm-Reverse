@@ -61,6 +61,12 @@ if(BUILD_TOOLS)
 		${COMMON_TGA}
 	)
 
+	add_executable(MapToTGAConverter
+		MapToTGAConverter/main.cpp
+		${COMMON_FILES}
+		${COMMON_TGA}
+	)
+
 	add_executable(ObjToTGAConverter
 		ObjToTGAConverter/main.cpp
 		${COMMON_FILES}
