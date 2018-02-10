@@ -208,6 +208,7 @@ set(HEADERS
 	../panzer_ogl_lib/matrix.hpp
 	../panzer_ogl_lib/bbox.hpp
 	../panzer_ogl_lib/buffer_texture.hpp
+	../panzer_ogl_lib/glcorearb.h
 )
 
 # Detect MMX support
@@ -237,7 +238,6 @@ set(LIBS
 if(WIN32)
 	set(LIBS
 		${LIBS}
-		${SDL2MAIN_LIBRARY}
 		opengl32
 		ws2_32
 	)
