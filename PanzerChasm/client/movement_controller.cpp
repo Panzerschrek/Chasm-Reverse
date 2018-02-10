@@ -11,6 +11,28 @@ namespace PanzerChasm
 
 static const float g_z_near= 1.0f / 12.0f; // Must be greater, then z_near in software rasterizer.
 
+using KeyCode= SystemEvent::KeyEvent::KeyCode;
+
+class KeyChecker
+{
+public:
+	KeyChecker( Settings& settings, const KeyboardState& keyboard_state )
+		: settings_(settings), keyboard_state_(keyboard_state)
+	{}
+
+	bool operator()( const char* const key_setting_name, const KeyCode default_value ) const
+	{
+		const KeyCode key= static_cast<KeyCode>( settings_.GetOrSetInt( key_setting_name, static_cast<int>(default_value) ) );
+		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
+			return keyboard_state_[ static_cast<unsigned int>( key ) ];
+		return false;
+	}
+
+private:
+	Settings& settings_;
+	const KeyboardState& keyboard_state_;
+};
+
 MovementController::MovementController(
 	Settings& settings,
 	const m_Vec3& angle,
@@ -51,28 +73,20 @@ void MovementController::Tick( const KeyboardState& keyboard_state )
 
 	prev_calc_tick_= new_tick;
 
-	auto key_pressed=
-	[&]( const char* const key_setting_name )
-	{
-		using KeyCode= SystemEvent::KeyEvent::KeyCode;
-		const KeyCode key= static_cast<KeyCode>( settings_.GetInt( key_setting_name ) );
-		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
-			return keyboard_state[ static_cast<unsigned int>( key ) ];
-		return false;
-	};
+	const KeyChecker key_pressed( settings_,keyboard_state );
 
 	m_Vec3 rotate_vec( 0.0f ,0.0f, 0.0f );
-	if( key_pressed( SettingsKeys::key_turn_left  ) ) rotate_vec.z+= +1.0f;
-	if( key_pressed( SettingsKeys::key_turn_right ) ) rotate_vec.z+= -1.0f;
-	if( key_pressed( SettingsKeys::key_look_up    ) ) rotate_vec.x+= +1.0f;
-	if( key_pressed( SettingsKeys::key_look_down  ) ) rotate_vec.x+= -1.0f;
+	if( key_pressed( SettingsKeys::key_turn_left , KeyCode::Left  ) ) rotate_vec.z+= +1.0f;
+	if( key_pressed( SettingsKeys::key_turn_right, KeyCode::Right ) ) rotate_vec.z+= -1.0f;
+	if( key_pressed( SettingsKeys::key_look_up   , KeyCode::Up    ) ) rotate_vec.x+= +1.0f;
+	if( key_pressed( SettingsKeys::key_look_down , KeyCode::Down  ) ) rotate_vec.x+= -1.0f;
 
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
 	
 	ClipCameraAngles();
 
-	jump_pressed_= key_pressed( SettingsKeys::key_jump );
+	jump_pressed_= key_pressed( SettingsKeys::key_jump, KeyCode::Space );
 }
 
 void MovementController::SetSpeed( const float speed )
@@ -92,20 +106,12 @@ void MovementController::GetAcceleration(
 {
 	m_Vec3 move_vector(0.0f,0.0f,0.0f);
 
-	auto key_pressed=
-	[&]( const char* const key_setting_name )
-	{
-		using KeyCode= SystemEvent::KeyEvent::KeyCode;
-		const KeyCode key= static_cast<KeyCode>( settings_.GetInt( key_setting_name ) );
-		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
-			return keyboard_state[ static_cast<unsigned int>( key ) ];
-		return false;
-	};
+	const KeyChecker key_pressed( settings_,keyboard_state );
 
-	if( key_pressed( SettingsKeys::key_forward    ) ) move_vector.y+= +1.0f;
-	if( key_pressed( SettingsKeys::key_backward   ) ) move_vector.y+= -1.0f;
-	if( key_pressed( SettingsKeys::key_step_left  ) ) move_vector.x+= -1.0f;
-	if( key_pressed( SettingsKeys::key_step_right ) ) move_vector.x+= +1.0f;
+	if( key_pressed( SettingsKeys::key_forward   , KeyCode::W ) ) move_vector.y+= +1.0f;
+	if( key_pressed( SettingsKeys::key_backward  , KeyCode::S ) ) move_vector.y+= -1.0f;
+	if( key_pressed( SettingsKeys::key_step_left , KeyCode::A ) ) move_vector.x+= -1.0f;
+	if( key_pressed( SettingsKeys::key_step_right, KeyCode::D ) ) move_vector.x+= +1.0f;
 
 	m_Mat4 move_vector_rot_mat;
 	move_vector_rot_mat.RotateZ( angle_.z );
