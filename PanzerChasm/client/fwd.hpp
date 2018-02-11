@@ -4,11 +4,11 @@
 namespace PanzerChasm
 {
 
-struct MapState;
-struct MinimapState;
-struct WeaponState;
+class MapState;
+class MinimapState;
+class WeaponState;
 
-struct MapBSPTree;
+class MapBSPTree;
 
 class CutscenePlayer;
 class MovementController;
