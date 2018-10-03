@@ -503,6 +503,11 @@ void MapLoader::LoadMapName( const Vfs::FileContent& resource_file, char* const 
 	out_map_name[0]= '\0';
 
 	const char* s= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#name" );
+	if( s == nullptr )
+	{
+		std::strcpy( out_map_name, "unnamed" );
+		return;
+	}
 	s+= std::strlen( "#name" );
 
 	// Skip '=' and spaces before '='
