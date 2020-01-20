@@ -2265,7 +2265,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 	text_draw.Print(
 		param_descr_x, y + Row::MouseSensitivity * y_step,
-		"Mouse Sensetivity", scale,
+		"Mouse Sensitivity", scale,
 		current_row_ == Row::MouseSensitivity ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Right );
 	text_draw.Print(
