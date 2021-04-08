@@ -81,6 +81,7 @@ set(SOURCES
 	text_drawer_gl.cpp
 	text_drawer_soft.cpp
 	vfs.cpp
+	zx_spectrum_imitation.cpp
 
 	../Common/files.cpp
 	../panzer_ogl_lib/polygon_buffer.cpp
@@ -193,6 +194,7 @@ set(HEADERS
 	text_drawer_soft.hpp
 	time.hpp
 	vfs.hpp
+	zx_spectrum_imitation.hpp
 
 	../Common/files.hpp
 	../panzer_ogl_lib/plane.hpp
