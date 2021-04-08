@@ -583,20 +583,20 @@ void SystemWindow::EndFrame()
 		if( pixel_size_ == 1u && SDL_MUSTLOCK( surface_ ) )
 			SDL_UnlockSurface( surface_ );
 
+		if(settings_.GetOrSetBool("r_zx_spectrum_imitation", false))
+		{
+			const auto context= GetRenderingContextSoft();
+			TransformImageToZXSpectrumLike(
+				context.window_surface_data,
+				context.viewport_size.Width(),
+				context.viewport_size.Height(),
+				context.row_pixels);
+		}
+
 		if( pixel_size_ > 1u )
 		{
 			if( SDL_MUSTLOCK( surface_ ) )
 				SDL_LockSurface( surface_ );
-
-			if(settings_.GetOrSetBool("r_zx_spectrum_imitation", false))
-			{
-				const auto context= GetRenderingContextSoft();
-				TransformImageToZXSpectrumLike(
-					context.window_surface_data,
-					context.viewport_size.Width(),
-					context.viewport_size.Height(),
-					context.row_pixels);
-			}
 
 			// Optimization.
 			// Generate different functions (via template parameter) for some useful scales.
