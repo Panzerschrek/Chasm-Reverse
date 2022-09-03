@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <cstdio>
 #include <memory>
 #include <unordered_map>
