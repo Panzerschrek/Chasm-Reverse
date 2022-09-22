@@ -66,53 +66,99 @@ private:
 };
 
 
+struct RiffHeader
+{
+	uint32_t fourCC;
+	uint32_t size;
+};
+
+struct FormatHeader
+{
+	uint32_t fourCC;
+	uint32_t size;
+	uint16_t audioFormat;
+	uint16_t channels;
+	uint32_t sampleRate;
+	uint32_t byteRate;
+	uint16_t blockAlign;
+	uint16_t bitsPerSample;
+};
+
+struct DataHeader
+{
+	uint32_t fourCC;
+	uint32_t size;
+};
+
+struct WaveHeader
+{
+	RiffHeader   riff;
+	uint32_t     wave;
+	FormatHeader format;
+	DataHeader   data;
+};
+
 class WavSoundData final : public ISoundData
 {
 public:
-	WavSoundData( const Vfs::FileContent& data )
+	WavSoundData( Vfs::FileContent& data )
 	{
 		bool ok= false;
 
-		SDL_AudioSpec spec;
-		spec.freq= 0;
-		spec.format= 0;
-		spec.channels= 0;
-		Uint32 buffer_length_butes;
+		if( data.size() > sizeof( WaveHeader ) )
+		{
+			WaveHeader* const header= reinterpret_cast<WaveHeader*>( &data[0] );
 
-		SDL_RWops* const rw_ops=
+			// Some wave files from CSM.BIN have incorrect size of the format chunk
+			if( header->format.size != 16 )
+			{
+				header->format.size= 16;
+			}
+
+			SDL_AudioSpec spec;
+			spec.freq= 0;
+			spec.format= 0;
+			spec.channels= 0;
+			Uint32 buffer_length_butes;
+
+			SDL_RWops* const rw_ops=
 			SDL_RWFromConstMem( data.data(), data.size() );
 
-		if( rw_ops != nullptr )
-		{
-			const SDL_AudioSpec* const result=
+			if( rw_ops != nullptr )
+			{
+				const SDL_AudioSpec* const result=
 				SDL_LoadWAV_RW(
-					rw_ops, 1, // 1 - means free rw_ops
-					&spec,
-					&wav_buffer_, &buffer_length_butes );
+							   rw_ops, 1, // 1 - means free rw_ops
+							   &spec,
+							   &wav_buffer_, &buffer_length_butes );
 
-			ok= result != nullptr;
-			PC_ASSERT( result == nullptr || result == &spec );
-		}
+				ok= result != nullptr;
+				PC_ASSERT( result == nullptr || result == &spec );
+			}
 
-		const unsigned int bits= SDL_AUDIO_BITSIZE( spec.format );
-		const bool is_signed= SDL_AUDIO_ISSIGNED( spec.format ) != 0;
+			const unsigned int bits= SDL_AUDIO_BITSIZE( spec.format );
+			const bool is_signed= SDL_AUDIO_ISSIGNED( spec.format ) != 0;
 
-		if( !( bits == 16u || bits == 8u ) )
-			ok= false;
-		if( SDL_AUDIO_ISFLOAT( spec.format ) || spec.channels != 1u )
-			ok= false;
+			if( !( bits == 16u || bits == 8u ) )
+				ok= false;
+			if( SDL_AUDIO_ISFLOAT( spec.format ) || spec.channels != 1u )
+				ok= false;
 
-		if( ok )
-		{
-			frequency_= spec.freq;
-			data_type_=
+			if( ok )
+			{
+				frequency_= spec.freq;
+				data_type_=
 				bits == 8u
-					? ( is_signed ? DataType::Signed8  : DataType::Unsigned8  )
-					: ( is_signed ? DataType::Signed16 : DataType::Unsigned16 );
-			data_= wav_buffer_;
-			sample_count_= buffer_length_butes / ( bits / 8u );
+				? ( is_signed ? DataType::Signed8  : DataType::Unsigned8  )
+				: ( is_signed ? DataType::Signed16 : DataType::Unsigned16 );
+				data_= wav_buffer_;
+				sample_count_= buffer_length_butes / ( bits / 8u );
+
+				return;
+			}
 		}
-		else
+
+		if (!ok)
 		{
 			// Make dummy
 			wav_buffer_= nullptr;
