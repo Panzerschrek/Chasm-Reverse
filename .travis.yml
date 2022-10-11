@@ -1,5 +1,106 @@
+language: c++
 dist: trusty
-addons: { apt: { packages: libsdl2-dev } }
-language: cpp
-compiler: gcc
-script: cd PanzerChasm && qmake PanzerChasm.pro && make
+
+branches:
+  except:
+    - /^appveyor.*$/
+
+matrix:
+  include:
+# TODO: code is not ready yet
+#    - os: osx
+#      osx_image: xcode9.2
+#      env:
+#        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release"
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          packages:
+            - libsdl2-dev
+
+    - os: linux
+      compiler: gcc
+      env:
+        - GCC_VERSION=5
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+            - libsdl2-dev
+
+    - os: linux
+      compiler: gcc
+      env:
+        - GCC_VERSION=6
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+            - libsdl2-dev
+
+    - os: linux
+      compiler: gcc
+      env:
+        - GCC_VERSION=7
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Debug"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-7
+            - libsdl2-dev
+
+    - os: linux
+      compiler: clang
+      env:
+        - CLANG_VERSION=5.0
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-5.0
+          packages:
+            - clang-5.0
+            - libsdl2-dev
+
+before_install:
+  - >
+    if [[ -n "$GCC_VERSION" ]]; then
+      export CC="gcc-${GCC_VERSION}"
+      export CXX="g++-${GCC_VERSION}"
+    elif [[ -n "$CLANG_VERSION" ]]; then
+      export CC="clang-${CLANG_VERSION}"
+      export CXX="clang++-${CLANG_VERSION}"
+    fi
+  - $CC --version
+  - $CXX --version
+
+script:
+  - >
+    if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
+      brew update
+      brew install sdl2
+    fi
+  - >
+    if [[ -z "${CMAKE_OPTIONS}" ]]; then
+      cd PanzerChasm 
+      qmake PanzerChasm.pro
+    else
+      mkdir build
+      cd build
+      cmake ${CMAKE_OPTIONS} ..
+    fi
+  - make -j2
+
+notifications:
+  email: false
