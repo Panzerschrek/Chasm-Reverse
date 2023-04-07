@@ -15,18 +15,18 @@ option(BUILD_TOOLS "Enable compilation of tools" YES)
 
 if(BUILD_TOOLS)
 	set(COMMON_FILES
-		Common/files.cpp
-		Common/files.hpp
+		common/files.cpp
+		common/files.hpp
 	)
 
 	set(COMMON_PALETTE
-		Common/palette.cpp
-		Common/palette.hpp
+		common/palette.cpp
+		common/palette.hpp
 	)
 
 	set(COMMON_TGA
-		Common/tga.cpp
-		Common/tga.hpp
+		common/tga.cpp
+		common/tga.hpp
 	)
 
 	add_executable(ArchiveDepacker

@@ -82,7 +82,7 @@ set(SOURCES
 	text_drawer_soft.cpp
 	vfs.cpp
 
-	../Common/files.cpp
+	common/files.cpp
 	../panzer_ogl_lib/polygon_buffer.cpp
 	../panzer_ogl_lib/shaders_loading.cpp
 	../panzer_ogl_lib/texture.cpp
@@ -194,7 +194,7 @@ set(HEADERS
 	time.hpp
 	vfs.hpp
 
-	../Common/files.hpp
+	common/files.hpp
 	../panzer_ogl_lib/plane.hpp
 	../panzer_ogl_lib/ogl_state_manager.hpp
 	../panzer_ogl_lib/panzer_ogl_lib.hpp

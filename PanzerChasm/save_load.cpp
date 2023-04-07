@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #endif
 
-#include "../Common/files.hpp"
+#include "common/files.hpp"
 using namespace ChasmReverse;
 
 #include "log.hpp"
