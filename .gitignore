@@ -19,6 +19,11 @@ build-*
 *.log
 *.cfg
 
+# Game data
+csm.bin
+CSM.BIN
+CSM.bin
+csm.BIN
 
 # Game saves
 saves/*
