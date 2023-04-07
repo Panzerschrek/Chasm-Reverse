@@ -1,5 +1,37 @@
+language: c++
 dist: trusty
-addons: { apt: { packages: libsdl2-dev } }
-language: cpp
-compiler: gcc
-script: cmake . && make
+
+branches:
+  except:
+    - /^appveyor.*$/
+
+matrix:
+    - os: linux
+      compiler: gcc
+      env:
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release"
+      addons:
+        apt:
+          packages:
+            - g++
+            - libsdl2-dev
+
+    - os: linux
+      compiler: clang
+      env:
+        - CMAKE_OPTIONS="-DCMAKE_BUILD_TYPE=Release"
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty
+          packages:
+            - clang
+            - libsdl2-dev
+script:
+  - >
+  cmake ${CMAKE_OPTIONS} .
+  - make -j2
+
+notifications:
+  email: false
