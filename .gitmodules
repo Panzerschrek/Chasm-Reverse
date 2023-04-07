@@ -1,3 +1,6 @@
 [submodule "panzer_ogl_lib"]
 	path = src/panzer_ogl_lib
 	url = https://github.com/Panzerschrek/panzer_ogl_lib.git
+[submodule "src/panzer_ogl_lib"]
+	path = src/panzer_ogl_lib
+	url = http://github.com/Panzerschrek/panzer_ogl_lib
