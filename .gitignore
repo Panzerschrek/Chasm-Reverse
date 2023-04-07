@@ -22,3 +22,19 @@ build-*
 
 # Game saves
 saves/*
+
+# Build system
+CMakeFiles/*
+CMakeFiles
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+ArchiveDepacker
+BlendtabAnalyzer
+CarToTGAConverter
+CelDepacker
+FloorsExtractor
+MapToTGAConverter
+ObjToTGAConverter
+PaletteExtractor
+PanzerChasm

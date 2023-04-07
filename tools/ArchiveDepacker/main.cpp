@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "../Common/files.hpp"
+#include "common/files.hpp"
 using namespace ChasmReverse;
 
 // TODO - detect byte order

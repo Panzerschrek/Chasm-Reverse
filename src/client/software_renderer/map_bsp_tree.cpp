@@ -2,6 +2,7 @@
 #include "../../map_loader.hpp"
 
 #include "map_bsp_tree.hpp"
+#include <limits>
 
 namespace PanzerChasm
 {

@@ -4,9 +4,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../Common/files.hpp"
-#include "../Common/palette.hpp"
-#include "../Common/tga.hpp"
+#include "common/files.hpp"
+#include "common/palette.hpp"
+#include "common/tga.hpp"
 using namespace ChasmReverse;
 
 static void ConvertBlendTable( const char* const in_table_file, const char* const out_tga_file )

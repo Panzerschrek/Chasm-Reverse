@@ -3,9 +3,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../Common/files.hpp"
-#include "../Common/palette.hpp"
-#include "../Common/tga.hpp"
+#include "common/files.hpp"
+#include "common/palette.hpp"
+#include "common/tga.hpp"
 using namespace ChasmReverse;
 
 const constexpr unsigned int g_header_size= 64;

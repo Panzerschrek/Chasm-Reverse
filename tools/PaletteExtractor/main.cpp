@@ -3,9 +3,9 @@
 #include <iostream>
 #include <vector>
 
-#include "../Common/files.hpp"
-#include "../Common/palette.hpp"
-#include "../Common/tga.hpp"
+#include "common/files.hpp"
+#include "common/palette.hpp"
+#include "common/tga.hpp"
 using namespace ChasmReverse;
 
 int main( const int argc, const char* const argv[] )

@@ -2,7 +2,7 @@
 #include <cctype>
 #include <cstring>
 
-#include "../Common/files.hpp"
+#include "common/files.hpp"
 using namespace ChasmReverse;
 
 #include "log.hpp"

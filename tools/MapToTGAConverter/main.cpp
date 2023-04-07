@@ -3,8 +3,8 @@
 #include <iostream>
 #include <vector>
 
-#include "../Common/files.hpp"
-#include "../Common/tga.hpp"
+#include "common/files.hpp"
+#include "common/tga.hpp"
 using namespace ChasmReverse;
 
 static void GenPalette(unsigned char* palette )
