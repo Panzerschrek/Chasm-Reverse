@@ -1,0 +1,9 @@
+*.obj
+obj/*
+*.cbp
+*.layout
+*.depend
+
+*.7z
+*.zip
+*.rar
