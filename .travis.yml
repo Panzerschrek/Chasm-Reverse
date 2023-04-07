@@ -2,4 +2,4 @@ dist: trusty
 addons: { apt: { packages: libsdl2-dev } }
 language: cpp
 compiler: gcc
-script: cd PanzerChasm && qmake PanzerChasm.pro && make
+script: cmake . && make
