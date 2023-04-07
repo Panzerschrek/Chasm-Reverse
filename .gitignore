@@ -32,6 +32,7 @@ saves/*
 CMakeFiles/*
 CMakeFiles
 cmake_install.cmake
+install_manifest.txt
 CMakeCache.txt
 Makefile
 ArchiveDepacker

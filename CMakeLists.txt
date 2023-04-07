@@ -11,6 +11,7 @@ endif()
 
 option(BUILD_TOOLS "Enable compilation of tools" YES)
 include(CheckCXXSourceCompiles)
+include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(SDL2 REQUIRED)
@@ -128,3 +129,4 @@ add_executable(PaletteExtractor
 	${COMMON_TGA}
 )
 endif(BUILD_TOOLS)
+
