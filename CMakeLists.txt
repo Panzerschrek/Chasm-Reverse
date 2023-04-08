@@ -78,52 +78,52 @@ file(GLOB_RECURSE COMMON_PALETTE src/common/palette.*)
 file(GLOB_RECURSE COMMON_TGA src/common/tga.*)
 
 add_executable(ArchiveDepacker
-	tools/ArchiveDepacker/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/ArchiveDepacker/main.cpp
 	${COMMON_FILES}
 )
 
 add_executable(BlendtabAnalyzer
-	tools/BlendtabAnalyzer/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/BlendtabAnalyzer/main.cpp
 	${COMMON_FILES}
 	${COMMON_PALETTE}
 	${COMMON_TGA}
 )
 
 add_executable(CarToTGAConverter
-	tools/CarToTGAConverter/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/CarToTGAConverter/main.cpp
 	${COMMON_FILES}
 	${COMMON_PALETTE}
 	${COMMON_TGA}
 )
 
 add_executable(CelDepacker
-	tools/CelDepacker/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/CelDepacker/main.cpp
 	${COMMON_FILES}
 	${COMMON_TGA}
 )
 
 add_executable(FloorsExtractor
-	tools/FloorsExtractor/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/FloorsExtractor/main.cpp
 	${COMMON_FILES}
 	${COMMON_PALETTE}
 	${COMMON_TGA}
 )
 
 add_executable(MapToTGAConverter
-	tools/MapToTGAConverter/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/MapToTGAConverter/main.cpp
 	${COMMON_FILES}
 	${COMMON_TGA}
 )
 
 add_executable(ObjToTGAConverter
-	tools/ObjToTGAConverter/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/ObjToTGAConverter/main.cpp
 	${COMMON_FILES}
 	${COMMON_PALETTE}
 	${COMMON_TGA}
 )
 
 add_executable(PaletteExtractor
-	tools/PaletteExtractor/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/tools/PaletteExtractor/main.cpp
 	${COMMON_FILES}
 	${COMMON_PALETTE}
 	${COMMON_TGA}
