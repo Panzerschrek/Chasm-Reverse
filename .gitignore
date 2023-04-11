@@ -19,6 +19,28 @@ build-*
 *.log
 *.cfg
 
+# Game data
+csm.bin
+CSM.BIN
+CSM.bin
+csm.BIN
 
 # Game saves
 saves/*
+
+# Build system
+CMakeFiles/*
+CMakeFiles
+cmake_install.cmake
+install_manifest.txt
+CMakeCache.txt
+Makefile
+ArchiveDepacker
+BlendtabAnalyzer
+CarToTGAConverter
+CelDepacker
+FloorsExtractor
+MapToTGAConverter
+ObjToTGAConverter
+PaletteExtractor
+PanzerChasm
