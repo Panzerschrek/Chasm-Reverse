@@ -80,6 +80,8 @@ public: // Messages handlers
 
 private:
 	void StopMap();
+	void TrySwitchWeaponPrevious();
+	void TrySwitchWeaponNext();
 	void TrySwitchWeaponOnOutOfAmmo();
 	void TransmitPlayerName();
 	void CorrectPlayerName();

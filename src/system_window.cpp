@@ -658,7 +658,20 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().event.mouse_move.dx= event.motion.xrel;
 			out_events.back().event.mouse_move.dy= event.motion.yrel;
 			break;
-
+		case SDL_MOUSEWHEEL:
+			out_events.emplace_back();
+			out_events.back().type=SystemEvent::Type::Wheel;
+			out_events.back().event.wheel.dx = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.preciseX : event.wheel.preciseX;
+			out_events.back().event.wheel.dy = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.preciseY : event.wheel.preciseY;
+			out_events.back().event.wheel.x = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.x : event.wheel.x;
+			out_events.back().event.wheel.y = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
+			out_events.back().event.wheel.timestamp = event.wheel.timestamp;	
+			out_events.back().event.wheel.window_id = event.wheel.windowID;
+			out_events.back().event.wheel.mouse_id = event.wheel.which;
+// requires SDL-2.26.0
+//			out_events.back().event.wheel.mouse_x = event.wheel.mouseX;
+//			out_events.back().event.wheel.mouse_y = event.wheel.mouseY;
+			break;
 		case SDL_TEXTINPUT:
 			// Accept only visible ASCII
 			if( event.text.text[0] >= 32 )

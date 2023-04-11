@@ -95,7 +95,12 @@ struct SystemEvent
 
 	struct WheelEvent
 	{
-		int delta;
+		unsigned int timestamp;
+		unsigned int window_id;
+		unsigned int mouse_id; 
+		int mouse_x, mouse_y;
+		int x, y;
+		float dx, dy;
 	};
 
 	struct QuitEvent
@@ -107,6 +112,7 @@ struct SystemEvent
 		KeyEvent key;
 		MouseKeyEvent mouse_key;
 		MouseMoveEvent mouse_move;
+		WheelEvent wheel;
 		QuitEvent quit;
 		CharInputEvent char_input;
 	} event;

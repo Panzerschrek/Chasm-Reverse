@@ -2321,32 +2321,44 @@ void MainMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 {
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
+	SystemEvent::KeyEvent::KeyCode key = event.event.key.key_code;
+
+	switch(event.type)
 	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 6 ) % 6;
+		case SystemEvent::Type::MouseKey:
+			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Middle) key = KeyCode::Enter;
+		case SystemEvent::Type::Wheel:
+			if(event.event.wheel.dy > 0.1f) key = KeyCode::Up;
+			if(event.event.wheel.dy < 0.1f) key = KeyCode::Down;
+		case SystemEvent::Type::Key:
+			if(event.event.key.pressed)
+			{
+				if( key == KeyCode::Up)
+				{
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					current_row_= ( current_row_ - 1 + 6 ) % 6;
 
-			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-				current_row_= ( current_row_ - 1 + 6 ) % 6;
-		}
+					if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+						current_row_= ( current_row_ - 1 + 6 ) % 6;
+				}
+				if( key == KeyCode::Down)
+				{
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					current_row_= ( current_row_ + 1 + 6 ) % 6;
 
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 6 ) % 6;
+					if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+						current_row_= ( current_row_ + 1 + 6 ) % 6;
+				}
 
-			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-				current_row_= ( current_row_ + 1 + 6 ) % 6;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter )
-		{
-			PlayMenuSound( Sound::SoundId::MenuSelect );
-			return submenus_[ current_row_ ].get();
-		}
+				if( key == KeyCode::Enter)
+				{
+					PlayMenuSound( Sound::SoundId::MenuSelect );
+					return submenus_[ current_row_ ].get();
+				}
+			}
+			break;
+		default:
+			break;
 	}
 	return this;
 }

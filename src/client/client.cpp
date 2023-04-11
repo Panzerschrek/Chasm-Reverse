@@ -223,16 +223,25 @@ void Client::ProcessEvents( const SystemEvents& events )
 		}
 
 		// Select weapon.
+		if( event.type == SystemEvent::Type::Wheel && event.event.wheel.dy )
+		{
+			if(event.event.wheel.dy > 0.0f) TrySwitchWeaponNext();
+			if(event.event.wheel.dy < 0.0f) TrySwitchWeaponPrevious();
+		}
+
+		if( event.type == SystemEvent::Type::MouseKey &&
+                    event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Middle )
+		{
+		    TrySwitchWeaponNext();
+		}
+
 		if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
 		{
 			if( event.event.key.key_code >= KeyCode::K1 &&
 				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
 			{
-				unsigned int weapon_index=
-					static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
-
-				if( player_state_.ammo[ weapon_index ] > 0u &&
-					( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
+				unsigned int weapon_index=static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
+				if( player_state_.ammo[ weapon_index ] > 0u && ( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
 					requested_weapon_index_= weapon_index;
 			}
 
@@ -244,6 +253,7 @@ void Client::ProcessEvents( const SystemEvents& events )
 			if( event.event.key.key_code == KeyCode::Equals )
 				settings_.SetSetting( g_small_hud_mode, true );
 		}
+
 	} // for events
 }
 
@@ -304,7 +314,6 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		minimap_scale_log2_= std::max( -2.0f, std::min( minimap_scale_log2_, 1.0f ) );
 	}
 
-	shoot_pressed_= input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
 	camera_controller_.Tick( input_state.keyboard );
 
 	if( sound_engine_ != nullptr )
@@ -350,17 +359,15 @@ void Client::Loop( const InputState& input_state, const bool paused )
 			camera_controller_.GetAcceleration( input_state.keyboard, move_direction, move_acceleration );
 
 			Messages::PlayerMove message;
-			message.view_direction= AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
-			message.move_direction= AngleToMessageAngle( move_direction );
-			message.acceleration= static_cast<unsigned char>( move_acceleration * 254.5f );
-			message.jump_pressed= camera_controller_.JumpPressed();
-			message.weapon_index= requested_weapon_index_;
-
-			message.view_dir_angle_x= AngleToMessageAngle( camera_controller_.GetViewAngleX() );
-			message.view_dir_angle_z= AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
-			message.shoot_pressed= shoot_pressed_;
-			message.color= settings_.GetOrSetInt( SettingsKeys::player_color );
-
+			message.view_direction   = AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
+			message.move_direction   = AngleToMessageAngle( move_direction );
+			message.acceleration     = static_cast<unsigned char>( move_acceleration * 254.5f );
+			message.jump_pressed     = input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Right ) ] || camera_controller_.JumpPressed();
+			message.weapon_index     = requested_weapon_index_;
+			message.view_dir_angle_x = AngleToMessageAngle( camera_controller_.GetViewAngleX() );
+			message.view_dir_angle_z = AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
+			message.shoot_pressed    = input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
+			message.color            = settings_.GetOrSetInt( SettingsKeys::player_color );
 			connection_info_->messages_sender.SendUnreliableMessage( message );
 		}
 
@@ -674,13 +681,39 @@ void Client::StopMap()
 	cutscene_player_= nullptr;
 }
 
+void Client::TrySwitchWeaponNext()
+{
+	for(uint8_t i = weapon_state_.CurrentWeaponIndex() + 1; i < GameConstants::weapon_count; i++ )
+	{
+		if( ( player_state_.weapons_mask & ( 1u << i ) ) != 0u && player_state_.ammo[i] != 0u )
+		{
+			requested_weapon_index_= i;
+			return;
+		}
+	}
+
+	requested_weapon_index_= 0u;
+}
+
+void Client::TrySwitchWeaponPrevious()
+{
+	for(uint8_t i = weapon_state_.CurrentWeaponIndex() == 0 ? GameConstants::weapon_count - 1 : weapon_state_.CurrentWeaponIndex() - 1; i >= 0; i--)
+	{
+		if( (player_state_.weapons_mask & ( 1u << i ) ) != 0u && player_state_.ammo[i] != 0u )
+		{
+			requested_weapon_index_= i;
+			return;
+		}
+	}
+
+	requested_weapon_index_= 0u;
+}
+
 void Client::TrySwitchWeaponOnOutOfAmmo()
 {
-	for( unsigned int i= 1u; i < GameConstants::weapon_count; i++ )
+	for(uint8_t i = 1u; i < GameConstants::weapon_count; i++ )
 	{
-		if(
-			( player_state_.weapons_mask & ( 1u << i ) ) != 0u &&
-			player_state_.ammo[i] != 0u )
+		if( ( player_state_.weapons_mask & ( 1u << i ) ) != 0u && player_state_.ammo[i] != 0u )
 		{
 			requested_weapon_index_= i;
 			return;
