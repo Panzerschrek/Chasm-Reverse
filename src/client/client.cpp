@@ -253,7 +253,6 @@ void Client::ProcessEvents( const SystemEvents& events )
 			if( event.event.key.key_code == KeyCode::Equals )
 				settings_.SetSetting( g_small_hud_mode, true );
 		}
-
 	} // for events
 }
 
