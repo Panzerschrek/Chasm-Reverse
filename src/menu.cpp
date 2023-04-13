@@ -2252,6 +2252,10 @@ public:
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
+	void Up();
+	void Down();
+	MenuBase* Select();
+
 	MenuBase* OpenSaveMenu();
 	MenuBase* OpenLoadMenu();
 	MenuBase* OpenOptionsMenu();
@@ -2325,34 +2329,23 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 
 	switch(event.type)
 	{
-		case SystemEvent::Type::MouseKey:
-			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Middle) key = KeyCode::Enter;
 		case SystemEvent::Type::Wheel:
-			if(event.event.wheel.delta != 0) key = (event.event.wheel.delta > 0) ? KeyCode::Up : KeyCode::Down;
+			if(event.event.wheel.delta != 0)
+				if(event.event.wheel.delta > 0) Up(); else Down();
+			break;
+		case SystemEvent::Type::MouseKey:
+			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Left) return Select();
+			break;
 		case SystemEvent::Type::Key:
-			if(event.event.key.pressed || event.event.wheel.delta)
+			if(event.event.key.pressed)
 			{
-				if( key == KeyCode::Up)
+				switch(key)
 				{
-					PlayMenuSound( Sound::SoundId::MenuChange );
-					current_row_= ( current_row_ - 1 + 6 ) % 6;
-
-					if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-						current_row_= ( current_row_ - 1 + 6 ) % 6;
-				}
-				if( key == KeyCode::Down)
-				{
-					PlayMenuSound( Sound::SoundId::MenuChange );
-					current_row_= ( current_row_ + 1 + 6 ) % 6;
-
-					if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-						current_row_= ( current_row_ + 1 + 6 ) % 6;
-				}
-
-				if( key == KeyCode::Enter)
-				{
-					PlayMenuSound( Sound::SoundId::MenuSelect );
-					return submenus_[ current_row_ ].get();
+					case KeyCode::Up: Up(); break;
+					case KeyCode::Down: Down(); break;
+					case KeyCode::Enter: return Select();
+					default:
+						break;
 				}
 			}
 			break;
@@ -2360,6 +2353,30 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 			break;
 	}
 	return this;
+}
+
+void MainMenu::Down()
+{ 
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ + 1 + 6 ) % 6;
+}
+
+void MainMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ - 1 + 6 ) % 6;
+}
+
+MenuBase* MainMenu::Select()
+{
+	PlayMenuSound( Sound::SoundId::MenuSelect );
+	return submenus_[ current_row_ ].get();
 }
 
 MenuBase* MainMenu::OpenSaveMenu(){ return submenus_[2].get(); }
