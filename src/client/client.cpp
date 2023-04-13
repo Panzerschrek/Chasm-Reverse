@@ -223,10 +223,10 @@ void Client::ProcessEvents( const SystemEvents& events )
 		}
 
 		// Select weapon.
-		if( event.type == SystemEvent::Type::Wheel && event.event.wheel.dy )
+		if( event.type == SystemEvent::Type::Wheel && event.event.wheel.delta != 0 )
 		{
-			if(event.event.wheel.dy > 0.0f) TrySwitchWeaponNext();
-			if(event.event.wheel.dy < 0.0f) TrySwitchWeaponPrevious();
+			if(event.event.wheel.delta > 0) TrySwitchWeaponNext();
+			if(event.event.wheel.delta < 0) TrySwitchWeaponPrevious();
 		}
 
 		if( event.type == SystemEvent::Type::MouseKey &&

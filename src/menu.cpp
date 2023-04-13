@@ -2328,10 +2328,9 @@ MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 		case SystemEvent::Type::MouseKey:
 			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Middle) key = KeyCode::Enter;
 		case SystemEvent::Type::Wheel:
-			if(event.event.wheel.dy > 0.1f) key = KeyCode::Up;
-			if(event.event.wheel.dy < 0.1f) key = KeyCode::Down;
+			if(event.event.wheel.delta != 0) key = (event.event.wheel.delta > 0) ? KeyCode::Up : KeyCode::Down;
 		case SystemEvent::Type::Key:
-			if(event.event.key.pressed)
+			if(event.event.key.pressed || event.event.wheel.delta)
 			{
 				if( key == KeyCode::Up)
 				{

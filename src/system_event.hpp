@@ -95,12 +95,7 @@ struct SystemEvent
 
 	struct WheelEvent
 	{
-		unsigned int timestamp;
-		unsigned int window_id;
-		unsigned int mouse_id; 
-		int mouse_x, mouse_y;
-		int x, y;
-		float dx, dy;
+		int delta;
 	};
 
 	struct QuitEvent
