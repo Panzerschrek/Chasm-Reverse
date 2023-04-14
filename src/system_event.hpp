@@ -107,6 +107,7 @@ struct SystemEvent
 		KeyEvent key;
 		MouseKeyEvent mouse_key;
 		MouseMoveEvent mouse_move;
+		WheelEvent wheel;
 		QuitEvent quit;
 		CharInputEvent char_input;
 	} event;

@@ -651,14 +651,21 @@ void SystemWindow::GetInput( SystemEvents& out_events )
 			out_events.back().event.mouse_key.y= event.button.y;
 			out_events.back().event.mouse_key.pressed= event.type == SDL_MOUSEBUTTONUP ? false : true;
 			break;
-
 		case SDL_MOUSEMOTION:
 			out_events.emplace_back();
 			out_events.back().type= SystemEvent::Type::MouseMove;
 			out_events.back().event.mouse_move.dx= event.motion.xrel;
 			out_events.back().event.mouse_move.dy= event.motion.yrel;
 			break;
-
+		case SDL_MOUSEWHEEL:
+			out_events.emplace_back();
+			out_events.back().type= SystemEvent::Type::Wheel;
+#ifdef SDL_MOUSEWHEEL_FLIPPED
+			out_events.back().event.wheel.delta = (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) ? -event.wheel.y : event.wheel.y;
+#else
+			out_events.back().event.wheel.delta = event.wheel.y;
+#endif
+			break;
 		case SDL_TEXTINPUT:
 			// Accept only visible ASCII
 			if( event.text.text[0] >= 32 )

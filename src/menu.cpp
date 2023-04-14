@@ -2252,6 +2252,10 @@ public:
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
+	void Up();
+	void Down();
+	MenuBase* Select();
+
 	MenuBase* OpenSaveMenu();
 	MenuBase* OpenLoadMenu();
 	MenuBase* OpenOptionsMenu();
@@ -2321,34 +2325,58 @@ void MainMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
 {
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
+	SystemEvent::KeyEvent::KeyCode key = event.event.key.key_code;
+
+	switch(event.type)
 	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 6 ) % 6;
-
-			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-				current_row_= ( current_row_ - 1 + 6 ) % 6;
-		}
-
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 6 ) % 6;
-
-			if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-				current_row_= ( current_row_ + 1 + 6 ) % 6;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter )
-		{
-			PlayMenuSound( Sound::SoundId::MenuSelect );
-			return submenus_[ current_row_ ].get();
-		}
+		case SystemEvent::Type::Wheel:
+			if(event.event.wheel.delta != 0)
+				if(event.event.wheel.delta > 0) Up(); else Down();
+			break;
+		case SystemEvent::Type::MouseKey:
+			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Left) return Select();
+			break;
+		case SystemEvent::Type::Key:
+			if(event.event.key.pressed)
+			{
+				switch(key)
+				{
+					case KeyCode::Up: Up(); break;
+					case KeyCode::Down: Down(); break;
+					case KeyCode::Enter: return Select();
+					default:
+						break;
+				}
+			}
+			break;
+		default:
+			break;
 	}
 	return this;
+}
+
+void MainMenu::Down()
+{ 
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ + 1 + 6 ) % 6;
+}
+
+void MainMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ - 1 + 6 ) % 6;
+}
+
+MenuBase* MainMenu::Select()
+{
+	PlayMenuSound( Sound::SoundId::MenuSelect );
+	return submenus_[ current_row_ ].get();
 }
 
 MenuBase* MainMenu::OpenSaveMenu(){ return submenus_[2].get(); }
