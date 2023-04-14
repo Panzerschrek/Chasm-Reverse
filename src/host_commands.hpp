@@ -14,9 +14,9 @@ public:
 	virtual const SystemWindow* GetSystemWindow()= 0;
 
 	virtual MapLoaderPtr GetMapLoader()= 0;
+	virtual MapDataConstPtr CurrentMap() = 0;
 
 	virtual void Quit()= 0;
-
 	virtual void NewGame( DifficultyType difficulty )= 0;
 
 	virtual void ConnectToServer(

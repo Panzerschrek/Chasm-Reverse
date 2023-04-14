@@ -677,6 +677,13 @@ void Host::DrawLoadingFrame( const float progress, const char* const caption )
 	}
 }
 
+MapDataConstPtr Host::CurrentMap()
+{
+	if( client_ == nullptr )
+		return nullptr;
+	return client_->CurrentMap();
+}
+
 void Host::EnsureClient()
 {
 	if( client_ != nullptr )
