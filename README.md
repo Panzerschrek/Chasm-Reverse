@@ -74,6 +74,6 @@ Part of the control can be changed in the settings menu.
 
 
 ### Authors
-Copyright © 2016-2018 Artöm "Panzerschrek" Kunz, github contributors.
+Copyright © 2016-2023 Artöm "Panzerschrek" Kunz, github contributors.
 
 License: GNU GPL v3, http://www.gnu.org/licenses/gpl-3.0-standalone.html.
