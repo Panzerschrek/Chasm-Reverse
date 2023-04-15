@@ -2753,7 +2753,7 @@ void Menu::ProcessEvents( const SystemEvents& events )
 							}
 							else
 							{
-								if( !host_commands_.CurrentMap() )
+								if( host_commands_.CurrentMap() == nullptr )
 								{
 									current_menu_ = root_menu_.get();
 									current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
