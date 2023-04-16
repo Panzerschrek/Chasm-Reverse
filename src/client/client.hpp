@@ -44,7 +44,7 @@ public:
 
 	void Loop( const InputState& input_state, bool paused );
 	void Draw();
-
+	MapDataConstPtr CurrentMap();
 private:
 	struct LoadedMinimapState;
 
@@ -85,10 +85,8 @@ private:
 	void TrySwitchWeaponOnOutOfAmmo();
 	void TransmitPlayerName();
 	void CorrectPlayerName();
-
 	void FullMap();
 	void PrintPlayerPos();
-
 private:
 	Settings& settings_;
 	const GameResourcesConstPtr game_resources_;

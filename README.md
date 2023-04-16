@@ -59,21 +59,27 @@ parameter command line `--addon`, for example:
 
 #### Control
 
+##### Keyboard
+
 * WASD - movement
 * SPACE - jump
-* left mouse button - page
-* mouse wheel up/down - weapon next/previous
-* middle mouse button - weapon next
 * digits 1-8 - weapon selection
 * "~" - open/close the console
 * ESC - menu.
 * TAB - auto complete commands at the console
+
+##### Mouse
+
+* left mouse button   - fire/(select menu)
+* middle mouse button - weapon next
+* right mouse button  - jump/(back/escape menu)
+* mouse wheel up/down - weapon next/previous
 
 Part of the control can be changed in the settings menu.
 
 
 
 ### Authors
-Copyright © 2016-2023 Artöm "Panzerschrek" Kunz, github contributors.
+Copyright © 2016-2018 Artöm "Panzerschrek" Kunz, github contributors.
 
 License: GNU GPL v3, http://www.gnu.org/licenses/gpl-3.0-standalone.html.

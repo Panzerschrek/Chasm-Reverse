@@ -55,12 +55,67 @@ public:
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) = 0;
 
 	// Returns next menu after event
-	virtual MenuBase* ProcessEvent( const SystemEvent& event )= 0;
-
+	virtual MenuBase* ProcessEvent( const SystemEvent& event );
+	virtual void Up() {}
+	virtual void Down() {}
+	virtual void Left() {};
+	virtual void Right() {};
+	virtual MenuBase* Select() { return this; }
+	virtual MenuBase* Back() { return this; }
+	virtual MenuBase* CharInput( char32_t ch ) { return this; }
+protected:
+	bool in_set_mode_ = false;
 private:
 	MenuBase* const parent_menu_;
 	const Sound::SoundEnginePtr& sound_engine_;
 };
+
+MenuBase* MenuBase::ProcessEvent( const SystemEvent& event )
+{
+	switch(event.type)
+	{
+		case SystemEvent::Type::Wheel:
+			if(event.event.wheel.delta != 0)
+				if(event.event.wheel.delta > 0) Up(); else Down();
+			break;
+		case SystemEvent::Type::MouseKey:
+			if( event.event.mouse_key.pressed )
+			{
+				switch(event.event.mouse_key.mouse_button)
+				{
+					case SystemEvent::MouseKeyEvent::Button::Left: return Select(); break;
+					case SystemEvent::MouseKeyEvent::Button::Right: return Back(); break;
+				}
+			}
+			break;
+		case SystemEvent::Type::Key:
+			if( event.event.key.pressed )
+			{
+				if( in_set_mode_ )
+				{
+					CharInput( static_cast<char32_t>(event.event.key.key_code) ); break;
+				}
+				else
+				{
+					switch(event.event.key.key_code)
+					{
+						case KeyCode::Up: Up(); break;
+						case KeyCode::Down: Down(); break;
+						case KeyCode::Left: Left(); break;
+						case KeyCode::Right: Right(); break;
+						case KeyCode::Backspace: Back(); break;
+						case KeyCode::Enter: return Select(); break;
+						default: break;
+					}
+				}
+			}
+		case SystemEvent::Type::CharInput: if(!in_set_mode_) CharInput( static_cast<char32_t>(event.event.char_input.ch) ); break;
+			break;
+		default: break;
+	}
+
+	return this;
+}
 
 MenuBase::MenuBase( MenuBase* const parent_menu, const Sound::SoundEnginePtr& sound_engine )
 	: parent_menu_(parent_menu)
@@ -85,7 +140,6 @@ void MenuBase::PlayMenuSound( const unsigned int sound_id )
 }
 
 // NewGame Menu
-
 class NewGameMenu final : public MenuBase
 {
 public:
@@ -93,12 +147,39 @@ public:
 	~NewGameMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Select() override;
 private:
 	HostCommands& host_commands_;
 	int current_row_= 1;
 };
+
+void NewGameMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 3 ) % 3;
+}
+void NewGameMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 3 ) % 3;
+}
+
+MenuBase* NewGameMenu::Select()
+{
+	PlayMenuSound( Sound::SoundId::MenuSelect );
+
+	DifficultyType difficulty= Difficulty::Easy;
+	if( current_row_ == 1u )
+		difficulty= Difficulty::Normal;
+	if( current_row_ == 2u )
+		difficulty= Difficulty::Hard;
+
+	host_commands_.NewGame( difficulty );
+
+	return nullptr;
+}
 
 NewGameMenu::NewGameMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
@@ -141,40 +222,6 @@ void NewGameMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		IMenuDrawer::MenuPicture::New, colors );
 }
 
-MenuBase* NewGameMenu::ProcessEvent( const SystemEvent& event )
-{
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
-	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 3 ) % 3;
-		}
-
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 3 ) % 3;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter )
-		{
-			PlayMenuSound( Sound::SoundId::MenuSelect );
-
-			DifficultyType difficulty= Difficulty::Easy;
-			if( current_row_ == 1u )
-				difficulty= Difficulty::Normal;
-			if( current_row_ == 2u )
-				difficulty= Difficulty::Hard;
-
-			host_commands_.NewGame( difficulty );
-
-			return nullptr;
-		}
-	}
-	return this;
-}
 
 // NetworkConnectMenu
 
@@ -185,8 +232,11 @@ public:
 	~NetworkConnectMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Select() override;
+	virtual MenuBase* Back() override;
+	virtual MenuBase* CharInput( char32_t ch ) override;
 private:
 	HostCommands& host_commands_;
 	int current_row_= 0;
@@ -261,52 +311,51 @@ void NetworkConnectMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw 
 		current_row_ == 4 ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Center );
 }
-
-MenuBase* NetworkConnectMenu::ProcessEvent( const SystemEvent& event )
+void NetworkConnectMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 5 ) % 5;
+}
+void NetworkConnectMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 5 ) % 5;
+}
+
+MenuBase* NetworkConnectMenu::Select()
+{
+	if(current_row_ == 4 )
 	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 5 ) % 5;
-		}
+		PlayMenuSound( Sound::SoundId::MenuSelect );
 
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 5 ) % 5;
-		}
-
-		if( event.event.key.key_code == KeyCode::Backspace &&
-			current_row_ < 4 )
-		{
-			const unsigned int l= std::strlen( values_[ current_row_ ] );
-			if( l > 0u )
-				values_[ current_row_ ][ l - 1u ]= 0u;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == 4 )
-		{
-			PlayMenuSound( Sound::SoundId::MenuSelect );
-
-			const std::string full_address_str= std::string( values_[0] ) + ":" + values_[1];
-			host_commands_.ConnectToServer(
+		const std::string full_address_str= std::string( values_[0] ) + ":" + values_[1];
+		host_commands_.ConnectToServer(
 				full_address_str.c_str(),
 				std::atoi( values_[2] ), std::atoi( values_[3] ) );
-
-			return nullptr;
-		}
 	}
+	return nullptr;
+}
 
-	if( event.type == SystemEvent::Type::CharInput &&
-		current_row_ < 4 )
+MenuBase* NetworkConnectMenu::Back()
+{
+	if(current_row_ < 4 )
 	{
 		const unsigned int l= std::strlen( values_[ current_row_ ] );
+		if( l > 0u )
+			values_[ current_row_ ][ l - 1u ]= 0u;
+	}
+	return nullptr;
+}
+
+MenuBase* NetworkConnectMenu::CharInput( char32_t ch )
+{
+	unsigned int l;
+	if( current_row_ < 4 )
+	{
+		l= std::strlen( values_[ current_row_ ] );
 		if( l < c_value_max_size - 1u )
 		{
-			values_[ current_row_ ][l]= event.event.char_input.ch;
+			values_[ current_row_ ][l]= ch;
 			values_[ current_row_ ][l + 1u]= 0u;
 		}
 	}
@@ -322,7 +371,13 @@ public:
 	~NetworkCreateServerMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual void Left() override;
+	virtual void Right() override;
+	virtual MenuBase* Select() override;
+	virtual MenuBase* Back() override;
+	virtual MenuBase* CharInput( char32_t ch ) override;
 
 private:
 	const char* GetDifficultyStr();
@@ -466,101 +521,105 @@ void NetworkCreateServerMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_
 		ITextDrawer::Alignment::Center );
 }
 
-MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
+void NetworkCreateServerMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+}
+void NetworkCreateServerMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;
+}
+void NetworkCreateServerMenu::Left()
+{
+	switch( current_row_ )
 	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
-		}
+		case Row::Map: map_info_= host_commands_.GetMapLoader()->GetPrevMapInfo(map_info_.number); break;
+		case Row::Difficulty: difficulty_--; difficulty_= ( difficulty_ + 3u ) % 3u ; break;
+		case Row::GameRules: game_rules_= game_rules_ == GameRules::Cooperative ? GameRules::Deathmatch : GameRules::Cooperative;
+		case Row::Dedicated: dedicated_= !dedicated_;
+		default: break;
+	}
+}
+void NetworkCreateServerMenu::Right()
+{
+	switch( current_row_ )
+	{
+		case Row::Map: map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number); break;
+		case Row::Difficulty: difficulty_++; difficulty_= ( difficulty_ + 3u ) % 3u ; break;
+		case Row::GameRules: game_rules_= game_rules_ == GameRules::Cooperative ? GameRules::Deathmatch : GameRules::Cooperative;
+		case Row::Dedicated: dedicated_= !dedicated_;
+		default: break;
+	}
+}
 
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;
-		}
-
-		if( event.event.key.key_code == KeyCode::Left || event.event.key.key_code == KeyCode::Right )
-		{
-			if( current_row_ == Row::Map )
-			{
-				if( event.event.key.key_code == KeyCode::Right )
-					map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number);
-				else if( event.event.key.key_code == KeyCode::Left )
-					map_info_= host_commands_.GetMapLoader()->GetPrevMapInfo(map_info_.number);
-			}
-			if( current_row_ == Row::Difficulty )
-			{
-				if( event.event.key.key_code == KeyCode::Right )
-					difficulty_++;
-				else
-					difficulty_--;
-				difficulty_= ( difficulty_ + 3u ) % 3u ;
-			}
-			if( current_row_ == Row::GameRules )
-			{
-				game_rules_= game_rules_ == GameRules::Cooperative ? GameRules::Deathmatch : GameRules::Cooperative;
-			}
-			if( current_row_ == Row::Dedicated )
-				dedicated_= !dedicated_;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Map )
-			map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number);
-
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Dedicated )
-			dedicated_= !dedicated_;
-
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Difficulty )
-			difficulty_= ( difficulty_ + 1u ) % 4u ;
-
-		if( event.event.key.key_code == KeyCode::Backspace && current_row_ == Row::TCPPort )
-		{
-			const unsigned int len= std::strlen( tcp_port_ );
-			if( len > 0 ) tcp_port_[ len - 1u ]= '\0';
-		}
-		if( event.event.key.key_code == KeyCode::Backspace && current_row_ == Row::UDPBasePort )
-		{
-			const unsigned int len= std::strlen( base_udp_port_ );
-			if( len > 0 ) base_udp_port_[ len - 1u ]= '\0';
-		}
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == Row::Start )
-		{
+MenuBase* NetworkCreateServerMenu::Select()
+{
+	switch( current_row_ )
+	{
+		case Row::Map: map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(map_info_.number); break;
+		case Row::Dedicated: dedicated_= !dedicated_; break;
+		case Row::Difficulty: difficulty_= ( difficulty_ + 1u ) % 4u;
+		case Row::Start:
 			PlayMenuSound( Sound::SoundId::MenuSelect );
-
 			host_commands_.StartServer(
-				map_info_.number,
-				static_cast<DifficultyType>( 1u << difficulty_ ),
-				game_rules_,
-				dedicated_,
-				std::atoi( tcp_port_ ),
-				std::atoi( base_udp_port_ ) );
+					map_info_.number,
+					static_cast<DifficultyType>( 1u << difficulty_ ),
+					game_rules_,
+					dedicated_,
+					std::atoi( tcp_port_ ),
+					std::atoi( base_udp_port_ ) );
 
 			return nullptr;
-		}
+		default:
+			break;
 	}
-
-	if( event.type == SystemEvent::Type::CharInput && current_row_ == Row::TCPPort )
+	return nullptr;
+}
+MenuBase* NetworkCreateServerMenu::Back()
+{
+	unsigned int len;
+	switch( current_row_ )
 	{
-		const unsigned int l= std::strlen( tcp_port_ );
-		if( l < c_port_str_max_size - 1u )
-		{
-			tcp_port_[l]= event.event.char_input.ch;
-			tcp_port_[l + 1u]= 0u;
-		}
+		case Row::TCPPort:
+			len= std::strlen( tcp_port_ );
+			if( len > 0 ) tcp_port_[ len - 1u ] = '\0';
+			break;
+		case Row::UDPBasePort:
+			len= std::strlen( base_udp_port_ );
+			if( len > 0 ) base_udp_port_[ len - 1u ] = '\0';
+			break;
+		default:
+			break;
 	}
-	if( event.type == SystemEvent::Type::CharInput && current_row_ == Row::UDPBasePort )
-	{
-		const unsigned int l= std::strlen( base_udp_port_ );
-		if( l < c_port_str_max_size - 1u )
-		{
-			base_udp_port_[l]= event.event.char_input.ch;
-			base_udp_port_[l + 1u]= 0u;
-		}
-	}
+	return nullptr;
+}
 
+MenuBase* NetworkCreateServerMenu::CharInput( char32_t ch )
+{
+	unsigned int l;
+	switch( current_row_ )
+	{
+		case Row::TCPPort:
+			l= std::strlen( tcp_port_ );
+			if( l < c_port_str_max_size - 1u )
+			{
+				tcp_port_[l]= ch;
+				tcp_port_[l + 1u]= 0u;
+			}
+			break;
+		case Row::UDPBasePort:
+			l= std::strlen( base_udp_port_ );
+			if( l < c_port_str_max_size - 1u )
+			{
+				base_udp_port_[l]= ch;
+				base_udp_port_[l + 1u]= 0u;
+			}
+			break;
+		default:
+			break;
+	}
 	return this;
 }
 
@@ -584,8 +643,13 @@ public:
 	~PlayerSetupMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual void Left() override;
+	virtual void Right() override;
+	virtual MenuBase* Back() override;
+	virtual MenuBase* Select() override;
+	MenuBase* CharInput( char32_t ch ) override;
 private:
 	const char* GetDifficultyStr();
 
@@ -673,60 +737,66 @@ void PlayerSetupMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		color_ );
 }
 
-MenuBase* PlayerSetupMenu::ProcessEvent( const SystemEvent& event )
+void PlayerSetupMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
-	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
-		}
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+}
 
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;
-		}
+void PlayerSetupMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + Row::NumRows ) % Row::NumRows;	
+}
 
-		if( current_row_ == Row::Color )
-		{
-			if( event.event.key.key_code == KeyCode::Left )
-				color_= ( color_ + int( GameConstants::player_colors_count ) - 1 ) % GameConstants::player_colors_count;
-			if( event.event.key.key_code == KeyCode::Right )
-				color_= ( color_ + 1 ) % GameConstants::player_colors_count;
-		}
+void PlayerSetupMenu::Left()
+{
+	if( current_row_ == Row::Color )
+		color_= ( color_ + int( GameConstants::player_colors_count ) - 1 ) % GameConstants::player_colors_count;
+}
+void PlayerSetupMenu::Right()
+{
+	if( current_row_ == Row::Color )
+		color_= ( color_ + 1 ) % GameConstants::player_colors_count;
+}
 
-		if( current_row_ == Row::Accept && event.event.key.key_code == KeyCode::Enter )
+MenuBase* PlayerSetupMenu::Select()
+{
+		if( current_row_ == Row::Accept )
 		{
 			settings_.SetSetting( SettingsKeys::player_color, color_ );
 			settings_.SetSetting( SettingsKeys::player_name, nick_name_ );
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			return GetParent();
 		}
-
-		if( current_row_ == Row::NickName && event.event.key.key_code == KeyCode::Backspace )
+		return this;
+}
+MenuBase* PlayerSetupMenu::Back()
+{
+		if( current_row_ == Row::NickName )
 		{
 			const unsigned int len= std::strlen( nick_name_ );
 			if( len > 0 ) nick_name_[ len - 1u ]= '\0';
 		}
-	}
+		return this;
+}
 
-	if( current_row_ == Row::NickName && event.type == SystemEvent::Type::CharInput )
+MenuBase* PlayerSetupMenu::CharInput( char32_t ch )
+{
+	unsigned int l;
+	if( current_row_ == Row::NickName )
 	{
-		const unsigned int l= std::strlen( nick_name_ );
+		l = std::strlen( nick_name_ );
 		if( l < c_max_nick_name_length - 1u )
 		{
-			nick_name_[l]= event.event.char_input.ch;
+			nick_name_[l]= ch;
 			nick_name_[l + 1u]= 0u;
 		}
 	}
-
 	return this;
 }
 
 // NetworkMenu
-
 class NetworkMenu final : public MenuBase
 {
 public:
@@ -734,13 +804,30 @@ public:
 	~NetworkMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Select() override;
 private:
 	HostCommands& host_commands_;
 	std::unique_ptr<MenuBase> submenus_[3];
 	int current_row_= 0;
 };
+
+void NetworkMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 3 ) % 3;
+}
+void NetworkMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 3 ) % 3;
+}
+MenuBase* NetworkMenu::Select()
+{
+	PlayMenuSound( Sound::SoundId::MenuSelect );
+	return submenus_[ current_row_ ].get();
+}
 
 NetworkMenu::NetworkMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
@@ -788,33 +875,6 @@ void NetworkMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		IMenuDrawer::MenuPicture::Network, colors );
 }
 
-MenuBase* NetworkMenu::ProcessEvent( const SystemEvent& event )
-{
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
-	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 3 ) % 3;
-		}
-
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 3 ) % 3;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter )
-		{
-			PlayMenuSound( Sound::SoundId::MenuSelect );
-			return submenus_[ current_row_ ].get();
-		}
-	}
-	return this;
-}
-
-
 class SaveLoadMenu final : public MenuBase
 {
 public:
@@ -827,9 +887,10 @@ public:
 	~SaveLoadMenu() override;
 
 	virtual void OnActivated() override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Select() override;
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
 	HostCommands& host_commands_;
@@ -840,6 +901,41 @@ private:
 
 	static constexpr int c_rows= HostCommands::c_save_slots;
 };
+
+void SaveLoadMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + c_rows ) % c_rows;
+}
+
+void SaveLoadMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 ) % c_rows;
+}
+
+MenuBase* SaveLoadMenu::Select()
+{
+	switch(what_)
+	{
+		case What::Save:
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			host_commands_.SaveGame( current_row_ );
+			return nullptr;
+		case What::Load:
+			if( saves_names_[current_row_][0] != '\0' )
+			{
+				host_commands_.LoadGame( current_row_ );
+			}
+			else
+			{
+				PC_ASSERT( false );
+			}
+			return nullptr;
+		default:
+			return nullptr;
+	}
+}
 
 SaveLoadMenu::SaveLoadMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands, What what )
 	: MenuBase( parent, sound_engine )
@@ -891,51 +987,7 @@ void SaveLoadMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	}
 }
 
-MenuBase* SaveLoadMenu::ProcessEvent( const SystemEvent& event )
-{
-	if( event.type == SystemEvent::Type::Key &&
-		event.event.key.pressed )
-	{
-		if( event.event.key.key_code == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + c_rows ) % c_rows;
-		}
-
-		if( event.event.key.key_code == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 ) % c_rows;
-		}
-
-		if( event.event.key.key_code == KeyCode::Enter )
-		{
-			if( what_ == What::Save )
-			{
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				host_commands_.SaveGame( current_row_ );
-				return nullptr;
-			}
-			else if( what_ == What::Load )
-			{
-				if( saves_names_[current_row_][0] != '\0' )
-				{
-					host_commands_.LoadGame( current_row_ );
-					return nullptr;
-				}
-			}
-			else
-			{
-				PC_ASSERT( false );
-			}
-		}
-	}
-
-	return this;
-}
-
 // Controls Menu
-
 class ControlsMenu final : public MenuBase
 {
 public:
@@ -946,8 +998,11 @@ public:
 	virtual MenuBase* GetParent() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Back() override;
+	virtual MenuBase* Select() override;
+	virtual MenuBase* CharInput( char32_t ch ) override;
 private:
 	struct KeySettings
 	{
@@ -962,20 +1017,19 @@ private:
 private:
 	Settings& settings_;
 	int current_row_= 0;
-	bool in_set_mode_= false;
 };
 
 const ControlsMenu::KeySettings ControlsMenu::c_key_settings[]=
 {
-	{ "Move Forward"	, SettingsKeys::key_forward		, KeyCode::W },
+	{ "Move Forward"	, SettingsKeys::key_forward	, KeyCode::W },
 	{ "Move Backward"	, SettingsKeys::key_backward	, KeyCode::S },
 	{ "Strafe Left"		, SettingsKeys::key_step_left	, KeyCode::A },
 	{ "Strafe Right"	, SettingsKeys::key_step_right	, KeyCode::D },
 	{ "Turn Left"		, SettingsKeys::key_turn_left	, KeyCode::Left },
 	{ "Turn Right"		, SettingsKeys::key_turn_right	, KeyCode::Right },
-	{ "Look Up"			, SettingsKeys::key_look_up		, KeyCode::Up },
+	{ "Look Up"		, SettingsKeys::key_look_up	, KeyCode::Up },
 	{ "Look Down"		, SettingsKeys::key_look_down	, KeyCode::Down },
-	{ "Jump"			, SettingsKeys::key_jump		, KeyCode::Space },
+	{ "Jump"		, SettingsKeys::key_jump	, KeyCode::Space },
 };
 
 const unsigned int ControlsMenu::c_key_setting_count= sizeof(ControlsMenu::c_key_settings) / sizeof(ControlsMenu::c_key_settings[0]);
@@ -1036,41 +1090,42 @@ void ControlsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	}
 }
 
-MenuBase* ControlsMenu::ProcessEvent( const SystemEvent& event )
+void ControlsMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + int(c_key_setting_count) ) % int(c_key_setting_count);
+}
+
+void ControlsMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 ) % int(c_key_setting_count);
+}
+
+MenuBase* ControlsMenu::Select()
+{
+	in_set_mode_= true;
+	return this;
+}
+
+MenuBase* ControlsMenu::Back()
+{
+	if( in_set_mode_ )
+		in_set_mode_= false;
+	return this;
+}
+
+MenuBase* ControlsMenu::CharInput( char32_t ch )
+{
+	if( in_set_mode_ )
 	{
-		const auto key= event.event.key.key_code;
-
-		if( in_set_mode_ )
+		if( KeyCanBeUsedForControl( static_cast<SystemEvent::KeyEvent::KeyCode>(ch) ))
 		{
-			if( key == KeyCode::Escape )
-				in_set_mode_= false;
-			else if( KeyCanBeUsedForControl( key ) )
-			{
-				settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(key) );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				in_set_mode_= false;
-			}
-		}
-		else
-		{
-			if( key == KeyCode::Up )
-			{
-				PlayMenuSound( Sound::SoundId::MenuChange );
-				current_row_= ( current_row_ - 1 + int(c_key_setting_count) ) % int(c_key_setting_count);
-			}
-			if( key == KeyCode::Down )
-			{
-				PlayMenuSound( Sound::SoundId::MenuChange );
-				current_row_= ( current_row_ + 1 ) % int(c_key_setting_count);
-			}
-
-			if( key == KeyCode::Enter )
-				in_set_mode_= true;
+			settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(ch) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			in_set_mode_= false;
 		}
 	}
-
 	return this;
 }
 
@@ -1083,7 +1138,12 @@ public:
 	~GraphicsMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual void Left() override;
+	virtual void Right() override;
+	virtual MenuBase* Select() override;
+
 
 private:
 	struct Renderer
@@ -1284,118 +1344,231 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 	}
 }
 
-MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
+void GraphicsMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + current_num_rows_ ) % current_num_rows_;
+}
+
+void GraphicsMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 ) % current_num_rows_;
+}
+
+void GraphicsMenu::Left()
+{
+	if( current_row_ == 0 )
 	{
-		const auto key= event.event.key.key_code;
+		current_renderer_= current_renderer_ == 1 ? 0 : 1;
+		current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
+		settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
+		PlayMenuSound( Sound::SoundId::MenuChange );
+	}
+	int pixel_size;
+	unsigned int msaa_level;
 
-		if( key == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + current_num_rows_ ) % current_num_rows_;
-		}
-		if( key == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 ) % current_num_rows_;
-		}
-		if( current_row_ == 0 )
-		{
-			if( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter )
-				current_renderer_= current_renderer_ == 1 ? 0 : 1;
-			current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
-			settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
-			PlayMenuSound( Sound::SoundId::MenuChange );
-		}
-
-		if( current_renderer_ == Renderer::Software )
-		{
-			if( current_row_ == RowSoftware::PixelSize &&
-				( key == KeyCode::Left || key == KeyCode::Right ) )
+	switch( current_renderer_ )
+	{
+		case Renderer::Software:
+			switch( current_row_ )
 			{
-				int delta= key == KeyCode::Left ? -1 : 1;
-				const int pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + delta;
-				settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
-				PlayMenuSound( Sound::SoundId::MenuScroll );
+				case RowSoftware::PixelSize:
+					pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) - 1;
+					settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+					break;
+				case RowOpenGL::Shadows:
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				default:
+					break;
 			}
-			if( current_row_ == RowSoftware::ApplyNow && key == KeyCode::Enter )
-			{
-				PlayMenuSound( Sound::SoundId::MenuChange );
-				host_commands_.VidRestart();
-			}
-		}
-		else if( current_renderer_ == Renderer::OpenGL )
-		{
+			break;
+		case Renderer::OpenGL:
 			// Boolean params
-			if( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter )
+			switch( current_row_ )
 			{
-				if( current_row_ == RowOpenGL::DynamicLighting )
-				{
+				case RowOpenGL::DynamicLighting:
 					settings_.SetSetting(
 						SettingsKeys::opengl_dynamic_lighting,
 						! settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, false ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-				else if( current_row_ == RowOpenGL::TexturesFiltering )
-				{
+					break;
+				case RowOpenGL::TexturesFiltering:
 					settings_.SetSetting(
 						SettingsKeys::opengl_textures_filtering,
 						! settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-				else if( current_row_ == RowOpenGL::MenuTexturesFiltering )
-				{
+					break;
+				case RowOpenGL::MenuTexturesFiltering:
 					settings_.SetSetting(
-						SettingsKeys::opengl_menu_textures_filtering,
-						! settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
+							SettingsKeys::opengl_menu_textures_filtering,
+							! settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-				else if( current_row_ == RowOpenGL::HudTexturesFiltering )
-				{
+					break;
+				case RowOpenGL::HudTexturesFiltering:
 					settings_.SetSetting(
-						SettingsKeys::opengl_hud_textures_filtering,
-						! settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) );
+							SettingsKeys::opengl_hud_textures_filtering,
+							! settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-			}
-
-			if( current_row_ == RowOpenGL::MSAA && ( key == KeyCode::Left || key == KeyCode::Right ) )
-			{
-				unsigned int msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
-				if( key == KeyCode::Left  && msaa_level > 0 )
-				{
-					msaa_level--;
+					break;
+				case RowOpenGL::MSAA:
+					msaa_level = settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+					if( msaa_level > 0 )
+					{
+						msaa_level--;
+						PlayMenuSound( Sound::SoundId::MenuChange );
+					}
+					settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
+					break;
+				case RowOpenGL::Shadows:
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
 					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-				if( key == KeyCode::Right && msaa_level < 4 )
-				{
-					msaa_level++;
-					PlayMenuSound( Sound::SoundId::MenuChange );
-				}
-				settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
+					break;
+				default:
+					break;
 			}
-			if( current_row_ == RowOpenGL::ApplyNow && key == KeyCode::Enter )
-			{
-				PlayMenuSound( Sound::SoundId::MenuChange );
-				host_commands_.VidRestart();
-			}
-		}
-
-		// Shadows row is same for both renderers.
-		if( current_row_ == RowOpenGL::Shadows &&
-			( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
-		{
-			settings_.SetSetting(
-				SettingsKeys::shadows,
-				! settings_.GetBool( SettingsKeys::shadows, true ) );
-			PlayMenuSound( Sound::SoundId::MenuChange );
-		}
+			break;
+		default:
+			break;
 	}
-
-	return this;
 }
 
+void GraphicsMenu::Right()
+{
+	if( current_row_ == 0 )
+	{
+		current_renderer_= current_renderer_ == 1 ? 0 : 1;
+		current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
+		settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
+		PlayMenuSound( Sound::SoundId::MenuChange );
+	}
+
+	int pixel_size;
+	unsigned int msaa_level;
+	switch( current_renderer_ )
+	{
+		case Renderer::Software:
+			switch( current_row_ )
+			{
+				case RowSoftware::PixelSize:
+					pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + 1;
+					settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+					break;
+				case RowOpenGL::Shadows:
+					// Shadows row is same for both renderers.
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				default:
+					break;
+			}
+			break;
+		case Renderer::OpenGL:
+			switch( current_row_ )
+			{
+				case RowOpenGL::DynamicLighting:
+					settings_.SetSetting( SettingsKeys::opengl_dynamic_lighting, !settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::TexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::MenuTexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_menu_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::HudTexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_hud_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::MSAA:
+					msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+					if( msaa_level < 4 )
+					{
+						msaa_level++;
+						PlayMenuSound( Sound::SoundId::MenuChange );
+					}
+					settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
+					break;
+				case RowOpenGL::Shadows:
+					// Shadows row is same for both renderers.
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				default:
+					break;
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+MenuBase* GraphicsMenu::Select()
+{
+	if( current_row_ == 0 )
+	{
+		current_renderer_= current_renderer_ == 1 ? 0 : 1;
+		current_num_rows_= current_renderer_ == Renderer::Software ? int(RowSoftware::NumRows) : int(RowOpenGL::NumRows);
+		settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
+		PlayMenuSound( Sound::SoundId::MenuChange );
+	}
+
+	switch( current_renderer_ )
+	{
+		case Renderer::Software:
+			switch( current_row_)
+			{
+				case RowSoftware::ApplyNow:
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					host_commands_.VidRestart();
+				case RowOpenGL::Shadows:
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+				break;
+			}
+			break;
+		case Renderer::OpenGL:
+			switch( current_row_ )
+			{
+				case RowOpenGL::DynamicLighting:
+					settings_.SetSetting( SettingsKeys::opengl_dynamic_lighting, !settings_.GetBool( SettingsKeys::opengl_dynamic_lighting, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::TexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::MenuTexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_menu_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_menu_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::HudTexturesFiltering:
+					settings_.SetSetting( SettingsKeys::opengl_hud_textures_filtering, !settings_.GetBool( SettingsKeys::opengl_hud_textures_filtering, false ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				case RowOpenGL::ApplyNow:
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					host_commands_.VidRestart();
+					break;
+				case RowOpenGL::Shadows:
+					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					break;
+				default:
+					break;
+			}
+			break;
+		default:
+			break;
+	}
+	return this;
+}
 // Video Menu
 
 class VideoMenu final : public MenuBase
@@ -1405,8 +1578,14 @@ public:
 	~VideoMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual void Left() override;
+	virtual void Right() override;
+	virtual MenuBase* Select() override;
+	virtual MenuBase* Back() override;
+	virtual MenuBase* CharInput( char32_t ch ) override;
 private:
 	struct Row
 	{
@@ -1598,132 +1777,207 @@ void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::Alignment::Center );
 }
 
-MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
+void VideoMenu::Up()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+}
+void VideoMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 ) % Row::NumRows;
+}
+void VideoMenu::Left()
+{
+	switch(current_row_)
 	{
-		const auto key= event.event.key.key_code;
+		case Row::Display:
+			if( video_modes_.size() >= 2u )
+			{
+				const unsigned int prev_display= display_;
+				display_+= ( 1u );
+				display_%= video_modes_.size();
 
-		if( key == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
-		}
-		if( key == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 ) % Row::NumRows;
-		}
+				// Change resolution index - search same resolution and frequency in other display.
+				bool resolution_found= false;
+				for( unsigned int i= 0u; i < video_modes_[display_].size(); i++ )
+				{
+					if( video_modes_[prev_display][resolution_].size == video_modes_[display_][i].size )
+					{
+						bool frequency_found= false;
+						for( unsigned int j= 0u; j < video_modes_[display_][resolution_].supported_frequencies.size(); j++ )
+						{
+							if( video_modes_[prev_display][resolution_].supported_frequencies[frequency_] ==
+									video_modes_[display_][i].supported_frequencies[j] )
+							{
+								frequency_= j;
+								frequency_found= true;
+								break;
+							}
+						}
+						if( !frequency_found )
+							frequency_= 0u;
 
-		if( key == KeyCode::Enter && current_row_ == Row::ApplyNow )
-		{
+						resolution_= i;
+						resolution_found= true;
+						break;
+					}
+				}
+				if( !resolution_found )
+					resolution_= 0u;
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		case Row::FullscreenResolution:
+			if( !video_modes_.empty() && video_modes_[display_].size() >= 2u )
+			{
+				const unsigned int prev_resolution= resolution_;
+				resolution_+= ( 1u );
+				resolution_%= video_modes_[display_].size();
+
+				// Change resolution - search same frequency for different resolution.
+				bool frequency_found= false;
+				for( unsigned int i= 0u; i < video_modes_[display_][resolution_].supported_frequencies.size(); i++ )
+				{
+					if( video_modes_[display_][prev_resolution].supported_frequencies[frequency_] ==
+							video_modes_[display_][resolution_].supported_frequencies[i] )
+					{
+						frequency_= i;
+						frequency_found= true;
+						break;
+					}
+				}
+				if( !frequency_found )
+					frequency_= 0u;
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		case Row::Frequency:
+			if( !video_modes_.empty() && !video_modes_[display_].empty() && video_modes_[display_][resolution_].supported_frequencies.size() >= 2u )
+			{
+				frequency_+= ( 1u );
+				frequency_%= video_modes_[display_][resolution_].supported_frequencies.size();
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		default:
+			break;
+	};
+}
+void VideoMenu::Right()
+{
+	switch(current_row_)
+	{
+		case Row::Display:
+			if( video_modes_.size() >= 2u )
+			{
+				const unsigned int prev_display= display_;
+				display_+= ( video_modes_.size() - 1u );
+				display_%= video_modes_.size();
+
+				// Change resolution index - search same resolution and frequency in other display.
+				bool resolution_found= false;
+				for( unsigned int i= 0u; i < video_modes_[display_].size(); i++ )
+				{
+					if( video_modes_[prev_display][resolution_].size == video_modes_[display_][i].size )
+					{
+						bool frequency_found= false;
+						for( unsigned int j= 0u; j < video_modes_[display_][resolution_].supported_frequencies.size(); j++ )
+						{
+							if( video_modes_[prev_display][resolution_].supported_frequencies[frequency_] ==
+									video_modes_[display_][i].supported_frequencies[j] )
+							{
+								frequency_= j;
+								frequency_found= true;
+								break;
+							}
+						}
+						if( !frequency_found )
+							frequency_= 0u;
+
+						resolution_= i;
+						resolution_found= true;
+						break;
+					}
+				}
+				if( !resolution_found )
+					resolution_= 0u;
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		case Row::FullscreenResolution:
+			if( !video_modes_.empty() && video_modes_[display_].size() >= 2u )
+			{
+				const unsigned int prev_resolution= resolution_;
+				resolution_+= ( video_modes_[display_].size() - 1u );
+				resolution_%= video_modes_[display_].size();
+
+				// Change resolution - search same frequency for different resolution.
+				bool frequency_found= false;
+				for( unsigned int i= 0u; i < video_modes_[display_][resolution_].supported_frequencies.size(); i++ )
+				{
+					if( video_modes_[display_][prev_resolution].supported_frequencies[frequency_] ==
+							video_modes_[display_][resolution_].supported_frequencies[i] )
+					{
+						frequency_= i;
+						frequency_found= true;
+						break;
+					}
+				}
+				if( !frequency_found )
+					frequency_= 0u;
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		case Row::Frequency:
+			if( !video_modes_.empty() && !video_modes_[display_].empty() && video_modes_[display_][resolution_].supported_frequencies.size() >= 2u )
+			{
+				frequency_+= ( video_modes_[display_][resolution_].supported_frequencies.size() - 1u );
+				frequency_%= video_modes_[display_][resolution_].supported_frequencies.size();
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
+		default:
+			break;
+	};
+}
+MenuBase* VideoMenu::Select()
+{
+	switch(current_row_)
+	{
+		case Row::Fullscreen:
+			settings_.SetSetting( SettingsKeys::fullscreen, !settings_.GetBool( SettingsKeys::fullscreen, false ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::ApplyNow:
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			host_commands_.VidRestart();
-		}
-
-		// Boolean parameters.
-		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
-		{
-			switch(current_row_)
-			{
-			case Row::Fullscreen:
-				settings_.SetSetting( SettingsKeys::fullscreen, !settings_.GetBool( SettingsKeys::fullscreen, false ) );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			default:
-				break;
-			};
-		} // boolean params.
-
-		if( key == KeyCode::Left || key == KeyCode::Right )
-		{
-			switch(current_row_)
-			{
-			case Row::Display:
-				if( video_modes_.size() >= 2u )
-				{
-					const unsigned int prev_display= display_;
-					display_+= ( key == KeyCode::Right ) ? ( video_modes_.size() - 1u ) : ( 1u );
-					display_%= video_modes_.size();
-
-					// Change resolution index - search same resolution and frequency in other display.
-					bool resolution_found= false;
-					for( unsigned int i= 0u; i < video_modes_[display_].size(); i++ )
-					{
-						if( video_modes_[prev_display][resolution_].size == video_modes_[display_][i].size )
-						{
-							bool frequency_found= false;
-							for( unsigned int j= 0u; j < video_modes_[display_][resolution_].supported_frequencies.size(); j++ )
-							{
-								if( video_modes_[prev_display][resolution_].supported_frequencies[frequency_] ==
-									video_modes_[display_][i].supported_frequencies[j] )
-								{
-									frequency_= j;
-									frequency_found= true;
-									break;
-								}
-							}
-							if( !frequency_found )
-								frequency_= 0u;
-
-							resolution_= i;
-							resolution_found= true;
-							break;
-						}
-					}
-					if( !resolution_found )
-						resolution_= 0u;
-
-					PlayMenuSound( Sound::SoundId::MenuSelect );
-					UpdateSettings();
-				}
-				break;
-
-			case Row::FullscreenResolution:
-				if( !video_modes_.empty() && video_modes_[display_].size() >= 2u )
-				{
-					const unsigned int prev_resolution= resolution_;
-					resolution_+= ( key == KeyCode::Right ) ? ( video_modes_[display_].size() - 1u ) : ( 1u );
-					resolution_%= video_modes_[display_].size();
-
-					// Change resolution - search same frequency for different resolution.
-					bool frequency_found= false;
-					for( unsigned int i= 0u; i < video_modes_[display_][resolution_].supported_frequencies.size(); i++ )
-					{
-						if( video_modes_[display_][prev_resolution].supported_frequencies[frequency_] ==
-							video_modes_[display_][resolution_].supported_frequencies[i] )
-						{
-							frequency_= i;
-							frequency_found= true;
-							break;
-						}
-					}
-					if( !frequency_found )
-						frequency_= 0u;
-
-					PlayMenuSound( Sound::SoundId::MenuSelect );
-					UpdateSettings();
-				}
-				break;
-
-			case Row::Frequency:
-				if( !video_modes_.empty() && !video_modes_[display_].empty() && video_modes_[display_][resolution_].supported_frequencies.size() >= 2u )
-				{
-					frequency_+= ( key == KeyCode::Right ) ? ( video_modes_[display_][resolution_].supported_frequencies.size() - 1u ) : ( 1u );
-					frequency_%= video_modes_[display_][resolution_].supported_frequencies.size();
-
-					PlayMenuSound( Sound::SoundId::MenuSelect );
-					UpdateSettings();
-				}
-				break;
-
-			default:
-				break;
-			};
-		}
-
-		if( key == KeyCode::Backspace )
-		{
+			break;
+		default:
+			break;
+	};
+	return this;
+}
+MenuBase* VideoMenu::Back()
+{
 			if( current_row_ == Row::WindowWidth  )
 			{
 				const unsigned int len= std::strlen( window_width_  );
@@ -1738,19 +1992,19 @@ MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
 					window_height_[len - 1u]= '\0';
 				UpdateSettings();
 			}
-		}
-	}
+	return this;
+}
 
-	if( event.type == SystemEvent::Type::CharInput &&
-		event.event.char_input.ch >= '0' && event.event.char_input.ch <= '9' )
+MenuBase* VideoMenu::CharInput( char32_t ch )
+{
+	if( ch >= '0' && ch <= '9' )
 	{
-		const char num= event.event.char_input.ch;
 		if( current_row_ == Row::WindowWidth  )
 		{
 			const unsigned int len= std::strlen( window_width_  );
 			if( len + 1u < c_max_window_size )
 			{
-				window_width_ [len]= num;
+				window_width_ [len]= ch;
 				window_width_ [len + 1u ]= '\0';
 				UpdateSettings();
 			}
@@ -1760,13 +2014,12 @@ MenuBase* VideoMenu::ProcessEvent( const SystemEvent& event )
 			const unsigned int len= std::strlen( window_height_ );
 			if( len + 1u < c_max_window_size )
 			{
-				window_height_[len]= num;
+				window_height_[len]= ch;
 				window_height_[len + 1u ]= '\0';
 				UpdateSettings();
 			}
 		}
 	}
-
 	return this;
 }
 
@@ -1796,8 +2049,11 @@ public:
 	~OptionsMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual void Left() override;
+	virtual void Right() override;
+	virtual MenuBase* Select() override;
 private:
 	Settings& settings_;
 
@@ -2039,137 +2295,220 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		ITextDrawer::FontColor::Golden,
 		ITextDrawer::Alignment::Left );
 }
-
-MenuBase* OptionsMenu::ProcessEvent( const SystemEvent& event )
+void OptionsMenu::Left()
 {
-	if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
+	int new_value;
+
+	switch(current_row_)
 	{
-		const auto key= event.event.key.key_code;
-
-		if( key == KeyCode::Up )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
-		}
-		if( key == KeyCode::Down )
-		{
-			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 ) % Row::NumRows;
-		}
-
-		if( key == KeyCode::Enter )
-		{
-			switch(current_row_)
+		case Row::AlwaysRun:
+			always_run_= !always_run_;
+			settings_.SetSetting( SettingsKeys::always_run, always_run_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::Crosshair:
+			crosshair_= !crosshair_;
+			settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::RevertMouse:
+			reverse_mouse_= !reverse_mouse_;
+			settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::WeaponReset:
+			weapon_reset_= !weapon_reset_;
+			settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::OldStylePerspective:
+			old_style_perspecive_= !old_style_perspecive_;
+			settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::Brightness:
+			new_value= std::max( 0, std::min( brightness_ - 1, c_max_slider_value ) );
+			if( new_value != brightness_ )
 			{
-			case Row::Controls:
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				return &controls_menu_;
-			case Row::Video:
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				return &video_menu_;
-			case Row::Graphics:
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				return &graphics_menu_;
-			default:
-				break;
-			};
-		}
-
-		// Boolean parameters.
-		if( key == KeyCode::Enter || key == KeyCode::Left || key == KeyCode::Right )
-		{
-			switch(current_row_)
+				brightness_= new_value;
+				settings_.SetSetting( SettingsKeys::brightness, float(brightness_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::FXVolume:
+			new_value= std::max( 0, std::min( fx_volume_ - 1, c_max_slider_value ) );
+			if( new_value != fx_volume_ )
 			{
-			case Row::AlwaysRun:
-				always_run_= !always_run_;
-				settings_.SetSetting( SettingsKeys::always_run, always_run_ );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			case Row::Crosshair:
-				crosshair_= !crosshair_;
-				settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			case Row::RevertMouse:
-				reverse_mouse_= !reverse_mouse_;
-				settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			case Row::WeaponReset:
-				weapon_reset_= !weapon_reset_;
-				settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			case Row::OldStylePerspective:
-				old_style_perspecive_= !old_style_perspecive_;
-				settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
-				PlayMenuSound( Sound::SoundId::MenuSelect );
-				break;
-			default:
-				break;
-			};
-		} // boolean params.
-
-		// Sliders
-		if( key == KeyCode::Left || key == KeyCode::Right )
-		{
-			const int shift= key == KeyCode::Left ? -1 : 1;
-			int new_value;
-
-			switch(current_row_)
+				fx_volume_= new_value;
+				settings_.SetSetting( SettingsKeys::fx_volume, float(fx_volume_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::CDVolume:
+			new_value= std::max( 0, std::min( cd_volume_ - 1, c_max_slider_value ) );
+			if( new_value != cd_volume_ )
 			{
-			case Row::Brightness:
-				new_value= std::max( 0, std::min( brightness_ + shift, c_max_slider_value ) );
-				if( new_value != brightness_ )
-				{
-					brightness_= new_value;
-					settings_.SetSetting( SettingsKeys::brightness, float(brightness_) / float(c_max_slider_value) );
-					PlayMenuSound( Sound::SoundId::MenuScroll );
-				}
-				break;
-			case Row::FXVolume:
-				new_value= std::max( 0, std::min( fx_volume_ + shift, c_max_slider_value ) );
-				if( new_value != fx_volume_ )
-				{
-					fx_volume_= new_value;
-					settings_.SetSetting( SettingsKeys::fx_volume, float(fx_volume_) / float(c_max_slider_value) );
-					PlayMenuSound( Sound::SoundId::MenuScroll );
-				}
-				break;
-			case Row::CDVolume:
-				new_value= std::max( 0, std::min( cd_volume_ + shift, c_max_slider_value ) );
-				if( new_value != cd_volume_ )
-				{
-					cd_volume_= new_value;
-					settings_.SetSetting( SettingsKeys::cd_volume, float(cd_volume_) / float(c_max_slider_value) );
-					PlayMenuSound( Sound::SoundId::MenuScroll );
-				}
-				break;
-			case Row::MouseSensitivity:
-				new_value= std::max( 0, std::min( mouse_sensetivity_ + shift, c_max_slider_value ) );
-				if( new_value != mouse_sensetivity_ )
-				{
-					mouse_sensetivity_= new_value;
-					settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
-					PlayMenuSound( Sound::SoundId::MenuScroll );
-				}
-				break;
-			case Row::FOV:
-				new_value= std::max( 0, std::min( fov_ + shift, c_max_slider_value ) );
-				if( new_value != fov_ )
-				{
-					fov_= new_value;
-					settings_.SetSetting( SettingsKeys::fov, c_min_fov + float(fov_) / float(c_max_slider_value) * (c_max_fov - c_min_fov) );
-					PlayMenuSound( Sound::SoundId::MenuScroll );
-				}
-				break;
-			default:
-				break;
-			};
-		} // sliders.
+				cd_volume_= new_value;
+				settings_.SetSetting( SettingsKeys::cd_volume, float(cd_volume_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::MouseSensitivity:
+			new_value= std::max( 0, std::min( mouse_sensetivity_ - 1, c_max_slider_value ) );
+			if( new_value != mouse_sensetivity_ )
+			{
+				mouse_sensetivity_= new_value;
+				settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::FOV:
+			new_value= std::max( 0, std::min( fov_ - 1, c_max_slider_value ) );
+			if( new_value != fov_ )
+			{
+				fov_= new_value;
+				settings_.SetSetting( SettingsKeys::fov, c_min_fov + float(fov_) / float(c_max_slider_value) * (c_max_fov - c_min_fov) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		default:
+			break;
 	}
+}
+void OptionsMenu::Right() 
+{
+	int new_value;
 
+	switch(current_row_)
+	{
+		case Row::AlwaysRun:
+			always_run_= !always_run_;
+			settings_.SetSetting( SettingsKeys::always_run, always_run_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::Crosshair:
+			crosshair_= !crosshair_;
+			settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::RevertMouse:
+			reverse_mouse_= !reverse_mouse_;
+			settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::WeaponReset:
+			weapon_reset_= !weapon_reset_;
+			settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::OldStylePerspective:
+			old_style_perspecive_= !old_style_perspecive_;
+			settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::Brightness:
+			new_value= std::max( 0, std::min( brightness_ + 1, c_max_slider_value ) );
+			if( new_value != brightness_ )
+			{
+				brightness_= new_value;
+				settings_.SetSetting( SettingsKeys::brightness, float(brightness_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::FXVolume:
+			new_value= std::max( 0, std::min( fx_volume_ + 1, c_max_slider_value ) );
+			if( new_value != fx_volume_ )
+			{
+				fx_volume_= new_value;
+				settings_.SetSetting( SettingsKeys::fx_volume, float(fx_volume_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::CDVolume:
+			new_value= std::max( 0, std::min( cd_volume_ + 1, c_max_slider_value ) );
+			if( new_value != cd_volume_ )
+			{
+				cd_volume_= new_value;
+				settings_.SetSetting( SettingsKeys::cd_volume, float(cd_volume_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::MouseSensitivity:
+			new_value= std::max( 0, std::min( mouse_sensetivity_ + 1, c_max_slider_value ) );
+			if( new_value != mouse_sensetivity_ )
+			{
+				mouse_sensetivity_= new_value;
+				settings_.SetSetting( SettingsKeys::mouse_sensetivity, float(mouse_sensetivity_) / float(c_max_slider_value) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		case Row::FOV:
+			new_value= std::max( 0, std::min( fov_ + 1, c_max_slider_value ) );
+			if( new_value != fov_ )
+			{
+				fov_= new_value;
+				settings_.SetSetting( SettingsKeys::fov, c_min_fov + float(fov_) / float(c_max_slider_value) * (c_max_fov - c_min_fov) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+MenuBase* OptionsMenu::Select()
+{
+	switch(current_row_)
+	{
+		case Row::Controls:
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			return &controls_menu_;
+		case Row::Video:
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			return &video_menu_;
+		case Row::Graphics:
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			return &graphics_menu_;
+		case Row::AlwaysRun:
+			always_run_= !always_run_;
+			settings_.SetSetting( SettingsKeys::always_run, always_run_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::Crosshair:
+			crosshair_= !crosshair_;
+			settings_.SetSetting( SettingsKeys::crosshair, crosshair_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::RevertMouse:
+			reverse_mouse_= !reverse_mouse_;
+			settings_.SetSetting( SettingsKeys::reverse_mouse, reverse_mouse_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::WeaponReset:
+			weapon_reset_= !weapon_reset_;
+			settings_.SetSetting( SettingsKeys::weapon_reset, weapon_reset_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::OldStylePerspective:
+			old_style_perspecive_= !old_style_perspecive_;
+			settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		default:
+			break;
+	};
 	return this;
+}
+
+void OptionsMenu::Up()
+{	
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + Row::NumRows ) % Row::NumRows;
+}
+void OptionsMenu::Down()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 ) % Row::NumRows;
 }
 
 // Quit Menu
@@ -2182,7 +2521,6 @@ public:
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
 private:
 	HostCommands& host_commands_;
 };
@@ -2225,17 +2563,28 @@ MenuBase* QuitMenu::ProcessEvent( const SystemEvent& event )
 {
 	switch( event.type )
 	{
-	case SystemEvent::Type::Key:
-		if(
-			event.event.key.pressed &&
-			event.event.key.key_code == KeyCode::Enter )
-		{
-			host_commands_.Quit();
-		}
-		break;
-
-	default:
-		break;
+		case SystemEvent::Type::MouseKey:
+			if(event.event.mouse_key.pressed)
+			{
+				switch( event.event.mouse_key.mouse_button )
+				{
+					case SystemEvent::MouseKeyEvent::Button::Left: host_commands_.Quit(); break;
+					default: break;
+				}
+			}
+			break;
+		case SystemEvent::Type::Key:
+			if(event.event.key.pressed)
+			{
+				switch( event.event.key.key_code )
+				{
+					case KeyCode::Enter: host_commands_.Quit(); break;
+					default: break;
+				}
+			}
+			break;
+		default:
+			break;
 	}
 
 	return this;
@@ -2250,24 +2599,44 @@ public:
 	~MainMenu() override;
 
 	virtual void Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw ) override;
-	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
-
-	void Up();
-	void Down();
-	MenuBase* Select();
-
 	MenuBase* OpenSaveMenu();
 	MenuBase* OpenLoadMenu();
 	MenuBase* OpenOptionsMenu();
 	MenuBase* OpenNetworkMenu();
 	MenuBase* OpenQuitMenu();
-
+	virtual void Up() override;
+	virtual void Down() override;
+	virtual MenuBase* Select() override;
 private:
 	 HostCommands& host_commands_;
 	std::unique_ptr<MenuBase> submenus_[6];
 	int current_row_= 0;
 
 };
+
+void MainMenu::Down()
+{ 
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ + 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ + 1 + 6 ) % 6;
+}
+
+void MainMenu::Up()
+{
+	PlayMenuSound( Sound::SoundId::MenuChange );
+	current_row_= ( current_row_ - 1 + 6 ) % 6;
+
+	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
+		current_row_= ( current_row_ - 1 + 6 ) % 6;
+}
+
+MenuBase* MainMenu::Select()
+{
+	PlayMenuSound( Sound::SoundId::MenuSelect );
+	return submenus_[ current_row_ ].get();
+}
 
 MainMenu::MainMenu( const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( nullptr, sound_engine )
@@ -2323,62 +2692,6 @@ void MainMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		IMenuDrawer::MenuPicture::Main, colors );
 }
 
-MenuBase* MainMenu::ProcessEvent( const SystemEvent& event )
-{
-	SystemEvent::KeyEvent::KeyCode key = event.event.key.key_code;
-
-	switch(event.type)
-	{
-		case SystemEvent::Type::Wheel:
-			if(event.event.wheel.delta != 0)
-				if(event.event.wheel.delta > 0) Up(); else Down();
-			break;
-		case SystemEvent::Type::MouseKey:
-			if(event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Left) return Select();
-			break;
-		case SystemEvent::Type::Key:
-			if(event.event.key.pressed)
-			{
-				switch(key)
-				{
-					case KeyCode::Up: Up(); break;
-					case KeyCode::Down: Down(); break;
-					case KeyCode::Enter: return Select();
-					default:
-						break;
-				}
-			}
-			break;
-		default:
-			break;
-	}
-	return this;
-}
-
-void MainMenu::Down()
-{ 
-	PlayMenuSound( Sound::SoundId::MenuChange );
-	current_row_= ( current_row_ + 1 + 6 ) % 6;
-
-	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-		current_row_= ( current_row_ + 1 + 6 ) % 6;
-}
-
-void MainMenu::Up()
-{
-	PlayMenuSound( Sound::SoundId::MenuChange );
-	current_row_= ( current_row_ - 1 + 6 ) % 6;
-
-	if( current_row_ == 2 && !host_commands_.SaveAvailable() )
-		current_row_= ( current_row_ - 1 + 6 ) % 6;
-}
-
-MenuBase* MainMenu::Select()
-{
-	PlayMenuSound( Sound::SoundId::MenuSelect );
-	return submenus_[ current_row_ ].get();
-}
-
 MenuBase* MainMenu::OpenSaveMenu(){ return submenus_[2].get(); }
 MenuBase* MainMenu::OpenLoadMenu(){ return submenus_[3].get(); }
 MenuBase* MainMenu::OpenOptionsMenu(){ return submenus_[4].get(); }
@@ -2421,36 +2734,69 @@ void Menu::ProcessEvents( const SystemEvents& events )
 	{
 		switch( event.type )
 		{
-		case SystemEvent::Type::Key:
-			if(
-				event.event.key.pressed &&
-				event.event.key.key_code == KeyCode::Escape )
-			{
-				if( current_menu_ != nullptr )
+			case SystemEvent::Type::MouseKey:
+				if( event.event.mouse_key.pressed )
 				{
-					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
-					MenuBase* const new_menu= current_menu_->GetParent();
-					if( new_menu != current_menu_ )
+					switch( event.event.mouse_key.mouse_button )
 					{
-						if( new_menu != nullptr )
-							new_menu->OnActivated();
-						current_menu_= new_menu;
+						case SystemEvent::MouseKeyEvent::Button::Right:
+							if( current_menu_ != nullptr )
+							{
+								current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+								MenuBase* const new_menu= current_menu_->GetParent();
+								if( new_menu != current_menu_ )
+								{
+									if( new_menu != nullptr )
+										new_menu->OnActivated();
+									current_menu_= new_menu;
+								}
+							}
+							else
+							{
+								if( host_commands_.CurrentMap() == nullptr )
+								{
+									current_menu_ = root_menu_.get();
+									current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+									current_menu_->OnActivated();
+								}
+							}
+							break;
+						case SystemEvent::MouseKeyEvent::Button::Left: break;
+						default: break;
 					}
 				}
-				else
+				break;
+			case SystemEvent::Type::Key:
+				if(event.event.key.pressed)
 				{
-					current_menu_= root_menu_.get();
-					current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
-					current_menu_->OnActivated();
+					switch( event.event.key.key_code )
+					{
+						case KeyCode::Escape:
+							if( current_menu_ != nullptr )
+							{
+								current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+								MenuBase* const new_menu= current_menu_->GetParent();
+								if( new_menu != current_menu_ )
+								{
+									if( new_menu != nullptr )
+										new_menu->OnActivated();
+									current_menu_= new_menu;
+								}
+							}
+							else
+							{
+								current_menu_= root_menu_.get();
+								current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+								current_menu_->OnActivated();
+							}
+							break;
+						default: break;
+					}
 				}
-			}
-			break;
+				break;
+			default:
+				break;
 
-		case SystemEvent::Type::CharInput: break;
-		case SystemEvent::Type::MouseKey: break;
-		case SystemEvent::Type::MouseMove: break;
-		case SystemEvent::Type::Wheel: break;
-		case SystemEvent::Type::Quit: break;
 		};
 
 		if( current_menu_ != nullptr )
@@ -2475,58 +2821,63 @@ void Menu::ProcessEventsWhileNonactive( const SystemEvents& events )
 
 	for( const SystemEvent& event : events )
 	{
-		if( event.type != SystemEvent::Type::Key )
-			continue;
-		if( !event.event.key.pressed )
-			continue;
-
-		MenuBase* const previous_menu= current_menu_;
-
-		switch( event.event.key.key_code )
+		switch( event.type )
 		{
-		case KeyCode::F2:
-			current_menu_= root_menu_->OpenSaveMenu();
-			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-			break;
+			case SystemEvent::Type::Key:
+				if( event.event.key.pressed )
+				{
 
-		case KeyCode::F3:
-			current_menu_= root_menu_->OpenLoadMenu();
-			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-			break;
+					MenuBase* const previous_menu= current_menu_;
+					switch( event.event.key.key_code )
+					{
+						case KeyCode::F2:
+							current_menu_= root_menu_->OpenSaveMenu();
+							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+							break;
 
-		case KeyCode::F4:
-			current_menu_= root_menu_->OpenOptionsMenu();
-			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-			break;
+						case KeyCode::F3:
+							current_menu_= root_menu_->OpenLoadMenu();
+							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+							break;
 
-		case KeyCode::F5:
-			current_menu_= root_menu_->OpenNetworkMenu();
-			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-			break;
+						case KeyCode::F4:
+							current_menu_= root_menu_->OpenOptionsMenu();
+							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+							break;
 
-		case KeyCode::F6:
-			host_commands_.SaveGame(0u);
-			break;
+						case KeyCode::F5:
+							current_menu_= root_menu_->OpenNetworkMenu();
+							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+							break;
 
-		case KeyCode::F9:
-			host_commands_.LoadGame(0u);
-			break;
+						case KeyCode::F6:
+							host_commands_.SaveGame(0u);
+							break;
 
-		case KeyCode::F10:
-			current_menu_= root_menu_->OpenQuitMenu();
-			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-			break;
+						case KeyCode::F9:
+							host_commands_.LoadGame(0u);
+							break;
 
-		case KeyCode::F12:
-			// TODO - take screenshot
-			break;
+						case KeyCode::F10:
+							current_menu_= root_menu_->OpenQuitMenu();
+							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+							break;
 
-		default:
-			break;
-		};
+						case KeyCode::F12:
+							// TODO - take screenshot
+							break;
 
-		if( current_menu_ != nullptr && current_menu_ != previous_menu )
-			current_menu_->OnActivated();
+						default:
+							break;
+					};
+
+					if( current_menu_ != nullptr && current_menu_ != previous_menu )
+						current_menu_->OnActivated();
+				}
+				break;
+			default:
+				break;
+		}
 	}
 }
 

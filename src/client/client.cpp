@@ -680,6 +680,11 @@ void Client::StopMap()
 	cutscene_player_= nullptr;
 }
 
+MapDataConstPtr Client::CurrentMap()
+{
+	return current_map_data_;
+}
+
 void Client::TrySwitchWeaponNext()
 {
 	for(uint8_t i = weapon_state_.CurrentWeaponIndex() + 1; i < GameConstants::weapon_count; i++ )
