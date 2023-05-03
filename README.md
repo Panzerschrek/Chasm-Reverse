@@ -57,6 +57,11 @@ parameter command line `--addon`, for example:
 
 `./PanzerChasm --addon ADDON1`
 
+In order to execute some console command at start, use `--exec` option, for example:
+
+ `./PanzerChasm --exec "load saves/save_00.pcs"` to start game and immediately load first saved game.
+
+
 #### Control
 
 ##### Keyboard

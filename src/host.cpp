@@ -138,6 +138,14 @@ Host::Host( const int argc, const char* const* const argv )
 			*this,
 			shared_drawers_,
 			sound_engine_ ) );
+
+	program_arguments_.EnumerateAllParamValues(
+		"exec",
+		[&]( const char* const command )
+		{
+			commands_processor_.ProcessCommand( command );
+			Loop();
+		} );
 }
 
 Host::~Host()
