@@ -15,7 +15,8 @@
 #include "shared_drawers.hpp"
 #include "save_load.hpp"
 #include "sound/sound_engine.hpp"
-
+#include "key_checker.hpp"
+#include "shared_settings_keys.hpp"
 #include "host.hpp"
 
 namespace PanzerChasm
@@ -155,7 +156,6 @@ Host::~Host()
 bool Host::Loop()
 {
 	const Time tick_start_time= Time::CurrentTime();
-
 	// Events processing
 	InputState input_state;
 	if( system_window_ != nullptr )
@@ -164,7 +164,6 @@ bool Host::Loop()
 		system_window_->GetInput( events_ );
 		system_window_->GetInputState( input_state );
 	}
-
 	// Special host key events.
 	for( const SystemEvent& event : events_ )
 	{
@@ -223,6 +222,7 @@ bool Host::Loop()
 			client_->Loop( input_state, really_paused );
 	}
 
+
 	// Draw operations
 	if( system_window_ && !system_window_->IsMinimized() )
 	{
@@ -262,6 +262,10 @@ bool Host::Loop()
 		}
 
 		system_window_->EndFrame();
+
+		const KeyChecker key_pressed( settings_, input_state );
+		if( key_pressed( SettingsKeys::key_screenshot, KeyCode::F12 ) )
+			system_window_->ScreenShot();
 	}
 
 

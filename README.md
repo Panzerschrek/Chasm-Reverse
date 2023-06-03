@@ -52,15 +52,20 @@ the command option `--csm` strings, for example:
 
 `./PanzerChasm --csm CSM_RUS.BIN`
 
-To run the add-on, you must additionally specify the path to it through the 
-parameter command line `--addon`, for example:
-
-`./PanzerChasm --addon ADDON1`
-
 In order to execute some console command at start, use `--exec` option, for example:
 
  `./PanzerChasm --exec "load saves/save_00.pcs"` to start game and immediately load first saved game.
 
+#### Available add-ons:
+
+* Chasm - The Shadow Zone: ADDON1
+* Chasm - Cursed Land    : cursed
+* Chasm - Grim Borough   : borough
+
+To run the add-on, you must additionally specify the path to it through the 
+parameter command line `--addon` or `-addon`, for example:
+
+`./PanzerChasm --addon ADDON1`
 
 #### Control
 

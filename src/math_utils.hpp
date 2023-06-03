@@ -36,3 +36,15 @@ float DistanceToLineSegment(
 	const m_Vec2& v1 );
 
 } // namespace PanzerChasm
+
+
+#if __cplusplus < 201703L
+namespace std
+{
+	template<typename Tp_>
+	constexpr inline Tp_ clamp(Tp_ dst, Tp_ lo, Tp_ hi)
+	{
+		return (dst <= hi ? (dst >= lo ? dst : lo) : hi);
+	}
+}
+#endif

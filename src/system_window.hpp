@@ -44,6 +44,7 @@ public:
 	void GetInput( SystemEvents& out_events );
 	void GetInputState( InputState& out_input_state );
 	void CaptureMouse( bool need_capture );
+	bool ScreenShot( const std::string& file = "screenshot" ) const;
 
 private:
 	struct PixelColorsOrder
@@ -64,6 +65,7 @@ private:
 	Size2 viewport_size_; // Inner viewport size, not system window size.
 
 	SDL_Window* window_= nullptr;
+	SDL_Renderer* renderer_= nullptr;
 	SDL_GLContext gl_context_= nullptr; // If not null - current mode is OpenGL, else - software.
 	bool use_gl_context_for_software_renderer_= false;
 	unsigned int software_renderer_gl_texture_= ~0u;

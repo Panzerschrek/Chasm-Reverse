@@ -17,7 +17,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(SDL2 REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/src/panzer_ogl_lib)
+	${CMAKE_CURRENT_SOURCE_DIR}/src/
+	${CMAKE_CURRENT_SOURCE_DIR}/src/panzer_ogl_lib)
 
 # Source and header files
 file(GLOB_RECURSE CHASM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")

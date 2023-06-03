@@ -1,14 +1,6 @@
 #include <cctype>
 #include <cstring>
 
-// Include OS-dependend stuff for "mkdir".
-#ifdef _WIN32
-#include <direct.h>
-#else
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
-
 #include "common/files.hpp"
 using namespace ChasmReverse;
 
@@ -189,11 +181,8 @@ void GetSaveFileNameForSlot(
 
 void CreateSlotSavesDir()
 {
-#ifdef _WIN32
-	_mkdir( SAVES_DIR );
-#else
-	mkdir( SAVES_DIR, 0777 );
-#endif
+	if(!create_directory( SAVES_DIR ))
+		Log::Warning("Couldn't create saves directory: ", strerror(errno));
 }
 
 } // namespace PanzerChasm
