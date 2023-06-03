@@ -10,6 +10,8 @@
 #include "shared_settings_keys.hpp"
 
 #include "system_window.hpp"
+#include "common/tga.hpp"
+#include "common/files.hpp"
 
 namespace PanzerChasm
 {
@@ -38,28 +40,50 @@ static SystemEvent::KeyEvent::KeyCode TranslateKey( const SDL_Scancode scan_code
 	case SDL_SCANCODE_MINUS: return KeyCode::Minus;
 	case SDL_SCANCODE_EQUALS: return KeyCode::Equals;
 
-	case SDL_SCANCODE_LEFTBRACKET: return KeyCode::SquareBrackretLeft;
-	case SDL_SCANCODE_RIGHTBRACKET: return KeyCode::SquareBrackretRight;
+	case SDL_SCANCODE_LEFTBRACKET: return KeyCode::SquareBracketLeft;
+	case SDL_SCANCODE_RIGHTBRACKET: return KeyCode::SquareBracketRight;
 
 	case SDL_SCANCODE_SEMICOLON: return KeyCode::Semicolon;
 	case SDL_SCANCODE_APOSTROPHE: return KeyCode::Apostrophe;
 	case SDL_SCANCODE_BACKSLASH: return KeyCode::BackSlash;
-
+	case SDL_SCANCODE_CAPSLOCK: return KeyCode::CapsLock;
+	case SDL_SCANCODE_LCTRL: return KeyCode::LeftControl;
+	case SDL_SCANCODE_RCTRL: return KeyCode::RightControl;
+	case SDL_SCANCODE_LALT: return KeyCode::LeftAlt;
+	case SDL_SCANCODE_RALT: return KeyCode::RightAlt;
+	case SDL_SCANCODE_LSHIFT: return KeyCode::LeftShift;
+	case SDL_SCANCODE_RSHIFT: return KeyCode::RightShift;
 	case SDL_SCANCODE_COMMA: return KeyCode::Comma;
 	case SDL_SCANCODE_PERIOD: return KeyCode::Period;
 	case SDL_SCANCODE_SLASH: return KeyCode::Slash;
-
+	case SDL_SCANCODE_LGUI: return KeyCode::LeftMetaGUI;
+	case SDL_SCANCODE_RGUI: return KeyCode::RightMetaGUI;
+	case SDL_SCANCODE_APPLICATION: return KeyCode::Application;
 	case SDL_SCANCODE_PAUSE: return KeyCode::Pause;
-
+	case SDL_SCANCODE_KP_DIVIDE: return KeyCode::KPDivide;
+	case SDL_SCANCODE_KP_MULTIPLY: return KeyCode::KPMultiply;
+	case SDL_SCANCODE_KP_MINUS: return KeyCode::KPMinus;
+	case SDL_SCANCODE_KP_PLUS: return KeyCode::KPPlus;
+	case SDL_SCANCODE_KP_ENTER: return KeyCode::KPEnter;
+	case SDL_SCANCODE_KP_1: return KeyCode::KP1;
+	case SDL_SCANCODE_KP_2: return KeyCode::KP2;
+	case SDL_SCANCODE_KP_3: return KeyCode::KP3;
+	case SDL_SCANCODE_KP_4: return KeyCode::KP4;
+	case SDL_SCANCODE_KP_5: return KeyCode::KP5;
+	case SDL_SCANCODE_KP_6: return KeyCode::KP6;
+	case SDL_SCANCODE_KP_7: return KeyCode::KP7;
+	case SDL_SCANCODE_KP_8: return KeyCode::KP8;
+	case SDL_SCANCODE_KP_9: return KeyCode::KP9;
+	case SDL_SCANCODE_KP_0: return KeyCode::KP0;
+	case SDL_SCANCODE_KP_PERIOD: return KeyCode::KPPeriod;
 	default:
 		if( scan_code >= SDL_SCANCODE_A && scan_code <= SDL_SCANCODE_Z )
-			return KeyCode( int(KeyCode::A) + (scan_code - SDL_SCANCODE_A) );
-		if( scan_code >= SDL_SCANCODE_1 && scan_code <= SDL_SCANCODE_9 )
-			return KeyCode( int(KeyCode::K1) + (scan_code - SDL_SCANCODE_1) );
-		if( scan_code == SDL_SCANCODE_0 )
-			return KeyCode::K0;
-		if( scan_code >= SDL_SCANCODE_F1 && scan_code <= SDL_SCANCODE_F12 )
+			return KeyCode( KeyCode::A + (scan_code - SDL_SCANCODE_A) );
+		else if( scan_code >= SDL_SCANCODE_1 && scan_code <= SDL_SCANCODE_0 )
+			return KeyCode( KeyCode::K1 + (scan_code - SDL_SCANCODE_1) );
+		else if( scan_code >= SDL_SCANCODE_F1 && scan_code <= SDL_SCANCODE_F12 )
 			return KeyCode( int(KeyCode::F1) + (scan_code - SDL_SCANCODE_F1) );
+		break;
 	};
 
 	return KeyCode::Unknown;
@@ -284,16 +308,16 @@ windowed:
 	{
 		// In this mode we required most simple opengl - 1.1 version. It does`nt requires any flags.
 	}
+	SDL_ClearError();
+	if(SDL_CreateWindowAndRenderer(width, height,( (is_opengl || use_gl_context_for_software_renderer_) ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN, &window_, &renderer_) != 0)
+	{
+		SDL_Log("Can not create window: %s\n", SDL_GetError());
+	}
 
-	window_=
-		SDL_CreateWindow(
-			"PanzerChasm",
-			SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-			width, height,
-			( (is_opengl || use_gl_context_for_software_renderer_) ? SDL_WINDOW_OPENGL : 0 ) | ( fullscreen ? SDL_WINDOW_FULLSCREEN : 0 ) | SDL_WINDOW_SHOWN );
-
-	if( window_ == nullptr )
+	if( window_ == nullptr || renderer_ == nullptr )
+	{
 		Log::FatalError( "Can not create window" );
+	}
 
 	if( is_opengl || use_gl_context_for_software_renderer_ )
 	{
@@ -354,7 +378,7 @@ windowed:
 		// Do reinterpret_cast, because on different platforms arguments of GLDEBUGPROC have
 		// different const qualifier. Just ignore this cualifiers - we always have 'const'.
 		if( glDebugMessageCallback != nullptr )
-			glDebugMessageCallback( reinterpret_cast<GLDEBUGPROC>(&GLDebugMessageCallback), NULL );
+			glDebugMessageCallback( reinterpret_cast<GLDEBUGPROC>(&GLDebugMessageCallback), nullptr );
 		#endif
 	}
 	else if( use_gl_context_for_software_renderer_ )
@@ -788,4 +812,72 @@ void SystemWindow::UpdateBrightness()
 	}
 }
 
-} // namespace PanzerChasm
+bool SystemWindow::ScreenShot( const std::string& file ) const
+{
+	int result = -1;
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	std::array<Uint32, 4> mask = { 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff };
+#else
+	std::array<Uint32, 4> mask = { 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000 };
+#endif
+	/* get screen surface from window */
+	SDL_Surface* screen = SDL_GetWindowSurface(window_);
+	int size = screen->w * screen->h;
+	std::vector<std::array<uint8_t, 4>> pixels(size);
+
+	/* get opengl settings */
+	const bool is_opengl= !settings_.GetOrSetBool( SettingsKeys::software_rendering, true );
+
+	if (!pixels.empty())
+	{
+		if( is_opengl || use_gl_context_for_software_renderer_ )
+		{
+			/* set pack alignment */
+			GLint pack_aligment;
+			glGetIntegerv(GL_PACK_ALIGNMENT, &pack_aligment);
+			glPixelStorei(GL_PACK_ALIGNMENT, 4);
+			glFlush();
+
+			glReadPixels(0, 0, screen->w, screen->h, GL_RGBA, GL_UNSIGNED_BYTE, &pixels.front());
+
+			glPixelStorei(GL_PACK_ALIGNMENT, pack_aligment);
+
+		}
+		else
+		{
+			SDL_Rect* viewport = nullptr;
+			SDL_GetClipRect(screen, viewport);
+			SDL_LockSurface(screen);
+			SDL_ClearError();
+			if((result = SDL_RenderReadPixels(renderer_, viewport, SDL_PIXELFORMAT_RGBA32, &pixels.front(), pixels.size() * sizeof(std::array<uint8_t, 4>))) != 0);
+			{
+				SDL_Log("Couldn't read screen: %s\n", SDL_GetError());
+				pixels.clear();
+			}
+			SDL_UnlockSurface(screen);
+		}
+
+		if(!pixels.empty())
+		{
+			/* apply gamma ramp */
+			std::array<uint16_t, 256> r, g, b;
+			SDL_GetWindowGammaRamp(window_, r.begin(), g.begin(), b.begin());
+			for (auto & p : pixels)
+				p = { (uint8_t)(r[p[0]] >> 8), (uint8_t)(g[p[1]] >> 8), (uint8_t)(b[p[2]] >> 8), p[3] };
+
+			/* create target directory */
+			if(!create_directory(dir_name<std::string>(file)))
+				Log::Warning("Couldn't create screenshot directory: ", strerror(errno));
+
+			ChasmReverse::WriteTGA(screen->w, screen->h, &pixels.front().front(), nullptr, (remove_extension<std::string>(file) + ".tga").c_str());
+
+			pixels.clear();
+		}
+
+	}
+	SDL_ClearError();
+	SDL_FreeSurface(screen);
+	return result == 0 ? true : false;
+}
+
+}// namespace PanzerChasm

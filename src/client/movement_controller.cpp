@@ -3,35 +3,13 @@
 #include "game_constants.hpp"
 #include "settings.hpp"
 #include "shared_settings_keys.hpp"
-
 #include "movement_controller.hpp"
+#include "../key_checker.hpp"
 
 namespace PanzerChasm
 {
 
 static const float g_z_near= 1.0f / 12.0f; // Must be greater, then z_near in software rasterizer.
-
-using KeyCode= SystemEvent::KeyEvent::KeyCode;
-
-class KeyChecker
-{
-public:
-	KeyChecker( Settings& settings, const KeyboardState& keyboard_state )
-		: settings_(settings), keyboard_state_(keyboard_state)
-	{}
-
-	bool operator()( const char* const key_setting_name, const KeyCode default_value ) const
-	{
-		const KeyCode key= static_cast<KeyCode>( settings_.GetOrSetInt( key_setting_name, static_cast<int>(default_value) ) );
-		if( key > KeyCode::Unknown && key < KeyCode::KeyCount )
-			return keyboard_state_[ static_cast<unsigned int>( key ) ];
-		return false;
-	}
-
-private:
-	Settings& settings_;
-	const KeyboardState& keyboard_state_;
-};
 
 MovementController::MovementController(
 	Settings& settings,
@@ -40,6 +18,8 @@ MovementController::MovementController(
 	: settings_( settings )
 	, angle_(angle), aspect_(aspect)
 	, speed_(0.0f)
+	, mouse_look_( settings_.GetOrSetBool( SettingsKeys::perm_mlook, true ) )
+	, mouse_look_pressed_( false )
 	, start_tick_( Time::CurrentTime() )
 	, prev_calc_tick_( Time::CurrentTime() )
 {
@@ -65,7 +45,7 @@ void MovementController::UpdateParams()
 	ClipCameraAngles();
 }
 
-void MovementController::Tick( const KeyboardState& keyboard_state )
+void MovementController::Tick( const InputState& input_state )
 {
 	const Time new_tick= Time::CurrentTime();
 
@@ -73,20 +53,24 @@ void MovementController::Tick( const KeyboardState& keyboard_state )
 
 	prev_calc_tick_= new_tick;
 
-	const KeyChecker key_pressed( settings_,keyboard_state );
+	const KeyChecker key_pressed( settings_, input_state );
 
 	m_Vec3 rotate_vec( 0.0f ,0.0f, 0.0f );
-	if( key_pressed( SettingsKeys::key_turn_left , KeyCode::Left  ) ) rotate_vec.z+= +1.0f;
-	if( key_pressed( SettingsKeys::key_turn_right, KeyCode::Right ) ) rotate_vec.z+= -1.0f;
-	if( key_pressed( SettingsKeys::key_look_up   , KeyCode::Up    ) ) rotate_vec.x+= +1.0f;
-	if( key_pressed( SettingsKeys::key_look_down , KeyCode::Down  ) ) rotate_vec.x+= -1.0f;
+
+	if( key_pressed( SettingsKeys::key_perm_mlook, KeyCode::E ) ) mouse_look_ = !mouse_look_;
+	if( key_pressed( SettingsKeys::key_turn_left  , KeyCode::KP4 ) ) rotate_vec.z+= +1.0f;
+	if( key_pressed( SettingsKeys::key_turn_right , KeyCode::KP6 ) ) rotate_vec.z+= -1.0f;
+	if( key_pressed( SettingsKeys::key_look_up    , KeyCode::KP8 ) ) rotate_vec.x+= +1.0f;
+	if( key_pressed( SettingsKeys::key_look_down  , KeyCode::KP2 ) ) rotate_vec.x+= -1.0f;
+	if( key_pressed( SettingsKeys::key_center_view, KeyCode::KP5 ) ) angle_.x = 0.0f;
 
 	const float rot_speed= 1.75f;
 	angle_+= dt_s * rot_speed * rotate_vec;
-	
+
 	ClipCameraAngles();
 
-	jump_pressed_= key_pressed( SettingsKeys::key_jump, KeyCode::Space );
+	jump_pressed_= key_pressed( SettingsKeys::key_jump, KeyCode::Mouse2 );
+	mouse_look_pressed_ = key_pressed( SettingsKeys::key_temp_mlook, KeyCode::Q );
 }
 
 void MovementController::SetSpeed( const float speed )
@@ -101,12 +85,12 @@ void MovementController::SetAngles( float z_angle, float x_angle )
 }
 
 void MovementController::GetAcceleration(
-	const KeyboardState& keyboard_state,
+	const InputState& input_state,
 	float& out_dir, float& out_acceleration ) const
 {
 	m_Vec3 move_vector(0.0f,0.0f,0.0f);
 
-	const KeyChecker key_pressed( settings_,keyboard_state );
+	const KeyChecker key_pressed( settings_,input_state );
 
 	if( key_pressed( SettingsKeys::key_forward   , KeyCode::W ) ) move_vector.y+= +1.0f;
 	if( key_pressed( SettingsKeys::key_backward  , KeyCode::S ) ) move_vector.y+= -1.0f;
@@ -265,41 +249,44 @@ bool MovementController::JumpPressed() const
 
 void MovementController::ControllerRotate( const int delta_x, const int delta_z )
 {
-	float base_sensetivity= settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f );
-	base_sensetivity= std::max( 0.0f, std::min( base_sensetivity, 1.0f ) );
-	settings_.SetSetting( SettingsKeys::mouse_sensetivity, base_sensetivity );
-
-	float d_x_f, d_z_f;
-	if( settings_.GetOrSetBool( "cl_mouse_filter", true ) )
+	if( ( mouse_look_pressed_ && !mouse_look_ ) || ( !mouse_look_pressed_ && mouse_look_) )
 	{
-		d_x_f= float( delta_x + prev_controller_delta_x_ ) * 0.5f;
-		d_z_f= float( delta_z + prev_controller_delta_z_ ) * 0.5f;
+		float base_sensetivity= settings_.GetOrSetFloat( SettingsKeys::mouse_sensetivity, 0.5f );
+		base_sensetivity= std::max( 0.0f, std::min( base_sensetivity, 1.0f ) );
+		settings_.SetSetting( SettingsKeys::mouse_sensetivity, base_sensetivity );
+
+		float d_x_f, d_z_f;
+		if( settings_.GetOrSetBool( "cl_mouse_filter", true ) )
+		{
+			d_x_f= float( delta_x + prev_controller_delta_x_ ) * 0.5f;
+			d_z_f= float( delta_z + prev_controller_delta_z_ ) * 0.5f;
+		}
+		else
+		{
+			d_x_f= float(delta_x);
+			d_z_f= float(delta_z);
+		}
+
+		if( settings_.GetOrSetBool( "cl_mouse_acceleration", true ) )
+		{
+			const float c_acceleration= 0.25f;
+			const float c_max_acceleration_factor= 2.0f;
+			d_x_f= std::min( c_acceleration * std::sqrt(std::abs(d_x_f)), c_max_acceleration_factor ) * d_x_f;
+			d_z_f= std::min( c_acceleration * std::sqrt(std::abs(d_z_f)), c_max_acceleration_factor ) * d_z_f;
+		}
+
+		const float c_max_exp_sensetivity= 8.0f;
+		const float exp_sensetivity= std::exp( base_sensetivity * std::log(c_max_exp_sensetivity) ); // [ 1; c_max_exp_sensetivity ]
+
+		const float c_pix_scale= 1.0f / 1024.0f;
+		const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -1.0f : +1.0f;
+
+		angle_.x-= exp_sensetivity * c_pix_scale * d_x_f * z_direction;
+		angle_.z-= exp_sensetivity * c_pix_scale * d_z_f * 0.5f;
+
+		prev_controller_delta_x_= delta_x;
+		prev_controller_delta_z_= delta_z;
 	}
-	else
-	{
-		d_x_f= float(delta_x);
-		d_z_f= float(delta_z);
-	}
-
-	if( settings_.GetOrSetBool( "cl_mouse_acceleration", true ) )
-	{
-		const float c_acceleration= 0.25f;
-		const float c_max_acceleration_factor= 2.0f;
-		d_x_f= std::min( c_acceleration * std::sqrt(std::abs(d_x_f)), c_max_acceleration_factor ) * d_x_f;
-		d_z_f= std::min( c_acceleration * std::sqrt(std::abs(d_z_f)), c_max_acceleration_factor ) * d_z_f;
-	}
-
-	const float c_max_exp_sensetivity= 8.0f;
-	const float exp_sensetivity= std::exp( base_sensetivity * std::log(c_max_exp_sensetivity) ); // [ 1; c_max_exp_sensetivity ]
-
-	const float c_pix_scale= 1.0f / 1024.0f;
-	const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -1.0f : +1.0f;
-
-	angle_.x-= exp_sensetivity * c_pix_scale * d_x_f * z_direction;
-	angle_.z-= exp_sensetivity * c_pix_scale * d_z_f * 0.5f;
-
-	prev_controller_delta_x_= delta_x;
-	prev_controller_delta_z_= delta_z;
 }
 
 void MovementController::ClipCameraAngles()

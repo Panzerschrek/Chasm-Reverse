@@ -7,6 +7,7 @@
 #include "../vfs.hpp"
 
 #include "sounds_loader.hpp"
+#include "common/files.hpp"
 
 namespace PanzerChasm
 {
@@ -16,16 +17,6 @@ namespace Sound
 
 namespace
 {
-
-const char* ExtractExtension( const char* const file_path )
-{
-	unsigned int pos= std::strlen( file_path );
-
-	while( pos > 0u && file_path[ pos ] != '.' )
-		pos--;
-
-	return file_path + pos + 1u;
-}
 
 class RawPCMSoundData final : public ISoundData
 {
@@ -144,7 +135,7 @@ ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs )
 		return nullptr;
 	}
 
-	const char* const extension= ExtractExtension( file_path );
+	const char* const extension= ChasmReverse::ExtractExtension( file_path );
 
 	if( std::strcmp( extension, "WAV" ) == 0 ||
 		std::strcmp( extension, "wav" ) == 0 )

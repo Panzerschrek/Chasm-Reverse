@@ -24,9 +24,29 @@ csm.bin
 CSM.BIN
 CSM.bin
 csm.BIN
+CURSED/
+CURSED/*
+cursed/
+cursed/*
+MUSIC/
+MUSIC/*
+music/
+music/*
+ADDON1/
+ADDON1/*
+addon1/
+addon1/*
+borough/
+borough/*
+BOROUGH/
+BOROUGH/*
 
 # Game saves
 saves/*
+
+# Screen shots
+*.tga
+*.TGA
 
 # Build system
 CMakeFiles/*
