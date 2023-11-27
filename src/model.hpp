@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
-
 #include <bbox.hpp>
-
 #include "assert.hpp"
 #include "vfs.hpp"
 
@@ -75,5 +73,6 @@ void LoadModel_o3(
 	Model& out_model );
 
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model );
+void LoadModel_gltf( const Vfs::FileContent& model_file, Model& out_model );
 
 } // namespace ChasmReverse

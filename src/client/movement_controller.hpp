@@ -25,12 +25,12 @@ public:
 	void SetAspect( float aspect );
 
 	void UpdateParams();
-	void Tick( const KeyboardState& keyboard_state );
+	void Tick( const InputState& input_state_ );
 	void SetSpeed( float speed );
 	void SetAngles( float z_angle, float x_angle );
 
 	void GetAcceleration(
-		const KeyboardState& keyboard_state,
+		const InputState& input_state,
 		float& out_dir, float& out_acceleration ) const;
 
 	float GetEyeZShift() const;
@@ -65,7 +65,8 @@ private:
 	float speed_;
 
 	bool jump_pressed_;
-
+	bool mouse_look_pressed_;
+	bool mouse_look_;
 	const Time start_tick_;
 	Time prev_calc_tick_;
 
