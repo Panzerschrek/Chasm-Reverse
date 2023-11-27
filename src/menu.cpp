@@ -11,8 +11,8 @@
 #include "sound/sound_engine.hpp"
 #include "sound/sound_id.hpp"
 #include "system_window.hpp"
-
 #include "menu.hpp"
+#include "key_checker.hpp"
 
 namespace PanzerChasm
 {
@@ -63,6 +63,7 @@ public:
 	virtual MenuBase* Select() { return this; }
 	virtual MenuBase* Back() { return this; }
 	virtual MenuBase* CharInput( char32_t ch ) { return this; }
+	bool getInSetMode() { return in_set_mode_; }
 protected:
 	bool in_set_mode_ = false;
 private:
@@ -75,16 +76,30 @@ MenuBase* MenuBase::ProcessEvent( const SystemEvent& event )
 	switch(event.type)
 	{
 		case SystemEvent::Type::Wheel:
-			if(event.event.wheel.delta != 0)
-				if(event.event.wheel.delta > 0) Up(); else Down();
+			if( in_set_mode_ )
+			{
+				CharInput( static_cast<char32_t>( event.event.wheel.delta > 0 ? KeyCode::MouseWheelUp : KeyCode::MouseWheelDown ) ); break;
+			}
+			else
+			{
+				if(event.event.wheel.delta != 0)
+					if(event.event.wheel.delta > 0) Up(); else Down();
+			}
 			break;
 		case SystemEvent::Type::MouseKey:
 			if( event.event.mouse_key.pressed )
 			{
-				switch(event.event.mouse_key.mouse_button)
+				if ( in_set_mode_ )
 				{
-					case SystemEvent::MouseKeyEvent::Button::Left: return Select(); break;
-					case SystemEvent::MouseKeyEvent::Button::Right: return Back(); break;
+					CharInput( (const char32_t)KeyCode::MouseUnknown + (const char32_t)event.event.mouse_key.mouse_button); break;
+				}
+				else
+				{
+					switch(event.event.mouse_key.mouse_button)
+					{
+						case SystemEvent::MouseKeyEvent::Button::Left: return Select(); break;
+						case SystemEvent::MouseKeyEvent::Button::Right: return Back(); break;
+					}
 				}
 			}
 			break;
@@ -109,6 +124,7 @@ MenuBase* MenuBase::ProcessEvent( const SystemEvent& event )
 					}
 				}
 			}
+			break;
 		case SystemEvent::Type::CharInput: if(!in_set_mode_) CharInput( static_cast<char32_t>(event.event.char_input.ch) ); break;
 			break;
 		default: break;
@@ -677,7 +693,7 @@ PlayerSetupMenu::PlayerSetupMenu( MenuBase* parent, const Sound::SoundEnginePtr&
 {
 	std::strncpy(
 		nick_name_,
-		settings_.GetOrSetString( SettingsKeys::player_name, "n00b" ),
+		settings_.GetOrSetString( SettingsKeys::player_name, "Player" ),
 		sizeof(nick_name_) );
 
 	color_= settings_.GetOrSetInt( SettingsKeys::player_color, 0 );
@@ -1021,15 +1037,26 @@ private:
 
 const ControlsMenu::KeySettings ControlsMenu::c_key_settings[]=
 {
-	{ "Move Forward"	, SettingsKeys::key_forward	, KeyCode::W },
-	{ "Move Backward"	, SettingsKeys::key_backward	, KeyCode::S },
-	{ "Strafe Left"		, SettingsKeys::key_step_left	, KeyCode::A },
-	{ "Strafe Right"	, SettingsKeys::key_step_right	, KeyCode::D },
-	{ "Turn Left"		, SettingsKeys::key_turn_left	, KeyCode::Left },
-	{ "Turn Right"		, SettingsKeys::key_turn_right	, KeyCode::Right },
-	{ "Look Up"		, SettingsKeys::key_look_up	, KeyCode::Up },
-	{ "Look Down"		, SettingsKeys::key_look_down	, KeyCode::Down },
-	{ "Jump"		, SettingsKeys::key_jump	, KeyCode::Space },
+	{ "Move Forward"	, SettingsKeys::key_forward	  , KeyCode::W },
+	{ "Move Backward"	, SettingsKeys::key_backward	  , KeyCode::S },
+	{ "Strafe Left"		, SettingsKeys::key_step_left	  , KeyCode::A },
+	{ "Strafe Right"	, SettingsKeys::key_step_right	  , KeyCode::D },
+	{ "Speed Up"            , SettingsKeys::key_speed_up      , KeyCode::LeftShift },
+	{ "Always Run"          , SettingsKeys::key_always_run    , KeyCode::CapsLock },
+	{ "Jump"		, SettingsKeys::key_jump	  , KeyCode::Mouse2 },
+	{ "Fire"                , SettingsKeys::key_fire	  , KeyCode::Mouse1 },
+	{ "Change Weapon"	, SettingsKeys::key_weapon_change , KeyCode::Mouse3 },
+	{ "Next Weapon"         , SettingsKeys::key_weapon_next   , KeyCode::MouseWheelDown },
+	{ "Prev Weapon"         , SettingsKeys::key_weapon_prev   , KeyCode::MouseWheelUp },
+	{ "Strafe On"           , SettingsKeys::key_strafe_on     , KeyCode::RightShift },
+	{ "Permanent MLook"     , SettingsKeys::key_perm_mlook    , KeyCode::E },
+	{ "Temporary MLook"     , SettingsKeys::key_temp_mlook    , KeyCode::Q },
+	{ "Turn Left"		, SettingsKeys::key_turn_left	  , KeyCode::KP4 },
+	{ "Turn Right"		, SettingsKeys::key_turn_right	  , KeyCode::KP6 },
+	{ "Look Up"		, SettingsKeys::key_look_up	  , KeyCode::KP8 },
+	{ "Center View"         , SettingsKeys::key_center_view   , KeyCode::KP5 },
+	{ "Look Down"		, SettingsKeys::key_look_down	  , KeyCode::KP2 },
+	{ "Screenshot"          , SettingsKeys::key_screenshot    , KeyCode::F12 },
 };
 
 const unsigned int ControlsMenu::c_key_setting_count= sizeof(ControlsMenu::c_key_settings) / sizeof(ControlsMenu::c_key_settings[0]);
@@ -1111,7 +1138,14 @@ MenuBase* ControlsMenu::Select()
 MenuBase* ControlsMenu::Back()
 {
 	if( in_set_mode_ )
+	{
 		in_set_mode_= false;
+	}
+	else
+	{
+		settings_.SetSetting( c_key_settings[ current_row_ ].setting_name, static_cast<int>(KeyCode::Unknown) );
+		PlayMenuSound( Sound::SoundId::MenuSelect );
+	}
 	return this;
 }
 
@@ -1252,7 +1286,7 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 	if( current_renderer_ == Renderer::Software )
 	{
-		char pixel_size[16];
+		char pixel_size[16] = "";
 		std::snprintf( pixel_size, sizeof(pixel_size), "%d", settings_.GetOrSetInt( SettingsKeys::software_scale, 1 ) );
 
 		text_draw.Print(
@@ -1365,8 +1399,8 @@ void GraphicsMenu::Left()
 		settings_.SetSetting( SettingsKeys::software_rendering, current_renderer_ == Renderer::Software );
 		PlayMenuSound( Sound::SoundId::MenuChange );
 	}
-	int pixel_size;
-	unsigned int msaa_level;
+	int pixel_size = 1;
+	unsigned int msaa_level = 0;
 
 	switch( current_renderer_ )
 	{
@@ -1375,7 +1409,8 @@ void GraphicsMenu::Left()
 			{
 				case RowSoftware::PixelSize:
 					pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) - 1;
-					settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
+					pixel_size = pixel_size < 1 ? 4 : pixel_size;
+					settings_.SetSetting( SettingsKeys::software_scale, std::max(1, pixel_size % 5));
 					PlayMenuSound( Sound::SoundId::MenuScroll );
 					break;
 				case RowOpenGL::Shadows:
@@ -1416,11 +1451,8 @@ void GraphicsMenu::Left()
 					break;
 				case RowOpenGL::MSAA:
 					msaa_level = settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
-					if( msaa_level > 0 )
-					{
-						msaa_level--;
-						PlayMenuSound( Sound::SoundId::MenuChange );
-					}
+					msaa_level = ((msaa_level <= 0 ? 5 : msaa_level) - 1) % 5;
+					PlayMenuSound( Sound::SoundId::MenuChange );
 					settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
 					break;
 				case RowOpenGL::Shadows:
@@ -1446,8 +1478,8 @@ void GraphicsMenu::Right()
 		PlayMenuSound( Sound::SoundId::MenuChange );
 	}
 
-	int pixel_size;
-	unsigned int msaa_level;
+	int pixel_size = 1;
+	unsigned int msaa_level = 0;
 	switch( current_renderer_ )
 	{
 		case Renderer::Software:
@@ -1455,7 +1487,7 @@ void GraphicsMenu::Right()
 			{
 				case RowSoftware::PixelSize:
 					pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + 1;
-					settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
+					settings_.SetSetting( SettingsKeys::software_scale, std::max(1, pixel_size % 5) );
 					PlayMenuSound( Sound::SoundId::MenuScroll );
 					break;
 				case RowOpenGL::Shadows:
@@ -1487,12 +1519,9 @@ void GraphicsMenu::Right()
 					PlayMenuSound( Sound::SoundId::MenuChange );
 					break;
 				case RowOpenGL::MSAA:
-					msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
-					if( msaa_level < 4 )
-					{
-						msaa_level++;
-						PlayMenuSound( Sound::SoundId::MenuChange );
-					}
+					msaa_level = settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+					++msaa_level %= 5;
+					PlayMenuSound( Sound::SoundId::MenuChange );
 					settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
 					break;
 				case RowOpenGL::Shadows:
@@ -1519,11 +1548,18 @@ MenuBase* GraphicsMenu::Select()
 		PlayMenuSound( Sound::SoundId::MenuChange );
 	}
 
+	int pixel_size = 1;
+	unsigned int msaa_level = 0;
 	switch( current_renderer_ )
 	{
 		case Renderer::Software:
 			switch( current_row_)
 			{
+				case RowSoftware::PixelSize:
+					pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + 1;
+					settings_.SetSetting( SettingsKeys::software_scale, std::max(1, pixel_size % 5));
+					PlayMenuSound( Sound::SoundId::MenuScroll );
+					break;
 				case RowSoftware::ApplyNow:
 					PlayMenuSound( Sound::SoundId::MenuChange );
 					host_commands_.VidRestart();
@@ -1555,6 +1591,12 @@ MenuBase* GraphicsMenu::Select()
 				case RowOpenGL::ApplyNow:
 					PlayMenuSound( Sound::SoundId::MenuChange );
 					host_commands_.VidRestart();
+					break;
+				case RowOpenGL::MSAA:
+					msaa_level= settings_.GetInt( SettingsKeys::opengl_msaa_level, 2 );
+					++msaa_level %= 5;
+					PlayMenuSound( Sound::SoundId::MenuChange );
+					settings_.SetSetting( SettingsKeys::opengl_msaa_level, int(msaa_level) );
 					break;
 				case RowOpenGL::Shadows:
 					settings_.SetSetting( SettingsKeys::shadows, !settings_.GetBool( SettingsKeys::shadows, true ) );
@@ -1591,7 +1633,7 @@ private:
 	{
 		enum : int
 		{
-			Fullscreen= 0, Display, FullscreenResolution, Frequency, WindowWidth, WindowHeight, ApplyNow, NumRows
+			Fullscreen= 0, Display, FullscreenResolution, Frequency, VerticalSync, DrawFPS, WindowWidth, WindowHeight, ApplyNow, NumRows
 		};
 	};
 
@@ -1629,6 +1671,9 @@ VideoMenu::VideoMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engin
 	const int width = settings_.GetInt( SettingsKeys::fullscreen_width  );
 	const int height= settings_.GetInt( SettingsKeys::fullscreen_height );
 	const int frequency= settings_.GetInt( SettingsKeys::fullscreen_frequency );
+	settings_.GetOrSetBool( SettingsKeys::vsync, true );
+	settings_.GetOrSetBool( SettingsKeys::draw_fps, true );
+	
 	if( !video_modes_.empty() )
 	{
 		const SystemWindow::VideoModes& display_modes= video_modes_[display_];
@@ -1730,6 +1775,29 @@ void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		current_row_ == Row::Frequency ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Right );
 
+	text_draw.Print(
+		param_descr_x, y + Row::VerticalSync * y_step,
+		"Vertical Sync", scale,
+		current_row_ == Row::VerticalSync ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::VerticalSync * y_step,
+		settings_.GetOrSetBool( SettingsKeys::vsync, false ) ? g_on : g_off,
+		scale,
+		current_row_ == Row::VerticalSync ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+	text_draw.Print(
+		param_descr_x, y + Row::DrawFPS * y_step,
+		"Draw FPS", scale,
+		current_row_ == Row::DrawFPS ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::DrawFPS * y_step,
+		settings_.GetOrSetBool( SettingsKeys::draw_fps, false ) ? g_on : g_off,
+		scale,
+		current_row_ == Row::DrawFPS ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
 	if( !video_modes_.empty() && !video_modes_[display_].empty() && !video_modes_[display_][resolution_].supported_frequencies.empty() )
 	{
 		const SystemWindow::VideoMode& video_mode= video_modes_[display_][resolution_];
@@ -1763,13 +1831,13 @@ void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		"Windowed height", scale,
 		current_row_ == Row::WindowHeight ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Right );
+
 	std::snprintf( size_str, sizeof(size_str), current_row_ == Row::WindowHeight ? "%s_" : "%s", window_height_ );
 	text_draw.Print(
 		param_x, y + Row::WindowHeight * y_step,
 		size_str, scale,
 		current_row_ == Row::WindowHeight ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
-
 	text_draw.Print(
 		( param_descr_x + param_x ) / 2, y + Row::ApplyNow * y_step,
 		g_apply_now, scale,
@@ -1869,6 +1937,15 @@ void VideoMenu::Left()
 			}
 			break;
 
+		case Row::VerticalSync:
+			settings_.SetSetting( SettingsKeys::vsync, !settings_.GetBool( SettingsKeys::vsync, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::DrawFPS:
+			settings_.SetSetting( SettingsKeys::draw_fps, !settings_.GetBool( SettingsKeys::draw_fps, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
 		default:
 			break;
 	};
@@ -1955,6 +2032,15 @@ void VideoMenu::Right()
 			}
 			break;
 
+		case Row::VerticalSync:
+			settings_.SetSetting( SettingsKeys::vsync, !settings_.GetBool( SettingsKeys::vsync, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::DrawFPS:
+			settings_.SetSetting( SettingsKeys::draw_fps, !settings_.GetBool( SettingsKeys::draw_fps, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+
 		default:
 			break;
 	};
@@ -1967,6 +2053,41 @@ MenuBase* VideoMenu::Select()
 			settings_.SetSetting( SettingsKeys::fullscreen, !settings_.GetBool( SettingsKeys::fullscreen, false ) );
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			break;
+		case Row::VerticalSync:
+			settings_.SetSetting( SettingsKeys::vsync, !settings_.GetBool( SettingsKeys::vsync, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::DrawFPS:
+			settings_.SetSetting( SettingsKeys::draw_fps, !settings_.GetBool( SettingsKeys::draw_fps, true ) );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::FullscreenResolution:
+			if( !video_modes_.empty() && video_modes_[display_].size() >= 2u )
+			{
+				const unsigned int prev_resolution= resolution_;
+				resolution_+= ( video_modes_[display_].size() - 1u );
+				resolution_%= video_modes_[display_].size();
+
+				// Change resolution - search same frequency for different resolution.
+				bool frequency_found= false;
+				for( unsigned int i= 0u; i < video_modes_[display_][resolution_].supported_frequencies.size(); i++ )
+				{
+					if( video_modes_[display_][prev_resolution].supported_frequencies[frequency_] ==
+							video_modes_[display_][resolution_].supported_frequencies[i] )
+					{
+						frequency_= i;
+						frequency_found= true;
+						break;
+					}
+				}
+				if( !frequency_found )
+					frequency_= 0u;
+
+				PlayMenuSound( Sound::SoundId::MenuSelect );
+				UpdateSettings();
+			}
+			break;
+
 		case Row::ApplyNow:
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			host_commands_.VidRestart();
@@ -2061,7 +2182,7 @@ private:
 	{
 		enum : int
 		{
-			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, OldStylePerspective, Brightness, FXVolume, CDVolume, MouseSensitivity, FOV, NumRows
+			Controls, Video, Graphics, AlwaysRun, Crosshair, RevertMouse, WeaponReset, OldStylePerspective, SaveComment, Brightness, FXVolume, CDVolume, MouseSensitivity, FOV, NumRows
 		};
 	};
 	int current_row_= 0;
@@ -2071,6 +2192,7 @@ private:
 	bool reverse_mouse_;
 	bool weapon_reset_;
 	bool old_style_perspecive_;
+	std::string save_comment_= "time";
 
 	const int c_max_slider_value= 15;
 	int brightness_;
@@ -2200,6 +2322,16 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		param_x, y + Row::OldStylePerspective * y_step,
 		old_style_perspecive_ ? g_on : g_off, scale,
 		current_row_ == Row::OldStylePerspective ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
+	text_draw.Print(
+		param_descr_x, y + Row::SaveComment * y_step,
+		"Save Comment", scale,
+		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + Row::SaveComment * y_step,
+		save_comment_.c_str(), scale,
+		current_row_ == Row::SaveComment ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
 	char slider_back_text[ 1u + 7u + 1u + 1u ];
@@ -2371,6 +2503,11 @@ void OptionsMenu::Left()
 				PlayMenuSound( Sound::SoundId::MenuScroll );
 			}
 			break;
+		case Row::SaveComment:
+			save_comment_ = save_comment_ == "time" ? "hud" : "time";
+			settings_.SetSetting( SettingsKeys::save_comment, save_comment_.c_str() );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
 		default:
 			break;
 	}
@@ -2451,6 +2588,11 @@ void OptionsMenu::Right()
 				PlayMenuSound( Sound::SoundId::MenuScroll );
 			}
 			break;
+		case Row::SaveComment:
+			save_comment_ = save_comment_ == "time" ? "hud" : "time";
+			settings_.SetSetting( SettingsKeys::save_comment, save_comment_.c_str() );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
 		default:
 			break;
 	}
@@ -2492,6 +2634,11 @@ MenuBase* OptionsMenu::Select()
 		case Row::OldStylePerspective:
 			old_style_perspecive_= !old_style_perspecive_;
 			settings_.SetSetting( SettingsKeys::old_style_perspective, old_style_perspecive_ );
+			PlayMenuSound( Sound::SoundId::MenuSelect );
+			break;
+		case Row::SaveComment:
+			save_comment_ = save_comment_ == "time" ? "hud" : "time";
+			settings_.SetSetting( SettingsKeys::save_comment, save_comment_.c_str() );
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 			break;
 		default:
@@ -2732,6 +2879,7 @@ void Menu::ProcessEvents( const SystemEvents& events )
 {
 	for( const SystemEvent& event : events )
 	{
+		const KeyChecker key_pressed( host_commands_.GetSettings(), event );
 		switch( event.type )
 		{
 			case SystemEvent::Type::MouseKey:
@@ -2767,36 +2915,35 @@ void Menu::ProcessEvents( const SystemEvents& events )
 				}
 				break;
 			case SystemEvent::Type::Key:
-				if(event.event.key.pressed)
+				if( key_pressed( SettingsKeys::key_screenshot, KeyCode::F12 ) )
 				{
-					switch( event.event.key.key_code )
+					if( current_menu_ != nullptr && !current_menu_->getInSetMode() )
+						host_commands_.GetSystemWindow()->CaptureScreen();
+					break;
+				}
+				if( key_pressed( SettingsKeys::key_menu_exit, KeyCode::Escape ) )
+				{
+					if( current_menu_ != nullptr )
 					{
-						case KeyCode::Escape:
-							if( current_menu_ != nullptr )
-							{
-								current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
-								MenuBase* const new_menu= current_menu_->GetParent();
-								if( new_menu != current_menu_ )
-								{
-									if( new_menu != nullptr )
-										new_menu->OnActivated();
-									current_menu_= new_menu;
-								}
-							}
-							else
-							{
-								current_menu_= root_menu_.get();
-								current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
-								current_menu_->OnActivated();
-							}
-							break;
-						default: break;
+						current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+						MenuBase* const new_menu= current_menu_->GetParent();
+						if( new_menu != current_menu_ )
+						{
+							if( new_menu != nullptr )
+								new_menu->OnActivated();
+							current_menu_= new_menu;
+						}
+					}
+					else
+					{
+						current_menu_= root_menu_.get();
+						current_menu_->PlayMenuSound( Sound::SoundId::MenuOn );
+						current_menu_->OnActivated();
 					}
 				}
 				break;
 			default:
 				break;
-
 		};
 
 		if( current_menu_ != nullptr )
@@ -2818,66 +2965,47 @@ void Menu::ProcessEventsWhileNonactive( const SystemEvents& events )
 		return;
 
 	PC_ASSERT( current_menu_ == nullptr );
-
+	Settings& settings = host_commands_.GetSettings();
 	for( const SystemEvent& event : events )
 	{
-		switch( event.type )
+		MenuBase* const previous_menu= current_menu_;
+		const KeyChecker key_pressed( settings, event );
+		if( key_pressed( SettingsKeys::key_save_menu, KeyCode::F2 ) )
 		{
-			case SystemEvent::Type::Key:
-				if( event.event.key.pressed )
-				{
-
-					MenuBase* const previous_menu= current_menu_;
-					switch( event.event.key.key_code )
-					{
-						case KeyCode::F2:
-							current_menu_= root_menu_->OpenSaveMenu();
-							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-							break;
-
-						case KeyCode::F3:
-							current_menu_= root_menu_->OpenLoadMenu();
-							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-							break;
-
-						case KeyCode::F4:
-							current_menu_= root_menu_->OpenOptionsMenu();
-							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-							break;
-
-						case KeyCode::F5:
-							current_menu_= root_menu_->OpenNetworkMenu();
-							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-							break;
-
-						case KeyCode::F6:
-							host_commands_.SaveGame(0u);
-							break;
-
-						case KeyCode::F9:
-							host_commands_.LoadGame(0u);
-							break;
-
-						case KeyCode::F10:
-							current_menu_= root_menu_->OpenQuitMenu();
-							root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
-							break;
-
-						case KeyCode::F12:
-							// TODO - take screenshot
-							break;
-
-						default:
-							break;
-					};
-
-					if( current_menu_ != nullptr && current_menu_ != previous_menu )
-						current_menu_->OnActivated();
-				}
-				break;
-			default:
-				break;
+			current_menu_= root_menu_->OpenSaveMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
 		}
+		if( key_pressed( SettingsKeys::key_load_menu, KeyCode::F3 ) )
+		{
+			current_menu_= root_menu_->OpenLoadMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+		}
+		if( key_pressed( SettingsKeys::key_options_menu, KeyCode::F4 ) )
+		{
+			current_menu_= root_menu_->OpenOptionsMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+		}
+		if( key_pressed( SettingsKeys::key_network_menu, KeyCode::F5 ) )
+		{
+			current_menu_= root_menu_->OpenNetworkMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+		}
+
+		if( key_pressed( SettingsKeys::key_save_game, KeyCode::F6 ) )
+		{
+			host_commands_.SaveGame(0u);
+		}
+		if( key_pressed( SettingsKeys::key_load_game, KeyCode::F9 ) )
+		{
+			host_commands_.LoadGame(0u);
+		}
+		if( key_pressed( SettingsKeys::key_quit_menu, KeyCode::F10 ) )
+		{
+			current_menu_= root_menu_->OpenQuitMenu();
+			root_menu_->PlayMenuSound( Sound::SoundId::MenuSelect );
+		}
+		if( current_menu_ != nullptr && current_menu_ != previous_menu )
+			current_menu_->OnActivated();
 	}
 }
 

@@ -3,6 +3,10 @@
 #include "files.hpp"
 
 #include "tga.hpp"
+#include <vector>
+#include <array>
+#include <cstdint>
+#include <cstring>
 
 namespace ChasmReverse
 {
@@ -39,11 +43,11 @@ void WriteTGA(
 	TGAHeader tga;
 
 	tga.id_length= 0;
-	tga.colormap_type= 1; // image with colormap
-	tga.image_type= 1; // image with palette without compression
+	tga.colormap_type= (palette == nullptr) ? 0 : 1; // image with/out colormap
+	tga.image_type= (palette == nullptr) ? 2 : 1; // image with/out palette without compression
 
 	tga.colormap_index= 0;
-	tga.colormap_length= 256;
+	tga.colormap_length= (palette == nullptr) ? 0 : 256;
 	tga.colormap_size= 32;
 
 	tga.x_origin= 0;
@@ -51,8 +55,8 @@ void WriteTGA(
 	tga.width = width ;
 	tga.height= height;
 
-	tga.pixel_bits= 8;
-	tga.attributes= 1 << 5; // vertical flip flag
+	tga.pixel_bits= (palette == nullptr) ? 32 : 8;
+	tga.attributes= (palette == nullptr) ? 0 : 1 << 5; // vertical flip flag
 	tga.attributes|= 8; // bits in alpha-channell
 
 	std::FILE* file= std::fopen( file_name, "wb" );
@@ -64,20 +68,30 @@ void WriteTGA(
 
 	FileWrite( file, &tga, sizeof(tga) );
 
-	unsigned char palette_rb_swapped[ 256 * 4 ];
-	for( unsigned int i= 0; i < 256; i++ )
+	if(palette != nullptr)
 	{
-		palette_rb_swapped[ i * 4 + 0 ]= palette[ i * 3 + 2 ];
-		palette_rb_swapped[ i * 4 + 1 ]= palette[ i * 3 + 1 ];
-		palette_rb_swapped[ i * 4 + 2 ]= palette[ i * 3 + 0 ];
-		palette_rb_swapped[ i * 4 + 3 ]= 255;
+		unsigned char palette_rb_swapped[ 256 * 4 ];
+		for( unsigned int i= 0; i < 256; i++ )
+		{
+			palette_rb_swapped[ i * 4 + 0 ]= palette[ i * 3 + 2 ];
+			palette_rb_swapped[ i * 4 + 1 ]= palette[ i * 3 + 1 ];
+			palette_rb_swapped[ i * 4 + 2 ]= palette[ i * 3 + 0 ];
+			palette_rb_swapped[ i * 4 + 3 ]= 255;
+		}
+		palette_rb_swapped[255 * 4 + 3]= 0;
+
+
+		FileWrite( file, palette_rb_swapped, sizeof(palette_rb_swapped) );
+		FileWrite( file, data, width * height );
 	}
-	palette_rb_swapped[255 * 4 + 3]= 0;
-
-
-	FileWrite( file, palette_rb_swapped, sizeof(palette_rb_swapped) );
-	FileWrite( file, data, width * height );
-
+	else
+	{
+		std::vector<std::array<uint8_t, 4>> pixels(width * height);
+		size_t i = 0;
+		for(auto & p : pixels)
+			p = { data[ i * 4 + 2 ], data[ i * 4 + 1 ], data[ i * 4 + 0 ], data[ i++ * 4 + 3 ] };
+		FileWrite( file, &pixels.front().front(), pixels.size() * pixels.front().size() * sizeof(pixels.front().front()) );
+	}
 	std::fclose( file );
 }
 

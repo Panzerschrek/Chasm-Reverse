@@ -1,14 +1,6 @@
 #include <cctype>
 #include <cstring>
 
-// Include OS-dependend stuff for "mkdir".
-#ifdef _WIN32
-#include <direct.h>
-#else
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
-
 #include "common/files.hpp"
 using namespace ChasmReverse;
 
@@ -16,7 +8,6 @@ using namespace ChasmReverse;
 
 #include "save_load.hpp"
 
-#define SAVES_DIR "saves"
 
 namespace PanzerChasm
 {
@@ -61,14 +52,14 @@ SaveHeader::HashType SaveHeader::CalculateHash( const unsigned char* data, unsig
 }
 
 bool SaveData(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	const SaveComment& save_comment,
 	const SaveLoadBuffer& data )
 {
-	FILE* f= std::fopen( file_name, "wb" );
+	FILE* f= std::fopen( file_name.native().c_str(), "wb" );
 	if( f == nullptr )
 	{
-		Log::Warning( "Can not write save \"", file_name, "\"" );
+		Log::Warning( "Can not write save \"", file_name.native(), "\"" );
 		return false;
 	}
 
@@ -88,13 +79,13 @@ bool SaveData(
 
 // Returns true, if all ok
 bool LoadData(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	SaveLoadBuffer& out_data )
 {
-	FILE* const f= std::fopen( file_name, "rb" );
+	FILE* const f= std::fopen( file_name.native().c_str(), "rb" );
 	if( f == nullptr )
 	{
-		Log::Warning( "Can not read save \"", file_name, "\"." );
+		Log::Warning( "Can not read save \"", file_name.native(), "\"." );
 		return false;
 	}
 
@@ -153,10 +144,10 @@ bool LoadData(
 }
 
 bool LoadSaveComment(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	SaveComment& out_save_comment )
 {
-	FILE* const f= std::fopen( file_name, "rb" );
+	FILE* const f= std::fopen( file_name.native().c_str(), "rb" );
 	if( f == nullptr )
 	{
 		return false;
@@ -179,21 +170,58 @@ bool LoadSaveComment(
 	return true;
 }
 
-void GetSaveFileNameForSlot(
-	const unsigned int slot_number,
-	char* const out_file_name,
-	const unsigned int out_file_name_max_length )
+std::filesystem::path GetSaveFileNameForSlot(const uint8_t slot_number)
 {
-	std::snprintf( out_file_name, out_file_name_max_length, SAVES_DIR"/save_%02d.pcs", slot_number );
+	static char tmp[12] = "save_";
+	std::snprintf( tmp, sizeof(tmp), "save_%02hhu.pcs", slot_number );
+	return std::filesystem::absolute(SAVES_DIR / tmp);
+}
+
+std::filesystem::path GetScreenShotFileNameForSlot( const uint8_t slot_number, const std::filesystem::path& shot_name )
+{
+	static char tmp[12] = "shot_";
+	std::snprintf( tmp, sizeof(tmp), "%4s_%02hhu.tga", shot_name.native().c_str(), slot_number );
+	return std::filesystem::absolute(SAVES_DIR / tmp);
+}
+
+uint8_t GetScreenShotSlotNumber( const std::filesystem::path& saves_dir )
+{
+	static uint8_t slot_number = 0;
+	int8_t slot_disk = -1;
+	for( const auto & entry : std::filesystem::directory_iterator( std::filesystem::absolute( SAVES_DIR ) ) )
+	{
+		if( entry.path().extension() == ".tga" )
+		{
+			const std::filesystem::path& shot_name = remove_extension(entry.path().filename());
+			if( shot_name.native().size() > 6 )
+			{
+				const char digits[3] = { shot_name.native().c_str()[5], shot_name.native().c_str()[6], '\0' };
+				if( isdigit( digits[0] ) && isdigit( digits[1] ) )
+				{
+					const uint8_t num = atoi( digits );
+					if( num > slot_disk ) slot_disk = num;
+
+				}
+			}
+		}
+
+	}
+
+	slot_disk++;
+	if(slot_disk == 0) return 0;
+
+	if(slot_disk > 99)
+		slot_number = slot_number > 99 ? 0 : slot_number;
+	else
+		slot_number = slot_disk;
+
+	return slot_number++;
 }
 
 void CreateSlotSavesDir()
 {
-#ifdef _WIN32
-	_mkdir( SAVES_DIR );
-#else
-	mkdir( SAVES_DIR, 0777 );
-#endif
+	if(!std::filesystem::exists(SAVES_DIR) && !std::filesystem::create_directories( SAVES_DIR ))
+		Log::Warning("Couldn't create saves directory: ", strerror(errno));
 }
 
 } // namespace PanzerChasm
