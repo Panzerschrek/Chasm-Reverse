@@ -259,7 +259,7 @@ windowed:
 	#ifndef __APPLE__
 	use_gl_context_for_software_renderer_= !is_opengl && settings_.GetOrSetBool( "r_software_use_gl_screen_update", true );
 	#endif
-    if( is_opengl )
+	if( is_opengl )
 	{
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 24 );
@@ -564,6 +564,7 @@ void SystemWindow::EndFrame()
 	}
 	else if( use_gl_context_for_software_renderer_ )
 	{
+	#ifndef __APPLE__
 		glBindTexture( GL_TEXTURE_2D, software_renderer_gl_texture_ );
 		glTexSubImage2D(
 			GL_TEXTURE_2D, 0,
@@ -572,16 +573,15 @@ void SystemWindow::EndFrame()
 
 		glEnable( GL_TEXTURE_2D );
 
-		#ifndef __APPLE__
 		glBegin( GL_QUADS );
 		glTexCoord2f( 0.0f, 0.0f ); glVertex2f( -1.0f, -1.0f * -1.0f );
 		glTexCoord2f( 1.0f, 0.0f ); glVertex2f( +1.0f, -1.0f * -1.0f );
 		glTexCoord2f( 1.0f, 1.0f ); glVertex2f( +1.0f, +1.0f * -1.0f );
 		glTexCoord2f( 0.0f, 1.0f ); glVertex2f( -1.0f, +1.0f * -1.0f );
 		glEnd();
-		#endif
 
 		SDL_GL_SwapWindow( window_ );
+	#endif
 	}
 	else
 	{
