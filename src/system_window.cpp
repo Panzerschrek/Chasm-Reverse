@@ -256,7 +256,9 @@ windowed:
 	viewport_size_.Width ()= static_cast<unsigned int>( width  / scale );
 	viewport_size_.Height()= static_cast<unsigned int>( height / scale );
 
+	#ifndef __APPLE__
 	use_gl_context_for_software_renderer_= !is_opengl && settings_.GetOrSetBool( "r_software_use_gl_screen_update", true );
+	#endif
 	if( is_opengl )
 	{
 		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
@@ -348,7 +350,9 @@ windowed:
 
 	if( is_opengl )
 	{
+		#ifndef __APPLE__
 		GetGLFunctions( SDL_GL_GetProcAddress );
+		#endif
 
 		#ifdef DEBUG
 		// Do reinterpret_cast, because on different platforms arguments of GLDEBUGPROC have
@@ -560,6 +564,7 @@ void SystemWindow::EndFrame()
 	}
 	else if( use_gl_context_for_software_renderer_ )
 	{
+	#ifndef __APPLE__
 		glBindTexture( GL_TEXTURE_2D, software_renderer_gl_texture_ );
 		glTexSubImage2D(
 			GL_TEXTURE_2D, 0,
@@ -576,6 +581,7 @@ void SystemWindow::EndFrame()
 		glEnd();
 
 		SDL_GL_SwapWindow( window_ );
+	#endif
 	}
 	else
 	{

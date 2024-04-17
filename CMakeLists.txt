@@ -59,6 +59,13 @@ if(WIN32)
 	set(CHASM_RESOURCES
 		res/PanzerChasm.rc
 	)
+elseif(APPLE)
+	find_package(OpenGL REQUIRED)
+	include_directories(${OPENGL_INCLUDE_DIR})
+	set(CHASM_LIBS
+		${CHASM_LIBS}
+		${OPENGL_LIBRARIES}
+	)
 else()
 	set(CHASM_LIBS
 		${CHASM_LIBS}
