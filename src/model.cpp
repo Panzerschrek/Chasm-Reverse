@@ -499,4 +499,9 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 	PC_ASSERT( sounds_offset == model_file.size() );
 }
 
+void LoadModel_gltf( const Vfs::FileContent& model_file, Model& out_model )
+{
+  ClearModel( out_model );
+}
+
 } // namespace ChasmReverse

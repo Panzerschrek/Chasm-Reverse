@@ -2,7 +2,13 @@ cmake_minimum_required(VERSION 3.1)
 
 project(Chasm-Reverse)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+
+include(CheckCXXSourceCompiles)
+include(GNUInstallDirs)
+
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(MSVC)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D _CRT_SECURE_NO_WARNINGS /MP")
@@ -10,21 +16,26 @@ if(MSVC)
 endif()
 
 option(BUILD_TOOLS "Enable compilation of tools" YES)
-include(CheckCXXSourceCompiles)
-include(GNUInstallDirs)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/physfs)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/tinygltf)
+
 find_package(SDL2 REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}/src/ ${CMAKE_CURRENT_SOURCE_DIR}/src/panzer_ogl_lib)
+	${CMAKE_CURRENT_SOURCE_DIR}/src/
+	${CMAKE_CURRENT_SOURCE_DIR}/src/panzer_ogl_lib
+	${CMAKE_CURRENT_SOURCE_DIR}/external/physfs/src
+	${CMAKE_CURRENT_SOURCE_DIR}/external/tinygltf)
 
 # Source and header files
 file(GLOB_RECURSE CHASM_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE CHASM_HEADERS 
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.inl")
+	"${CMAKE_CURRENT_SOURCE_DIR}/src/*.inl"
+	"${CMAKE_CURRENT_SOURCE_DIR}/external/physfs/src/*.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/external/tinygltf/*.h")
 
 # Detect MMX support
 
@@ -48,6 +59,8 @@ endif()
 
 set(CHASM_LIBS
 	${SDL2_LIBRARY}
+	physfs
+	tinygltf
 )
 
 if(WIN32)
