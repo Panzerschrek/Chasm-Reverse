@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 project(Chasm-Reverse)
+
+include(CheckCXXSourceCompiles)
+include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-include(CheckCXXSourceCompiles)
-include(GNUInstallDirs)
+if(${CMAKE_CXX_COMPILER_FRONTEND_VARIANT} STREQUAL "GNU")
+set(CMAKE_CXX_EXTENSIONS ON)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
