@@ -4,50 +4,52 @@
 #include <memory>
 #include <unordered_map>
 #include <vector>
+#include <system_error>
+#include <filesystem>
+#include <physfs.h>
+#include <algorithm>
+#include <cctype>
+#include <cstring>
+#include <map>
+#include "common/files.hpp"
+using namespace ChasmReverse;
+
+#include "log.hpp"
+
 
 namespace PanzerChasm
 {
 
-// Virtual file system
+
 class Vfs final
 {
 public:
 	typedef std::vector<unsigned char> FileContent;
+	enum flags
+	{
+		NIL = 0 << 0,
+		CSM = 1 << 0,
+		TAR = 1 << 1,
+		DIR = 1 << 2,
+	};
+	struct entry
+	{
+		std::filesystem::path path;
+		enum flags type;
+		bool lfn;
+	};
+	struct entry archive_;
+	struct entry addon_;
 
-	explicit Vfs( const char* archive_file_name, const char* addon_path= nullptr );
+	Vfs( const std::filesystem::path& archive_file, const std::filesystem::path& addon_path );
 	~Vfs();
-
-	FileContent ReadFile( const char* file_path ) const;
-	void ReadFile( const char* file_path, FileContent& out_file_content ) const;
-
+	Vfs::FileContent ReadFile( const std::filesystem::path& file_path ) const;
+	void ReadFile( const std::filesystem::path& file_path, FileContent& out_file_content ) const;
 private:
-	struct VirtualFile
-	{
-		unsigned int offset;
-		unsigned int size;
-	};
-
-	struct VurtualFileName
-	{
-		char text[12u]; // null terminated for names with length (1-11)
-
-		VurtualFileName( const char* in_text );
-		VurtualFileName( const char* in_text, size_t size );
-		bool operator==( const VurtualFileName& other ) const;
-	};
-
-	struct VurtualFileNameHasher
-	{
-		size_t operator()( const VurtualFileName& name ) const;
-	};
-
-	typedef std::unordered_map< VurtualFileName, VirtualFile, VurtualFileNameHasher > VirtualFiles;
-
-private:
-	std::FILE* const archive_file_;
-	const std::string addon_path_;
-
-	VirtualFiles virtual_files_;
+	int Type( const std::filesystem::path& file ) const; 
+	int SupportedFormats() const;
+	int formats_;
+	std::map<const std::filesystem::path, int> entries_;
 };
 
 } // namespace PanzerChasm

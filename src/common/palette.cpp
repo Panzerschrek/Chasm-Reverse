@@ -18,7 +18,7 @@ void LoadPalette( Palette& out_palette )
 		std::cout << "Could not read file \"" << palette_file_name << "\"" << std::endl;
 		return;
 	}
-
+	std::cout << "FOOO" << std::endl;
 	FileRead( file, out_palette.data(), out_palette.size() );
 
 	std::fclose( file );

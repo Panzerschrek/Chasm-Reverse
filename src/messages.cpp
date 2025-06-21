@@ -43,7 +43,7 @@ void MessagePositionToPosition( const Messages::CoordType* pos, m_Vec3& out_pos 
 
 Messages::AngleType AngleToMessageAngle( const float angle )
 {
-	return static_cast<Messages::AngleType>( angle * 65536.0f / Constants::two_pi );
+	return static_cast<Messages::AngleType>( NormalizeAngle( angle ) * 65536.0f / Constants::two_pi );
 }
 
 float MessageAngleToAngle( const Messages::AngleType angle )

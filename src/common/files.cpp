@@ -1,5 +1,4 @@
 #include "files.hpp"
-
 namespace ChasmReverse
 {
 
@@ -31,5 +30,5 @@ void FileWrite( std::FILE* const file, const void* buffer, const unsigned int si
 	} while( write_total < size );
 }
 
-
 } // namespace ChasmReverse
+

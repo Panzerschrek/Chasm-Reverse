@@ -1,7 +1,32 @@
+# Source temporaries
+*.cpp~
+*.hpp~
+src/.*.cpp.swp*
+src/.*.hpp.swp*
+src/*.cpp~
+src/*.hpp~
+src/common/*.cpp.swp*
+src/common/*.hpp.swp*
+src/common/*.cpp~
+src/common/*.hpp~
+src/sound/*.cpp.swp*
+src/sound/*.hpp.swp*
+src/sound/*.cpp~
+src/sound/*.hpp~
+src/server/*.cpp.swp*
+src/server/*.hpp.swp*
+src/server/*.cpp~
+src/server/*.hpp~
+src/net/*.cpp.swp*
+src/net/*.hpp.swp*
+src/net/*.cpp~
+src/net/*.hpp~
+
 # Windows binaries
 *.exe
 *.dll
-
+*a.out
+*.so
 
 # QtCreator project user settings
 *.user
@@ -20,17 +45,44 @@ build-*
 *.cfg
 
 # Game data
-csm.bin
-CSM.BIN
-CSM.bin
-csm.BIN
+*.bin
+*.BIN
+*.tar
+*.TAR
+CURSED/
+CURSED/*
+cursed/
+cursed/*
+MUSIC/
+MUSIC/*
+music/
+music/*
+ADDON1/
+ADDON1/*
+addon1/
+addon1/*
+borough/
+borough/*
+BOROUGH/
+BOROUGH/*
+USERMAP/
+USERMAP/*
+usermap/
+usermap/*
 
 # Game saves
 saves/*
+SAVES/*
+
+# Screen shots
+*.tga
+*.TGA
 
 # Build system
 CMakeFiles/*
 CMakeFiles
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
 cmake_install.cmake
 install_manifest.txt
 CMakeCache.txt
@@ -44,3 +96,4 @@ MapToTGAConverter
 ObjToTGAConverter
 PaletteExtractor
 PanzerChasm
+compile_commands.json

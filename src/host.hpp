@@ -50,8 +50,8 @@ public: // HostCommands
 
 	virtual void GetSavesNames( SavesNames& out_saves_names ) override;
 	virtual bool SaveAvailable() const override;
-	virtual void SaveGame( unsigned int slot_number ) override;
-	virtual void LoadGame( unsigned int slot_number ) override;
+	virtual void SaveGame( uint8_t slot_number ) override;
+	virtual void LoadGame( uint8_t slot_number ) override;
 
 	virtual void VidRestart() override;
 
@@ -70,8 +70,8 @@ private:
 	void DoVidRestart();
 
 	void DoRunLevel( unsigned int map_number, DifficultyType difficulty );
-	void DoSave( const char* save_file_name );
-	void DoLoad( const char* save_file_name );
+	void DoSave( const std::filesystem::path& save_file_name );
+	void DoLoad( const std::filesystem::path& save_file_name );
 
 	void DrawLoadingFrame( float progress, const char* caption );
 

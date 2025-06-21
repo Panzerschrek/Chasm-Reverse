@@ -4,3 +4,9 @@
 [submodule "src/panzer_ogl_lib"]
 	path = src/panzer_ogl_lib
 	url = http://github.com/Panzerschrek/panzer_ogl_lib
+[submodule "external/physfs"]
+	path = external/physfs
+	url = http://github.com/jopadan/physfs
+[submodule "external/meshoptimizer"]
+	path = external/meshoptimizer
+	url = https://github.com/zeux/meshoptimizer

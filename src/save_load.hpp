@@ -1,6 +1,9 @@
 #pragma once
+#include <filesystem>
 #include "assert.hpp"
 #include "fwd.hpp"
+
+const std::filesystem::path SAVES_DIR = "saves";
 
 namespace PanzerChasm
 {
@@ -27,23 +30,22 @@ SIZE_ASSERT( SaveHeader, 20u );
 
 // Returns true, if all ok
 bool SaveData(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	const SaveComment& save_comment,
 	const SaveLoadBuffer& data );
 
 // Returns true, if all ok
 bool LoadData(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	SaveLoadBuffer& out_data );
 
 bool LoadSaveComment(
-	const char* file_name,
+	const std::filesystem::path& file_name,
 	SaveComment& out_save_comment );
 
-void GetSaveFileNameForSlot(
-	unsigned int slot_number,
-	char* out_file_name,
-	unsigned int out_file_name_max_length );
+std::filesystem::path GetSaveFileNameForSlot( const uint8_t slot_number );
+std::filesystem::path GetScreenShotFileNameForSlot( const uint8_t slot_number, const std::filesystem::path& shot_name = "shot" );
+uint8_t GetScreenShotSlotNumber( const std::filesystem::path& saves_dir = SAVES_DIR );
 
 void CreateSlotSavesDir();
 

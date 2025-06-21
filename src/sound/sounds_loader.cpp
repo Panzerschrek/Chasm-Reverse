@@ -7,6 +7,7 @@
 #include "../vfs.hpp"
 
 #include "sounds_loader.hpp"
+#include "common/files.hpp"
 
 namespace PanzerChasm
 {
@@ -16,16 +17,6 @@ namespace Sound
 
 namespace
 {
-
-const char* ExtractExtension( const char* const file_path )
-{
-	unsigned int pos= std::strlen( file_path );
-
-	while( pos > 0u && file_path[ pos ] != '.' )
-		pos--;
-
-	return file_path + pos + 1u;
-}
 
 class RawPCMSoundData final : public ISoundData
 {
@@ -143,16 +134,15 @@ ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs )
 		Log::Warning( "Can not load \"", file_path, "\"" );
 		return nullptr;
 	}
+	const char* const extension = ExtractExtension( file_path );
 
-	const char* const extension= ExtractExtension( file_path );
-
-	if( std::strcmp( extension, "WAV" ) == 0 ||
-		std::strcmp( extension, "wav" ) == 0 )
-	{
-		return ISoundDataConstPtr( new WavSoundData( file_content ) );
-	}
+	if( strncmp( extension, "WAV", 3 ) == 0 || strncmp( extension, "wav", 3 ) == 0 )
+		return ISoundDataConstPtr( new WavSoundData( std::move( file_content ) ) );
 	else // *.SFX, *.PCM, *.RAW files
-		return ISoundDataConstPtr( new RawPCMSoundData( std::move( file_content ) ) );
+		if( vfs.archive_.type == Vfs::TAR )
+			return ISoundDataConstPtr( new WavSoundData( std::move( file_content ) ) );
+		else
+			return ISoundDataConstPtr( new RawPCMSoundData( std::move( file_content ) ) );
 
 	return nullptr;
 }
