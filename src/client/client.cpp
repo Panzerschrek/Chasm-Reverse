@@ -1,3 +1,4 @@
+#include <chrono>
 #include "../assert.hpp"
 #include "../game_constants.hpp"
 #include "../i_drawers_factory.hpp"
@@ -16,8 +17,9 @@
 #include "i_hud_drawer.hpp"
 #include "i_map_drawer.hpp"
 #include "i_minimap_drawer.hpp"
-
+#include "../key_checker.hpp"
 #include "client.hpp"
+#include "../common/str.hpp"
 
 namespace PanzerChasm
 {
@@ -138,8 +140,18 @@ void Client::Save( SaveLoadBuffer& buffer, SaveComment& out_save_comment )
 	for( const bool& wall_visibility : dynamic_walls_visibility )
 		save_stream.WriteBool( wall_visibility );
 
-	// Write comment
-	std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_data_->number, player_state_.health );
+
+
+	// Write timestamp or level/health to comment
+	if( StringEquals(settings_.GetString( SettingsKeys::save_comment, "time" ), "time") )
+	{
+		std::time_t timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::snprintf( out_save_comment.data(), sizeof(SaveComment), "%s", ctime( &timestamp ) + 4);
+	}
+	else
+	{
+		std::snprintf( out_save_comment.data(), sizeof(SaveComment), "Level%2d  health %03d", current_map_data_->number, player_state_.health );
+	}
 }
 
 void Client::Load( const SaveLoadBuffer& buffer, unsigned int& buffer_pos )
@@ -222,36 +234,30 @@ void Client::ProcessEvents( const SystemEvents& events )
 				event.event.mouse_move.dx );
 		}
 
-		// Select weapon.
-		if( event.type == SystemEvent::Type::Wheel && event.event.wheel.delta != 0 )
+		if( event.type == SystemEvent::Type::Key || event.type == SystemEvent::Type::MouseKey || event.type == SystemEvent::Type::Wheel)
 		{
-			if(event.event.wheel.delta > 0) TrySwitchWeaponNext();
-			if(event.event.wheel.delta < 0) TrySwitchWeaponPrevious();
-		}
+			const KeyChecker key_pressed( settings_, event );
 
-		if( event.type == SystemEvent::Type::MouseKey &&
-                    event.event.mouse_key.mouse_button == SystemEvent::MouseKeyEvent::Button::Middle )
-		{
-		    TrySwitchWeaponNext();
-		}
-
-		if( event.type == SystemEvent::Type::Key && event.event.key.pressed )
-		{
-			if( event.event.key.key_code >= KeyCode::K1 &&
-				static_cast<unsigned int>(event.event.key.key_code) < static_cast<unsigned int>(KeyCode::K1) + GameConstants::weapon_count )
+			if( key_pressed( SettingsKeys::key_weapon_next, KeyCode::MouseWheelDown ) ) TrySwitchWeaponNext();
+			if( key_pressed( SettingsKeys::key_weapon_prev, KeyCode::MouseWheelUp ) ) TrySwitchWeaponPrevious();
+			if( key_pressed( SettingsKeys::key_weapon_change, KeyCode::Mouse3 ) ) TrySwitchWeaponNext();
+			if( key_pressed( SettingsKeys::key_weapon_1, KeyCode::K1 ) ||
+			    key_pressed( SettingsKeys::key_weapon_2, KeyCode::K2 ) ||
+			    key_pressed( SettingsKeys::key_weapon_3, KeyCode::K3 ) ||
+			    key_pressed( SettingsKeys::key_weapon_4, KeyCode::K4 ) ||
+			    key_pressed( SettingsKeys::key_weapon_5, KeyCode::K5 ) ||
+			    key_pressed( SettingsKeys::key_weapon_6, KeyCode::K6 ) ||
+			    key_pressed( SettingsKeys::key_weapon_7, KeyCode::K7 ) ||
+			    key_pressed( SettingsKeys::key_weapon_8, KeyCode::K8 ) ||
+			    key_pressed( SettingsKeys::key_weapon_9, KeyCode::K9 ) )
 			{
 				unsigned int weapon_index=static_cast<unsigned int>( event.event.key.key_code ) - static_cast<unsigned int>( KeyCode::K1 );
 				if( player_state_.ammo[ weapon_index ] > 0u && ( player_state_.weapons_mask & (1u << weapon_index) ) != 0u )
 					requested_weapon_index_= weapon_index;
 			}
-
-			if( event.event.key.key_code == KeyCode::Tab )
-				minimap_mode_= !minimap_mode_;
-
-			if( event.event.key.key_code == KeyCode::Minus )
-				settings_.SetSetting( g_small_hud_mode, false );
-			if( event.event.key.key_code == KeyCode::Equals )
-				settings_.SetSetting( g_small_hud_mode, true );
+			if( key_pressed( SettingsKeys::key_minimap, KeyCode::Tab ) ) minimap_mode_= !minimap_mode_;
+			if( key_pressed( SettingsKeys::key_small_hud_off, KeyCode::Minus ) ) settings_.SetSetting( g_small_hud_mode, false );
+			if( key_pressed( SettingsKeys::key_small_hud_on, KeyCode::Equals ) ) settings_.SetSetting( g_small_hud_mode, true );
 		}
 	} // for events
 }
@@ -259,6 +265,7 @@ void Client::ProcessEvents( const SystemEvents& events )
 void Client::Loop( const InputState& input_state, const bool paused )
 {
 	const Time current_real_time= Time::CurrentTime();
+	const KeyChecker key_pressed( settings_, input_state );
 
 	// Calculate time, which we spend in pause.
 	// Subtract time, spended in pauses, from real time.
@@ -306,14 +313,16 @@ void Client::Loop( const InputState& input_state, const bool paused )
 
 	{ // Scale minimap.
 		const float log2_delta= 2.0f * tick_dt_s;
-		if( input_state.keyboard[ static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::SquareBrackretLeft ) ] )
+		
+		if( key_pressed( SettingsKeys::key_minimap_scale_dec, KeyCode::SquareBracketLeft ) )
 			minimap_scale_log2_-= log2_delta;
-		if( input_state.keyboard[ static_cast<unsigned int>( SystemEvent::KeyEvent::KeyCode::SquareBrackretRight ) ] )
+		if( key_pressed( SettingsKeys::key_minimap_scale_inc, KeyCode::SquareBracketRight ) )
 			minimap_scale_log2_+= log2_delta;
+
 		minimap_scale_log2_= std::max( -2.0f, std::min( minimap_scale_log2_, 1.0f ) );
 	}
 
-	camera_controller_.Tick( input_state.keyboard );
+	camera_controller_.Tick( input_state );
 
 	if( sound_engine_ != nullptr )
 	{
@@ -355,17 +364,17 @@ void Client::Loop( const InputState& input_state, const bool paused )
 		}
 		{ // Send move message
 			float move_direction, move_acceleration;
-			camera_controller_.GetAcceleration( input_state.keyboard, move_direction, move_acceleration );
+			camera_controller_.GetAcceleration( input_state, move_direction, move_acceleration );
 
 			Messages::PlayerMove message;
 			message.view_direction   = AngleToMessageAngle( camera_controller_.GetViewAngleZ() + Constants::half_pi );
 			message.move_direction   = AngleToMessageAngle( move_direction );
 			message.acceleration     = static_cast<unsigned char>( move_acceleration * 254.5f );
-			message.jump_pressed     = input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Right ) ] || camera_controller_.JumpPressed();
+			message.jump_pressed     = key_pressed( SettingsKeys::key_jump, KeyCode::Mouse2 ) || camera_controller_.JumpPressed();
 			message.weapon_index     = requested_weapon_index_;
 			message.view_dir_angle_x = AngleToMessageAngle( camera_controller_.GetViewAngleX() );
 			message.view_dir_angle_z = AngleToMessageAngle( camera_controller_.GetViewAngleZ() );
-			message.shoot_pressed    = input_state.mouse[ static_cast<unsigned int>( SystemEvent::MouseKeyEvent::Button::Left ) ];
+			message.shoot_pressed    = key_pressed( SettingsKeys::key_fire, KeyCode::Mouse1 );
 			message.color            = settings_.GetOrSetInt( SettingsKeys::player_color );
 			connection_info_->messages_sender.SendUnreliableMessage( message );
 		}

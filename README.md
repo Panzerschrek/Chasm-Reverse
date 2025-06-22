@@ -20,18 +20,24 @@ https://en.wikipedia.org/wiki/Chasm:_The_Rift.
 
 ### Building
 
-Install/extract the GOG version and mount the bin/cue image at
+Install/extract the GOG version to
 
-`GOG\ Games\Chasm\ The\ Rift/Chasm\ The\ Rift\ Original/CHASMPR.CUE`
+`GOG_INSTALL_PATH=C:\GOG\ Games\Chasm\ The\ Rift/`
 
- in cdemu or dosbox and install running `dossetup.exe` to `DOS_INSTALL_PATH=C:\CHASM`.
+mount the bin/cue image at
+
+`$GOG_INSTALL_PATH/Chasm\ The\ Rift\ Original/CHASMPR.CUE`
+
+in cdemu or dosbox and install running `dossetup.exe` to `DOS_INSTALL_PATH=C:\CHASM`.
 
 ```sh
 git clone --recurse-submodules --recursive http://github.com/Panzerschrek/Chasm-Reverse
 cd Chasm-Reverse
 cp -ar $DOS_INSTALL_PATH/CSM.BIN .
+cp -ar $GOG_INSTALL_PATH/csm.bin csm.tar
 cmake .
 ```
+
 ### Installation
 
 Copy CSM.BIN from the original game folder and shaders/ from the Chasm-Reverse to the destination directory DESTDIR
@@ -52,37 +58,26 @@ the command option `--csm` strings, for example:
 
 `./PanzerChasm --csm CSM_RUS.BIN`
 
-To run the add-on, you must additionally specify the path to it through the 
-parameter command line `--addon`, for example:
-
-`./PanzerChasm --addon ADDON1`
-
 In order to execute some console command at start, use `--exec` option, for example:
 
  `./PanzerChasm --exec "load saves/save_00.pcs"` to start game and immediately load first saved game.
 
+#### Available add-ons:
 
-#### Control
+* Chasm - The Shadow Zone: ADDON1
+* Chasm - Cursed Land    : cursed
+* Chasm - Grim Borough   : borough
 
-##### Keyboard
+To run the add-on, you must additionally specify the path to it through the 
+parameter command line `--addon` or `-addon`, for example:
 
-* WASD - movement
-* SPACE - jump
-* digits 1-8 - weapon selection
-* "~" - open/close the console
-* ESC - menu.
-* TAB - auto complete commands at the console
+`./PanzerChasm --addon ADDON1`
 
-##### Mouse
+### Resources
 
-* left mouse button   - fire/(select menu)
-* middle mouse button - weapon next
-* right mouse button  - jump/(back/escape menu)
-* mouse wheel up/down - weapon next/previous
-
-Part of the control can be changed in the settings menu.
-
-
+* [AwesomeChasm](https://github.com/jopadan/awesomeChasm)
+* [Shikadi Modding Wiki](https://moddingwiki.shikadi.net/wiki/Chasm:_The_Rift)
+* [The Shadow Zone](https://discord.com/channels/768103789411434586/1374778669612007527)
 
 ### Authors
 Copyright © 2016-2023 Artöm "Panzerschrek" Kunz, github contributors.

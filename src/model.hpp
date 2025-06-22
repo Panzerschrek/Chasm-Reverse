@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
-
 #include <bbox.hpp>
-
 #include "assert.hpp"
 #include "vfs.hpp"
 
@@ -55,7 +53,8 @@ struct Submodel
 	std::vector<m_BBox3> animations_bboxes;
 
 	// Associated with models sounds (raw PCM)
-	std::vector< std::vector<unsigned char> > sounds;
+	std::array< std::vector<unsigned char>, 8 > sounds;
+	std::array< unsigned char, 3 > sound_monster_id;
 
 	float z_min, z_max;
 };
@@ -75,5 +74,6 @@ void LoadModel_o3(
 	Model& out_model );
 
 void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model );
+void LoadModel_gltf( const Vfs::FileContent& model_file, Model& out_model );
 
 } // namespace ChasmReverse
