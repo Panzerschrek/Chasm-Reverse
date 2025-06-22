@@ -41,10 +41,7 @@ struct CARHeader
 {
 	// AniMap
 	std::array< unsigned short, 20 > animations;
-	std::array< std::array<unsigned short, 2>, 3 > submodels_animations;
-	// zero most of the time probably 6, 7, 8 - gibs type 
-	std::array< unsigned short, 6 > unknown0;
-
+	std::array< std::array<unsigned short, 2>, 6 > submodels_animations;
 	// GSND sound id
 	std::array< unsigned short, 3 > sounds;
 	// SFXSize sound length in bytes
@@ -429,14 +426,14 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		out_model.texture_data.size() +
 		out_model.frame_count * sizeof(Vertex_o3) * vertex_count;
 
-	out_model.submodels.resize(3u);
+	out_model.submodels.resize(header->submodels_animations.size());
 	for( Submodel& submodel : out_model.submodels )
 	{
 		submodel.frame_count= 0u;
 		submodel.z_min= submodel.z_max= 0.0f;
 	}
 
-	for( unsigned int i= 0u; i < 3u; i++ )
+	for( unsigned int i= 0u; i < header->submodels_animations.size(); i++ )
 	{
 		const unsigned int c_animation_data_offset= 0x4806u;
 
@@ -463,7 +460,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		// Setup animations.
 		// Each submodel have up to 2 animations.
 		unsigned int first_submodel_animation_frame= 0u;
-		for( unsigned int a= 0u; a < 2u; a++ )
+		for( unsigned int a= 0u; a < header->submodels_animations[i].size(); a++ )
 		{
 			const unsigned int animation_frame_count=
 				header->submodels_animations[i][a] / ( sizeof(Vertex_o3) * vertex_count );
@@ -482,7 +479,7 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 		submodels_offset+= c_animation_data_offset + submodel_animation_data_size;
 	} // for submodels
 
-	for( unsigned int i= 0u; i < 8; i++ )
+	for( unsigned int i= 0u; i < header->sfx_len.size(); i++ )
 	{
 		std::vector<unsigned char>& sound= out_model.sounds[i];
 		sound.resize( header->sfx_len[i] );
@@ -495,7 +492,8 @@ void LoadModel_car( const Vfs::FileContent& model_file, Model& out_model )
 
 void LoadModel_gltf( const Vfs::FileContent& model_file, Model& out_model )
 {
-  ClearModel( out_model );
+	ClearModel( out_model );
+
 }
 
 } // namespace ChasmReverse

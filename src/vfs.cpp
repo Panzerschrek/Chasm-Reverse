@@ -79,7 +79,7 @@ namespace PanzerChasm {
 		{
 			if( (PHYSFS_mount( archive_.path.c_str(), "/", 0 ) == 0) )
 			{
-				Log::FatalError( "Could not open archice file \"", archive_.path, "\"" );
+				Log::FatalError( "Could not open archive file \"", archive_.path, "\"" );
 				PHYSFS_deinit();
 				std::error_code ec;
 				throw std::filesystem::filesystem_error( std::string( "Could not initialize PhysFS!" ), ec );
