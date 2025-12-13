@@ -4,7 +4,7 @@
 #include "assert.hpp"
 #include "log.hpp"
 #include "math_utils.hpp"
-
+#include "common/files.hpp"
 #include "map_loader.hpp"
 
 namespace PanzerChasm
@@ -59,41 +59,6 @@ SIZE_ASSERT( MapMonster, 8 );
 
 namespace
 {
-
-// Case-unsensitive strings equality-comparision
-static bool StringEquals( const char* const s0, const char* const s1 )
-{
-	unsigned int i= 0;
-	while( s0[i] != '\0' && s1[i] != '\0' )
-	{
-		if( std::tolower( s0[i] ) != std::tolower( s1[i] ) )
-			return false;
-		i++;
-	}
-
-	return std::tolower( s0[i] ) == std::tolower( s1[i] );
-}
-
-// Case-unsensitive substring search
-static const char* GetSubstring( const char* const search_where, const char* const search_what )
-{
-	const char* str= search_where;
-	while( *str != '\0' )
-	{
-		unsigned int i= 0u;
-
-		while( str[i] != '\0' && search_what[i] != '\0' &&
-				std::tolower( str[i] ) == std::tolower( search_what [i] ) )
-			i++;
-
-		if( search_what [i] == '\0' )
-			return str;
-
-		str++;
-	}
-
-	return nullptr;
-}
 
 static decltype(MapData::Link::type) LinkTypeFromString( const char* const str )
 {

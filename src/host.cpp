@@ -1,5 +1,3 @@
-#include <cstring>
-
 #include <framebuffer.hpp>
 #include <glsl_program.hpp>
 #include <ogl_state_manager.hpp>
@@ -15,7 +13,8 @@
 #include "shared_drawers.hpp"
 #include "save_load.hpp"
 #include "sound/sound_engine.hpp"
-
+#include "key_checker.hpp"
+#include "shared_settings_keys.hpp"
 #include "host.hpp"
 
 namespace PanzerChasm
@@ -89,34 +88,31 @@ Host::Host( const int argc, const char* const* const argv )
 	base_window_title_= "PanzerChasm";
 
 	{
-		Log::Info( "Read game archive" );
+		Log::Info( "Initializing data files...\n" );
+		std::filesystem::path csm_file = "CSM.BIN";
+		std::filesystem::path addon_path;
+		if( program_arguments_.GetParamValue( "csm" ) != nullptr )
+			csm_file= program_arguments_.GetParamValue( "csm" );
 
-		const char* csm_file= "CSM.BIN";
-		if( const char* const overrided_csm_file = program_arguments_.GetParamValue( "csm" ) )
-		{
-			csm_file= overrided_csm_file;
-			Log::Info( "Trying to load CSM file: \"", overrided_csm_file, "\"" );
-		}
+		if( program_arguments_.GetParamValue( "addon" ) != nullptr )
+			addon_path= program_arguments_.GetParamValue( "addon" );
 
-		const char* const addon_path= program_arguments_.GetParamValue( "addon" );
-		if( addon_path != nullptr )
+		if( !addon_path.empty() )
 		{
 			base_window_title_+= " - ";
 			base_window_title_+= addon_path;
-
-			Log::Info( "Trying to load addon \"", addon_path, "\"" );
 		}
 
 		vfs_= std::make_shared<Vfs>( csm_file, addon_path );
+		Log::Info("");
 	}
 
 	// Create directory for saves.
 	// TODO - allow user change this directory, using command-line argument or settings, for example.
 	CreateSlotSavesDir();
-
 	Log::Info( "Loading game resources" );
 	game_resources_= LoadGameResources( vfs_ );
-
+	Log::Info( "" );
 	VidRestart();
 
 	Log::Info( "Initialize console" );
@@ -155,7 +151,6 @@ Host::~Host()
 bool Host::Loop()
 {
 	const Time tick_start_time= Time::CurrentTime();
-
 	// Events processing
 	InputState input_state;
 	if( system_window_ != nullptr )
@@ -164,7 +159,6 @@ bool Host::Loop()
 		system_window_->GetInput( events_ );
 		system_window_->GetInputState( input_state );
 	}
-
 	// Special host key events.
 	for( const SystemEvent& event : events_ )
 	{
@@ -223,6 +217,7 @@ bool Host::Loop()
 			client_->Loop( input_state, really_paused );
 	}
 
+
 	// Draw operations
 	if( system_window_ && !system_window_->IsMinimized() )
 	{
@@ -262,6 +257,11 @@ bool Host::Loop()
 		}
 
 		system_window_->EndFrame();
+
+		const KeyChecker key_pressed( settings_, input_state );
+		
+		if( !input_goes_to_menu && key_pressed( SettingsKeys::key_screenshot, KeyCode::F12 ) )
+			system_window_->CaptureScreen();
 	}
 
 
@@ -398,28 +398,20 @@ void Host::GetSavesNames( SavesNames& out_saves_names )
 	{
 		SaveComment& out_save_comment= out_saves_names[slot];
 
-		char file_name[32];
-		GetSaveFileNameForSlot( slot, file_name, sizeof(file_name) );
-
-		if( LoadSaveComment( file_name, out_save_comment ) )
-		{ /* all ok */ }
-		else
+		std::filesystem::path file_name = GetSaveFileNameForSlot( slot );
+		if( !LoadSaveComment( file_name, out_save_comment ) )
 			out_save_comment[0]= '\0';
 	}
 }
 
-void Host::SaveGame( const unsigned int slot_number )
+void Host::SaveGame( const uint8_t slot_number )
 {
-	char file_name[64];
-	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
-	DoSave( file_name );
+	DoSave( GetSaveFileNameForSlot( slot_number ) );
 }
 
-void Host::LoadGame( const unsigned int slot_number )
+void Host::LoadGame( const uint8_t slot_number )
 {
-	char file_name[64];
-	GetSaveFileNameForSlot( slot_number, file_name, sizeof(file_name) );
-	DoLoad( file_name );
+	DoLoad( GetSaveFileNameForSlot( slot_number ) );
 }
 
 void Host::VidRestart()
@@ -606,7 +598,7 @@ void Host::DoRunLevel( const unsigned int map_number, const DifficultyType diffi
 	is_single_player_= true;
 }
 
-void Host::DoSave( const char* const save_file_name )
+void Host::DoSave( const std::filesystem::path& save_file_name )
 {
 	if( !( local_server_ != nullptr && client_ != nullptr && is_single_player_ ) )
 	{
@@ -628,7 +620,7 @@ void Host::DoSave( const char* const save_file_name )
 		Log::User( "Game save failed." );
 }
 
-void Host::DoLoad( const char* const save_file_name )
+void Host::DoLoad( const std::filesystem::path& save_file_name )
 {
 	SaveLoadBuffer save_buffer;
 	unsigned int save_buffer_pos= 0u;
